@@ -2221,23 +2221,14 @@ export default {
       const apiResponse = await routeApi(request, env, url);
       if (apiResponse) return apiResponse;
 
-      const assetResponse = await env.ASSETS.fetch(request);
-
-      // Audit fix: only the HTML shell and service worker must never be
-      // cached — they're what points the browser at the *current* asset
-      // versions. app.js/styles.css/etc. are requested with a `?v=` cache
-      // buster from index.html, so they're safe to cache long-term
-      // (immutable). That long-lived Cache-Control now comes from
-      // public/_headers instead of being forced to no-store here.
-      if (!["/", "/index.html", "/sw.js"].includes(url.pathname)) return assetResponse;
-
-      const headers = new Headers(assetResponse.headers);
-      headers.set("Cache-Control", "no-cache, no-store, must-revalidate");
-      return new Response(assetResponse.body, {
-        status: assetResponse.status,
-        statusText: assetResponse.statusText,
-        headers,
-      });
+      // Audit fix: Cache-Control for every static path (including the
+      // always-fresh HTML shell/service worker vs. the long-lived,
+      // ?v=-versioned app.js/styles.css/etc.) is set via public/_headers.
+      // Cloudflare serves static-asset-shaped requests directly from the
+      // Assets binding without invoking this fetch handler, so header
+      // rewrites attempted here never actually run for those requests —
+      // _headers is the mechanism that does.
+      return env.ASSETS.fetch(request);
     } catch (error) {
       console.error(
         JSON.stringify({
