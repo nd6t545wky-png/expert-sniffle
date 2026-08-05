@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="index,follow" />
+    <link rel="stylesheet" href="/legal.css" />
+    <title>Privacy Policy · Pitching OS</title>
+  </head>
+  <body>
+    <main class="legal-shell">
+      <nav class="legal-nav"><a class="legal-brand" href="/">Pitching OS</a><a href="/terms.html">Terms of Service</a></nav>
+      <article class="legal-card">
+        <h1>Privacy Policy</h1>
+        <p class="legal-updated">Effective 16 July 2026</p>
+        <p>Pitching OS is a private athlete training, nutrition and wellness dashboard. This policy explains how information is handled when an athlete uses the service, uploads pitching film, submits a meal photo for one-time analysis, or connects Oura or an Apple Health upload automation.</p>
+
+        <h2>Information handled</h2>
+        <ul>
+          <li>Google account identity used for sign-in, including name, email address, provider account identifier and profile image when supplied by Google; secure session records; and passkey public-key records and device labels.</li>
+          <li>Training plans, completed tasks, performance records, personal bests, readiness answers, session notes and an optional compressed profile photo entered by the athlete.</li>
+          <li>PULSE or TRAQ sensor metrics previously imported by the athlete or entered manually from the official service.</li>
+          <li>AI movement-screen observations, qualitative ratings, notes, private pitching film and athlete-approved drill or gym-emphasis changes.</li>
+          <li>Nutrition targets, water and meal logs, one-time meal-photo analysis, barcode lookups, restaurant-source links and athlete-confirmed calorie or macronutrient values.</li>
+          <li>Oura fields returned through the Oura Cloud API from the categories requested and granted by the athlete, which may include profile, sleep, activity, readiness, heart-rate, workout, tag, session, SpO₂, stress, resilience, cardiovascular-age, VO₂-max, Rest Mode and ring-status data. Oura may not expose every app or device value through its API, and returned data can be delayed or absent.</li>
+          <li>Apple Health summary values sent by the athlete’s private iPhone automation, such as sleep duration, HRV, resting heart rate and bodyweight.</li>
+          <li>Technical records needed to operate secure sync and data connections.</li>
+        </ul>
+
+        <h2>How information is used</h2>
+        <p>Information is used only to display, calculate and adapt the athlete’s pitching, strength, nutrition, recovery and readiness dashboard. A meal photo may be processed once by Cloudflare Workers AI to create an editable estimate. The image is not written to object storage or the nutrition log; only athlete-confirmed meal data is saved. Health, training and nutrition data is not sold, used for advertising or used to build advertising profiles.</p>
+
+        <h2>Storage and security</h2>
+        <p>Dashboard snapshots are encrypted in the browser before cloud autosave. The workspace encryption key is wrapped by a separate server-side key and released only after an authenticated account session so the same encrypted data can open on another signed-in device. This is account-based encryption, not zero-knowledge storage: the service can unwrap the workspace key after successful sign-in. Oura access and refresh tokens, and imported daily health summaries, are separately encrypted before database storage. Google sign-in credentials and secure session records are stored only as needed to operate account access; Pitching OS does not use them to read unrelated Google data. Passkeys store a public key and device label. Face ID, Touch ID, fingerprints, facial templates and device passcodes remain on the user’s device and are never received by Pitching OS. Apple Health Shortcut uploads require a private, revocable upload token. Pitching film is stored in a private R2 object store and delivered through short-lived links. Meal images exist only for the analysis request and an optional temporary preview on the athlete’s device; they are not retained by Pitching OS. Reasonable safeguards are used, but no online system can guarantee absolute security.</p>
+
+        <h2>Connected services</h2>
+        <p>Oura data is accessed only after the athlete grants permissions through Oura’s authorization screen. Available returned values may be imported so the athlete does not have to re-enter them. Oura access can be revoked in Pitching OS or through the athlete’s Oura account. A normal website cannot read Apple Health directly; Apple Health data reaches Pitching OS only when the athlete configures and runs a private iPhone Shortcut upload.</p>
+
+        <h2>Sharing</h2>
+        <p>Information is not shared with advertisers or data brokers. Infrastructure providers may process encrypted or operational data only as needed to host and secure the service. Information may be disclosed if required by law or to protect the service from abuse.</p>
+
+        <h2>Retention and deletion</h2>
+        <p>Information remains available while the athlete keeps the account or an integration enabled. Disconnecting a health integration deletes its stored connection and imported summaries. Meal photos are not retained after analysis; deleting a meal removes its saved nutrition values. Deleting a pitching clip removes its private media object. Account and cloud-data deletion controls may remove the associated dashboard snapshot, integrations and retained pitching media; operational backups may persist for a limited period.</p>
+
+        <h2>Athlete control</h2>
+        <p>The athlete may review and export dashboard data, sign out of devices, manage passkeys, disconnect Oura or Apple Health, replace an Apple upload key, and request deletion of account data.</p>
+
+        <h2>Health disclaimer</h2>
+        <p class="legal-note">Pitching OS is a training record and decision-support tool, not a medical device or dietetic service. Its planning score and AI movement-screen ratings do not measure injury risk, diagnose injury or illness, or clear participation. A single phone video does not provide validated three-dimensional joint angles, forces or tissue loads. Photo-based food values are estimates and must be reviewed by the athlete. Pain, neurological symptoms, significant health concerns or specialised nutrition needs require qualified professional assessment.</p>
+
+        <h2>Changes and contact</h2>
+        <p>This policy may be updated when features or legal requirements change. Questions or privacy requests can be submitted to the operator through the Pitching OS account owner.</p>
+      </article>
+    </main>
+  </body>
+</html>

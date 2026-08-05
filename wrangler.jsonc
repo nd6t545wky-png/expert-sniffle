@@ -1,0 +1,70 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "dylan-pitching-os",
+  "main": "src/index.ts",
+  // NOTE: reconstructed from the deployed bundle — confirm this matches
+  // whatever compatibility_date the original project actually used.
+  "compatibility_date": "2026-07-15",
+  "compatibility_flags": ["nodejs_compat"],
+  // Fixes the "ships raw, unminified vendor source" audit finding: the
+  // deployed Worker script was never minified. This minifies it at deploy time.
+  "minify": true,
+
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application"
+  },
+
+  "vars": {
+    "APP_ORIGIN": "https://dylan-pitching-os.tourmaline-goldfish.workers.dev"
+  },
+
+  "d1_databases": [
+    {
+      "binding": "SYNC_DB",
+      "database_name": "dylan-pitching-os-sync",
+      "database_id": "dbf28152-9081-4b6d-a3ec-6753240d92c0"
+    }
+  ],
+
+  "r2_buckets": [
+    {
+      "binding": "PRIVATE_MEDIA",
+      "bucket_name": "pitching-os-private-media"
+    }
+  ],
+
+  "ai": {
+    "binding": "AI"
+  },
+
+  "images": {
+    "binding": "IMAGES"
+  },
+
+  // Native Workers Rate Limiting bindings. limit/period below are
+  // placeholders — the original values aren't visible in the deployed
+  // bundle (rate limit config isn't part of the Worker script itself).
+  // Confirm/adjust before deploying.
+  "unsafe": {
+    "bindings": [
+      {
+        "name": "AI_RATE_LIMITER",
+        "type": "ratelimit",
+        "namespace_id": "1001",
+        "simple": { "limit": 20, "period": 60 }
+      },
+      {
+        "name": "INTEGRATION_RATE_LIMITER",
+        "type": "ratelimit",
+        "namespace_id": "1002",
+        "simple": { "limit": 10, "period": 60 }
+      }
+    ]
+  }
+
+  // Secrets (set with `wrangler secret put <NAME>`, never committed here):
+  //   BETTER_AUTH_SECRET, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET,
+  //   OURA_CLIENT_ID, OURA_CLIENT_SECRET, HEALTH_TOKEN_KEY, WORKSPACE_MASTER_KEY
+}
