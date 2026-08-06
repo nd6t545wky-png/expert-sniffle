@@ -19,8 +19,10 @@ const context = await browser.newContext({ viewport: { width: 390, height: 844 }
 const page = await context.newPage();
 
 const consoleErrors = [];
+const failedRequests = [];
 page.on("console", (m) => m.type() === "error" && consoleErrors.push(m.text()));
 page.on("pageerror", (e) => consoleErrors.push(String(e)));
+page.on("response", (r) => r.status() >= 400 && failedRequests.push(`${r.status()} ${r.url()}`));
 
 const go = async (label) => {
   await page.click(`nav button:has-text("${label}")`);
@@ -157,6 +159,39 @@ const dash = await page.textContent("#root");
 check("dashboard shows readiness score", /\d+\/100/.test(dash));
 check("dashboard shows programme phase", /Winter Ball|Transition|Velocity|Preseason|Summer/.test(dash));
 
+// ------------------------------------------------- new feature sections
+for (const label of ["Nutrition", "Mechanics", "Integrations", "Account"]) {
+  await go(label);
+  const rendered = await page.isVisible("#root section");
+  const noOverflow = await page.evaluate(
+    () => document.documentElement.scrollWidth <= document.documentElement.clientWidth
+  );
+  check(`${label} renders`, rendered);
+  check(`${label} has no horizontal overflow`, noOverflow);
+}
+
+// Nutrition works without a sync key (local logging), integrations do not.
+await go("Nutrition");
+check("nutrition usable without cloud", (await page.textContent("#root")).includes("Hydration"));
+const beforeHydration = await storage();
+await page.click('button:has-text("+0.5 L")');
+await page.waitForTimeout(250);
+const afterHydration = await storage();
+check(
+  "hydration logged and persisted",
+  JSON.stringify(beforeHydration?.nutrition?.hydration) !== JSON.stringify(afterHydration?.nutrition?.hydration)
+);
+
+await go("Integrations");
+check("integrations gated behind cloud autosave", (await page.textContent("#root")).includes("cloud autosave"));
+
+await go("Mechanics");
+check("mechanics gated behind cloud autosave", (await page.textContent("#root")).includes("cloud autosave"));
+
+await go("Account");
+check("account explains the recovery key", (await page.textContent("#root")).includes("server never sees it"));
+check("sync disabled without a key", await page.getAttribute('button:has-text("Sync now")', "disabled") !== null);
+
 // -------------------------------------------------------- corrupt data
 await page.evaluate(() => localStorage.setItem("dylan-pitching-os-v1", "{ not json"));
 await page.reload({ waitUntil: "networkidle" });
@@ -169,8 +204,20 @@ const backedUp = await page.evaluate(() =>
 );
 check("original bytes preserved under a backup key", backedUp);
 
+
 // ---------------------------------------------------------------- output
-check("no console errors", consoleErrors.length === 0, consoleErrors.slice(0, 3).join(" | "));
+// This harness serves dist/ as static files, so there is no Worker and every
+// /api/* call 404s by design. Those are expected here; anything else is not.
+const apiFailures = failedRequests.filter((entry) => entry.includes("/api/"));
+const assetFailures = failedRequests.filter((entry) => !entry.includes("/api/"));
+check("no failed asset requests", assetFailures.length === 0, assetFailures.slice(0, 3).join(" | "));
+check(
+  "only expected /api 404s against the static harness",
+  apiFailures.every((entry) => entry.startsWith("404")),
+  apiFailures.slice(0, 3).join(" | ")
+);
+const realErrors = consoleErrors.filter((text) => !/status of 404/.test(text));
+check("no unexpected console errors", realErrors.length === 0, realErrors.slice(0, 3).join(" | "));
 
 await browser.close();
 console.log(results.join("\n"));
