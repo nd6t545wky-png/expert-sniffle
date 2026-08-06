@@ -24,9 +24,30 @@ page.on("console", (m) => m.type() === "error" && consoleErrors.push(m.text()));
 page.on("pageerror", (e) => consoleErrors.push(String(e)));
 page.on("response", (r) => r.status() >= 400 && failedRequests.push(`${r.status()} ${r.url()}`));
 
+const NAV = {
+  Dashboard: "Today", Session: "Plan", Tracking: "Progress", Nutrition: "Nutrition", Account: "More",
+  Readiness: "Readiness", Workload: "Workload", Annual: "Year", Mechanics: "Biomechanics", Integrations: "Connections",
+};
 const go = async (label) => {
-  await page.click(`nav button:has-text("${label}")`);
-  await page.waitForTimeout(120);
+  const target = NAV[label] ?? label;
+  // Prefer the bottom nav; fall back to the sidebar for sections it omits.
+  const bottom = page.locator(`.bottom-nav button:has-text("${target}")`);
+  if (await bottom.count()) {
+    await bottom.first().click();
+  } else {
+    // Sections the bottom nav cannot hold live behind "More" on a phone.
+    await page.locator('.bottom-nav button:has-text("More")').click();
+    await page.waitForTimeout(150);
+    await page.locator(`.content .nav-item:has-text("${target}")`).first().click();
+  }
+  await page.waitForTimeout(150);
+};
+// Readiness and workload are reached from the dashboard's metric tiles, as
+// in the original — so make sure we are on the dashboard first.
+const shortcut = async (label) => {
+  await go("Dashboard");
+  await page.locator(`.metric-shortcut:has-text("${label}")`).first().click();
+  await page.waitForTimeout(200);
 };
 const storage = () => page.evaluate(() => JSON.parse(localStorage.getItem("dylan-pitching-os-v1") || "null"));
 
@@ -37,7 +58,7 @@ await go("Session");
 check("session starts locked", (await page.textContent("#root")).includes("Locked"));
 check("tasks hidden while locked", !(await page.isVisible('button:has-text("Mark complete")')));
 
-await go("Workload");
+await shortcut("Active workload");
 await page.selectOption("select", "high");
 await page.click('button:has-text("Log throwing")');
 await page.waitForTimeout(120);
@@ -45,7 +66,7 @@ const preAuth = await page.textContent('[role="alert"]');
 check("high intent blocked before readiness", preAuth && preAuth.length > 0, preAuth?.slice(0, 60));
 
 // ------------------------------------------------------- readiness: hold
-await go("Readiness");
+await shortcut("Readiness");
 const setRange = async (label, value) => {
   const el = page.locator(`label:has-text("${label}") input[type="range"]`).first();
   await el.evaluate((node, v) => {
@@ -90,7 +111,7 @@ check("session now unlocked", !(await page.textContent("#root")).includes("Locke
 check("tasks visible", await page.isVisible('button:has-text("Mark complete")'));
 
 // -------------------------------------------------------- duplicate guard
-await go("Readiness");
+await shortcut("Readiness");
 await page.click('button:has-text("Submit readiness")');
 await page.waitForTimeout(200);
 const dupText = await page.textContent("#root");
@@ -108,7 +129,7 @@ check("task completion persisted", tasksDone.length === 1, JSON.stringify(tasksD
 check("completed task shows as logged", await page.isVisible('button:has-text("Logged")'));
 
 // ------------------------------------------------------------- workload
-await go("Workload");
+await shortcut("Active workload");
 const today = await page.evaluate(() => new Date().getDay()); // 0=Sun
 const isHighIntentDay = today === 3 || today === 6; // Wed or Sat
 await page.selectOption("select", "high");
@@ -163,8 +184,10 @@ check("plan still unlocked after reload", !(await page.textContent("#root")).inc
 // ------------------------------------------------------ dashboard summary
 await go("Dashboard");
 const dash = await page.textContent("#root");
-check("dashboard shows readiness score", /\d+\/100/.test(dash));
-check("dashboard shows programme phase", /Winter Ball|Transition|Velocity|Preseason|Summer/.test(dash));
+check("dashboard shows the readiness metric", /Readiness/.test(dash) && /metric-value/.test(await page.innerHTML("#root")));
+// Phase names come from the programme's own table (FNCBA/GBL), not the
+// five-phase structure in the brief.
+check("dashboard shows the programme week and phase", /Week \d+ · /.test(dash), dash.match(/Week \d+ · [^\n]{0,40}/)?.[0]);
 
 // ------------------------------------------------- new feature sections
 for (const label of ["Nutrition", "Mechanics", "Integrations", "Account"]) {

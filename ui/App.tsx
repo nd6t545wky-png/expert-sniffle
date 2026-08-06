@@ -13,7 +13,9 @@ import {
   weekPlan,
 } from "../src/domain/programmeSessions";
 import { useAppState } from "./state/useAppState";
+import { useAppearance } from "./state/useAppearance";
 import { Dashboard } from "./components/Dashboard";
+import { PageId, SIDEBAR_GROUPS, Shell } from "./components/Shell";
 import { DailyPlan, PlanTask } from "./components/DailyPlan";
 import { HealthForm } from "./components/HealthForm";
 import { Workload, ThrowingEntry } from "./components/Workload";
@@ -24,30 +26,7 @@ import { Integrations } from "./components/Integrations";
 import { Mechanics } from "./components/Mechanics";
 import { Meal, Nutrition, NutritionTargets } from "./components/Nutrition";
 
-type Page =
-  | "dashboard"
-  | "plan"
-  | "readiness"
-  | "workload"
-  | "tracking"
-  | "annual"
-  | "nutrition"
-  | "mechanics"
-  | "integrations"
-  | "account";
-
-const PAGES: [Page, string][] = [
-  ["dashboard", "Dashboard"],
-  ["plan", "Session"],
-  ["readiness", "Readiness"],
-  ["workload", "Workload"],
-  ["tracking", "Tracking"],
-  ["annual", "Annual"],
-  ["nutrition", "Nutrition"],
-  ["mechanics", "Mechanics"],
-  ["integrations", "Integrations"],
-  ["account", "Account"],
-];
+type Page = PageId;
 
 const SYNC_KEY_STORAGE = "dylan-pitching-os-sync-key-v1";
 
@@ -76,6 +55,10 @@ export function App() {
     setSyncKeyState(key);
     window.localStorage.setItem(SYNC_KEY_STORAGE, key);
   }, []);
+
+  // Every design preference (appearance, glass, density, motion, navigation)
+  // is applied to <html>, which is what styles.css keys off.
+  useAppearance(state?.profile as never);
 
   const plan = planFor(date);
   const submission = submissions[date];
@@ -176,7 +159,7 @@ export function App() {
       };
       return { ...draft, pre: { ...draft.pre, [forDate]: next } };
     });
-    setPage("plan");
+    setPage("session");
   }
 
   function updateNutrition(mutate: (current: typeof nutrition) => typeof nutrition) {
@@ -186,38 +169,83 @@ export function App() {
     });
   }
 
+  const weekMeta = (() => {
+    try {
+      const plan = weekPlan(selectedWeek, state?.pbs);
+      const fmt = (d: Date, opts: Intl.DateTimeFormatOptions) =>
+        new Intl.DateTimeFormat("en-AU", { timeZone: "Australia/Brisbane", ...opts }).format(d);
+      const dayDate = new Date(`${date}T00:00:00+10:00`);
+      return {
+        eyebrow: `Week ${plan.week} · ${plan.phase.name}`,
+        heading: fmt(dayDate, { weekday: "long", day: "numeric", month: "long" }),
+        range: `${fmt(plan.start, { day: "numeric", month: "short" })} – ${fmt(plan.end, {
+          day: "numeric",
+          month: "short",
+          year: "numeric",
+        })}`,
+        focus: plan.focus ?? "",
+        phaseId: plan.phase.id,
+      };
+    } catch {
+      return { eyebrow: "", heading: date, range: "", focus: "", phaseId: "winter" };
+    }
+  })();
+
+  const winter = !["summer_first", "summer_second", "summer_break", "transition_summer"].includes(
+    weekMeta.phaseId
+  );
+  const profile = (state.profile ?? {}) as { winterTeam?: string; summerTeam?: string };
+  const team = winter
+    ? { name: profile.winterTeam || "Norths", logo: "/assets/norths-baseball-logo.jpg", alt: "Norths Baseball Club logo", theme: "theme-norths" }
+    : { name: profile.summerTeam || "Coomera Cubs", logo: "/assets/coomera-cubs-logo.png", alt: "Coomera Cubs Baseball Club logo", theme: "theme-cubs" };
+
   return (
-    <main className="app">
-      <header>
-        <h1>Pitching OS</h1>
-      </header>
-
-      <nav aria-label="Sections">
-        {PAGES.map(([id, label]) => (
-          <button
-            key={id}
-            type="button"
-            className={page === id ? "nav-item active" : "nav-item"}
-            aria-current={page === id ? "page" : undefined}
-            onClick={() => setPage(id)}
-          >
-            {label}
-          </button>
-        ))}
-      </nav>
-
+    <Shell
+      theme={team.theme}
+      desktopContext={weekMeta.eyebrow}
+      mobileContext="Today"
+      contextRange={weekMeta.range}
+      syncLabel={syncKey ? "Synced" : "Local only"}
+      syncStatus={syncKey ? "synced" : "local"}
+      appearance={String((state.profile as { appearance?: string })?.appearance ?? "system")}
+      athleteName={String((state.profile as { name?: string })?.name ?? "Athlete")}
+      onCycleAppearance={() =>
+        update((draft) => {
+          const current = (draft.profile ?? {}) as { appearance?: string };
+          const order = ["system", "light", "dark"];
+          const next = order[(order.indexOf(current.appearance ?? "system") + 1) % order.length];
+          return { ...draft, profile: { ...current, appearance: next } };
+        })
+      }
+      page={page}
+      onNavigate={setPage}
+      onOpenPlan={() => setPage(plan.status === "locked" ? "readiness" : "session")}
+    >
       {page === "dashboard" && (
         <Dashboard
           date={date}
           plan={plan}
           submission={submission}
-          selectedWeek={selectedWeek}
+          eyebrow={weekMeta.eyebrow}
+          heading={weekMeta.heading}
+          focus={weekMeta.focus}
+          teamName={team.name}
+          teamLogo={team.logo}
+          teamLogoAlt={team.alt}
+          sessionTitle={String(session?.title ?? "").replace(/^[A-Za-z]+ · /, "") || "Session"}
+          sessionDescription={String(session?.description ?? "")}
+          sessionDuration={String(session?.duration ?? "—")}
+          sessionStress={String(session?.stress ?? "—")}
+          taskCount={tasks.length}
+          completedCount={(completed[date] ?? []).length}
           weekLoad={weekLoad}
-          onGoToReadiness={() => setPage("readiness")}
+          hydrationLitres={hydrationLitres}
+          fluidTarget={targets.fluid}
+          onNavigate={setPage}
+          onOpenPlan={() => setPage(plan.status === "locked" ? "readiness" : "session")}
         />
       )}
-
-      {page === "plan" && (
+      {page === "session" && (
         <DailyPlan
           date={date}
           plan={plan}
@@ -309,7 +337,25 @@ export function App() {
 
       {page === "integrations" && <Integrations api={api} hasSyncKey={isValidSyncKey(syncKey)} />}
 
-      {page === "account" && (
+      {page === "profile" && (
+        <section className="card">
+          <h2>More</h2>
+          {/* The sidebar is desktop-only, so on a phone this is the route to
+              the sections the five-item bottom nav cannot hold. */}
+          <nav className="nav-list">
+            {SIDEBAR_GROUPS.flatMap((group) => group.items)
+              .filter((item) => !["dashboard", "session", "tracking", "nutrition", "profile"].includes(item.id))
+              .map((item) => (
+                <button key={item.id} className="nav-item" type="button" onClick={() => setPage(item.id)}>
+                  <span className="nav-icon" aria-hidden="true" />
+                  {item.label}
+                </button>
+              ))}
+          </nav>
+        </section>
+      )}
+
+      {page === "profile" && (
         <Account
           api={api}
           syncKey={syncKey}
@@ -318,7 +364,7 @@ export function App() {
           syncStatus={syncStatus}
         />
       )}
-    </main>
+    </Shell>
   );
 }
 

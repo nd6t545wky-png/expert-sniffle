@@ -50,8 +50,11 @@ check("profile preserved", current?.profile?.name === "Dylan Sippel");
 check("legacy copy left in place, not deleted", legacyStill !== null);
 
 // The adopted plan should actually drive the UI.
-await page.click('nav button:has-text("Annual")');
-await page.waitForTimeout(150);
+// Reach the year view the way the app does on a phone: More, then Year.
+await page.click('.bottom-nav button:has-text("More")');
+await page.waitForTimeout(200);
+await page.locator('.content .nav-item:has-text("Year")').first().click();
+await page.waitForTimeout(200);
 check("app usable after migration", (await page.textContent("#root")).includes("Annual plan"));
 
 // Migration must never clobber newer current-key data with older legacy data.
