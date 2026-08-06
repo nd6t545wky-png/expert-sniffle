@@ -80,3 +80,38 @@ deletion**, and the rules are covered by tests. Before changing them, read
 `src/domain/state.ts` — in particular the note on `SCHEMA_VERSION`, which
 must not be bumped while the legacy app is still deployed, because that app
 treats an unrecognised version as "start fresh" and would erase saved data.
+
+## Preview deployments
+
+`preview_urls` is enabled, so a working branch can be put on a real URL
+without touching production:
+
+```sh
+npm run build
+npx wrangler versions upload    # prints a preview URL; production unchanged
+```
+
+Open that URL on a phone to check the mobile layout before promoting. To
+release:
+
+```sh
+npm run deploy                  # build + wrangler deploy
+```
+
+## Mobile check before release
+
+The rebuilt app is used on a phone, so layout regressions matter. Before
+promoting a version, serve the build and walk every section at a 390px
+viewport, watching for horizontal overflow:
+
+```sh
+npm run build
+(cd dist && python3 -m http.server 8899 --bind 127.0.0.1 &)
+# then drive http://127.0.0.1:8899/next/ at 390x844
+```
+
+Horizontal overflow is the failure mode to watch: `document.documentElement.scrollWidth`
+must not exceed `clientWidth`. Reusing the prototype stylesheet has already
+caused this once — `.nav-item` was written for a different DOM shape and
+pushed the active tab 2px past the viewport edge. Shell-layout fixes go in
+`ui/app.css`, never in `ui/styles.css`, which stays a faithful copy.

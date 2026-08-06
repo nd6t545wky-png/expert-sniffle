@@ -9,6 +9,10 @@
   // Fixes the "ships raw, unminified vendor source" audit finding: the
   // deployed Worker script was never minified. This minifies it at deploy time.
   "minify": true,
+  // Per-version preview URLs, so a working branch can be deployed with
+  // `wrangler versions upload` and opened on a phone without touching
+  // production. Item 8's "preview deployments for development branches".
+  "preview_urls": true,
 
   "assets": {
     "directory": "./dist",

@@ -1,0 +1,109 @@
+/*
+ * Layout for the rebuilt shell only.
+ *
+ * The prototype stylesheet is reused verbatim to preserve appearance, but a
+ * few of its class names (notably .nav-item) were written for a different
+ * DOM shape. Where that collides, the fix belongs here rather than in
+ * styles.css — that file stays a faithful copy of the original.
+ *
+ * This is defect repair, not restyling. Redesign is out of scope for Phase 1.
+ */
+
+.app {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  padding: 1rem;
+  margin: 0 auto;
+}
+
+.app *,
+.app *::before,
+.app *::after {
+  box-sizing: border-box;
+}
+
+/*
+ * The prototype's .nav-item stretched to the full container width, which on a
+ * 390px viewport pushed the active item 2px past the edge and gave the whole
+ * page a horizontal scrollbar. Size the items to their content and let the
+ * strip scroll instead of the document.
+ */
+.app nav {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 0.5rem;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  margin-bottom: 1rem;
+}
+
+.app nav::-webkit-scrollbar {
+  display: none;
+}
+
+.app nav .nav-item {
+  width: auto;
+  min-width: 0;
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+/* Wide content scrolls inside its own box, never the page. */
+.app .tracking-table,
+.app .week-grid,
+.app .phase-legend {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.app .week-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(2.25rem, 1fr));
+  gap: 0.25rem;
+  list-style: none;
+  padding: 0;
+}
+
+.app .week-grid button {
+  width: 100%;
+  aspect-ratio: 1;
+  /* Comfortably above the 44px touch-target minimum at this column width. */
+  min-height: 2.25rem;
+}
+
+.app .phase-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+  margin-bottom: 0.75rem;
+}
+
+.app .stat-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.app .task-list {
+  list-style: none;
+  padding: 0;
+}
+
+.app .task {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* Inputs must never be the thing that widens the page. */
+.app input,
+.app select,
+.app textarea {
+  max-width: 100%;
+}
