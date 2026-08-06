@@ -1,6 +1,16 @@
 import { useEffect, useState } from "react";
 import { PitchingOsApi } from "../../src/domain/api";
 import { isValidSyncKey, normalizeSyncKey } from "../../src/domain/sync";
+import {
+  Passkey,
+  deletePasskey,
+  listPasskeys,
+  passkeysSupported,
+  registerPasskey,
+  signInWithGoogle,
+  signInWithPasskey,
+  signOut,
+} from "../state/authClient";
 
 /**
  * Sign-in, workspace and cloud-sync status.
@@ -30,6 +40,8 @@ export function Account({ api, syncKey, onSyncKey, onSyncNow, syncStatus }: Acco
   const [manualKey, setManualKey] = useState("");
   const [revealKey, setRevealKey] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [passkeys, setPasskeys] = useState<Passkey[]>([]);
+  const [authBusy, setAuthBusy] = useState("");
 
   useEffect(() => {
     let cancelled = false;
@@ -40,6 +52,7 @@ export function Account({ api, syncKey, onSyncKey, onSyncNow, syncStatus }: Acco
         setStatus(result);
         // A signed-in workspace hands back the sync key; adopt it.
         if (result.syncKey && isValidSyncKey(result.syncKey)) onSyncKey(result.syncKey);
+        if (result.signedIn) listPasskeys().then(setPasskeys).catch(() => setPasskeys([]));
       })
       .catch((cause) => !cancelled && setError(cause.message));
     return () => {
@@ -59,6 +72,21 @@ export function Account({ api, syncKey, onSyncKey, onSyncNow, syncStatus }: Acco
       setError(cause instanceof Error ? cause.message : String(cause));
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function runAuth(label: string, action: () => Promise<void>) {
+    setAuthBusy(label);
+    setError("");
+    try {
+      await action();
+      const refreshed = await api.accountStatus();
+      setStatus(refreshed);
+      if (refreshed.signedIn) setPasskeys(await listPasskeys().catch(() => []));
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : String(cause));
+    } finally {
+      setAuthBusy("");
     }
   }
 
@@ -82,18 +110,79 @@ export function Account({ api, syncKey, onSyncKey, onSyncNow, syncStatus }: Acco
           Signed in as <strong>{status.user?.name || status.user?.email}</strong>
         </p>
       ) : (
-        <p className="muted">
-          Not signed in.{" "}
-          <a className="btn btn-outline" href="/api/auth/sign-in/google">
-            Sign in with Google
-          </a>
-        </p>
+        <div>
+          <p className="muted">Not signed in.</p>
+          <button type="button" className="btn" onClick={signInWithGoogle}>
+            Continue with Google
+          </button>{" "}
+          <button
+            type="button"
+            className="btn btn-outline"
+            disabled={!passkeysSupported() || authBusy !== ""}
+            onClick={() => runAuth("passkey-signin", signInWithPasskey)}
+          >
+            {passkeysSupported() ? "Use Face ID, Touch ID or passkey" : "Passkeys unavailable on this browser"}
+          </button>
+          <p className="fineprint">
+            First time: sign in with Google, then add a passkey below. Your face or fingerprint stays
+            on your device and is never sent to Pitching OS.
+          </p>
+        </div>
       )}
 
       {status?.signedIn && !status.workspaceReady && (
         <button type="button" className="btn" disabled={busy} onClick={createWorkspace}>
           {busy ? "Setting up…" : "Set up cloud workspace"}
         </button>
+      )}
+
+      {status?.signedIn && (
+        <>
+          <h3>Passkeys</h3>
+          <p className="muted">
+            {passkeys.length} passkey{passkeys.length === 1 ? "" : "s"} registered.
+          </p>
+          {passkeys.length > 0 && (
+            <ul className="task-list">
+              {passkeys.map((passkey) => (
+                <li key={passkey.id} className="task">
+                  <div>
+                    <strong>{passkey.name || "Passkey"}</strong>
+                    {passkey.createdAt && <span className="muted"> added {passkey.createdAt}</span>}
+                  </div>
+                  <button
+                    type="button"
+                    className="btn btn-outline"
+                    disabled={authBusy !== ""}
+                    onClick={() => runAuth("delete-passkey", () => deletePasskey(passkey.id))}
+                  >
+                    Remove
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+          <button
+            type="button"
+            className="btn btn-outline"
+            disabled={!passkeysSupported() || authBusy !== ""}
+            onClick={() => runAuth("add-passkey", registerPasskey)}
+          >
+            {authBusy === "add-passkey"
+              ? "Waiting for your device…"
+              : passkeys.length
+                ? "Add another passkey"
+                : "Add Face ID / passkey"}
+          </button>{" "}
+          <button
+            type="button"
+            className="btn btn-outline"
+            disabled={authBusy !== ""}
+            onClick={() => runAuth("sign-out", signOut)}
+          >
+            Sign out
+          </button>
+        </>
       )}
 
       <h3>Recovery key</h3>
