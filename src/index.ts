@@ -45,6 +45,13 @@ const API_HEADERS = {
   "Cache-Control": "no-store",
   "X-Content-Type-Options": "nosniff",
   "Referrer-Policy": "no-referrer",
+  // API responses are JSON and should never be treated as a document, framed,
+  // or loaded over plaintext. Static assets get their equivalents from
+  // public/_headers; these responses are built in code, so they need their own.
+  "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
+  "Content-Security-Policy": "default-src 'none'; frame-ancestors 'none'; base-uri 'none'",
+  "X-Frame-Options": "DENY",
+  "Cross-Origin-Resource-Policy": "same-origin",
 };
 
 function json(data: unknown, status = 200): Response {
@@ -112,9 +119,36 @@ async function enforceAccountRateLimit(
   category: string
 ): Promise<Response | null> {
   const keyHash = await nutritionKeyHash(request, env, url);
-  if (!keyHash) return null;
-  const outcome = await limiter.limit({ key: `${category}:${keyHash}` });
+  // Security fix: this previously returned null (= allow) whenever the request
+  // wasn't attributable to an account, so unauthenticated callers skipped rate
+  // limiting entirely and could hammer these endpoints — and the session/D1
+  // lookups behind them — without bound. Fall back to the caller's IP instead.
+  const key = keyHash
+    ? `${category}:${keyHash}`
+    : `${category}:ip:${clientIp(request)}`;
+  const outcome = await limiter.limit({ key });
   return outcome.success ? null : json({ error: "Too many requests. Wait a minute and try again." }, 429);
+}
+
+function clientIp(request: Request): string {
+  return request.headers.get("CF-Connecting-IP") || "unknown";
+}
+
+// The Apple Health ingest endpoint is the one route reachable from outside the
+// browser (by design — an iPhone Shortcut posts to it with a bearer token), and
+// it previously had no rate limiting at all. Bound it by IP first so token
+// guessing and unauthenticated floods are capped regardless, then by the
+// presented token so a single compromised Shortcut can't flood either.
+async function enforceIngestRateLimit(request: Request, env: Env): Promise<Response | null> {
+  const tooMany = json({ error: "Too many requests. Wait a minute and try again." }, 429);
+  const byIp = await env.INGEST_RATE_LIMITER.limit({ key: `apple-ingest:ip:${clientIp(request)}` });
+  if (!byIp.success) return tooMany;
+  const token = bearerToken(request);
+  if (!token) return null;
+  const byToken = await env.INGEST_RATE_LIMITER.limit({
+    key: `apple-ingest:token:${await sha256Hex(`pitching-os-apple-health-v1:${token}`)}`,
+  });
+  return byToken.success ? null : tooMany;
 }
 
 function randomHex(byteLength = 32): string {
@@ -2162,7 +2196,10 @@ async function routeApi(request: Request, env: Env, url: URL): Promise<Response 
     const blocked = requireSameOrigin(request, url, env);
     return blocked || createAppleUploadToken(request, env, url);
   }
-  if (url.pathname === "/api/integrations/apple/ingest" && request.method === "POST") return ingestAppleHealth(request, env);
+  if (url.pathname === "/api/integrations/apple/ingest" && request.method === "POST") {
+    const limited = await enforceIngestRateLimit(request, env);
+    return limited || ingestAppleHealth(request, env);
+  }
   if (url.pathname === "/api/integrations/apple" && request.method === "DELETE") {
     const blocked = requireSameOrigin(request, url, env);
     return blocked || disconnectAppleHealth(request, env);

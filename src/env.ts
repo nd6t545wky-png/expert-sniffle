@@ -13,6 +13,7 @@ export interface Env {
   // Native Workers Rate Limiting bindings
   AI_RATE_LIMITER: RateLimit;
   INTEGRATION_RATE_LIMITER: RateLimit;
+  INGEST_RATE_LIMITER: RateLimit;
 
   // Config
   APP_ORIGIN: string;

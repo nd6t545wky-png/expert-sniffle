@@ -43,26 +43,43 @@
     "binding": "IMAGES"
   },
 
-  // Native Workers Rate Limiting bindings. limit/period below are
-  // placeholders — the original values aren't visible in the deployed
-  // bundle (rate limit config isn't part of the Worker script itself).
-  // Confirm/adjust before deploying.
-  "unsafe": {
-    "bindings": [
-      {
-        "name": "AI_RATE_LIMITER",
-        "type": "ratelimit",
-        "namespace_id": "1001",
-        "simple": { "limit": 20, "period": 60 }
-      },
-      {
-        "name": "INTEGRATION_RATE_LIMITER",
-        "type": "ratelimit",
-        "namespace_id": "1002",
-        "simple": { "limit": 10, "period": 60 }
-      }
-    ]
-  }
+  // Workers Rate Limiting. This MUST use the top-level "ratelimits" key —
+  // the older "unsafe.bindings" form with type "ratelimit" is accepted at
+  // deploy time but registers as opaque "Unsafe Metadata", so limit() always
+  // returns success and nothing is rate limited. With the key below, wrangler
+  // reports these as real "Rate Limit" bindings instead.
+  // simple.period must be either 10 or 60.
+  //
+  // UNRESOLVED: even in this documented GA form, enforcement could not be
+  // demonstrated against the live Worker. Tested sequentially and in parallel,
+  // same edge colo, with a constant (non-IP) key, and with a temporary 5-per-10s
+  // limit: 15 sequential requests still returned zero 429s. Fresh namespace_ids
+  // (2001-2003, moved off the ones previously registered under the unsafe form)
+  // did not change it. The call sites are correct and will take effect if/when
+  // the binding enforces, but do NOT treat these limits as active protection
+  // until enforcement is confirmed. Cloudflare documents the limiter as
+  // "permissive, eventually consistent", per-colo, and with no dashboard
+  // visibility, which makes this hard to verify from outside.
+  "ratelimits": [
+    {
+      "name": "AI_RATE_LIMITER",
+      "namespace_id": "2001",
+      "simple": { "limit": 20, "period": 60 }
+    },
+    {
+      "name": "INTEGRATION_RATE_LIMITER",
+      "namespace_id": "2002",
+      "simple": { "limit": 10, "period": 60 }
+    },
+    {
+      // Apple Health ingest. Deliberately generous so a legitimate
+      // multi-day backfill from the iPhone Shortcut isn't throttled,
+      // while still bounding abuse of the one externally-reachable route.
+      "name": "INGEST_RATE_LIMITER",
+      "namespace_id": "2003",
+      "simple": { "limit": 60, "period": 60 }
+    }
+  ]
 
   // Secrets (set with `wrangler secret put <NAME>`, never committed here):
   //   BETTER_AUTH_SECRET, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET,
