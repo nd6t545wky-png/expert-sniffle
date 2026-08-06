@@ -115,3 +115,22 @@ must not exceed `clientWidth`. Reusing the prototype stylesheet has already
 caused this once — `.nav-item` was written for a different DOM shape and
 pushed the active tab 2px past the viewport edge. Shell-layout fixes go in
 `ui/app.css`, never in `ui/styles.css`, which stays a faithful copy.
+
+## End-to-end verification
+
+Unit tests cover the domain layer; the E2E suite drives the built app in a
+real browser at a phone viewport and asserts the workflows actually work —
+the readiness gate, plan unlocking, duplicate prevention, the Wednesday /
+Saturday high-intent rule, persistence across reload, corrupt-data recovery
+and legacy migration.
+
+```sh
+npm run e2e:serve     # terminal 1: build and serve dist/ on :8899
+npm run e2e           # terminal 2
+```
+
+Both scripts exit non-zero on failure, so they can gate a release.
+
+Run these before promoting a version. They catch what unit tests cannot:
+the mobile overflow defect and a live-vs-local bundle mismatch were both
+found this way.
