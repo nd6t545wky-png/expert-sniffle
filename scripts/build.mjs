@@ -5,6 +5,7 @@ import { cp, mkdir, rm } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import path from "node:path";
 import * as esbuild from "esbuild";
+import { execFileSync } from "node:child_process";
 
 const root = path.dirname(new URL(import.meta.url).pathname);
 const publicDir = path.join(root, "..", "public");
@@ -37,7 +38,17 @@ async function main() {
     });
   }
 
-  console.log(`Built ${distDir} (minified: ${MINIFY.join(", ")})`);
+  // The rebuilt React app is served at /next/, alongside the prototype at /.
+  // Vite has to run *after* the copy above, because this script empties
+  // dist/ first and would otherwise delete Vite's output. Owning the order
+  // here keeps `npm run build` a single command that cannot be run wrong.
+  execFileSync("npx", ["vite", "build"], { stdio: "inherit", cwd: path.join(root, "..") });
+
+  if (!existsSync(path.join(distDir, "next", "index.html"))) {
+    throw new Error("dist/next/index.html is missing — the Vite build did not produce output.");
+  }
+
+  console.log(`Built ${distDir} (minified: ${MINIFY.join(", ")}; React app at /next/)`);
 }
 
 main().catch((error) => {
