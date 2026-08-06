@@ -25,6 +25,8 @@ export interface DailyPlanProps {
   plan: PlanState;
   submission?: ReadinessSubmission;
   tasks: PlanTask[];
+  /** Title of the programme's session for this day, when one is available. */
+  sessionTitle?: string;
   completed: Record<IsoDate, string[] | undefined>;
   onCompleteTask: (date: IsoDate, taskId: string, next: string[]) => void;
   onOverride: (date: IsoDate, override: NonNullable<ReadinessSubmission["manualOverride"]>) => void;
@@ -35,6 +37,7 @@ export function DailyPlan({
   plan,
   submission,
   tasks,
+  sessionTitle,
   completed,
   onCompleteTask,
   onOverride,
@@ -78,7 +81,7 @@ export function DailyPlan({
 
   return (
     <section className="card" aria-labelledby="plan-heading">
-      <h2 id="plan-heading">Today's session</h2>
+      <h2 id="plan-heading">{sessionTitle || "Today's session"}</h2>
       <p className="muted">
         {date} — {day}
         {day && isHighIntentDay(day) ? " · high-intent day" : ""}

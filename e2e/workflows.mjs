@@ -76,7 +76,14 @@ const afterSubmit = await storage();
 check("readiness persisted to localStorage", afterSubmit && Object.keys(afterSubmit.pre || {}).length === 1);
 const submittedDate = afterSubmit ? Object.keys(afterSubmit.pre)[0] : "";
 check("stored under an ISO date key", /^\d{4}-\d{2}-\d{2}$/.test(submittedDate), submittedDate);
-check("navigated to the session after submitting", (await page.textContent("#root")).includes("Today's session"));
+// The heading is now the programme's own session title, not a generic label.
+const sessionHeading = await page.textContent("#root h2");
+check("navigated to the session after submitting", Boolean(sessionHeading), sessionHeading);
+check(
+  "session shows the real programme prescriptions, not placeholders",
+  /Plyo Ball|Trap bar|deadlift|catch/i.test(await page.textContent("#root")),
+  sessionHeading
+);
 
 // --------------------------------------------------------- plan unlocked
 check("session now unlocked", !(await page.textContent("#root")).includes("Locked"));

@@ -5,6 +5,13 @@ import { computeReadiness } from "../src/domain/readiness";
 import { PitchingOsApi } from "../src/domain/api";
 import { isValidSyncKey } from "../src/domain/sync";
 import { syncNow } from "../src/domain/cloudSync";
+import {
+  Session,
+  buildSession,
+  currentSelection,
+  setProgrammeContext,
+  weekPlan,
+} from "../src/domain/programmeSessions";
 import { useAppState, todayIso } from "./state/useAppState";
 import { Dashboard } from "./components/Dashboard";
 import { DailyPlan, PlanTask } from "./components/DailyPlan";
@@ -44,21 +51,14 @@ const PAGES: [Page, string][] = [
 
 const SYNC_KEY_STORAGE = "dylan-pitching-os-sync-key-v1";
 
-/** Placeholder session tasks until the per-week prescriptions are ported. */
-const TASKS: PlanTask[] = [
-  { id: "warmup", name: "Warm-up", prescription: "Band series, mobility, run poles" },
-  { id: "throwing", name: "Throwing", prescription: "Per today's intent and plan level" },
-  { id: "lift", name: "Lift", prescription: "Per phase strength block" },
-  { id: "recovery", name: "Recovery", prescription: "Cuff, cooldown, hydration" },
-];
-
 const DEFAULT_TARGETS: NutritionTargets = { calories: 0, protein: 0, carbs: 0, fat: 0, fluid: 0 };
 
 export function App() {
   const { state, load, update, submissions, planFor } = useAppState();
   const [page, setPage] = useState<Page>("dashboard");
   const [date] = useState<IsoDate>(() => todayIso());
-  const [selectedWeek, setSelectedWeek] = useState(1);
+  const [selectedWeek, setSelectedWeek] = useState(() => currentSelection().selectedWeek);
+  const [selectedDay] = useState(() => currentSelection().selectedDay);
   const [syncKey, setSyncKeyState] = useState("");
   const [syncStatus, setSyncStatus] = useState("");
 
@@ -83,6 +83,40 @@ export function App() {
   }, [state]);
 
   const reports = (state?.post ?? {}) as Record<IsoDate, SessionReport | undefined>;
+
+  // The programme's prescriptions depend on training maxes and on Friday's
+  // game pitch count, so give it those before building a session.
+  useEffect(() => {
+    setProgrammeContext({
+      pbs: state?.pbs as never,
+      post: state?.post as never,
+    });
+  }, [state]);
+
+  const session = useMemo<Session | null>(() => {
+    if (!state) return null;
+    try {
+      const plan = weekPlan(selectedWeek, state.pbs);
+      return buildSession(plan, selectedDay, {
+        risk: submission?.risk,
+        adjustment: submission
+          ? { planLevel: submission.planLevel, workloadFactor: submission.workloadFactor }
+          : null,
+      });
+    } catch {
+      return null;
+    }
+  }, [state, selectedWeek, selectedDay, submission]);
+
+  const tasks = useMemo<PlanTask[]>(
+    () =>
+      (session?.tasks ?? []).map((task) => ({
+        id: task.id,
+        name: task.name,
+        prescription: task.prescription,
+      })),
+    [session]
+  );
   const completed = (state?.completedTasks ?? {}) as Record<IsoDate, string[] | undefined>;
   const weekLoad = totalThrowLoad(throwingEntries.slice(-7));
 
@@ -185,7 +219,8 @@ export function App() {
           date={date}
           plan={plan}
           submission={submission}
-          tasks={TASKS}
+          tasks={tasks}
+          sessionTitle={session?.title}
           completed={completed}
           onCompleteTask={(forDate, _taskId, next) =>
             update((draft) => ({
