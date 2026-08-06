@@ -12,7 +12,7 @@ import {
   setProgrammeContext,
   weekPlan,
 } from "../src/domain/programmeSessions";
-import { useAppState, todayIso } from "./state/useAppState";
+import { useAppState } from "./state/useAppState";
 import { Dashboard } from "./components/Dashboard";
 import { DailyPlan, PlanTask } from "./components/DailyPlan";
 import { HealthForm } from "./components/HealthForm";
@@ -56,9 +56,12 @@ const DEFAULT_TARGETS: NutritionTargets = { calories: 0, protein: 0, carbs: 0, f
 export function App() {
   const { state, load, update, submissions, planFor } = useAppState();
   const [page, setPage] = useState<Page>("dashboard");
-  const [date] = useState<IsoDate>(() => todayIso());
-  const [selectedWeek, setSelectedWeek] = useState(() => currentSelection().selectedWeek);
-  const [selectedDay] = useState(() => currentSelection().selectedDay);
+  // One source of truth for "today" — date, week and day must agree, or a
+  // readiness entry lands on a different day than the session it unlocked.
+  const [today] = useState(() => currentSelection());
+  const date = today.openDate;
+  const [selectedWeek, setSelectedWeek] = useState(today.selectedWeek);
+  const selectedDay = today.selectedDay;
   const [syncKey, setSyncKeyState] = useState("");
   const [syncStatus, setSyncStatus] = useState("");
 

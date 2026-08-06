@@ -97,7 +97,16 @@ export function weekPlan(week: number, pbs?: unknown): WeekPlan {
   return getWeekPlan(week, (pbs ?? null) as never) as unknown as WeekPlan;
 }
 
-/** Which week/day the programme considers "today". */
+/**
+ * Which week/day/date the programme considers "today".
+ *
+ * This is the ONLY source of "today" in the app. It resolves in the
+ * programme's timezone (Australia/Brisbane), which is deliberate: the athlete
+ * trains there, and the session shown must match the date records are saved
+ * under. Using the device clock instead would put a readiness entry on one day
+ * and the session it unlocked on another whenever the device is not on
+ * Brisbane time.
+ */
 export function currentSelection(): { selectedWeek: number; selectedDay: number; openDate: IsoDate } {
   return todaySelection() as { selectedWeek: number; selectedDay: number; openDate: IsoDate };
 }

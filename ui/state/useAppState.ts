@@ -66,10 +66,7 @@ export function useAppState(): AppStateHandle {
   return { state, load, update, submissions, planFor };
 }
 
-/** Today's date as YYYY-MM-DD in the viewer's own timezone. */
-export function todayIso(now: Date = new Date()): IsoDate {
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, "0");
-  const day = String(now.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
+// Deliberately no `todayIso` here. "Today" comes from
+// `programmeSessions.currentSelection()`, which resolves in the programme's
+// timezone. A second device-clock version existed briefly and caused the
+// session and the saved record to disagree by a day.

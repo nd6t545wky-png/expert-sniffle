@@ -179,3 +179,37 @@ describe("current selection", () => {
     expect(selection.openDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
   });
 });
+
+describe("a single source of 'today'", () => {
+  /**
+   * Regression: the app briefly took the date from the device clock and the
+   * week/day from the programme calendar. Off Brisbane time those disagree,
+   * so a readiness entry saved under one date unlocked a session built for
+   * another. These assert the three stay derived from one selection.
+   */
+  it("returns a date, week and day that describe the same day", () => {
+    const selection = currentSelection();
+    const plan = weekPlan(selection.selectedWeek);
+    expect(dateForWeekDay(plan, selection.selectedDay)).toBe(selection.openDate);
+  });
+
+  it("resolves the date in the programme's timezone, not the device's", () => {
+    const brisbane = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Australia/Brisbane",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(new Date());
+    expect(currentSelection().openDate).toBe(brisbane);
+  });
+
+  it("puts the day index on the weekday that date actually is in Brisbane", () => {
+    const selection = currentSelection();
+    const weekday = new Intl.DateTimeFormat("en-AU", {
+      timeZone: "Australia/Brisbane",
+      weekday: "long",
+    }).format(new Date());
+    const names = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+    expect(names[selection.selectedDay]).toBe(weekday);
+  });
+});
