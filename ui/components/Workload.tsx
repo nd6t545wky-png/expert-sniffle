@@ -9,6 +9,7 @@ import {
   throwLoad,
   totalThrowLoad,
 } from "../../src/domain/session";
+import { Alert, Card, Field, Metric, PageHead } from "./Page";
 
 /**
  * Throwing workload logging.
@@ -54,62 +55,60 @@ export function Workload({ date, plan, entries, onLog }: WorkloadProps) {
   }
 
   return (
-    <section className="card" aria-labelledby="workload-heading">
-      <h2 id="workload-heading">Throwing workload</h2>
-      <p className="muted">
-        {date} — {day}
-      </p>
+    <>
+      <PageHead
+        eyebrow="Throwing workload"
+        title="Log today's throwing."
+        intro={`${date}${day ? ` — ${day}` : ""}`}
+      />
 
-      <label>
-        Intent
-        <select value={intent} onChange={(event) => setIntent(event.target.value as ThrowIntent)}>
-          {INTENTS.map((value) => (
-            <option key={value} value={value}>
-              {value}
-            </option>
-          ))}
-        </select>
-      </label>
+      <Card>
+        <div className="form-grid">
+          <Field id="intent" label="Intent">
+            <select id="intent" value={intent} onChange={(event) => setIntent(event.target.value as ThrowIntent)}>
+              {INTENTS.map((value) => (
+                <option key={value} value={value}>
+                  {value}
+                </option>
+              ))}
+            </select>
+          </Field>
 
-      <label>
-        Throws
-        <input
-          type="number"
-          min={0}
-          max={300}
-          value={throws}
-          onChange={(event) => setThrows(Number(event.target.value))}
-        />
-      </label>
+          <Field id="throws" label="Throws" hint={`Scores ${throwLoad({ intent, throws })} weighted load`}>
+            <input
+              id="throws"
+              type="number"
+              min={0}
+              max={300}
+              value={throws}
+              onChange={(event) => setThrows(Number(event.target.value))}
+            />
+          </Field>
 
-      <p className="muted">
-        This session scores <strong>{throwLoad({ intent, throws })}</strong> weighted load.
-      </p>
-
-      <button type="button" className="btn" onClick={handleLog}>
-        Log throwing
-      </button>
+          <div className="form-actions">
+            <button type="button" className="btn btn-dark" onClick={handleLog}>
+              Log throwing
+            </button>
+          </div>
+        </div>
+      </Card>
 
       {error && (
-        <div className="alert danger" role="alert">
+        <Alert tone="danger" role="alert">
           {error}
-        </div>
+        </Alert>
       )}
 
-      <dl className="stat-row">
-        <div>
-          <dt>7-day load</dt>
-          <dd>{last7}</dd>
-        </div>
-        <div>
-          <dt>28-day load</dt>
-          <dd>{last28}</dd>
-        </div>
-        <div>
-          <dt>Acute : chronic</dt>
-          <dd>{ratio === null ? "Not enough history" : ratio}</dd>
-        </div>
-      </dl>
-    </section>
+      <section className="grid metrics">
+        <Metric label="7-day load" value={last7 || "—"} detail="Weighted by intent" source="Logged throwing" />
+        <Metric label="28-day load" value={last28 || "—"} detail="Rolling month" source="Logged throwing" />
+        <Metric
+          label="Acute : chronic"
+          value={ratio === null ? "—" : ratio}
+          detail={ratio === null ? "Not enough history" : "7-day vs average week"}
+          tone={ratio !== null && ratio > 1.5 ? "warn" : "good"}
+        />
+      </section>
+    </>
   );
 }

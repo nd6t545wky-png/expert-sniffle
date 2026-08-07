@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { IsoDate } from "../../src/domain/state";
 import { MechanicsAnalysis, MechanicsAngle, MechanicsVideo, PitchingOsApi } from "../../src/domain/api";
+import { Alert, Card, EmptyState, Field, PageHead } from "./Page";
 
 /**
  * Pitching video library and AI movement screening.
@@ -82,70 +83,79 @@ export function Mechanics({ api, date, hasSyncKey }: MechanicsProps) {
 
   if (!hasSyncKey) {
     return (
-      <section className="card" aria-labelledby="mechanics-heading">
-        <h2 id="mechanics-heading">Mechanics</h2>
-        <div className="alert" role="status">Turn on cloud autosave to store pitching video.</div>
-      </section>
+      <>
+        <PageHead eyebrow="Biomechanics" title="Movement screening." />
+        <Alert>Turn on cloud autosave to store pitching video.</Alert>
+      </>
     );
   }
 
   return (
-    <section className="card" aria-labelledby="mechanics-heading">
-      <h2 id="mechanics-heading">Mechanics</h2>
-
-      <label>
-        Camera angle
-        <select value={angle} onChange={(event) => setAngle(event.target.value as MechanicsAngle)}>
-          {ANGLES.map(([value, label]) => (
-            <option key={value} value={value}>
-              {label}
-            </option>
-          ))}
-        </select>
-      </label>
-
-      <h3>Upload video</h3>
-      <input
-        ref={videoInput}
-        type="file"
-        accept="video/mp4,video/quicktime,video/webm"
-        aria-label="Pitching video"
-        onChange={(event) => {
-          const file = event.target.files?.[0];
-          if (file) upload(file);
-        }}
+    <>
+      <PageHead
+        eyebrow="Biomechanics"
+        title="Movement screening."
+        intro="A qualitative screen from phone video — not a laboratory assessment."
       />
-      {busy === "upload" && <p className="muted">Uploading…</p>}
 
-      <h3>AI movement screen</h3>
-      <p className="muted">
-        Upload a contact sheet — eight time-ordered panels from one delivery. This is a qualitative
-        screen from phone video, not a laboratory assessment.
-      </p>
-      <input
-        ref={sheetInput}
-        type="file"
-        accept="image/jpeg,image/png,image/webp"
-        aria-label="Contact sheet"
-        onChange={(event) => {
-          const file = event.target.files?.[0];
-          if (file) analyze(file);
-        }}
-      />
-      {busy === "analyze" && <p className="muted">Analysing…</p>}
+      <Card className="biomechanics-command-card">
+        <div className="form-grid capture-essentials">
+          <Field id="angle" label="Camera angle">
+            <select id="angle" value={angle} onChange={(event) => setAngle(event.target.value as MechanicsAngle)}>
+              {ANGLES.map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </select>
+          </Field>
+
+          <Field id="video" label="Pitching video" hint={busy === "upload" ? "Uploading…" : "MP4, MOV or WebM"}>
+            <input
+              id="video"
+              ref={videoInput}
+              type="file"
+              accept="video/mp4,video/quicktime,video/webm"
+              aria-label="Pitching video"
+              onChange={(event) => {
+                const file = event.target.files?.[0];
+                if (file) upload(file);
+              }}
+            />
+          </Field>
+
+          <Field
+            id="sheet"
+            label="Contact sheet"
+            hint={busy === "analyze" ? "Analysing…" : "Eight time-ordered panels from one delivery"}
+            full
+          >
+            <input
+              id="sheet"
+              ref={sheetInput}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              aria-label="Contact sheet"
+              onChange={(event) => {
+                const file = event.target.files?.[0];
+                if (file) analyze(file);
+              }}
+            />
+          </Field>
+        </div>
+      </Card>
 
       {analysis && <AnalysisResult analysis={analysis} />}
 
-      <h3>Library</h3>
       {videos.length === 0 ? (
-        <p className="muted">No videos uploaded yet.</p>
+        <EmptyState title="No videos uploaded yet" detail="Uploads appear here with a playback link." />
       ) : (
         <ul className="task-list">
           {videos.map((video) => (
-            <li key={video.id} className="task">
+            <li key={video.id} className="card task">
               <div>
                 <strong>{video.fileName}</strong>
-                <span className="muted">
+                <span>
                   {" "}
                   {video.angle || "unspecified"} · {video.capturedOn || "undated"}
                 </span>
@@ -166,11 +176,11 @@ export function Mechanics({ api, date, hasSyncKey }: MechanicsProps) {
       )}
 
       {error && (
-        <div className="alert danger" role="alert">
+        <Alert tone="danger" role="alert">
           {error}
-        </div>
+        </Alert>
       )}
-    </section>
+    </>
   );
 }
 
@@ -194,12 +204,12 @@ function AnalysisResult({ analysis }: { analysis: MechanicsAnalysis }) {
         </p>
       )}
       <p>{analysis.summary}</p>
-      <p className="muted">
+      <p className="fineprint">
         Confidence: {analysis.confidence} — {analysis.confidenceReason}
       </p>
 
       {analysis.analyzable && (
-        <dl className="stat-row">
+        <dl className="grid metrics">
           {ratings
             .filter(([, value]) => value !== null)
             .map(([label, value]) => (

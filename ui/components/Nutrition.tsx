@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { IsoDate } from "../../src/domain/state";
 import { FoodProduct, NutritionEstimate, PitchingOsApi } from "../../src/domain/api";
+import { Alert, Card, EmptyState, Field, Metric, PageHead } from "./Page";
 
 /**
  * Meals, hydration and food lookup.
@@ -122,53 +123,55 @@ export function Nutrition({
   }
 
   return (
-    <section className="card" aria-labelledby="nutrition-heading">
-      <h2 id="nutrition-heading">Nutrition</h2>
-      <p className="muted">{date}</p>
+    <>
+      <PageHead
+        eyebrow="Nutrition"
+        title="Log a meal."
+        intro="Photo or plain language first. Review once, then it is added to your day."
+        className="nutrition-page-head"
+      />
 
-      <dl className="stat-row">
-        <div>
-          <dt>Calories</dt>
-          <dd>
-            {totals.calories}
-            {targets.calories ? ` / ${targets.calories}` : ""}
-          </dd>
-        </div>
-        <div>
-          <dt>Protein</dt>
-          <dd>
-            {totals.protein}g{targets.protein ? ` / ${targets.protein}g` : ""}
-          </dd>
-        </div>
-        <div>
-          <dt>Carbs</dt>
-          <dd>{totals.carbs}g</dd>
-        </div>
-        <div>
-          <dt>Fat</dt>
-          <dd>{totals.fat}g</dd>
-        </div>
-      </dl>
+      <section className="grid metrics">
+        <Metric
+          label="Calories"
+          value={totals.calories || "—"}
+          detail={targets.calories ? `of ${targets.calories} target` : "No target set"}
+        />
+        <Metric
+          label="Protein"
+          value={`${totals.protein}g`}
+          detail={targets.protein ? `of ${targets.protein}g target` : "No target set"}
+        />
+        <Metric label="Carbs" value={`${totals.carbs}g`} />
+        <Metric label="Fat" value={`${totals.fat}g`} />
+      </section>
 
-      <h3>Hydration</h3>
-      <p className="muted">
-        {hydrationLitres.toFixed(2)} L{targets.fluid ? ` / ${targets.fluid} L` : ""}
-      </p>
-      <div className="phase-legend">
+      <Card>
+        <h3>Hydration</h3>
+        <p className="fineprint">
+          {hydrationLitres.toFixed(2)} L{targets.fluid ? ` / ${targets.fluid} L` : ""}
+        </p>
+        <div className="form-actions">
         {HYDRATION_PRESETS.map((litres) => (
           <button key={litres} type="button" className="btn btn-outline" onClick={() => onHydration(litres)}>
             +{litres} L
           </button>
         ))}
-      </div>
+        </div>
+      </Card>
 
-      <h3>Describe a meal</h3>
-      <textarea
-        value={description}
-        aria-label="Meal description"
-        placeholder="e.g. two eggs on toast with avocado"
-        onChange={(event) => setDescription(event.target.value)}
-      />
+      <Card>
+        <div className="form-grid">
+          <Field id="description" label="Describe a meal" full>
+            <textarea
+              id="description"
+              value={description}
+              aria-label="Meal description"
+              placeholder="e.g. two eggs on toast with avocado"
+              onChange={(event) => setDescription(event.target.value)}
+            />
+          </Field>
+          <div className="form-actions">
       <button
         type="button"
         className="btn"
@@ -182,25 +185,29 @@ export function Nutrition({
       >
         {busy === "text" ? "Analysing…" : "Estimate from description"}
       </button>
+          </div>
 
-      <h3>Meal photo</h3>
-      <input
-        type="file"
-        accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
-        aria-label="Meal photo"
-        onChange={(event) => {
-          const file = event.target.files?.[0];
-          if (!file) return;
-          run("photo", async () => {
-            const result = await api.analyzeMealPhoto(file, date);
-            setEstimate({ ...result.estimate, notice: result.notice });
-          });
-        }}
-      />
-      {busy === "photo" && <p className="muted">Analysing photo…</p>}
+          <Field id="photo" label="Meal photo" hint={busy === "photo" ? "Analysing photo…" : "JPEG, PNG, WebP or HEIC"} full>
+            <input
+              id="photo"
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
+              aria-label="Meal photo"
+              onChange={(event) => {
+                const file = event.target.files?.[0];
+                if (!file) return;
+                run("photo", async () => {
+                  const result = await api.analyzeMealPhoto(file, date);
+                  setEstimate({ ...result.estimate, notice: result.notice });
+                });
+              }}
+            />
+          </Field>
+        </div>
+      </Card>
 
       {estimate && (
-        <div className="alert" role="status">
+        <Alert>
           <strong>
             {estimate.name} — {estimate.calories} kcal
           </strong>
@@ -221,18 +228,25 @@ export function Nutrition({
           <button type="button" className="btn btn-outline" onClick={() => setEstimate(null)}>
             Discard
           </button>
-        </div>
+        </Alert>
       )}
 
-      <h3>Barcode</h3>
-      <input
-        type="text"
-        inputMode="numeric"
-        value={barcode}
-        aria-label="Barcode"
-        placeholder="8–14 digits"
-        onChange={(event) => setBarcode(event.target.value)}
-      />
+      <Card>
+        <div className="form-grid">
+          <Field id="barcode" label="Barcode" hint="8–14 digits">
+            <input
+              id="barcode"
+              type="text"
+              inputMode="numeric"
+              value={barcode}
+              aria-label="Barcode"
+              onChange={(event) => setBarcode(event.target.value)}
+            />
+          </Field>
+          <Field id="search" label="Search food">
+            <input id="search" type="text" value={search} aria-label="Food search" onChange={(event) => setSearch(event.target.value)} />
+          </Field>
+          <div className="form-actions">
       <button
         type="button"
         className="btn btn-outline"
@@ -250,14 +264,6 @@ export function Nutrition({
       >
         {busy === "barcode" ? "Looking up…" : "Look up barcode"}
       </button>
-
-      <h3>Search food</h3>
-      <input
-        type="text"
-        value={search}
-        aria-label="Food search"
-        onChange={(event) => setSearch(event.target.value)}
-      />
       <button
         type="button"
         className="btn btn-outline"
@@ -270,14 +276,17 @@ export function Nutrition({
       >
         {busy === "search" ? "Searching…" : "Search"}
       </button>
+          </div>
+        </div>
+      </Card>
 
       {results.length > 0 && (
         <ul className="task-list">
           {results.map((product) => (
-            <li key={product.code} className="task">
+            <li key={product.code} className="card task">
               <div>
                 <strong>{product.name}</strong>
-                <span className="muted"> {product.brand}</span>
+                <span> {product.brand}</span>
               </div>
               <button type="button" className="btn btn-outline" onClick={() => addProduct(product)}>
                 Add
@@ -287,16 +296,15 @@ export function Nutrition({
         </ul>
       )}
 
-      <h3>Today's meals</h3>
       {meals.length === 0 ? (
-        <p className="muted">Nothing logged yet.</p>
+        <EmptyState title="Nothing logged yet" detail="Meals you add appear here." />
       ) : (
         <ul className="task-list">
           {meals.map((meal) => (
-            <li key={meal.id} className="task">
+            <li key={meal.id} className="card task">
               <div>
                 <strong>{meal.name}</strong>
-                <span className="muted">
+                <span>
                   {" "}
                   {meal.calories} kcal · P {meal.protein}g
                 </span>
@@ -310,10 +318,10 @@ export function Nutrition({
       )}
 
       {error && (
-        <div className="alert danger" role="alert">
+        <Alert tone="danger" role="alert">
           {error}
-        </div>
+        </Alert>
       )}
-    </section>
+    </>
   );
 }

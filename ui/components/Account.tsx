@@ -11,6 +11,7 @@ import {
   signInWithPasskey,
   signOut,
 } from "../state/authClient";
+import { Alert, Card, Field, PageHead } from "./Page";
 
 /**
  * Sign-in, workspace and cloud-sync status.
@@ -102,9 +103,10 @@ export function Account({ api, syncKey, onSyncKey, onSyncNow, syncStatus }: Acco
   }
 
   return (
-    <section className="card" aria-labelledby="account-heading">
-      <h2 id="account-heading">Account &amp; cloud sync</h2>
+    <>
+      <PageHead eyebrow="Athlete" title="Account and cloud sync." />
 
+      <Card className="account-identity">
       {status?.signedIn ? (
         <p className="muted">
           Signed in as <strong>{status.user?.name || status.user?.email}</strong>
@@ -131,13 +133,14 @@ export function Account({ api, syncKey, onSyncKey, onSyncNow, syncStatus }: Acco
       )}
 
       {status?.signedIn && !status.workspaceReady && (
-        <button type="button" className="btn" disabled={busy} onClick={createWorkspace}>
+        <button type="button" className="btn btn-dark" disabled={busy} onClick={createWorkspace}>
           {busy ? "Setting up…" : "Set up cloud workspace"}
         </button>
       )}
+      </Card>
 
       {status?.signedIn && (
-        <>
+        <Card>
           <h3>Passkeys</h3>
           <p className="muted">
             {passkeys.length} passkey{passkeys.length === 1 ? "" : "s"} registered.
@@ -182,11 +185,12 @@ export function Account({ api, syncKey, onSyncKey, onSyncNow, syncStatus }: Acco
           >
             Sign out
           </button>
-        </>
+        </Card>
       )}
 
+      <Card className="cloud-card">
       <h3>Recovery key</h3>
-      <p className="muted">
+      <p className="fineprint">
         Your data is encrypted on this device before it is uploaded. This key is what decrypts it —
         the server never sees it. Without it, a cloud backup cannot be recovered.
       </p>
@@ -202,31 +206,36 @@ export function Account({ api, syncKey, onSyncKey, onSyncNow, syncStatus }: Acco
           </button>
         </div>
       ) : (
-        <p className="muted">No recovery key on this device — cloud autosave is off.</p>
+        <p className="fineprint">No recovery key on this device — cloud autosave is off.</p>
       )}
 
-      <h3>Use an existing key</h3>
-      <input
-        type="text"
-        value={manualKey}
-        placeholder="64-character recovery key"
-        onChange={(event) => setManualKey(event.target.value)}
-      />
-      <button type="button" className="btn btn-outline" onClick={useManualKey}>
-        Use this key
-      </button>
-
-      <h3>Sync</h3>
-      <button type="button" className="btn" disabled={!syncKey} onClick={onSyncNow}>
-        Sync now
-      </button>
-      {syncStatus && <p className="muted">{syncStatus}</p>}
+      <div className="form-grid">
+        <Field id="manualKey" label="Use an existing key" hint="64 hexadecimal characters" full>
+          <input
+            id="manualKey"
+            type="text"
+            value={manualKey}
+            placeholder="64-character recovery key"
+            onChange={(event) => setManualKey(event.target.value)}
+          />
+        </Field>
+        <div className="form-actions cloud-actions">
+          <button type="button" className="btn btn-outline" onClick={useManualKey}>
+            Use this key
+          </button>
+          <button type="button" className="btn btn-dark" disabled={!syncKey} onClick={onSyncNow}>
+            Sync now
+          </button>
+        </div>
+      </div>
+      {syncStatus && <p className="fineprint">{syncStatus}</p>}
+      </Card>
 
       {error && (
-        <div className="alert danger" role="alert">
+        <Alert tone="danger" role="alert">
           {error}
-        </div>
+        </Alert>
       )}
-    </section>
+    </>
   );
 }

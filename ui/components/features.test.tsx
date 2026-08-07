@@ -47,7 +47,8 @@ describe("Integrations", () => {
     await waitFor(() =>
       expect(screen.getByRole("button", { name: /Connect Oura/ }).hasAttribute("disabled")).toBe(true)
     );
-    expect(screen.getByRole("status").textContent).toContain("have not been added");
+    // Shown as fineprint inside the integration card, not a standalone alert.
+    expect(screen.getByText(/have not been added/)).toBeDefined();
   });
 
   it("shows the Apple upload token once, with a warning that it cannot be retrieved", async () => {
@@ -164,9 +165,12 @@ describe("Nutrition", () => {
         onHydration={noop}
       />
     );
-    expect(screen.getByText("700 / 3000")).toBeDefined();
-    expect(screen.getByText("36g / 180g")).toBeDefined();
-    expect(screen.getByText("1.50 L / 4.5 L")).toBeDefined();
+    // Totals now render as metric tiles: value and target are separate nodes.
+    expect(screen.getByText("700")).toBeDefined();
+    expect(screen.getByText("of 3000 target")).toBeDefined();
+    expect(screen.getByText("36g")).toBeDefined();
+    expect(screen.getByText("of 180g target")).toBeDefined();
+    expect(screen.getByText(/1\.50 L \/ 4\.5 L/)).toBeDefined();
   });
 
   it("adds hydration in preset increments", () => {

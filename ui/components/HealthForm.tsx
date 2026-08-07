@@ -2,6 +2,7 @@ import { useState } from "react";
 import { IsoDate } from "../../src/domain/state";
 import { ReadinessInputs, computeReadiness } from "../../src/domain/readiness";
 import { PlanState, submitReadiness } from "../../src/domain/session";
+import { Alert, Card, Field, FormDivider, PageHead } from "./Page";
 
 /**
  * Pre-session readiness check. Scoring is entirely delegated to
@@ -71,111 +72,115 @@ export function HealthForm({ date, plan, existing, onSubmitted }: HealthFormProp
   }
 
   return (
-    <section className="card" aria-labelledby="readiness-heading">
-      <h2 id="readiness-heading">Pre-session readiness</h2>
-      <p className="muted">{date}</p>
+    <>
+      <PageHead
+        eyebrow="Health check-in"
+        title="How are you today?"
+        intro="This sets today's workload. Answer honestly — it is the only input that can hold a session."
+        className="session-page-head"
+      />
 
-      {alreadySubmitted && (
-        <div className="alert" role="status">
-          Readiness has already been submitted for {date}.
-        </div>
-      )}
+      {alreadySubmitted && <Alert>Readiness has already been submitted for {date}.</Alert>}
 
-      <form onSubmit={handleSubmit}>
-        <label>
-          Sleep (hours)
-          <input
-            type="number"
-            min={0}
-            max={14}
-            step={0.5}
-            value={values.sleepHours}
-            onChange={(event) => set("sleepHours", Number(event.target.value))}
-          />
-        </label>
+      <Card>
+        <form className="form-grid" onSubmit={handleSubmit}>
+          <FormDivider title="Sleep and energy" detail="Last night" />
 
-        {SCALE_FIELDS.map(([key, label]) => (
-          <label key={key}>
-            {label} (1–5)
+          <Field id="sleepHours" label="Sleep duration" hint="Hours last night">
             <input
-              type="range"
-              min={1}
-              max={5}
-              value={values[key] as number}
-              onChange={(event) => set(key, Number(event.target.value) as never)}
+              id="sleepHours"
+              type="number"
+              min={0}
+              max={14}
+              step={0.5}
+              value={values.sleepHours}
+              onChange={(event) => set("sleepHours", Number(event.target.value))}
             />
-            <output>{values[key] as number}</output>
-          </label>
-        ))}
+          </Field>
 
-        <fieldset>
-          <legend>Soreness / symptoms (0–10)</legend>
-          {PAIN_FIELDS.map(([key, label]) => (
-            <label key={key}>
-              {label}
+          {SCALE_FIELDS.map(([key, label]) => (
+            <Field key={key} id={key} label={label} hint={`${values[key] as number} of 5`}>
               <input
+                id={key}
+                type="range"
+                min={1}
+                max={5}
+                value={values[key] as number}
+                onChange={(event) => set(key, Number(event.target.value) as never)}
+              />
+            </Field>
+          ))}
+
+          <FormDivider title="Soreness and symptoms" detail="0 = nothing, 10 = severe" />
+
+          {PAIN_FIELDS.map(([key, label]) => (
+            <Field key={key} id={key} label={label} hint={`${values[key] as number} of 10`}>
+              <input
+                id={key}
                 type="range"
                 min={0}
                 max={10}
                 value={values[key] as number}
                 onChange={(event) => set(key, Number(event.target.value) as never)}
               />
-              <output>{values[key] as number}</output>
-            </label>
+            </Field>
           ))}
-        </fieldset>
 
-        <label>
-          Any illness symptoms?
-          <select value={values.illness} onChange={(event) => set("illness", event.target.value as "yes" | "no")}>
-            <option value="no">No</option>
-            <option value="yes">Yes</option>
-          </select>
-        </label>
+          <FormDivider title="Flags" detail="These can hold the session" />
 
-        <label>
-          New or worsening warning signs?
-          <select
-            value={values.warningSigns}
-            onChange={(event) => set("warningSigns", event.target.value as "yes" | "no")}
-          >
-            <option value="no">No</option>
-            <option value="yes">Yes</option>
-          </select>
-        </label>
+          <Field id="illness" label="Any illness symptoms?">
+            <select id="illness" value={values.illness} onChange={(event) => set("illness", event.target.value as "yes" | "no")}>
+              <option value="no">No</option>
+              <option value="yes">Yes</option>
+            </select>
+          </Field>
 
-        <label>
-          How did the last session leave you?
-          <select
-            value={values.previousSessionResponse}
-            onChange={(event) => set("previousSessionResponse", event.target.value as never)}
-          >
-            <option value="better">Better</option>
-            <option value="same">The same</option>
-            <option value="worse">Worse</option>
-            <option value="much_worse">Much worse</option>
-          </select>
-        </label>
+          <Field id="warningSigns" label="New or worsening warning signs?">
+            <select
+              id="warningSigns"
+              value={values.warningSigns}
+              onChange={(event) => set("warningSigns", event.target.value as "yes" | "no")}
+            >
+              <option value="no">No</option>
+              <option value="yes">Yes</option>
+            </select>
+          </Field>
 
-        <ReadinessPreview result={preview} />
+          <Field id="previousSessionResponse" label="How did the last session leave you?" full>
+            <select
+              id="previousSessionResponse"
+              value={values.previousSessionResponse}
+              onChange={(event) => set("previousSessionResponse", event.target.value as never)}
+            >
+              <option value="better">Better</option>
+              <option value="same">The same</option>
+              <option value="worse">Worse</option>
+              <option value="much_worse">Much worse</option>
+            </select>
+          </Field>
 
-        {error && (
-          <div className="alert danger" role="alert">
-            {error}
+          <div className="form-actions">
+            <button type="submit" className="btn btn-dark">
+              Submit readiness
+            </button>
           </div>
-        )}
+        </form>
+      </Card>
 
-        <button type="submit" className="btn">
-          Submit readiness
-        </button>
-      </form>
+      <ReadinessPreview result={preview} />
+
+      {error && (
+        <Alert tone="danger" role="alert">
+          {error}
+        </Alert>
+      )}
 
       {plan.status === "held" && (
-        <div className="alert danger" role="alert">
+        <Alert tone="danger" role="alert">
           <strong>Health hold.</strong> {plan.message}
-        </div>
+        </Alert>
       )}
-    </section>
+    </>
   );
 }
 

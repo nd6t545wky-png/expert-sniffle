@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { IsoDate } from "../../src/domain/state";
 import { PlanState, SessionReport, submitSessionReport } from "../../src/domain/session";
+import { Alert, Card, EmptyState, Field, PageHead } from "./Page";
 
 /**
  * Post-session reporting and weekly tracking.
@@ -44,72 +45,72 @@ export function Tracking({ date, plan, reports, onReport }: TrackingProps) {
   }
 
   return (
-    <section className="card" aria-labelledby="tracking-heading">
-      <h2 id="tracking-heading">Post-session report</h2>
-      <p className="muted">{date}</p>
+    <>
+      <PageHead eyebrow="Progress" title="How did that go?" intro={date} />
 
       {existing ? (
-        <div className="alert" role="status">
+        <Alert>
           Reported: RPE {existing.perceivedExertion}, arm {existing.armFeel}/10.
-        </div>
+        </Alert>
       ) : (
-        <form onSubmit={handleSubmit}>
-          <label>
-            Perceived exertion (1–10)
-            <input
-              type="range"
-              min={1}
-              max={10}
-              value={perceivedExertion}
-              onChange={(event) => setPerceivedExertion(Number(event.target.value))}
-            />
-            <output>{perceivedExertion}</output>
-          </label>
+        <Card>
+          <form className="form-grid" onSubmit={handleSubmit}>
+            <Field id="rpe" label="Perceived exertion" hint={`${perceivedExertion} of 10`}>
+              <input
+                id="rpe"
+                type="range"
+                min={1}
+                max={10}
+                value={perceivedExertion}
+                onChange={(event) => setPerceivedExertion(Number(event.target.value))}
+              />
+            </Field>
 
-          <label>
-            Arm feel (1–10, higher is better)
-            <input
-              type="range"
-              min={1}
-              max={10}
-              value={armFeel}
-              onChange={(event) => setArmFeel(Number(event.target.value))}
-            />
-            <output>{armFeel}</output>
-          </label>
+            <Field id="armFeel" label="Arm feel" hint={`${armFeel} of 10 — higher is better`}>
+              <input
+                id="armFeel"
+                type="range"
+                min={1}
+                max={10}
+                value={armFeel}
+                onChange={(event) => setArmFeel(Number(event.target.value))}
+              />
+            </Field>
 
-          <label>
-            Game pitches
-            <input
-              type="number"
-              min={0}
-              max={200}
-              value={gamePitches}
-              onChange={(event) => setGamePitches(Number(event.target.value))}
-            />
-          </label>
+            <Field id="gamePitches" label="Game pitches">
+              <input
+                id="gamePitches"
+                type="number"
+                min={0}
+                max={200}
+                value={gamePitches}
+                onChange={(event) => setGamePitches(Number(event.target.value))}
+              />
+            </Field>
 
-          <label>
-            Notes
-            <textarea value={notes} onChange={(event) => setNotes(event.target.value)} />
-          </label>
+            <Field id="notes" label="Notes" full>
+              <textarea id="notes" value={notes} onChange={(event) => setNotes(event.target.value)} />
+            </Field>
 
-          <button type="submit" className="btn">
-            Submit report
-          </button>
-        </form>
+            <div className="form-actions">
+              <button type="submit" className="btn btn-dark">
+                Submit report
+              </button>
+            </div>
+          </form>
+        </Card>
       )}
 
       {error && (
-        <div className="alert danger" role="alert">
+        <Alert tone="danger" role="alert">
           {error}
-        </div>
+        </Alert>
       )}
 
-      <h3>Recent sessions</h3>
       {recent.length === 0 ? (
-        <p className="muted">No sessions reported yet.</p>
+        <EmptyState title="No sessions reported yet" detail="Reports appear here once you log one." />
       ) : (
+        <Card>
         <table className="tracking-table">
           <thead>
             <tr>
@@ -134,7 +135,8 @@ export function Tracking({ date, plan, reports, onReport }: TrackingProps) {
               ))}
           </tbody>
         </table>
+        </Card>
       )}
-    </section>
+    </>
   );
 }

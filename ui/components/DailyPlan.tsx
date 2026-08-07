@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { IsoDate } from "../../src/domain/state";
+import { Alert, Card, PageHead } from "./Page";
 import {
+  DAY_NAMES,
   PlanState,
   completeTask,
   dayNameForDate,
@@ -70,41 +72,46 @@ export function DailyPlan({
 
   if (plan.status === "locked") {
     return (
-      <section className="card" aria-labelledby="plan-heading">
-        <h2 id="plan-heading">Today's session</h2>
-        <div className="alert" role="status">
-          <strong>Locked.</strong> {plan.message}
-        </div>
-      </section>
+      <>
+        <PageHead eyebrow={`${day ?? ""} · Session`} title={sessionTitle || "Today's session"} intro={date} className="session-page-head" />
+        <Card className="gate">
+          <div className="gate-icon" aria-hidden="true">
+            ✓
+          </div>
+          <h3>Health check-in required</h3>
+          <p>{plan.message}</p>
+        </Card>
+      </>
     );
   }
 
   return (
-    <section className="card" aria-labelledby="plan-heading">
-      <h2 id="plan-heading">{sessionTitle || "Today's session"}</h2>
-      <p className="muted">
-        {date} — {day}
-        {day && isHighIntentDay(day) ? " · high-intent day" : ""}
-      </p>
+    <>
+      <PageHead
+        eyebrow={`${day ?? ""}${day && isHighIntentDay(day) ? " · High-intent day" : ""}`}
+        title={sessionTitle || "Today's session"}
+        intro={
+          plan.status === "held"
+            ? "Recovery only pending qualified review."
+            : `Plan level ${plan.planLevel} · workload ×${plan.workloadFactor}`
+        }
+        className="session-page-head"
+      />
 
-      {plan.status === "held" ? (
-        <div className="alert danger" role="alert">
+      {plan.status === "held" && (
+        <Alert tone="danger" role="alert">
           <strong>Health hold.</strong> {plan.message}
-        </div>
-      ) : (
-        <p className="muted">
-          Plan level <strong>{plan.planLevel}</strong> · workload ×{plan.workloadFactor}
-        </p>
+        </Alert>
       )}
 
       <ul className="task-list">
         {tasks.map((task) => {
           const isDone = done.includes(task.id);
           return (
-            <li key={task.id} className={isDone ? "task done" : "task"}>
+            <li key={task.id} className={isDone ? "card task done" : "card task"}>
               <div>
                 <strong>{task.name}</strong>
-                <span className="muted"> {task.prescription}</span>
+                <span> {task.prescription}</span>
               </div>
               <button type="button" className="btn btn-outline" disabled={isDone} onClick={() => handleComplete(task.id)}>
                 {isDone ? "Logged" : "Mark complete"}
@@ -115,9 +122,9 @@ export function DailyPlan({
       </ul>
 
       {submission && plan.status === "unlocked" && plan.planLevel !== "full" && (
-        <div className="card override-card">
+        <Card className="override-card">
           <strong>Return to the full session?</strong>
-          <p className="muted">A reason is recorded with the override.</p>
+          <p className="fineprint">A reason is recorded with the override.</p>
           <input
             type="text"
             value={reason}
@@ -127,14 +134,14 @@ export function DailyPlan({
           <button type="button" className="btn btn-outline" onClick={handleOverride}>
             Override to full
           </button>
-        </div>
+        </Card>
       )}
 
       {error && (
-        <div className="alert danger" role="alert">
+        <Alert tone="danger" role="alert">
           {error}
-        </div>
+        </Alert>
       )}
-    </section>
+    </>
   );
 }

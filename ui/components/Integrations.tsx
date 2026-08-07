@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { PitchingOsApi } from "../../src/domain/api";
+import { Alert, Card, PageHead } from "./Page";
 
 /**
  * Oura and Apple Health.
@@ -64,27 +65,33 @@ export function Integrations({ api, hasSyncKey }: IntegrationsProps) {
 
   if (!hasSyncKey) {
     return (
-      <section className="card" aria-labelledby="integrations-heading">
-        <h2 id="integrations-heading">Integrations</h2>
-        <div className="alert" role="status">
-          Turn on cloud autosave before connecting Oura or Apple Health.
-        </div>
-      </section>
+      <>
+        <PageHead eyebrow="Connections" title="Wearables and health data." />
+        <Alert>Turn on cloud autosave before connecting Oura or Apple Health.</Alert>
+      </>
     );
   }
 
   return (
-    <section className="card" aria-labelledby="integrations-heading">
-      <h2 id="integrations-heading">Integrations</h2>
+    <>
+      <PageHead
+        eyebrow="Connections"
+        title="Wearables and health data."
+        intro="Readiness improves when it can see sleep, HRV and resting heart rate."
+      />
 
-      <h3>Oura</h3>
-      {oura && !oura.configured && (
-        <div className="alert" role="status">
-          Oura application credentials have not been added to this deployment yet.
+      <Card className="integration">
+        <div className="integration-icon" aria-hidden="true">
+          ◎
         </div>
-      )}
-      <p className="muted">{oura?.connected ? `Connected${oura.updatedAt ? ` — updated ${oura.updatedAt}` : ""}` : "Not connected"}</p>
-
+        <div>
+          <h3>Oura</h3>
+          <p>{oura?.connected ? `Connected${oura.updatedAt ? ` — updated ${oura.updatedAt}` : ""}` : "Not connected"}</p>
+          {oura && !oura.configured && (
+            <p className="fineprint">Oura application credentials have not been added to this deployment yet.</p>
+          )}
+        </div>
+        <div className="integration-actions">
       {oura?.connected ? (
         <button
           type="button"
@@ -110,14 +117,22 @@ export function Integrations({ api, hasSyncKey }: IntegrationsProps) {
           {busy === "oura-connect" ? "Opening…" : "Connect Oura"}
         </button>
       )}
+        </div>
+      </Card>
 
-      <h3>Apple Health</h3>
-      <p className="muted">
-        {apple?.connected
-          ? `Connected${apple.lastUploadAt ? ` — last upload ${apple.lastUploadAt}` : " — no uploads yet"}`
-          : "Not connected"}
-      </p>
-
+      <Card className="integration">
+        <div className="integration-icon" aria-hidden="true">
+          􀆿
+        </div>
+        <div>
+          <h3>Apple Health</h3>
+          <p>
+            {apple?.connected
+              ? `Connected${apple.lastUploadAt ? ` — last upload ${apple.lastUploadAt}` : " — no uploads yet"}`
+              : "Not connected"}
+          </p>
+        </div>
+        <div className="integration-actions">
       <button
         type="button"
         className="btn"
@@ -131,9 +146,25 @@ export function Integrations({ api, hasSyncKey }: IntegrationsProps) {
       >
         {busy === "apple-setup" ? "Generating…" : apple?.connected ? "Regenerate upload token" : "Set up Apple Health"}
       </button>
+      {apple?.connected && (
+        <button
+          type="button"
+          className="btn btn-outline"
+          disabled={busy !== ""}
+          onClick={() => run("apple-disconnect", async () => {
+            await api.appleDisconnect();
+            setUploadToken("");
+            await refresh();
+          })}
+        >
+          {busy === "apple-disconnect" ? "Disconnecting…" : "Disconnect"}
+        </button>
+      )}
+        </div>
+      </Card>
 
       {uploadToken && (
-        <div className="alert" role="status">
+        <Alert tone="warn">
           <strong>This token is shown once.</strong>
           <p>Paste it into your iPhone Shortcut now — it cannot be retrieved again, only replaced.</p>
           <div className="setup-secret">
@@ -150,29 +181,14 @@ export function Integrations({ api, hasSyncKey }: IntegrationsProps) {
           <button type="button" className="btn btn-outline" onClick={() => setUploadToken("")}>
             I've saved it
           </button>
-        </div>
-      )}
-
-      {apple?.connected && (
-        <button
-          type="button"
-          className="btn btn-outline"
-          disabled={busy !== ""}
-          onClick={() => run("apple-disconnect", async () => {
-            await api.appleDisconnect();
-            setUploadToken("");
-            await refresh();
-          })}
-        >
-          {busy === "apple-disconnect" ? "Disconnecting…" : "Disconnect Apple Health"}
-        </button>
+        </Alert>
       )}
 
       {error && (
-        <div className="alert danger" role="alert">
+        <Alert tone="danger" role="alert">
           {error}
-        </div>
+        </Alert>
       )}
-    </section>
+    </>
   );
 }

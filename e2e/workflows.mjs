@@ -4,6 +4,8 @@
  */
 import { chromium } from "playwright";
 
+// Deliberately the STATIC harness (no API): several checks below assert the
+// cloud-gated states, which only appear when no sync key is available.
 const BASE = "http://127.0.0.1:8899/next/";
 const results = [];
 let failures = 0;
@@ -55,7 +57,7 @@ await page.goto(BASE, { waitUntil: "networkidle" });
 
 // ---------------------------------------------------------------- gate
 await go("Session");
-check("session starts locked", (await page.textContent("#root")).includes("Locked"));
+check("session starts locked", (await page.textContent("#root")).includes("Health check-in required"));
 check("tasks hidden while locked", !(await page.isVisible('button:has-text("Mark complete")')));
 
 await shortcut("Active workload");
@@ -67,8 +69,11 @@ check("high intent blocked before readiness", preAuth && preAuth.length > 0, pre
 
 // ------------------------------------------------------- readiness: hold
 await shortcut("Readiness");
+// Inputs are now siblings of their label inside .field (the prototype's
+// shape), so address them by id rather than by nesting.
+const FIELD_IDS = { Shoulder: "shoulder", Elbow: "elbow", Forearm: "forearm", Energy: "energy" };
 const setRange = async (label, value) => {
-  const el = page.locator(`label:has-text("${label}") input[type="range"]`).first();
+  const el = page.locator(`#${FIELD_IDS[label] ?? label.toLowerCase()}`).first();
   await el.evaluate((node, v) => {
     const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value").set;
     setter.call(node, String(v));

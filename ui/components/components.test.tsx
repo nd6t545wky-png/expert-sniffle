@@ -31,7 +31,8 @@ describe("DailyPlan — the readiness gate is visible in the UI", () => {
     render(
       <DailyPlan date={WEDNESDAY} plan={locked} tasks={TASKS} completed={{}} onCompleteTask={vi.fn()} onOverride={vi.fn()} />
     );
-    expect(screen.getByText(/Locked/)).toBeDefined();
+    // The locked state now renders the prototype's gate card.
+    expect(screen.getByText(/Health check-in required/)).toBeDefined();
     // Tasks must not be reachable while locked.
     expect(screen.queryByText("Warm-up")).toBeNull();
   });
