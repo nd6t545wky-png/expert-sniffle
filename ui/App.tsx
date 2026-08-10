@@ -43,6 +43,28 @@ const PAGE_STORAGE = "dylan-pitching-os-page-v1";
 /** Quiet period after the last change before autosave uploads. */
 const AUTOSAVE_DELAY_MS = 1500;
 
+/**
+ * Pages that are about today rather than about whatever is being browsed.
+ * Nutrition is here with the dashboard because the dashboard's hydration tile
+ * links straight to it — if one meant today and the other meant the browsed
+ * week, the number would change on the way through.
+ */
+const TODAY_PAGES: Page[] = ["dashboard", "nutrition"];
+
+/** The topbar's short context line on a phone, as v60's PAGE_TITLES. */
+const PAGE_TITLES: Record<Page, string> = {
+  dashboard: "Today",
+  session: "Daily plan",
+  readiness: "Health check-in",
+  workload: "Throwing workload",
+  tracking: "Progress",
+  annual: "Annual plan",
+  nutrition: "Nutrition",
+  mechanics: "Biomechanics",
+  integrations: "Connections",
+  profile: "Athlete",
+};
+
 const PAGE_IDS: Page[] = [
   "dashboard",
   "session",
@@ -92,8 +114,20 @@ export function App() {
     week: today.selectedWeek,
     day: today.selectedDay,
   }));
-  const selectedWeek = selection.week;
-  const selectedDay = selection.day;
+  // Some pages always mean today, whatever week or day is being browsed —
+  // "Today" showing week 30 because the annual plan was left open there is
+  // not a view of today. The browsing position is kept, not discarded: it is
+  // simply not what these pages are about.
+  //
+  // This stays a single derivation. What is being viewed is one (week, day)
+  // pair chosen by the open page, and the date, session, phase, team colours
+  // and topbar context all come from it — so they cannot disagree with each
+  // other any more than they could before.
+  const viewing = TODAY_PAGES.includes(page)
+    ? { week: today.selectedWeek, day: today.selectedDay }
+    : selection;
+  const selectedWeek = viewing.week;
+  const selectedDay = viewing.day;
 
   const setSelectedWeek = useCallback(
     (week: number) => setSelection((current) => ({ ...current, week })),
@@ -102,6 +136,15 @@ export function App() {
   const setSelectedDay = useCallback(
     (day: number) => setSelection((current) => ({ ...current, day })),
     []
+  );
+
+  /** Snap the browsing position back to today, then go somewhere. */
+  const goToToday = useCallback(
+    (target: Page) => {
+      setSelection({ week: today.selectedWeek, day: today.selectedDay });
+      setPage(target);
+    },
+    [today]
   );
   const [syncKey, setSyncKeyState] = useState("");
   const [syncStatus, setSyncStatus] = useState("");
@@ -342,7 +385,7 @@ export function App() {
     <Shell
       theme={team.theme}
       desktopContext={weekMeta.eyebrow}
-      mobileContext="Today"
+      mobileContext={PAGE_TITLES[page]}
       contextRange={weekMeta.range}
       syncLabel={syncKey ? "Synced" : "Local only"}
       syncStatus={syncKey ? "synced" : "local"}
@@ -385,8 +428,11 @@ export function App() {
           weekLoad={weekLoad}
           hydrationLitres={hydrationLitres}
           fluidTarget={targets.fluid}
-          onNavigate={setPage}
-          onOpenPlan={() => setPage(plan.status === "locked" ? "readiness" : "session")}
+          // The dashboard is about today, so what it sends you to is today —
+          // otherwise "check-in required" would open the check-in for a week
+          // left open on the annual plan.
+          onNavigate={goToToday}
+          onOpenPlan={() => goToToday(plan.status === "locked" ? "readiness" : "session")}
         />
       )}
       {page === "session" && (

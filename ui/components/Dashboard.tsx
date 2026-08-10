@@ -174,7 +174,9 @@ export function Dashboard({
           onClick={() => onNavigate("nutrition")}
         >
           <span className="metric-label">Hydration</span>
-          <span className="metric-value">{hydrationLitres ? hydrationLitres.toFixed(2) : "—"}</span>
+          {/* v60 prints the stored value with a unit — "0.5 L", not "0.50".
+              Two views of one number must not format it differently. */}
+          <span className="metric-value">{hydrationLitres ? `${hydrationLitres} L` : "—"}</span>
           <span className="metric-detail">
             {fluidTarget ? `of ${fluidTarget} L target` : "Set a fluid target"}
           </span>

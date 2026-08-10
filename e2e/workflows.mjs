@@ -62,6 +62,11 @@ const storage = () => page.evaluate(() => JSON.parse(localStorage.getItem("dylan
 
 await page.goto(BASE, { waitUntil: "networkidle" });
 
+// Today's own week, recorded before anything browses elsewhere.
+await go("Dashboard");
+await page.waitForTimeout(200);
+const todayWeek = Number((await page.textContent("#root .page-head .eyebrow")).match(/Week (\d+)/)?.[1] ?? 0);
+
 // ---------------------------------------------------------------- gate
 await go("Session");
 check("session starts locked", (await page.textContent("#root")).includes("Health check-in required"));
@@ -347,6 +352,82 @@ if (/locked/.test(otherTabLabel)) {
 }
 await page.click('button:has-text("Back to today")').catch(() => {});
 await page.waitForTimeout(250);
+
+// ------------------------------- Today means today, whatever is browsed
+// Browse to a distant week, then check that the pages which are *about today*
+// still say today, while the browsing position survives for the ones that are
+// about what you are looking at.
+await go("Session");
+await page.click('button:has-text("Week →")');
+await page.click('button:has-text("Week →")');
+await page.waitForTimeout(250);
+const browsedEyebrow = await page.textContent("#root .page-head .eyebrow");
+const browsedWeek = Number(browsedEyebrow.match(/Week (\d+)/)?.[1] ?? 0);
+
+await go("Dashboard");
+await page.waitForTimeout(250);
+const dashEyebrow = await page.textContent("#root .page-head .eyebrow");
+const dashWeek = Number(dashEyebrow.match(/Week (\d+)/)?.[1] ?? 0);
+check("Today shows today's week, not the browsed one", dashWeek === todayWeek, `browsed ${browsedWeek}, Today ${dashWeek}`);
+check("Today's topbar agrees with Today", (await page.textContent(".top-context")).includes(`Week ${todayWeek} `), await page.textContent(".top-context"));
+check("the topbar names the page you are on", (await page.textContent(".mobile-context")) === "Today", await page.textContent(".mobile-context"));
+await go("Session");
+check("and updates when you move", (await page.textContent(".mobile-context")) === "Daily plan", await page.textContent(".mobile-context"));
+await go("Dashboard");
+
+// The browsing position is kept, not thrown away.
+await go("Session");
+await page.waitForTimeout(250);
+check(
+  "the browsed week survives leaving and returning",
+  Number((await page.textContent("#root .page-head .eyebrow")).match(/Week (\d+)/)?.[1]) === browsedWeek,
+  await page.textContent("#root .page-head .eyebrow")
+);
+
+// Nutrition rides with Today, so the dashboard's hydration tile cannot show
+// one number and the page it links to another. Log some water first —
+// comparing two blank values would prove nothing.
+await go("Nutrition");
+await page.click('button:has-text("+500 mL")');
+await page.waitForTimeout(300);
+const loggedWater = (await page.locator(".water-readout strong").textContent()).trim();
+check("hydration logged on Nutrition", loggedWater !== "0 L", loggedWater);
+
+// Browse away, then come back to Today: the tile must still read that value.
+await go("Session");
+await page.click('button:has-text("Week →")');
+await page.waitForTimeout(200);
+await go("Dashboard");
+await page.waitForTimeout(250);
+const tileWater = (await page.locator('.metric-shortcut:has-text("Hydration") .metric-value').textContent()).trim();
+check(
+  "Today's hydration tile shows today's water, not the browsed week's",
+  Number(tileWater.replace(/[^\d.]/g, "")) === Number(loggedWater.replace(/[^\d.]/g, "")),
+  `tile "${tileWater}" vs logged "${loggedWater}"`
+);
+
+await page.locator('.metric-shortcut:has-text("Hydration")').first().click();
+await page.waitForTimeout(300);
+const pageWater = (await page.locator(".water-readout strong").textContent()).trim();
+check(
+  "hydration reads the same on Today and on Nutrition",
+  Number(pageWater.replace(/[^\d.]/g, "")) === Number(tileWater.replace(/[^\d.]/g, "")),
+  `tile "${tileWater}" vs page "${pageWater}"`
+);
+check("both views format the number the same way", tileWater === `${pageWater}`, `tile "${tileWater}" vs page "${pageWater}"`);
+
+// A dashboard action must land on today, not on the week left open.
+await go("Session");
+await page.click('button:has-text("Week →")');
+await page.waitForTimeout(200);
+await go("Dashboard");
+await page.locator('.metric-shortcut:has-text("Session progress")').first().click();
+await page.waitForTimeout(300);
+check(
+  "a dashboard shortcut opens today, not the browsed week",
+  Number((await page.textContent("#root .page-head .eyebrow")).match(/Week (\d+)/)?.[1]) === todayWeek,
+  await page.textContent("#root .page-head .eyebrow")
+);
 
 // ------------------------------------- the page survives a reload
 // v60 could drop you back on the dashboard unprompted. The open page is
