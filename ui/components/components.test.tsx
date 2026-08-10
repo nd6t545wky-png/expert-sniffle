@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { DailyPlan, DailyPlanProps } from "./DailyPlan";
+import { DayTabs, dayStatus } from "./DayTabs";
 import { AnnualPlan } from "./AnnualPlan";
 import { Workload } from "./Workload";
 import { PlanState, ReadinessSubmission } from "../../src/domain/session";
@@ -323,5 +324,121 @@ describe("AnnualPlan", () => {
     render(<AnnualPlan selectedWeek={1} onSelectWeek={onSelectWeek} />);
     fireEvent.click(screen.getByLabelText("Week 30, Preseason"));
     expect(onSelectWeek).toHaveBeenCalledWith(30);
+  });
+});
+
+
+describe("DayTabs — the week's days", () => {
+  const pre = { "2026-08-05": {} };
+  const post = { "2026-08-04": {} };
+
+  it("marks a checked-out day done, a checked-in day open, the rest locked", () => {
+    expect(dayStatus("2026-08-04", pre, post)).toBe("done");
+    expect(dayStatus("2026-08-05", pre, post)).toBe("open");
+    expect(dayStatus("2026-08-06", pre, post)).toBe("locked");
+  });
+
+  it("prefers done over open when a day has both", () => {
+    expect(dayStatus("2026-08-04", { "2026-08-04": {} }, post)).toBe("done");
+  });
+
+  it("renders seven tabs and reports the chosen day upward", () => {
+    const onSelectDay = vi.fn();
+    const tabs = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].map(
+      (name, day) => ({
+        day,
+        date: `2026-08-0${3 + day}`,
+        name,
+        status: "locked" as const,
+      })
+    );
+    render(<DayTabs tabs={tabs} selectedDay={0} today="2026-08-03" onSelectDay={onSelectDay} />);
+
+    expect(screen.getAllByRole("button")).toHaveLength(7);
+    fireEvent.click(screen.getByRole("button", { name: /Thursday/ }));
+    expect(onSelectDay).toHaveBeenCalledWith(3);
+  });
+
+  it("says which tab is today, so another day cannot be mistaken for it", () => {
+    const tabs = [
+      { day: 0, date: "2026-08-03", name: "Monday", status: "locked" as const },
+      { day: 1, date: "2026-08-04", name: "Tuesday", status: "locked" as const },
+    ];
+    render(<DayTabs tabs={tabs} selectedDay={1} today="2026-08-03" onSelectDay={vi.fn()} />);
+    expect(screen.getByRole("button", { name: /Monday.*today/ })).toBeDefined();
+    expect(screen.queryByRole("button", { name: /Tuesday.*today/ })).toBeNull();
+  });
+});
+
+describe("DailyPlan — looking at a day that is not today", () => {
+  const tabs = [
+    { day: 0, date: "2026-08-03", name: "Monday", status: "locked" as const },
+    { day: 1, date: WEDNESDAY, name: "Tuesday", status: "locked" as const },
+  ];
+
+  it("says so plainly, and offers a way back", () => {
+    const onToday = vi.fn();
+    render(
+      <DailyPlan
+        date={WEDNESDAY}
+        plan={unlocked}
+        tasks={TASKS}
+        completed={{}}
+        skipped={{}}
+        onCompleteTask={vi.fn()}
+        onSkipTask={vi.fn()}
+        onOverride={vi.fn()}
+        dayTabs={tabs}
+        selectedDay={1}
+        today="2026-08-03"
+        onSelectDay={vi.fn()}
+        onToday={onToday}
+      />
+    );
+    expect(screen.getByText(/Viewing .*, not today/)).toBeDefined();
+    fireEvent.click(screen.getByRole("button", { name: "Back to today" }));
+    expect(onToday).toHaveBeenCalled();
+  });
+
+  it("stays quiet when the selected day is today", () => {
+    render(
+      <DailyPlan
+        date={WEDNESDAY}
+        plan={unlocked}
+        tasks={TASKS}
+        completed={{}}
+        skipped={{}}
+        onCompleteTask={vi.fn()}
+        onSkipTask={vi.fn()}
+        onOverride={vi.fn()}
+        dayTabs={tabs}
+        selectedDay={1}
+        today={WEDNESDAY}
+        onSelectDay={vi.fn()}
+        onToday={vi.fn()}
+      />
+    );
+    expect(screen.queryByText(/Viewing .*, not today/)).toBeNull();
+  });
+
+  it("shows the tabs on the locked gate too, so the day can be changed there", () => {
+    render(
+      <DailyPlan
+        date={WEDNESDAY}
+        plan={locked}
+        tasks={TASKS}
+        completed={{}}
+        skipped={{}}
+        onCompleteTask={vi.fn()}
+        onSkipTask={vi.fn()}
+        onOverride={vi.fn()}
+        dayTabs={tabs}
+        selectedDay={1}
+        today={WEDNESDAY}
+        onSelectDay={vi.fn()}
+      />
+    );
+    expect(screen.getByText(/Health check-in required/)).toBeDefined();
+    expect(document.querySelectorAll(".day-tab")).toHaveLength(2);
   });
 });

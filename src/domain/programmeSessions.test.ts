@@ -8,6 +8,7 @@ import {
   setProgrammeContext,
   weekPlan,
 } from "./programmeSessions";
+import { DAY_NAMES } from "./session";
 
 /**
  * These pin the extracted programme content against the prototype. If an
@@ -211,5 +212,47 @@ describe("a single source of 'today'", () => {
     }).format(new Date());
     const names = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
     expect(names[selection.selectedDay]).toBe(weekday);
+  });
+});
+
+describe("day selection cannot drift from its date", () => {
+  // The bug this guards against: the heading said one weekday while the date
+  // underneath said another, because the two were computed separately. The
+  // date is now derived from (week, day), so the derivation is the contract.
+  it("gives each day of the week its own consecutive date", () => {
+    const plan = weekPlan(5);
+    const dates = Array.from({ length: 7 }, (_, day) => dateForWeekDay(plan, day));
+    expect(new Set(dates).size).toBe(7);
+    for (let i = 1; i < dates.length; i += 1) {
+      const previous = new Date(`${dates[i - 1]}T00:00:00+10:00`);
+      const current = new Date(`${dates[i]}T00:00:00+10:00`);
+      expect((current.getTime() - previous.getTime()) / 86_400_000).toBe(1);
+    }
+  });
+
+  it("agrees with the weekday name the interface shows for that day", () => {
+    const plan = weekPlan(12);
+    for (let day = 0; day < 7; day += 1) {
+      const iso = dateForWeekDay(plan, day);
+      const weekday = new Intl.DateTimeFormat("en-AU", {
+        timeZone: "Australia/Brisbane",
+        weekday: "long",
+      }).format(new Date(`${iso}T00:00:00+10:00`));
+      expect(weekday).toBe(DAY_NAMES[day]);
+    }
+  });
+
+  it("puts today's selection on today's date", () => {
+    const today = currentSelection();
+    expect(dateForWeekDay(weekPlan(today.selectedWeek), today.selectedDay)).toBe(today.openDate);
+  });
+
+  it("never returns the same date for two different weeks", () => {
+    const a = dateForWeekDay(weekPlan(5), 0);
+    const b = dateForWeekDay(weekPlan(6), 0);
+    expect(a).not.toBe(b);
+    expect(new Date(`${b}T00:00:00+10:00`).getTime() - new Date(`${a}T00:00:00+10:00`).getTime()).toBe(
+      7 * 86_400_000
+    );
   });
 });

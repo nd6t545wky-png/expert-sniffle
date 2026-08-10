@@ -271,6 +271,83 @@ await page.waitForTimeout(150);
 check("selecting week 30 shows Preseason", (await page.textContent("#root")).includes("Preseason"));
 check("shows position within phase", /week 4 of 10/.test(await page.textContent("#root")));
 
+// ------------------------------------------------------------- day tabs
+// The regression these guard: the heading naming one weekday while the date
+// underneath named another. Every tab is checked against what the page then
+// shows and what the record is filed under.
+await go("Session");
+const tabCount = await page.locator(".day-tab").count();
+check("seven day tabs", tabCount === 7, String(tabCount));
+
+const DAY_ORDER = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+let dayDrift = "";
+for (let day = 0; day < 7; day += 1) {
+  await page.locator(".day-tab").nth(day).click();
+  await page.waitForTimeout(220);
+  const eyebrow = await page.textContent("#root .page-head .eyebrow");
+  // The eyebrow carries "Week N · <weekday> <d> <month>"; the tab carries the
+  // same date. They are derived from one place, so they must agree.
+  const tabLabel = await page.locator(".day-tab").nth(day).getAttribute("aria-label");
+  const weekday = DAY_ORDER[day];
+  if (!eyebrow.includes(weekday)) dayDrift += `eyebrow "${eyebrow}" missing ${weekday}; `;
+  if (!tabLabel.startsWith(weekday)) dayDrift += `tab ${day} labelled "${tabLabel}"; `;
+  const dayOfMonth = tabLabel.match(/(\d+) [A-Za-z]{3}/)?.[1];
+  if (dayOfMonth && !eyebrow.includes(` ${dayOfMonth} `)) {
+    dayDrift += `tab date ${dayOfMonth} not in eyebrow "${eyebrow}"; `;
+  }
+}
+check("every tab's weekday and date match the page heading", dayDrift === "", dayDrift.slice(0, 200));
+
+// The week arrows move the whole week, keeping the chosen weekday.
+const weekBefore = await page.textContent("#root .page-head .eyebrow");
+await page.click('button:has-text("Week →")');
+await page.waitForTimeout(250);
+const weekAfter = await page.textContent("#root .page-head .eyebrow");
+const num = (t) => Number(t.match(/Week (\d+)/)?.[1] ?? 0);
+check("the week arrow advances one week", num(weekAfter) === num(weekBefore) + 1, `${weekBefore} -> ${weekAfter}`);
+check(
+  "and keeps the same weekday",
+  weekAfter.split("·")[1]?.trim().split(" ")[0] === weekBefore.split("·")[1]?.trim().split(" ")[0],
+  `${weekBefore} -> ${weekAfter}`
+);
+await page.click('button:has-text("← Week")');
+await page.waitForTimeout(250);
+check("and back again", (await page.textContent("#root .page-head .eyebrow")) === weekBefore);
+
+// Selecting another day must be visible, and reversible.
+await page.locator(".day-tab").nth((await page.evaluate(() => new Date().getDay()) + 3) % 7).click();
+await page.waitForTimeout(250);
+const banner = await page.textContent("#root");
+check("viewing another day is announced", /not today/.test(banner));
+await page.click('button:has-text("Back to today")');
+await page.waitForTimeout(250);
+check("back to today clears the banner", !/not today/.test(await page.textContent("#root")));
+check("back to today restores the unlocked session", (await page.locator(".task-stage").count()) > 0);
+
+// A check-in filed on another day must land on that day's date, not today's.
+const beforeOtherDay = await storage();
+const todayKeys = Object.keys(beforeOtherDay.pre || {});
+await page.locator(".day-tab").nth(6).click();
+await page.waitForTimeout(250);
+const otherTabLabel = await page.locator(".day-tab").nth(6).getAttribute("aria-label");
+if (/locked/.test(otherTabLabel)) {
+  check("another day starts locked, with its own gate", (await page.textContent("#root")).includes("Health check-in required"));
+  await page.click('button:has-text("Complete check-in")');
+  await page.waitForTimeout(300);
+  await page.click('button:has-text("Set today")');
+  await page.waitForTimeout(400);
+  const afterOtherDay = await storage();
+  const added = Object.keys(afterOtherDay.pre || {}).filter((k) => !todayKeys.includes(k));
+  check("a check-in on another day is filed under that day", added.length === 1, added.join(","));
+  check("today's own record is untouched", todayKeys.every((k) => afterOtherDay.pre[k]));
+  // and the tab now reports it
+  await go("Session");
+  const relabelled = await page.locator(".day-tab").nth(6).getAttribute("aria-label");
+  check("the tab reflects the new status", /open/.test(relabelled), relabelled);
+}
+await page.click('button:has-text("Back to today")').catch(() => {});
+await page.waitForTimeout(250);
+
 // ------------------------------------- the page survives a reload
 // v60 could drop you back on the dashboard unprompted. The open page is
 // remembered, so a reload (or a service-worker update, which reloads without

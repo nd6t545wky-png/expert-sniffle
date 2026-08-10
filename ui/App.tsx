@@ -1,6 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { IsoDate } from "../src/domain/state";
-import { ReadinessSubmission, SessionReport, SkippedTask, ThrowIntent, totalThrowLoad } from "../src/domain/session";
+import {
+  DAY_NAMES,
+  ReadinessSubmission,
+  SessionReport,
+  SkippedTask,
+  ThrowIntent,
+  totalThrowLoad,
+} from "../src/domain/session";
 import { computeReadiness } from "../src/domain/readiness";
 import { PitchingOsApi } from "../src/domain/api";
 import { isValidSyncKey } from "../src/domain/sync";
@@ -9,6 +16,7 @@ import {
   Session,
   buildSession,
   currentSelection,
+  dateForWeekDay,
   setProgrammeContext,
   weekPlan,
 } from "../src/domain/programmeSessions";
@@ -17,6 +25,7 @@ import { useAppearance } from "./state/useAppearance";
 import { Dashboard } from "./components/Dashboard";
 import { PageId, Shell } from "./components/Shell";
 import { DailyPlan, PlanTask } from "./components/DailyPlan";
+import { DayTab, dayStatus } from "./components/DayTabs";
 import { HealthForm } from "./components/HealthForm";
 import { Workload, ThrowingEntry } from "./components/Workload";
 import { Tracking } from "./components/Tracking";
@@ -71,12 +80,29 @@ export function App() {
       // A blocked storage quota must not take the app down.
     }
   }, [page]);
-  // One source of truth for "today" — date, week and day must agree, or a
-  // readiness entry lands on a different day than the session it unlocked.
+  // One source of truth for "which day am I looking at".
+  //
+  // The selection is a (week, day) pair and the date is *derived* from it —
+  // never stored alongside it. That is what stops the heading and the date
+  // from disagreeing: there is no second value that can fall out of step, so
+  // moving weeks or days cannot leave a readiness entry filed under one date
+  // while the session it unlocked is shown for another.
   const [today] = useState(() => currentSelection());
-  const date = today.openDate;
-  const [selectedWeek, setSelectedWeek] = useState(today.selectedWeek);
-  const selectedDay = today.selectedDay;
+  const [selection, setSelection] = useState(() => ({
+    week: today.selectedWeek,
+    day: today.selectedDay,
+  }));
+  const selectedWeek = selection.week;
+  const selectedDay = selection.day;
+
+  const setSelectedWeek = useCallback(
+    (week: number) => setSelection((current) => ({ ...current, week })),
+    []
+  );
+  const setSelectedDay = useCallback(
+    (day: number) => setSelection((current) => ({ ...current, day })),
+    []
+  );
   const [syncKey, setSyncKeyState] = useState("");
   const [syncStatus, setSyncStatus] = useState("");
 
@@ -95,6 +121,21 @@ export function App() {
   // Every design preference (appearance, glass, density, motion, navigation)
   // is applied to <html>, which is what styles.css keys off.
   useAppearance(state?.profile as never);
+
+  // The week the selection points at, and the date derived from it. Every
+  // other date in the app flows from here.
+  const selectedWeekPlan = useMemo(() => {
+    try {
+      return weekPlan(selectedWeek, state?.pbs);
+    } catch {
+      return null;
+    }
+  }, [selectedWeek, state?.pbs]);
+
+  const date: IsoDate = selectedWeekPlan
+    ? dateForWeekDay(selectedWeekPlan, selectedDay)
+    : today.openDate;
+  const isToday = date === today.openDate;
 
   const plan = planFor(date);
   const submission = submissions[date];
@@ -116,10 +157,9 @@ export function App() {
   }, [state]);
 
   const session = useMemo<Session | null>(() => {
-    if (!state) return null;
+    if (!state || !selectedWeekPlan) return null;
     try {
-      const plan = weekPlan(selectedWeek, state.pbs);
-      return buildSession(plan, selectedDay, {
+      return buildSession(selectedWeekPlan, selectedDay, {
         risk: submission?.risk,
         adjustment: submission
           ? { planLevel: submission.planLevel, workloadFactor: submission.workloadFactor }
@@ -128,7 +168,7 @@ export function App() {
     } catch {
       return null;
     }
-  }, [state, selectedWeek, selectedDay, submission]);
+  }, [state, selectedWeekPlan, selectedDay, submission]);
 
   // The plan renders stages, cues and detail panels, so it needs the whole
   // task, not a name/prescription pair.
@@ -139,6 +179,19 @@ export function App() {
     Record<string, SkippedTask> | undefined
   >;
   const weekLoad = totalThrowLoad(throwingEntries.slice(-7));
+
+  // The week's seven days. Each tab's date comes from the same
+  // `dateForWeekDay` derivation that produces `date`, so a tab can never point
+  // at a different day than the one the page then shows.
+  const dayTabs = useMemo<DayTab[]>(() => {
+    if (!selectedWeekPlan) return [];
+    const pre = (state?.pre ?? {}) as Record<IsoDate, unknown>;
+    const post = (state?.post ?? {}) as Record<IsoDate, unknown>;
+    return DAY_NAMES.map((name, day) => {
+      const tabDate = dateForWeekDay(selectedWeekPlan, day);
+      return { day, date: tabDate, name, status: dayStatus(tabDate, pre, post) };
+    });
+  }, [selectedWeekPlan, state]);
 
   const nutrition = (state?.nutrition ?? {}) as {
     meals?: Record<IsoDate, Meal[]>;
@@ -254,7 +307,10 @@ export function App() {
 
   const weekMeta = (() => {
     try {
-      const plan = weekPlan(selectedWeek, state?.pbs);
+      // Reuse the derived plan rather than recomputing it — a second lookup is
+      // a second thing that can disagree with the first.
+      const plan = selectedWeekPlan;
+      if (!plan) throw new Error("no plan");
       const fmt = (d: Date, opts: Intl.DateTimeFormatOptions) =>
         new Intl.DateTimeFormat("en-AU", { timeZone: "Australia/Brisbane", ...opts }).format(d);
       const dayDate = new Date(`${date}T00:00:00+10:00`);
@@ -340,6 +396,14 @@ export function App() {
           submission={submission}
           onOpenReadiness={() => setPage("readiness")}
           onOpenCheckout={() => setPage("tracking")}
+          dayTabs={dayTabs}
+          selectedDay={selectedDay}
+          today={today.openDate}
+          onSelectDay={setSelectedDay}
+          onToday={() => setSelection({ week: today.selectedWeek, day: today.selectedDay })}
+          onPreviousWeek={() => setSelectedWeek(Math.max(1, selectedWeek - 1))}
+          onNextWeek={() => setSelectedWeek(Math.min(52, selectedWeek + 1))}
+          weekLabel={`Week ${selectedWeek} · ${weekMeta.heading}`}
           tasks={tasks}
           sessionTitle={session?.title}
           sessionDescription={session?.description}

@@ -3,6 +3,7 @@ import { IsoDate } from "../../src/domain/state";
 import { SessionTask } from "../../src/domain/programmeSessions";
 import { formatIsoDate } from "../state/formatDate";
 import { Alert, Card, PageHead } from "./Page";
+import { DayTab, DayTabs } from "./DayTabs";
 import { TaskStages } from "./TaskStages";
 import { SkipTaskModal, TaskDetailsModal } from "./TaskModals";
 import {
@@ -47,6 +48,18 @@ export interface DailyPlanProps {
   onOpenReadiness?: () => void;
   /** Takes the athlete to the post-session check-out. */
   onOpenCheckout?: () => void;
+  /** The week's seven days, for the tabs across the top. */
+  dayTabs?: DayTab[];
+  selectedDay?: number;
+  /** Today's date, so the tabs and the banner can mark it. */
+  today?: IsoDate;
+  onSelectDay?: (day: number) => void;
+  /** Jumps the selection back to today. */
+  onToday?: () => void;
+  onPreviousWeek?: () => void;
+  onNextWeek?: () => void;
+  /** Eyebrow line, e.g. "Week 5 · Monday 10 August". */
+  weekLabel?: string;
 }
 
 const GUARDRAILS: [string, string][] = [
@@ -71,6 +84,14 @@ export function DailyPlan({
   onOverride,
   onOpenReadiness,
   onOpenCheckout,
+  dayTabs,
+  selectedDay,
+  today,
+  onSelectDay,
+  onToday,
+  onPreviousWeek,
+  onNextWeek,
+  weekLabel,
 }: DailyPlanProps) {
   const [error, setError] = useState("");
   const [reason, setReason] = useState("");
@@ -120,15 +141,65 @@ export function DailyPlan({
     setReason("");
   }
 
+
+  // v60 puts the week controls and the day tabs above the pre-form/session
+  // split, so both states get them.
+  const header = (
+    <>
+      <PageHead
+        eyebrow={`${weekLabel ?? `${day ?? ""} · Session`}${
+          day && isHighIntentDay(day) ? " · High-intent day" : ""
+        }`}
+        title={sessionTitle || "Today's session"}
+        intro={sessionDescription || formatIsoDate(date)}
+        className="session-page-head"
+        controls={
+          onPreviousWeek && onNextWeek ? (
+            <>
+              <button className="btn btn-outline" type="button" onClick={onPreviousWeek}>
+                ← Week
+              </button>
+              <button className="btn btn-outline" type="button" onClick={onNextWeek}>
+                Week →
+              </button>
+            </>
+          ) : undefined
+        }
+      />
+
+      {dayTabs && onSelectDay && selectedDay !== undefined && (
+        <DayTabs
+          tabs={dayTabs}
+          selectedDay={selectedDay}
+          today={today ?? date}
+          onSelectDay={onSelectDay}
+        />
+      )}
+
+      {/* Looking at another day is a deliberate act, so say so plainly rather
+          than leaving the athlete to infer it from a tab. */}
+      {today && date !== today && (
+        <Alert tone="warn">
+          {/* `.alert strong` is display:block, so the emphasised part has to be
+              the banner's title line — used inline it splits the sentence. */}
+          <strong>Viewing {formatIsoDate(date)}, not today</strong>
+          <p>Anything you log here is recorded against that date.</p>
+          {/* Without this, returning from a distant week means clicking the
+              week arrows once per week. */}
+          {onToday && (
+            <button className="btn btn-outline" type="button" onClick={onToday}>
+              Back to today
+            </button>
+          )}
+        </Alert>
+      )}
+    </>
+  );
+
   if (plan.status === "locked") {
     return (
       <>
-        <PageHead
-          eyebrow={`${day ?? ""} · Session`}
-          title={sessionTitle || "Today's session"}
-          intro={formatIsoDate(date)}
-          className="session-page-head"
-        />
+        {header}
         <Card className="gate">
           <div className="gate-icon" aria-hidden="true">
             ✓
@@ -149,12 +220,7 @@ export function DailyPlan({
 
   return (
     <>
-      <PageHead
-        eyebrow={`${day ?? ""}${day && isHighIntentDay(day) ? " · High-intent day" : ""}`}
-        title={sessionTitle || "Today's session"}
-        intro={sessionDescription || formatIsoDate(date)}
-        className="session-page-head"
-      />
+      {header}
 
       {plan.status === "held" && (
         <Alert tone="danger" role="alert">
