@@ -124,7 +124,11 @@ export function Mechanics({ api, date, hasSyncKey }: MechanicsProps) {
       </Card>
 
       <Card className="biomechanics-command-card">
-        <div className="form-grid capture-essentials">
+        {/* `.capture-essentials` is an icon list — a 28px column then content.
+            A `.field` label dropped into that column wraps one word per line,
+            which is what it was doing. A form belongs in `.form-grid`. */}
+        <CardHead title="Capture" detail="Screen a delivery" />
+        <div className="form-grid">
           <Field id="angle" label="Camera angle" hint={ANGLE_COVERAGE[angle]?.note}>
             <select id="angle" value={angle} onChange={(event) => setAngle(event.target.value as MechanicsAngle)}>
               {ANGLES.map(([value, label]) => (
@@ -190,29 +194,37 @@ export function Mechanics({ api, date, hasSyncKey }: MechanicsProps) {
       {videos.length === 0 ? (
         <EmptyState title="No videos uploaded yet" detail="Uploads appear here with a playback link." />
       ) : (
-        <ul className="task-list">
-          {videos.map((video) => (
-            <li key={video.id} className="card task">
-              <div>
-                <strong>{video.fileName}</strong>
-                <span>
-                  {" "}
-                  {video.angle || "unspecified"} · {video.capturedOn || "undated"}
-                </span>
-              </div>
-              <button
-                type="button"
-                className="btn btn-outline"
-                onClick={async () => {
-                  await api.deleteMechanicsVideo(video.id);
-                  await refresh();
-                }}
-              >
-                Delete
-              </button>
-            </li>
-          ))}
-        </ul>
+        <Card>
+          <CardHead title="Uploaded video" detail={`${videos.length} file${videos.length === 1 ? "" : "s"}`} />
+          <ul className="task-list">
+            {videos.map((video) => (
+              <li key={video.id} className="task">
+                {/* Three children, because `.task` is a three-column grid:
+                    marker, text, actions. Two children put the text in the
+                    28px marker column and squeeze it to one word per line. */}
+                <span className="task-marker" aria-hidden="true" />
+                <div>
+                  <div className="task-title">{video.fileName}</div>
+                  <div className="task-prescription">
+                    {video.angle || "unspecified angle"} · {video.capturedOn || "undated"}
+                  </div>
+                </div>
+                <div className="task-actions">
+                  <button
+                    type="button"
+                    className="btn btn-outline"
+                    onClick={async () => {
+                      await api.deleteMechanicsVideo(video.id);
+                      await refresh();
+                    }}
+                  >
+                    Delete
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </Card>
       )}
 
       {error && (

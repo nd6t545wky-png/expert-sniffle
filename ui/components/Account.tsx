@@ -11,7 +11,7 @@ import {
   signInWithPasskey,
   signOut,
 } from "../state/authClient";
-import { Alert, Card, CardHead, Field, PageHead } from "./Page";
+import { Alert, Card, CardHead, Field, PageHead, TaskRow } from "./Page";
 
 /**
  * Sign-in, workspace and cloud-sync status.
@@ -169,20 +169,21 @@ export function Account({ api, syncKey, onSyncKey, onSyncNow, syncStatus }: Acco
           {passkeys.length > 0 && (
             <ul className="task-list">
               {passkeys.map((passkey) => (
-                <li key={passkey.id} className="task">
-                  <div>
-                    <strong>{passkey.name || "Passkey"}</strong>
-                    {passkey.createdAt && <span className="muted"> added {passkey.createdAt}</span>}
-                  </div>
-                  <button
-                    type="button"
-                    className="btn btn-outline"
-                    disabled={authBusy !== ""}
-                    onClick={() => runAuth("delete-passkey", () => deletePasskey(passkey.id))}
-                  >
-                    Remove
-                  </button>
-                </li>
+                <TaskRow
+                  key={passkey.id}
+                  title={passkey.name || "Passkey"}
+                  detail={passkey.createdAt ? `Added ${passkey.createdAt}` : undefined}
+                  actions={
+                    <button
+                      type="button"
+                      className="btn btn-outline"
+                      disabled={authBusy !== ""}
+                      onClick={() => runAuth("delete-passkey", () => deletePasskey(passkey.id))}
+                    >
+                      Remove
+                    </button>
+                  }
+                />
               ))}
             </ul>
           )}

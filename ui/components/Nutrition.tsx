@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { IsoDate } from "../../src/domain/state";
 import { FoodProduct, NutritionEstimate, PitchingOsApi } from "../../src/domain/api";
-import { Alert, Card, EmptyState, Field, Metric, PageHead } from "./Page";
+import { Alert, Card, EmptyState, Field, Metric, PageHead, TaskRow } from "./Page";
 import { WaterTracker } from "./WaterTracker";
 
 /**
@@ -284,15 +284,16 @@ export function Nutrition({
       {results.length > 0 && (
         <ul className="task-list">
           {results.map((product) => (
-            <li key={product.code} className="card task">
-              <div>
-                <strong>{product.name}</strong>
-                <span> {product.brand}</span>
-              </div>
-              <button type="button" className="btn btn-outline" onClick={() => addProduct(product)}>
-                Add
-              </button>
-            </li>
+            <TaskRow
+              key={product.code}
+              title={product.name}
+              detail={product.brand}
+              actions={
+                <button type="button" className="btn btn-outline" onClick={() => addProduct(product)}>
+                  Add
+                </button>
+              }
+            />
           ))}
         </ul>
       )}
@@ -302,18 +303,16 @@ export function Nutrition({
       ) : (
         <ul className="task-list">
           {meals.map((meal) => (
-            <li key={meal.id} className="card task">
-              <div>
-                <strong>{meal.name}</strong>
-                <span>
-                  {" "}
-                  {meal.calories} kcal · P {meal.protein}g
-                </span>
-              </div>
-              <button type="button" className="btn btn-outline" onClick={() => onRemoveMeal(meal.id)}>
-                Remove
-              </button>
-            </li>
+            <TaskRow
+              key={meal.id}
+              title={meal.name}
+              detail={`${meal.calories} kcal · P ${meal.protein}g`}
+              actions={
+                <button type="button" className="btn btn-outline" onClick={() => onRemoveMeal(meal.id)}>
+                  Remove
+                </button>
+              }
+            />
           ))}
         </ul>
       )}

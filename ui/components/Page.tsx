@@ -169,6 +169,41 @@ export function ChartEmpty({ title, detail }: { title: string; detail?: string }
   );
 }
 
+/**
+ * A row in a `.task-list`.
+ *
+ * `.task` is a three-column grid — marker, text, actions. Given two children
+ * the text lands in the 28px marker column and wraps one word per line. That
+ * bug has now appeared on the plan, the mechanics page, the account page and
+ * the nutrition page, so the shape lives here once instead of being retyped
+ * and re-broken at each call site.
+ */
+export function TaskRow({
+  marker,
+  title,
+  detail,
+  actions,
+  className = "",
+}: {
+  /** Defaults to a dot; pass a checkbox or anything else that belongs first. */
+  marker?: ReactNode;
+  title: ReactNode;
+  detail?: ReactNode;
+  actions?: ReactNode;
+  className?: string;
+}) {
+  return (
+    <li className={`task ${className}`.trim()}>
+      {marker ?? <span className="task-marker" aria-hidden="true" />}
+      <div>
+        <div className="task-title">{title}</div>
+        {detail && <div className="task-prescription">{detail}</div>}
+      </div>
+      <div className="task-actions">{actions}</div>
+    </li>
+  );
+}
+
 export function Metric({
   label,
   value,

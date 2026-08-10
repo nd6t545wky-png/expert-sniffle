@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { DailyPlan, DailyPlanProps } from "./DailyPlan";
 import { DayTabs, dayStatus } from "./DayTabs";
+import { TaskRow } from "./Page";
 import { AnnualPlan } from "./AnnualPlan";
 import { Workload } from "./Workload";
 import { PlanState, ReadinessSubmission } from "../../src/domain/session";
@@ -484,5 +485,75 @@ describe("DailyPlan — looking at a day that is not today", () => {
     );
     expect(screen.getByText(/Health check-in required/)).toBeDefined();
     expect(document.querySelectorAll(".day-tab")).toHaveLength(2);
+  });
+});
+
+describe("list rows keep the shape the stylesheet expects", () => {
+  // `.task` is a three-column grid: marker, text, actions. Given two children
+  // the text lands in the 28px marker column and wraps one word per line.
+  // That shipped on four separate screens before TaskRow existed, so this
+  // asserts the invariant rather than trusting each call site.
+  const THREE = 3;
+
+  it("TaskRow always emits three children", () => {
+    const { container } = render(
+      <ul>
+        <TaskRow title="A" />
+      </ul>
+    );
+    expect(container.querySelector(".task")?.children).toHaveLength(THREE);
+  });
+
+  it("keeps three children even with no detail and no actions", () => {
+    const { container } = render(
+      <ul>
+        <TaskRow title="Only a title" />
+      </ul>
+    );
+    const row = container.querySelector(".task") as HTMLElement;
+    expect(row.children).toHaveLength(THREE);
+    expect(row.firstElementChild?.className).toContain("task-marker");
+    expect(row.lastElementChild?.className).toContain("task-actions");
+  });
+
+  it("uses a supplied marker instead of the default dot", () => {
+    const { container } = render(
+      <ul>
+        <TaskRow marker={<input type="checkbox" className="task-check" readOnly />} title="A" />
+      </ul>
+    );
+    const row = container.querySelector(".task") as HTMLElement;
+    expect(row.children).toHaveLength(THREE);
+    expect(row.querySelector(".task-marker")).toBeNull();
+    expect(row.querySelector(".task-check")).toBeDefined();
+  });
+
+  it("puts the text in the middle column, not the marker column", () => {
+    const { container } = render(
+      <ul>
+        <TaskRow title="Pitching video" detail="rear · 2026-01-20" />
+      </ul>
+    );
+    const middle = (container.querySelector(".task") as HTMLElement).children[1];
+    expect(middle.querySelector(".task-title")?.textContent).toBe("Pitching video");
+    expect(middle.querySelector(".task-prescription")?.textContent).toBe("rear · 2026-01-20");
+  });
+
+  it("TaskStages rows have three children too", () => {
+    render(
+      <DailyPlan
+        date={WEDNESDAY}
+        plan={unlocked}
+        tasks={TASKS}
+        completed={{}}
+        skipped={{}}
+        onCompleteTask={vi.fn()}
+        onSkipTask={vi.fn()}
+        onOverride={vi.fn()}
+      />
+    );
+    for (const row of document.querySelectorAll(".task")) {
+      expect(row.children).toHaveLength(THREE);
+    }
   });
 });

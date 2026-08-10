@@ -167,8 +167,10 @@ body {
 }
 .mech-bar span.filled { background: var(--blue); }
 
-/* Standing in for the task checkbox, which a drill list has no use for. */
-.mech-drill-dot {
+/* Standing in for the task checkbox in list rows that have nothing to tick.
+   `.task` reserves a 28px first column; leaving it empty is what keeps the
+   text column from collapsing. */
+.task-marker {
   width: 10px;
   height: 10px;
   margin-top: 6px;

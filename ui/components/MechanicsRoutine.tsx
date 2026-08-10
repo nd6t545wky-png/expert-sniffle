@@ -140,7 +140,7 @@ export function MechanicsRoutine({ analysis }: { analysis: MechanicsAnalysis | n
               <ul className="task-list">
                 {group.drills.map((drill) => (
                   <li key={drill.id} className="task">
-                    <span className="mech-drill-dot" aria-hidden="true" />
+                    <span className="task-marker" aria-hidden="true" />
                     <div>
                       <div className="task-title">{drill.name}</div>
                       <div className="task-prescription">{drill.prescription}</div>
