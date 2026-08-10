@@ -109,13 +109,25 @@ export function Workload({ date, plan, entries, onLog }: WorkloadProps) {
       <section className="grid metrics">
         <Metric label="7-day load" value={last7 || "—"} detail="Weighted by intent" source="Logged throwing" />
         <Metric label="28-day load" value={last28 || "—"} detail="Rolling month" source="Logged throwing" />
+        {/* No risk colouring on this tile. The acute:chronic ratio is widely
+            used but its statistical properties have been shown to make it an
+            unreliable injury predictor (Impellizzeri et al., 2020), and
+            painting it red or green asserts a threshold the evidence does not
+            support. It is shown as a descriptive trend and labelled as one. */}
         <Metric
           label="Acute : chronic"
           value={ratio === null ? "—" : ratio}
-          detail={ratio === null ? "Not enough history" : "7-day vs average week"}
-          tone={ratio !== null && ratio > 1.5 ? "warn" : "good"}
+          detail={ratio === null ? "Not enough history" : "7-day vs average week — a trend, not a risk score"}
         />
       </section>
+
+      <p className="fineprint">
+        <strong>On this ratio:</strong> the acute:chronic workload ratio describes how this week
+        compares with your recent average. It is not an injury-risk model — its statistical
+        properties make it unreliable as a predictor, and no threshold here is safe or unsafe.
+        Rising load with rising soreness is worth a conversation with your coach; the number on its
+        own is not a verdict.
+      </p>
     </>
   );
 }

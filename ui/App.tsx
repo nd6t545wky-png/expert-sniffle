@@ -20,6 +20,8 @@ import {
   setProgrammeContext,
   weekPlan,
 } from "../src/domain/programmeSessions";
+import { applyBaselineProgramming } from "../src/domain/programmeUpdates";
+import { seedBaselinePbs } from "../src/domain/baseline";
 import { useAppState } from "./state/useAppState";
 import { useAppearance } from "./state/useAppearance";
 import { Dashboard } from "./components/Dashboard";
@@ -31,6 +33,7 @@ import { Workload, ThrowingEntry } from "./components/Workload";
 import { Tracking } from "./components/Tracking";
 import { AnnualPlan } from "./components/AnnualPlan";
 import { Account } from "./components/Account";
+import { BaselineTesting } from "./components/BaselineTesting";
 import { Integrations } from "./components/Integrations";
 import { Mechanics } from "./components/Mechanics";
 import { Meal, Nutrition, NutritionTargets } from "./components/Nutrition";
@@ -190,6 +193,15 @@ export function App() {
 
   const reports = (state?.post ?? {}) as Record<IsoDate, SessionReport | undefined>;
 
+  // Put the measured back-squat max where the programme looks for it. Guarded
+  // by seedBaselinePbs, which never overwrites an existing entry, and by the
+  // equality check, so this runs once rather than on every state change.
+  useEffect(() => {
+    if (!state) return;
+    const seeded = seedBaselinePbs(state);
+    if (seeded !== state) update(() => seeded as typeof state);
+  }, [state, update]);
+
   // The programme's prescriptions depend on training maxes and on Friday's
   // game pitch count, so give it those before building a session.
   useEffect(() => {
@@ -202,12 +214,17 @@ export function App() {
   const session = useMemo<Session | null>(() => {
     if (!state || !selectedWeekPlan) return null;
     try {
-      return buildSession(selectedWeekPlan, selectedDay, {
-        risk: submission?.risk,
-        adjustment: submission
-          ? { planLevel: submission.planLevel, workloadFactor: submission.workloadFactor }
-          : null,
-      });
+      // The programme's own session, then the adjustments driven by the
+      // athlete's testing reports. Readiness scaling has already been applied
+      // by buildSession, so the additions inherit the day's intent.
+      return applyBaselineProgramming(
+        buildSession(selectedWeekPlan, selectedDay, {
+          risk: submission?.risk,
+          adjustment: submission
+            ? { planLevel: submission.planLevel, workloadFactor: submission.workloadFactor }
+            : null,
+        })
+      );
     } catch {
       return null;
     }
@@ -559,6 +576,8 @@ export function App() {
       {/* The sections the five-item bottom nav cannot hold are reached through
           the shell's "More" sheet, as in the prototype — not through a nav list
           rendered into the page body. */}
+      {page === "profile" && <BaselineTesting />}
+
       {page === "profile" && (
         <Account
           api={api}

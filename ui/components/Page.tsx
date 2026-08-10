@@ -59,14 +59,20 @@ export function Card({
   );
 }
 
-/** Heading row inside a card, matching `.card-head`. */
+/**
+ * Heading row inside a card.
+ *
+ * `.card-head` is styled for `h3` + `p` — the `strong`/`small` pair belongs to
+ * a disclosure summary, where the stylesheet lays it out. Used here it runs
+ * the title and the detail together on one line.
+ */
 export function CardHead({ title, detail }: { title: string; detail?: string }) {
   return (
     <div className="card-head">
-      <span>
-        <strong>{title}</strong>
-        {detail && <small>{detail}</small>}
-      </span>
+      <div>
+        <h3>{title}</h3>
+        {detail && <p>{detail}</p>}
+      </div>
     </div>
   );
 }
