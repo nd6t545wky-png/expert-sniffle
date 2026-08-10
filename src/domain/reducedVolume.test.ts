@@ -31,11 +31,12 @@ describe("stating the reduced dose instead of describing it", () => {
 
   it("takes 75% of plyo reps and keeps the set count", () => {
     // The shape of the work survives; only the dose changes.
+    // 60% is already under the 70% cap, so it stays at 60.
     expect(reduceSetsAndReps("2 × 4 · 60% perceived effort", "plyo", "reduced")).toBe(
-      "2 × 3 · 65–70% effort"
+      "2 × 3 · 60% effort"
     );
     // Rounds down: 75% of 5 is 3.75, and 4 would be more than asked for.
-    expect(reduceSetsAndReps("2 × 5", "plyo", "reduced")).toBe("2 × 3 · 65–70% effort");
+    expect(reduceSetsAndReps("2 × 5", "plyo", "reduced")).toBe("2 × 3 · 70% effort");
   });
 
   it("scales throw counts down to the nearest five, never up", () => {
@@ -106,5 +107,29 @@ describe("recovering the original prescription", () => {
     expect(originalPrescription("Approved mechanics focus")).toBeNull();
     expect(originalPrescription(undefined)).toBeNull();
     expect(originalPrescription(42)).toBeNull();
+  });
+});
+
+describe("a reduction never raises the effort", () => {
+  it("keeps a throw prescribed below the cap at its own number", () => {
+    // The 2 kg reverse throw is prescribed at 50%. Writing the 65–70% cap in
+    // unconditionally turned a reduced day into a harder one.
+    expect(reduceSetsAndReps("1 × 5 · 50% perceived effort", "plyo", "reduced")).toBe(
+      "1 × 3 · 50% effort"
+    );
+  });
+
+  it("caps a throw prescribed above it", () => {
+    expect(reduceSetsAndReps("2 × 3 · 85% perceived effort", "plyo", "reduced")).toBe(
+      "2 × 2 · 70% effort"
+    );
+  });
+
+  it("caps harder on a recovery day", () => {
+    expect(reduceSetsAndReps("2 × 4 · 60% perceived effort", "plyo", "recovery")).toBeNull();
+  });
+
+  it("falls back to the cap when no effort is stated", () => {
+    expect(reduceSetsAndReps("2 × 4", "plyo", "reduced")).toBe("2 × 3 · 70% effort");
   });
 });

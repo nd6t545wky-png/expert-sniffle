@@ -50,6 +50,7 @@ const LOAD_RANGE_KG = /(\d+(?:\.\d+)?)\s*[–-]\s*(\d+(?:\.\d+)?)\s*kg/;
 const THROW_COUNT = /(\d+)\s*[–-]\s*(\d+)\s*total throws/i;
 const DURATION = /(\d+)\s*[–-]\s*(\d+)\s*(minutes|min)\b/i;
 const SECONDS_HOLD = /(\d+)\s*s\b/;
+const PERCEIVED_EFFORT = /(\d+)\s*%\s*perceived effort/i;
 
 /** Barbell loads round to 2.5 kg; dumbbells and everything else to 1 kg. */
 function roundLoad(value: number, step: number): number {
@@ -150,11 +151,20 @@ export function reduceSetsAndReps(
 
   if (parts.length === 0) return null;
 
-  // The RPE cap is part of the dose, so it belongs in the numbers.
+  // The effort ceiling is part of the dose, so it belongs in the numbers.
+  //
+  // It is a *cap*, not a target. Writing the cap in unconditionally raised a
+  // throw prescribed at 50% to "65–70% effort" on a reduced day — a reduction
+  // that increases intent, which is the opposite of the point. So the lower of
+  // the two always wins, and a prescription already under the cap keeps its
+  // own number.
   if (kind === "output" || kind === "generic") {
     parts.push(level === "recovery" ? "RPE 5–6" : "cap RPE 7");
   } else if (kind === "plyo") {
-    parts.push(level === "recovery" ? "45–50% effort" : "65–70% effort");
+    const ceiling = level === "recovery" ? 50 : 70;
+    const stated = original.match(PERCEIVED_EFFORT);
+    const effort = stated ? Math.min(Number(stated[1]), ceiling) : ceiling;
+    parts.push(`${effort}% effort`);
   }
 
   return parts.join(" · ");
