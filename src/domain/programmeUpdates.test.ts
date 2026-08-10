@@ -370,3 +370,36 @@ describe("supersets are marked, and only where they belong", () => {
     expect(marked["Chin-up"]).toBe("A2");
   });
 });
+
+describe("one primary bilateral lift on Monday, not two", () => {
+  it("drops the trap bar from Monday once the back squat is in", () => {
+    const monday = applyBaselineProgramming(
+      session([
+        task({ id: "w5-d0-warm", name: "Low-volume power primer" }),
+        task({ id: "w5-d0-dl", name: "Trap bar deadlift" }),
+      ]),
+      null,
+      0
+    ).tasks.map((t) => t.name);
+    expect(monday).not.toContain("Trap bar deadlift");
+    expect(monday).toContain("Back squat");
+  });
+
+  it("keeps the trap bar jump on Wednesday, where speed-strength survives", () => {
+    const wednesday = applyBaselineProgramming(
+      session([task({ id: "w5-d2-j", name: "Broad jump + trap bar jump" })]),
+      null,
+      2
+    ).tasks.map((t) => t.name);
+    expect(wednesday).toContain("Broad jump + trap bar jump");
+  });
+
+  it("does not remove a trap bar on any other day", () => {
+    const thursday = applyBaselineProgramming(
+      session([task({ id: "w5-d3-dl", name: "Trap bar deadlift" })]),
+      null,
+      3
+    ).tasks.map((t) => t.name);
+    expect(thursday).toContain("Trap bar deadlift");
+  });
+});

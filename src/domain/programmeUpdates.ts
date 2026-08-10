@@ -256,6 +256,26 @@ function isRemovedImplement(task: SessionTask): boolean {
     && REMOVED_IMPLEMENTS.some((pattern) => pattern.test(task.name));
 }
 
+/**
+ * The trap bar deadlift comes off Monday.
+ *
+ * Once the tested back squat is in at 77–87%, Monday carries two heavy
+ * bilateral primaries back to back — roughly twenty heavy squat reps and
+ * twelve heavy pulls of axial load, on a day that also throws 45–60 balls.
+ * Neither lift progresses cleanly when they compete for the same recovery,
+ * and the trap bar's 6 × 2 only does its job if the bar moves fast, which it
+ * will not do behind a squat at 87%.
+ *
+ * The hinge is not lost: the RDL is on Thursday and the single-leg RDL on
+ * Wednesday, so the pattern is covered twice a week. The squat pattern was
+ * covered zero times before the testing added it. And the trap bar itself
+ * survives on Wednesday as the jump variant, where its speed-strength intent
+ * is actually preserved.
+ */
+function isDisplacedByBackSquat(task: SessionTask, day: number | null): boolean {
+  return day === DAY_MONDAY && /^Trap bar deadlift$/.test(task.name);
+}
+
 
 // --- Weekly distribution ----------------------------------------------------
 
@@ -356,6 +376,7 @@ export function applyBaselineProgramming(
 ): Session {
   const tasks = session.tasks
     .filter((task) => !isRemovedImplement(task))
+    .filter((task) => !isDisplacedByBackSquat(task, day))
     .map(withBarSpeedIntent)
     .map(withPlyoEvidence)
     .map(withSupersets(day))
