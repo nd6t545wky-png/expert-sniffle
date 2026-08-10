@@ -15,7 +15,7 @@ import {
 import { useAppState } from "./state/useAppState";
 import { useAppearance } from "./state/useAppearance";
 import { Dashboard } from "./components/Dashboard";
-import { PageId, SIDEBAR_GROUPS, Shell } from "./components/Shell";
+import { PageId, Shell } from "./components/Shell";
 import { DailyPlan, PlanTask } from "./components/DailyPlan";
 import { HealthForm } from "./components/HealthForm";
 import { Workload, ThrowingEntry } from "./components/Workload";
@@ -250,6 +250,7 @@ export function App() {
           date={date}
           plan={plan}
           submission={submission}
+          onOpenReadiness={() => setPage("readiness")}
           tasks={tasks}
           sessionTitle={session?.title}
           completed={completed}
@@ -326,7 +327,12 @@ export function App() {
               ...current,
               hydration: {
                 ...(current.hydration ?? {}),
-                [date]: Number(((current.hydration?.[date] ?? 0) + litres).toFixed(2)),
+                // Removing more than was logged clears the day rather than
+                // storing a negative volume.
+                [date]:
+                  litres === "reset"
+                    ? 0
+                    : Math.max(0, Number(((current.hydration?.[date] ?? 0) + litres).toFixed(2))),
               },
             }))
           }
@@ -337,24 +343,9 @@ export function App() {
 
       {page === "integrations" && <Integrations api={api} hasSyncKey={isValidSyncKey(syncKey)} />}
 
-      {page === "profile" && (
-        <section className="card">
-          <h2>More</h2>
-          {/* The sidebar is desktop-only, so on a phone this is the route to
-              the sections the five-item bottom nav cannot hold. */}
-          <nav className="nav-list">
-            {SIDEBAR_GROUPS.flatMap((group) => group.items)
-              .filter((item) => !["dashboard", "session", "tracking", "nutrition", "profile"].includes(item.id))
-              .map((item) => (
-                <button key={item.id} className="nav-item" type="button" onClick={() => setPage(item.id)}>
-                  <span className="nav-icon" aria-hidden="true" />
-                  {item.label}
-                </button>
-              ))}
-          </nav>
-        </section>
-      )}
-
+      {/* The sections the five-item bottom nav cannot hold are reached through
+          the shell's "More" sheet, as in the prototype — not through a nav list
+          rendered into the page body. */}
       {page === "profile" && (
         <Account
           api={api}

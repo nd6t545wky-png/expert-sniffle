@@ -81,15 +81,6 @@ export function Mechanics({ api, date, hasSyncKey }: MechanicsProps) {
     }
   }
 
-  if (!hasSyncKey) {
-    return (
-      <>
-        <PageHead eyebrow="Biomechanics" title="Movement screening." />
-        <Alert>Turn on cloud autosave to store pitching video.</Alert>
-      </>
-    );
-  }
-
   return (
     <>
       <PageHead
@@ -97,6 +88,16 @@ export function Mechanics({ api, date, hasSyncKey }: MechanicsProps) {
         title="Movement screening."
         intro="A qualitative screen from phone video — not a laboratory assessment."
       />
+
+      {/* The capture card stays on the page with its controls disabled rather
+          than being replaced by a lone sentence — a page reduced to one line
+          reads as broken, not as a prerequisite. */}
+      {!hasSyncKey && (
+        <Alert tone="warn">
+          <strong>Cloud autosave required.</strong> Pitching video is stored in your encrypted
+          workspace, so turn on autosave from Athlete before capturing.
+        </Alert>
+      )}
 
       <Card className="biomechanics-command-card">
         <div className="form-grid capture-essentials">
@@ -111,12 +112,19 @@ export function Mechanics({ api, date, hasSyncKey }: MechanicsProps) {
           </Field>
 
           <Field id="video" label="Pitching video" hint={busy === "upload" ? "Uploading…" : "MP4, MOV or WebM"}>
+            {/* A label standing in for the unstylable native file button, as
+                the prototype does for its photo picker. */}
+            <label className={`btn btn-outline ${hasSyncKey ? "" : "disabled"}`.trim()} htmlFor="video">
+              {busy === "upload" ? "Uploading…" : "Choose video"}
+            </label>
             <input
               id="video"
+              hidden
               ref={videoInput}
               type="file"
               accept="video/mp4,video/quicktime,video/webm"
               aria-label="Pitching video"
+              disabled={!hasSyncKey}
               onChange={(event) => {
                 const file = event.target.files?.[0];
                 if (file) upload(file);
@@ -130,12 +138,17 @@ export function Mechanics({ api, date, hasSyncKey }: MechanicsProps) {
             hint={busy === "analyze" ? "Analysing…" : "Eight time-ordered panels from one delivery"}
             full
           >
+            <label className={`btn btn-outline ${hasSyncKey ? "" : "disabled"}`.trim()} htmlFor="sheet">
+              {busy === "analyze" ? "Analysing…" : "Choose contact sheet"}
+            </label>
             <input
               id="sheet"
+              hidden
               ref={sheetInput}
               type="file"
               accept="image/jpeg,image/png,image/webp"
               aria-label="Contact sheet"
+              disabled={!hasSyncKey}
               onChange={(event) => {
                 const file = event.target.files?.[0];
                 if (file) analyze(file);

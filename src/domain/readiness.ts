@@ -13,7 +13,10 @@
 export type PlanLevel = "full" | "reduced" | "recovery" | "hold";
 export type RiskLevel = "green" | "yellow" | "orange" | "red";
 export type MetricSource = "oura" | "apple";
-export type PreviousSessionResponse = "better" | "same" | "worse" | "much_worse" | "";
+// "as_expected" is the prototype's wording for the neutral answer; "same" is
+// the same thing under an older name. Both are accepted so stored records from
+// either vintage keep scoring identically — neither raises a signal.
+export type PreviousSessionResponse = "better" | "as_expected" | "same" | "worse" | "much_worse" | "";
 
 /** Workload multiplier applied to prescriptions for each plan level. */
 export const WORKLOAD_FACTOR: Readonly<Record<PlanLevel, number>> = Object.freeze({

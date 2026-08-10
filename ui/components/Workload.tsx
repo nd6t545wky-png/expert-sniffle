@@ -1,3 +1,4 @@
+import { formatIsoDate } from "../state/formatDate";
 import { useState } from "react";
 import { IsoDate } from "../../src/domain/state";
 import {
@@ -32,7 +33,13 @@ export interface WorkloadProps {
   onLog: (entry: ThrowingEntry) => void;
 }
 
-const INTENTS: ThrowIntent[] = ["recovery", "low", "moderate", "high"];
+/** Wording, not the raw enum — the original never showed a stored key. */
+const INTENTS: { value: ThrowIntent; label: string }[] = [
+  { value: "recovery", label: "Recovery — catch play" },
+  { value: "low", label: "Low intent" },
+  { value: "moderate", label: "Moderate intent" },
+  { value: "high", label: "High intent / game" },
+];
 
 export function Workload({ date, plan, entries, onLog }: WorkloadProps) {
   const [intent, setIntent] = useState<ThrowIntent>("low");
@@ -59,16 +66,16 @@ export function Workload({ date, plan, entries, onLog }: WorkloadProps) {
       <PageHead
         eyebrow="Throwing workload"
         title="Log today's throwing."
-        intro={`${date}${day ? ` — ${day}` : ""}`}
+        intro={formatIsoDate(date)}
       />
 
       <Card>
         <div className="form-grid">
           <Field id="intent" label="Intent">
             <select id="intent" value={intent} onChange={(event) => setIntent(event.target.value as ThrowIntent)}>
-              {INTENTS.map((value) => (
+              {INTENTS.map(({ value, label }) => (
                 <option key={value} value={value}>
-                  {value}
+                  {label}
                 </option>
               ))}
             </select>

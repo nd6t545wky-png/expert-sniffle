@@ -2,6 +2,7 @@ import { useState } from "react";
 import { IsoDate } from "../../src/domain/state";
 import { FoodProduct, NutritionEstimate, PitchingOsApi } from "../../src/domain/api";
 import { Alert, Card, EmptyState, Field, Metric, PageHead } from "./Page";
+import { WaterTracker } from "./WaterTracker";
 
 /**
  * Meals, hydration and food lookup.
@@ -39,10 +40,9 @@ export interface NutritionProps {
   targets: NutritionTargets;
   onAddMeal: (meal: Meal) => void;
   onRemoveMeal: (id: string) => void;
-  onHydration: (litres: number) => void;
+  onHydration: (litres: number | "reset") => void;
 }
 
-const HYDRATION_PRESETS = [0.25, 0.5, 0.75, 1];
 
 function newId(): string {
   const bytes = crypto.getRandomValues(new Uint8Array(8));
@@ -146,19 +146,12 @@ export function Nutrition({
         <Metric label="Fat" value={`${totals.fat}g`} />
       </section>
 
-      <Card>
-        <h3>Hydration</h3>
-        <p className="fineprint">
-          {hydrationLitres.toFixed(2)} L{targets.fluid ? ` / ${targets.fluid} L` : ""}
-        </p>
-        <div className="form-actions">
-        {HYDRATION_PRESETS.map((litres) => (
-          <button key={litres} type="button" className="btn btn-outline" onClick={() => onHydration(litres)}>
-            +{litres} L
-          </button>
-        ))}
-        </div>
-      </Card>
+      <WaterTracker
+        date={date}
+        logged={hydrationLitres}
+        goal={targets.fluid}
+        onChange={onHydration}
+      />
 
       <Card>
         <div className="form-grid">
@@ -188,11 +181,19 @@ export function Nutrition({
           </div>
 
           <Field id="photo" label="Meal photo" hint={busy === "photo" ? "Analysing photo…" : "JPEG, PNG, WebP or HEIC"} full>
+            {/* The prototype never shows a bare file control — the browser's
+                own "Choose File / No file chosen" is the one widget on the
+                page that cannot be styled. A label acting as the button, with
+                the input hidden behind it, is its pattern. */}
+            <label className="btn btn-outline" htmlFor="photo">
+              {busy === "photo" ? "Analysing photo…" : "Choose photo"}
+            </label>
             <input
               id="photo"
               type="file"
               accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
               aria-label="Meal photo"
+              hidden
               onChange={(event) => {
                 const file = event.target.files?.[0];
                 if (!file) return;

@@ -1,3 +1,4 @@
+import { formatIsoDate } from "../state/formatDate";
 import { useState } from "react";
 import { IsoDate } from "../../src/domain/state";
 import { Alert, Card, PageHead } from "./Page";
@@ -32,6 +33,8 @@ export interface DailyPlanProps {
   completed: Record<IsoDate, string[] | undefined>;
   onCompleteTask: (date: IsoDate, taskId: string, next: string[]) => void;
   onOverride: (date: IsoDate, override: NonNullable<ReadinessSubmission["manualOverride"]>) => void;
+  /** Takes the athlete to the check-in that unlocks this session. */
+  onOpenReadiness?: () => void;
 }
 
 export function DailyPlan({
@@ -43,6 +46,7 @@ export function DailyPlan({
   completed,
   onCompleteTask,
   onOverride,
+  onOpenReadiness,
 }: DailyPlanProps) {
   const [error, setError] = useState("");
   const [reason, setReason] = useState("");
@@ -73,13 +77,20 @@ export function DailyPlan({
   if (plan.status === "locked") {
     return (
       <>
-        <PageHead eyebrow={`${day ?? ""} · Session`} title={sessionTitle || "Today's session"} intro={date} className="session-page-head" />
+        <PageHead eyebrow={`${day ?? ""} · Session`} title={sessionTitle || "Today's session"} intro={formatIsoDate(date)} className="session-page-head" />
         <Card className="gate">
           <div className="gate-icon" aria-hidden="true">
             ✓
           </div>
           <h3>Health check-in required</h3>
           <p>{plan.message}</p>
+          {/* Without this the gate is a dead end: it says what is needed and
+              gives no way to do it. */}
+          {onOpenReadiness && (
+            <button className="btn btn-primary" type="button" onClick={onOpenReadiness}>
+              Complete check-in <span aria-hidden="true">→</span>
+            </button>
+          )}
         </Card>
       </>
     );

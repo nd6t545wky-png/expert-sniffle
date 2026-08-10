@@ -2,12 +2,20 @@ import { useState } from "react";
 import { IsoDate } from "../../src/domain/state";
 import { ReadinessInputs, computeReadiness } from "../../src/domain/readiness";
 import { PlanState, submitReadiness } from "../../src/domain/session";
-import { Alert, Card, Field, FormDivider, PageHead } from "./Page";
+import { Alert } from "./Page";
+import { RangeField } from "./RangeField";
 
 /**
- * Pre-session readiness check. Scoring is entirely delegated to
- * src/domain/readiness — this component only collects inputs and renders the
- * outcome, so the thresholds cannot drift between UI and logic.
+ * Pre-session readiness check.
+ *
+ * Shaped to the prototype's `renderPreForm`: an `article.card.gate` with an
+ * icon, a heading, the explanation, then `form#pre-form.form-grid`. Field
+ * order, labels, helper text and control types are the original's — sliders
+ * are `RangeField`, sleep quality is a select, the warning-signs question
+ * carries `.warning-field`.
+ *
+ * Scoring is delegated entirely to src/domain/readiness, so the thresholds
+ * cannot drift between what is shown and what is applied.
  */
 
 const DEFAULTS: ReadinessInputs = {
@@ -23,22 +31,24 @@ const DEFAULTS: ReadinessInputs = {
   lower: 0,
   illness: "no",
   warningSigns: "no",
-  previousSessionResponse: "same",
+  previousSessionResponse: "as_expected",
 };
 
-const PAIN_FIELDS = [
-  ["shoulder", "Shoulder"],
-  ["elbow", "Elbow"],
-  ["forearm", "Forearm"],
-  ["lat", "Lat / scap"],
-  ["lower", "Lower body"],
+const SLEEP_QUALITY_LABELS = ["", "Poor", "Below average", "Average", "Good", "Excellent"];
+
+/** name, label, min, max, helper — verbatim from the prototype's rangeField calls. */
+const SCALE_FIELDS = [
+  ["energy", "Energy", 1, 5, "1 empty · 5 energised"],
+  ["mood", "Mood / motivation", 1, 5, "1 low · 5 excellent"],
+  ["stress", "Life stress", 1, 5, "1 low · 5 very high"],
 ] as const;
 
-const SCALE_FIELDS = [
-  ["sleepQuality", "Sleep quality"],
-  ["energy", "Energy"],
-  ["mood", "Mood / motivation"],
-  ["stress", "Life stress"],
+const PAIN_FIELDS = [
+  ["shoulder", "Shoulder soreness / pain"],
+  ["elbow", "Elbow soreness / pain"],
+  ["forearm", "Forearm / grip"],
+  ["lat", "Lat / upper back"],
+  ["lower", "Lower-body soreness"],
 ] as const;
 
 export interface HealthFormProps {
@@ -50,6 +60,7 @@ export interface HealthFormProps {
 
 export function HealthForm({ date, plan, existing, onSubmitted }: HealthFormProps) {
   const [values, setValues] = useState<ReadinessInputs>(DEFAULTS);
+  const [notes, setNotes] = useState("");
   const [error, setError] = useState<string>("");
 
   const preview = computeReadiness(values);
@@ -73,99 +84,150 @@ export function HealthForm({ date, plan, existing, onSubmitted }: HealthFormProp
 
   return (
     <>
-      <PageHead
-        eyebrow="Health check-in"
-        title="How are you today?"
-        intro="This sets today's workload. Answer honestly — it is the only input that can hold a session."
-        className="session-page-head"
-      />
-
       {alreadySubmitted && <Alert>Readiness has already been submitted for {date}.</Alert>}
 
-      <Card>
-        <form className="form-grid" onSubmit={handleSubmit}>
-          <FormDivider title="Sleep and energy" detail="Last night" />
+      <article className="card gate">
+        <div className="gate-icon">♡</div>
+        <h3>Complete the health check-in</h3>
+        <p>
+          The daily plan stays hidden until this quick check is submitted. Your answers set today's
+          training level.
+        </p>
 
-          <Field id="sleepHours" label="Sleep duration" hint="Hours last night">
+        <form id="pre-form" className="form-grid" data-date={date} onSubmit={handleSubmit}>
+          <div className="field">
+            <label htmlFor="sleepHours">Sleep duration</label>
             <input
               id="sleepHours"
+              name="sleepHours"
               type="number"
               min={0}
               max={14}
-              step={0.5}
+              step={0.1}
               value={values.sleepHours}
               onChange={(event) => set("sleepHours", Number(event.target.value))}
+              required
             />
-          </Field>
+            <small>Hours last night</small>
+          </div>
 
-          {SCALE_FIELDS.map(([key, label]) => (
-            <Field key={key} id={key} label={label} hint={`${values[key] as number} of 5`}>
-              <input
-                id={key}
-                type="range"
-                min={1}
-                max={5}
-                value={values[key] as number}
-                onChange={(event) => set(key, Number(event.target.value) as never)}
-              />
-            </Field>
-          ))}
-
-          <FormDivider title="Soreness and symptoms" detail="0 = nothing, 10 = severe" />
-
-          {PAIN_FIELDS.map(([key, label]) => (
-            <Field key={key} id={key} label={label} hint={`${values[key] as number} of 10`}>
-              <input
-                id={key}
-                type="range"
-                min={0}
-                max={10}
-                value={values[key] as number}
-                onChange={(event) => set(key, Number(event.target.value) as never)}
-              />
-            </Field>
-          ))}
-
-          <FormDivider title="Flags" detail="These can hold the session" />
-
-          <Field id="illness" label="Any illness symptoms?">
-            <select id="illness" value={values.illness} onChange={(event) => set("illness", event.target.value as "yes" | "no")}>
-              <option value="no">No</option>
-              <option value="yes">Yes</option>
-            </select>
-          </Field>
-
-          <Field id="warningSigns" label="New or worsening warning signs?">
+          <div className="field">
+            <label htmlFor="sleepQuality">Sleep quality</label>
             <select
-              id="warningSigns"
-              value={values.warningSigns}
-              onChange={(event) => set("warningSigns", event.target.value as "yes" | "no")}
+              id="sleepQuality"
+              name="sleepQuality"
+              value={values.sleepQuality}
+              onChange={(event) => set("sleepQuality", Number(event.target.value))}
+              required
             >
-              <option value="no">No</option>
-              <option value="yes">Yes</option>
+              {[1, 2, 3, 4, 5].map((value) => (
+                <option key={value} value={value}>
+                  {value} · {SLEEP_QUALITY_LABELS[value]}
+                </option>
+              ))}
             </select>
-          </Field>
+            <small>Required when no device score is available</small>
+          </div>
 
-          <Field id="previousSessionResponse" label="How did the last session leave you?" full>
+          {SCALE_FIELDS.map(([key, label, min, max, help]) => (
+            <RangeField
+              key={key}
+              name={key}
+              label={label}
+              min={min}
+              max={max}
+              help={help}
+              value={values[key] as number}
+              onChange={(value) => set(key, value as never)}
+            />
+          ))}
+
+          <div className="field">
+            <label htmlFor="previousSessionResponse">Response to last session</label>
             <select
               id="previousSessionResponse"
+              name="previousSessionResponse"
               value={values.previousSessionResponse}
               onChange={(event) => set("previousSessionResponse", event.target.value as never)}
+              required
             >
-              <option value="better">Better</option>
-              <option value="same">The same</option>
-              <option value="worse">Worse</option>
-              <option value="much_worse">Much worse</option>
+              <option value="better">Better than expected</option>
+              <option value="as_expected">As expected</option>
+              <option value="worse">Worse than expected</option>
+              <option value="much_worse">Much worse than expected</option>
             </select>
-          </Field>
+          </div>
+
+          <div className="field warning-field">
+            <label htmlFor="warningSigns">New warning signs?</label>
+            <select
+              id="warningSigns"
+              name="warningSigns"
+              value={values.warningSigns}
+              onChange={(event) => set("warningSigns", event.target.value as "yes" | "no")}
+              required
+            >
+              <option value="no">No</option>
+              <option value="yes">Yes — hold today's plan</option>
+            </select>
+            <small>
+              New sharp or worsening pain, weakness, numbness, or symptoms changing your throwing
+              mechanics
+            </small>
+          </div>
+
+          {PAIN_FIELDS.map(([key, label]) => (
+            <RangeField
+              key={key}
+              name={key}
+              label={label}
+              min={0}
+              max={10}
+              help="0 none · 10 severe"
+              value={values[key] as number}
+              onChange={(value) => set(key, value as never)}
+            />
+          ))}
+
+          <div className="field">
+            <label htmlFor="illness">Illness symptoms</label>
+            <select
+              id="illness"
+              name="illness"
+              value={values.illness}
+              onChange={(event) => set("illness", event.target.value as "yes" | "no")}
+            >
+              <option value="no">No</option>
+              <option value="yes">Yes</option>
+            </select>
+            <small>Fever, infection symptoms or unusual malaise</small>
+          </div>
+
+          <div className="field full">
+            <label htmlFor="preNotes">Notes</label>
+            <textarea
+              id="preNotes"
+              name="notes"
+              placeholder="Anything affecting today's plan?"
+              value={notes}
+              onChange={(event) => setNotes(event.target.value)}
+            />
+          </div>
 
           <div className="form-actions">
-            <button type="submit" className="btn btn-dark">
-              Submit readiness
+            <button className="btn btn-dark" type="submit">
+              Set today's plan
             </button>
           </div>
         </form>
-      </Card>
+
+        <p className="fineprint">
+          <strong>What this does:</strong> Pitching OS applies a transparent planning heuristic to
+          the information above and returns 100%, 75%, 50% or a hold. This is not diagnosis or
+          medical clearance. New or worsening pain, illness, weakness, numbness or altered mechanics
+          needs qualified clinical or coaching review.
+        </p>
+      </article>
 
       <ReadinessPreview result={preview} />
 
@@ -184,22 +246,39 @@ export function HealthForm({ date, plan, existing, onSubmitted }: HealthFormProp
   );
 }
 
+const RISK_TONE: Record<string, string> = {
+  green: "success",
+  yellow: "warn",
+  orange: "recovery",
+  red: "danger",
+};
+
 function ReadinessPreview({ result }: { result: ReturnType<typeof computeReadiness> }) {
+  // The prototype's risk banner: `.alert` plus a tone class, an icon column and
+  // the reasons as `.adaptation-reasons`.
+  const icon = { full: "100", reduced: "75", recovery: "50", hold: "!" }[result.planLevel];
   return (
-    <div className={`alert readiness-${result.risk}`} role="status">
-      <strong>
-        {result.score}/100 — {result.planLevel}
-      </strong>
-      {result.planLevel === "hold" && (
-        <p>
-          This is a health hold. It requires qualified review and cannot be overridden in the app.
-        </p>
-      )}
-      <ul>
-        {result.reasons.map((reason) => (
-          <li key={reason}>{reason}</li>
-        ))}
-      </ul>
+    <div className={`alert ${RISK_TONE[result.risk]} adaptation-alert session-status`} role="status">
+      <span className="session-status-icon" aria-hidden="true">
+        {icon}
+      </span>
+      <div>
+        <strong>
+          {result.score}/100 — {result.planLevel}
+        </strong>
+        {result.planLevel === "hold" && (
+          <span>
+            This is a health hold. It requires qualified review and cannot be overridden in the app.
+          </span>
+        )}
+        {result.reasons.length > 0 && (
+          <ul className="adaptation-reasons">
+            {result.reasons.map((reason) => (
+              <li key={reason}>{reason}</li>
+            ))}
+          </ul>
+        )}
+      </div>
     </div>
   );
 }

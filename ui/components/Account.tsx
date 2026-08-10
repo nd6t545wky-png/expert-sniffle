@@ -11,7 +11,7 @@ import {
   signInWithPasskey,
   signOut,
 } from "../state/authClient";
-import { Alert, Card, Field, PageHead } from "./Page";
+import { Alert, Card, CardHead, Field, PageHead } from "./Page";
 
 /**
  * Sign-in, workspace and cloud-sync status.
@@ -104,27 +104,46 @@ export function Account({ api, syncKey, onSyncKey, onSyncNow, syncStatus }: Acco
 
   return (
     <>
-      <PageHead eyebrow="Athlete" title="Account and cloud sync." />
+      <PageHead
+        eyebrow="Athlete settings"
+        title="Account and cloud sync."
+        intro="Sign-in, passkeys and encrypted cross-device autosave."
+      />
 
-      <Card className="account-identity">
+      <Card>
+      <CardHead title="Account and autosave" detail={syncStatus || "Encrypted snapshot of your training data"} />
       {status?.signedIn ? (
-        <p className="muted">
-          Signed in as <strong>{status.user?.name || status.user?.email}</strong>
-        </p>
+        // `.account-identity` is the avatar-plus-name row inside the card, not
+        // the card itself — it lays its children out in a flex row.
+        <div className="account-identity">
+          {status.user?.image ? (
+            <img src={status.user.image} alt="" />
+          ) : (
+            <span>{(status.user?.name || "A").slice(0, 1).toUpperCase()}</span>
+          )}
+          <div>
+            <strong>{status.user?.name || "Athlete"}</strong>
+            <small>{status.user?.email || ""}</small>
+          </div>
+        </div>
       ) : (
         <div>
           <p className="muted">Not signed in.</p>
-          <button type="button" className="btn" onClick={signInWithGoogle}>
-            Continue with Google
-          </button>{" "}
-          <button
-            type="button"
-            className="btn btn-outline"
-            disabled={!passkeysSupported() || authBusy !== ""}
-            onClick={() => runAuth("passkey-signin", signInWithPasskey)}
-          >
-            {passkeysSupported() ? "Use Face ID, Touch ID or passkey" : "Passkeys unavailable on this browser"}
-          </button>
+          {/* `.cloud-actions` is the prototype's button row — without it these
+              sit as two full-width blocks with a stray text node between. */}
+          <div className="cloud-actions">
+            <button type="button" className="btn btn-dark" onClick={signInWithGoogle}>
+              Continue with Google
+            </button>
+            <button
+              type="button"
+              className="btn btn-outline"
+              disabled={!passkeysSupported() || authBusy !== ""}
+              onClick={() => runAuth("passkey-signin", signInWithPasskey)}
+            >
+              {passkeysSupported() ? "Use Face ID, Touch ID or passkey" : "Passkeys unavailable on this browser"}
+            </button>
+          </div>
           <p className="fineprint">
             First time: sign in with Google, then add a passkey below. Your face or fingerprint stays
             on your device and is never sent to Pitching OS.
@@ -133,18 +152,20 @@ export function Account({ api, syncKey, onSyncKey, onSyncNow, syncStatus }: Acco
       )}
 
       {status?.signedIn && !status.workspaceReady && (
-        <button type="button" className="btn btn-dark" disabled={busy} onClick={createWorkspace}>
-          {busy ? "Setting up…" : "Set up cloud workspace"}
-        </button>
+        <div className="cloud-actions">
+          <button type="button" className="btn btn-dark" disabled={busy} onClick={createWorkspace}>
+            {busy ? "Setting up…" : "Set up cloud workspace"}
+          </button>
+        </div>
       )}
       </Card>
 
       {status?.signedIn && (
         <Card>
-          <h3>Passkeys</h3>
-          <p className="muted">
-            {passkeys.length} passkey{passkeys.length === 1 ? "" : "s"} registered.
-          </p>
+          <CardHead
+            title="Passkeys"
+            detail={`${passkeys.length} passkey${passkeys.length === 1 ? "" : "s"} registered`}
+          />
           {passkeys.length > 0 && (
             <ul className="task-list">
               {passkeys.map((passkey) => (
@@ -165,31 +186,33 @@ export function Account({ api, syncKey, onSyncKey, onSyncNow, syncStatus }: Acco
               ))}
             </ul>
           )}
-          <button
-            type="button"
-            className="btn btn-outline"
-            disabled={!passkeysSupported() || authBusy !== ""}
-            onClick={() => runAuth("add-passkey", registerPasskey)}
-          >
-            {authBusy === "add-passkey"
-              ? "Waiting for your device…"
-              : passkeys.length
-                ? "Add another passkey"
-                : "Add Face ID / passkey"}
-          </button>{" "}
-          <button
-            type="button"
-            className="btn btn-outline"
-            disabled={authBusy !== ""}
-            onClick={() => runAuth("sign-out", signOut)}
-          >
-            Sign out
-          </button>
+          <div className="cloud-actions">
+            <button
+              type="button"
+              className="btn btn-outline"
+              disabled={!passkeysSupported() || authBusy !== ""}
+              onClick={() => runAuth("add-passkey", registerPasskey)}
+            >
+              {authBusy === "add-passkey"
+                ? "Waiting for your device…"
+                : passkeys.length
+                  ? "Add another passkey"
+                  : "Add Face ID / passkey"}
+            </button>
+            <button
+              type="button"
+              className="btn btn-outline"
+              disabled={authBusy !== ""}
+              onClick={() => runAuth("sign-out", signOut)}
+            >
+              Sign out
+            </button>
+          </div>
         </Card>
       )}
 
       <Card className="cloud-card">
-      <h3>Recovery key</h3>
+      <CardHead title="Recovery key" detail="Held on this device only" />
       <p className="fineprint">
         Your data is encrypted on this device before it is uploaded. This key is what decrypts it —
         the server never sees it. Without it, a cloud backup cannot be recovered.

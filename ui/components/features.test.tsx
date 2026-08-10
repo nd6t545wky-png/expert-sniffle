@@ -25,7 +25,12 @@ function apiWith(routes: Record<string, unknown>, capture?: { calls: string[] })
 describe("Integrations", () => {
   it("requires cloud autosave before connecting anything", () => {
     render(<Integrations api={apiWith({})} hasSyncKey={false} />);
-    expect(screen.getByRole("status").textContent).toContain("Turn on cloud autosave");
+    // The wearable cards stay on the page and say why they are unavailable,
+    // and their actions are genuinely unreachable — not merely explained.
+    expect(screen.getByText(/Turn this on before connecting/)).toBeDefined();
+    expect(screen.getAllByText("Cloud autosave required")).toHaveLength(2);
+    expect(screen.getByRole("button", { name: /Connect Oura/ }).hasAttribute("disabled")).toBe(true);
+    expect(screen.getByRole("button", { name: /Set up Apple Health/ }).hasAttribute("disabled")).toBe(true);
   });
 
   it("shows Oura as connected when the server says so", async () => {
@@ -75,7 +80,10 @@ describe("Integrations", () => {
 describe("Mechanics", () => {
   it("requires cloud autosave", () => {
     render(<Mechanics api={apiWith({})} date="2026-08-05" hasSyncKey={false} />);
-    expect(screen.getByRole("status").textContent).toContain("Turn on cloud autosave");
+    expect(screen.getByText(/Cloud autosave required/)).toBeDefined();
+    // The capture card remains, but nothing on it can actually upload.
+    expect((screen.getByLabelText("Pitching video") as HTMLInputElement).disabled).toBe(true);
+    expect((screen.getByLabelText("Contact sheet") as HTMLInputElement).disabled).toBe(true);
   });
 
   it("lists uploaded videos", async () => {
@@ -170,7 +178,10 @@ describe("Nutrition", () => {
     expect(screen.getByText("of 3000 target")).toBeDefined();
     expect(screen.getByText("36g")).toBeDefined();
     expect(screen.getByText("of 180g target")).toBeDefined();
-    expect(screen.getByText(/1\.50 L \/ 4\.5 L/)).toBeDefined();
+    // Hydration is the prototype's water tracker: logged total and target are
+    // separate nodes in the readout, not one "x / y" string.
+    expect(screen.getByText("1.5 L")).toBeDefined();
+    expect(screen.getByText(/of 4\.5 L/)).toBeDefined();
   });
 
   it("adds hydration in preset increments", () => {
@@ -187,8 +198,15 @@ describe("Nutrition", () => {
         onHydration={onHydration}
       />
     );
-    fireEvent.click(screen.getByRole("button", { name: "+0.5 L" }));
+    // The tracker's quick-add buttons are labelled in millilitres.
+    fireEvent.click(screen.getByRole("button", { name: "+500 mL" }));
     expect(onHydration).toHaveBeenCalledWith(0.5);
+
+    // Tapping the bottle itself adds 250 mL, and reset clears the day.
+    fireEvent.click(screen.getByRole("button", { name: /Add 250 millilitres/ }));
+    expect(onHydration).toHaveBeenCalledWith(0.25);
+    fireEvent.click(screen.getByRole("button", { name: "Reset today" }));
+    expect(onHydration).toHaveBeenCalledWith("reset");
   });
 
   it("shows an AI estimate as editable and only logs it when accepted", async () => {

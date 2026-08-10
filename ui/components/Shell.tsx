@@ -1,4 +1,4 @@
-import { ReactNode } from "react";
+import { ReactNode, useState } from "react";
 
 /**
  * App shell.
@@ -30,78 +30,86 @@ export interface BottomNavItem {
   icon: ReactNode;
 }
 
-/** Icons traced from the prototype's inline SVGs. */
-const svg = (children: ReactNode) => (
-  <svg
-    viewBox="0 0 24 24"
-    aria-hidden="true"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="1.8"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    {children}
-  </svg>
-);
+/**
+ * Nav icons, path-for-path from the prototype's `navIcon`. They are not
+ * decoration: an empty `.nav-icon` span is what makes a nav list look
+ * half-built.
+ */
+const ICON_PATHS: Record<PageId, ReactNode> = {
+  dashboard: (
+    <>
+      <rect x="3" y="3" width="7" height="7" rx="2" />
+      <rect x="14" y="3" width="7" height="7" rx="2" />
+      <rect x="3" y="14" width="7" height="7" rx="2" />
+      <rect x="14" y="14" width="7" height="7" rx="2" />
+    </>
+  ),
+  session: (
+    <>
+      <path d="M7 3h10a2 2 0 0 1 2 2v16H5V5a2 2 0 0 1 2-2Z" />
+      <path d="m8 12 2.2 2.2L16 8.5" />
+    </>
+  ),
+  annual: (
+    <>
+      <rect x="3" y="5" width="18" height="16" rx="3" />
+      <path d="M8 3v4M16 3v4M3 10h18M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01" />
+    </>
+  ),
+  tracking: <path d="M4 20V10M10 20V4M16 20v-7M22 20H2" />,
+  nutrition: <path d="M12 3v18M7 5v6a3 3 0 0 0 3 3h2M17 4v7M14 4v7a3 3 0 0 0 6 0V4" />,
+  mechanics: (
+    <>
+      <circle cx="12" cy="12" r="8" />
+      <circle cx="12" cy="12" r="3" />
+      <path d="M12 2v3M22 12h-3M12 22v-3M2 12h3" />
+    </>
+  ),
+  profile: (
+    <>
+      <circle cx="12" cy="8" r="4" />
+      <path d="M4 21a8 8 0 0 1 16 0" />
+    </>
+  ),
+  integrations: (
+    <>
+      <path d="M8 12a4 4 0 0 1 4-4h3M16 12a4 4 0 0 1-4 4H9" />
+      <path d="m14 5 3 3-3 3M10 19l-3-3 3-3" />
+    </>
+  ),
+  // Readiness and workload have no nav entry of their own; they borrow the
+  // section they belong to.
+  readiness: (
+    <>
+      <path d="M7 3h10a2 2 0 0 1 2 2v16H5V5a2 2 0 0 1 2-2Z" />
+      <path d="m8 12 2.2 2.2L16 8.5" />
+    </>
+  ),
+  workload: <path d="M4 20V10M10 20V4M16 20v-7M22 20H2" />,
+};
+
+function NavIcon({ id }: { id: PageId }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      {ICON_PATHS[id]}
+    </svg>
+  );
+}
 
 export const BOTTOM_NAV: BottomNavItem[] = [
-  {
-    id: "dashboard",
-    label: "Today",
-    icon: svg(
-      <>
-        <rect x="3" y="3" width="7" height="7" rx="2" />
-        <rect x="14" y="3" width="7" height="7" rx="2" />
-        <rect x="3" y="14" width="7" height="7" rx="2" />
-        <rect x="14" y="14" width="7" height="7" rx="2" />
-      </>
-    ),
-  },
-  {
-    id: "session",
-    label: "Plan",
-    icon: svg(
-      <>
-        <rect x="4" y="3" width="16" height="18" rx="3" />
-        <path d="m8.5 12 2.5 2.5 4.5-5" />
-      </>
-    ),
-  },
-  {
-    id: "tracking",
-    label: "Progress",
-    icon: svg(
-      <>
-        <path d="M4 20V10" />
-        <path d="M10 20V4" />
-        <path d="M16 20v-7" />
-        <path d="M22 20H2" />
-      </>
-    ),
-  },
-  {
-    id: "nutrition",
-    label: "Nutrition",
-    icon: svg(
-      <>
-        <path d="M6 3v8a2 2 0 0 0 4 0V3" />
-        <path d="M8 11v10" />
-        <path d="M16 3c-1.5 2-2 4-2 6s.5 3 2 3 2-1 2-3-.5-4-2-6Z" />
-        <path d="M16 12v9" />
-      </>
-    ),
-  },
-  {
-    id: "profile",
-    label: "More",
-    icon: svg(
-      <>
-        <circle cx="12" cy="8" r="4" />
-        <path d="M4 21a8 8 0 0 1 16 0" />
-      </>
-    ),
-  },
+  { id: "dashboard", label: "Today", icon: <NavIcon id="dashboard" /> },
+  { id: "session", label: "Plan", icon: <NavIcon id="session" /> },
+  { id: "tracking", label: "Progress", icon: <NavIcon id="tracking" /> },
+  { id: "nutrition", label: "Nutrition", icon: <NavIcon id="nutrition" /> },
+  { id: "profile", label: "More", icon: <NavIcon id="profile" /> },
 ];
 
 /** Sidebar groups, mirroring the prototype's Plan / Track / Settings. */
@@ -129,6 +137,14 @@ export const SIDEBAR_GROUPS: { label: string; items: { id: PageId; label: string
       { id: "integrations", label: "Connections" },
     ],
   },
+];
+
+/** What the phone's "More" button opens, as in the prototype. */
+const MORE_ITEMS: { id: PageId; label: string }[] = [
+  { id: "annual", label: "Year" },
+  { id: "mechanics", label: "Biomechanics" },
+  { id: "profile", label: "Athlete" },
+  { id: "integrations", label: "Connections" },
 ];
 
 export interface ShellProps {
@@ -167,6 +183,8 @@ export function Shell({
   onOpenPlan,
   children,
 }: ShellProps) {
+  const [moreOpen, setMoreOpen] = useState(false);
+
   // The prototype maps several pages onto one bottom-nav entry.
   const activeNav: PageId =
     page === "readiness" || page === "workload"
@@ -198,7 +216,9 @@ export function Shell({
                   type="button"
                   onClick={() => onNavigate(item.id)}
                 >
-                  <span className="nav-icon" aria-hidden="true" />
+                  <span className="nav-icon">
+                    <NavIcon id={item.id} />
+                  </span>
                   {item.label}
                 </button>
               ))}
@@ -249,19 +269,61 @@ export function Shell({
       </main>
 
       <nav className="bottom-nav" aria-label="Primary navigation">
-        {BOTTOM_NAV.map((item) => (
-          <button
-            key={item.id}
-            className={activeNav === item.id ? "active" : ""}
-            type="button"
-            aria-current={activeNav === item.id ? "page" : undefined}
-            onClick={() => onNavigate(item.id)}
-          >
-            <span>{item.icon}</span>
-            <small>{item.label}</small>
-          </button>
-        ))}
+        {BOTTOM_NAV.map((item) => {
+          // "More" opens the sheet rather than navigating, as in the prototype.
+          const isMore = item.id === "profile";
+          const active = activeNav === item.id;
+          return (
+            <button
+              key={item.id}
+              className={active ? "active" : ""}
+              type="button"
+              aria-current={active && !isMore ? "page" : undefined}
+              aria-expanded={isMore ? moreOpen : undefined}
+              onClick={() => {
+                if (isMore) setMoreOpen((open) => !open);
+                else {
+                  setMoreOpen(false);
+                  onNavigate(item.id);
+                }
+              }}
+            >
+              <span>{item.icon}</span>
+              <small>{item.label}</small>
+            </button>
+          );
+        })}
       </nav>
+
+      {moreOpen && (
+        <>
+          <div className="mobile-sheet-backdrop" onClick={() => setMoreOpen(false)} />
+          <aside className="mobile-sheet">
+            <div className="mobile-sheet-head">
+              <strong>More</strong>
+              <button type="button" aria-label="Close" onClick={() => setMoreOpen(false)}>
+                ×
+              </button>
+            </div>
+            {MORE_ITEMS.map((item) => (
+              <button
+                key={item.id}
+                className={`nav-item ${page === item.id ? "active" : ""}`}
+                type="button"
+                onClick={() => {
+                  setMoreOpen(false);
+                  onNavigate(item.id);
+                }}
+              >
+                <span className="nav-icon">
+                  <NavIcon id={item.id} />
+                </span>
+                {item.label}
+              </button>
+            ))}
+          </aside>
+        </>
+      )}
     </div>
   );
 }

@@ -36,13 +36,24 @@ export function PageHead({
   );
 }
 
+/**
+ * `.card` on its own sets a surface, a border and a radius — and no padding
+ * at all. In the prototype it is always paired with something that supplies
+ * it: `.card-pad` normally, or a variant like `.gate` / `.integration` that
+ * brings its own. A card without either has its contents touching the border,
+ * which is the single biggest reason a screen reads as unfinished.
+ */
+const SELF_PADDING = ["gate", "integration", "season-calendar-card", "metric", "card-pad"];
+
 export function Card({
   children,
   className = "",
   ...rest
 }: { children: ReactNode; className?: string } & React.HTMLAttributes<HTMLElement>) {
+  const variants = className.split(/\s+/).filter(Boolean);
+  const pad = variants.some((name) => SELF_PADDING.includes(name)) ? "" : "card-pad";
   return (
-    <article className={`card ${className}`.trim()} {...rest}>
+    <article className={["card", pad, ...variants].filter(Boolean).join(" ")} {...rest}>
       {children}
     </article>
   );
@@ -115,12 +126,38 @@ export function Disclosure({
   );
 }
 
+/**
+ * "Nothing here yet" for a list, inside its own card.
+ *
+ * `.empty` is the prototype's shape for this, and the reason matters: only
+ * `.empty strong` is `display: block`, so only this shape puts the title on
+ * its own line. `.chart-empty` is a dashed placeholder sized for a chart —
+ * used for one it looks deliberate, used for a list it renders the title and
+ * detail run together in a box of empty space.
+ */
 export function EmptyState({ title, detail }: { title: string; detail?: string }) {
+  return (
+    <article className="card card-pad">
+      <div className="empty">
+        <strong>{title}</strong>
+        {detail}
+      </div>
+    </article>
+  );
+}
+
+/** Dashed placeholder where a chart will go once there is data for it. */
+export function ChartEmpty({ title, detail }: { title: string; detail?: string }) {
   return (
     <div className="chart-empty">
       <div>
         <strong>{title}</strong>
-        {detail && <span>{detail}</span>}
+        {detail && (
+          <>
+            <br />
+            {detail}
+          </>
+        )}
       </div>
     </div>
   );

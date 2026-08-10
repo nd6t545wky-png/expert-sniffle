@@ -19,6 +19,9 @@ function check(name, condition, detail = "") {
 const browser = await chromium.launch({ executablePath: "/opt/pw-browsers/chromium", args: ["--no-sandbox"] });
 const context = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
 const page = await context.newPage();
+// Fail fast: a selector that no longer matches should report in seconds, not
+// stall the whole run on the default 30s timeout.
+page.setDefaultTimeout(8000);
 
 const consoleErrors = [];
 const failedRequests = [];
@@ -27,11 +30,15 @@ page.on("pageerror", (e) => consoleErrors.push(String(e)));
 page.on("response", (r) => r.status() >= 400 && failedRequests.push(`${r.status()} ${r.url()}`));
 
 const NAV = {
-  Dashboard: "Today", Session: "Plan", Tracking: "Progress", Nutrition: "Nutrition", Account: "More",
+  Dashboard: "Today", Session: "Plan", Tracking: "Progress", Nutrition: "Nutrition", Account: "Athlete",
   Readiness: "Readiness", Workload: "Workload", Annual: "Year", Mechanics: "Biomechanics", Integrations: "Connections",
 };
 const go = async (label) => {
   const target = NAV[label] ?? label;
+  // The "More" sheet's backdrop sits above the bottom nav (as in the original),
+  // so it has to be dismissed before another tab can be tapped.
+  const openSheet = page.locator(".mobile-sheet-backdrop");
+  if (await openSheet.count()) await openSheet.click();
   // Prefer the bottom nav; fall back to the sidebar for sections it omits.
   const bottom = page.locator(`.bottom-nav button:has-text("${target}")`);
   if (await bottom.count()) {
@@ -40,7 +47,7 @@ const go = async (label) => {
     // Sections the bottom nav cannot hold live behind "More" on a phone.
     await page.locator('.bottom-nav button:has-text("More")').click();
     await page.waitForTimeout(150);
-    await page.locator(`.content .nav-item:has-text("${target}")`).first().click();
+    await page.locator(`.mobile-sheet .nav-item:has-text("${target}")`).first().click();
   }
   await page.waitForTimeout(150);
 };
@@ -83,6 +90,44 @@ const setRange = async (label, value) => {
   await page.waitForTimeout(60);
 };
 
+// --------------------------------------------- sliders actually operate
+// Synthetic value-setting (above) proves the handler is wired; it does not
+// prove the control can be used. Drive one slider with a real pointer and
+// with the keyboard, and check the widget's own readouts follow.
+const rangeState = async (id) =>
+  page.locator(`#${id}`).evaluate((node) => ({
+    value: node.value,
+    progress: node.style.getPropertyValue("--range-progress"),
+    number: node.closest(".range-field").querySelector("[data-range-number]").textContent,
+    text: node.closest(".range-field").querySelector("[data-range-text]").textContent,
+  }));
+
+await page.locator("#shoulder").scrollIntoViewIfNeeded();
+await page.waitForTimeout(100);
+const sliderBefore = await rangeState("shoulder");
+const box = await page.locator("#shoulder").boundingBox();
+await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+await page.mouse.down();
+await page.mouse.move(box.x + box.width * 0.7, box.y + box.height / 2, { steps: 12 });
+await page.mouse.up();
+await page.waitForTimeout(150);
+const sliderAfter = await rangeState("shoulder");
+check("slider drags with a real pointer", sliderBefore.value !== sliderAfter.value, `${sliderBefore.value} -> ${sliderAfter.value}`);
+check("filled track follows the thumb", /%$/.test(sliderAfter.progress) && sliderAfter.progress !== sliderBefore.progress, sliderAfter.progress);
+check("live output follows the thumb", sliderAfter.number === sliderAfter.value, `${sliderAfter.number} / ${sliderAfter.text}`);
+check("soreness reads in words, not just a number", /[A-Za-z]/.test(sliderAfter.text), sliderAfter.text);
+
+await page.locator('.range-field:has(#shoulder) .range-reset').click();
+await page.waitForTimeout(120);
+check("reset returns the slider to its default", (await rangeState("shoulder")).value === "0");
+
+await page.locator("#energy").focus();
+const energyBefore = await rangeState("energy");
+await page.keyboard.press("ArrowLeft");
+await page.waitForTimeout(120);
+const energyAfter = await rangeState("energy");
+check("arrow keys move the slider", energyBefore.value !== energyAfter.value, `${energyBefore.value} -> ${energyAfter.value}`);
+
 await setRange("Shoulder", 7);
 await page.waitForTimeout(150);
 const holdPreview = await page.textContent('[role="status"]');
@@ -96,7 +141,7 @@ const fullPreview = await page.textContent('[role="status"]');
 check("healthy inputs preview full", fullPreview?.includes("full"), fullPreview?.slice(0, 40));
 
 // ------------------------------------------------------------- submit
-await page.click('button:has-text("Submit readiness")');
+await page.click('button:has-text("Set today")');
 await page.waitForTimeout(300);
 const afterSubmit = await storage();
 check("readiness persisted to localStorage", afterSubmit && Object.keys(afterSubmit.pre || {}).length === 1);
@@ -117,7 +162,7 @@ check("tasks visible", await page.isVisible('button:has-text("Mark complete")'))
 
 // -------------------------------------------------------- duplicate guard
 await shortcut("Readiness");
-await page.click('button:has-text("Submit readiness")');
+await page.click('button:has-text("Set today")');
 await page.waitForTimeout(200);
 const dupText = await page.textContent("#root");
 check("duplicate readiness refused", dupText.includes("already been submitted"));
@@ -209,7 +254,7 @@ for (const label of ["Nutrition", "Mechanics", "Integrations", "Account"]) {
 await go("Nutrition");
 check("nutrition usable without cloud", (await page.textContent("#root")).includes("Hydration"));
 const beforeHydration = await storage();
-await page.click('button:has-text("+0.5 L")');
+await page.click('button:has-text("+500 mL")');
 await page.waitForTimeout(250);
 const afterHydration = await storage();
 check(
@@ -217,11 +262,28 @@ check(
   JSON.stringify(beforeHydration?.nutrition?.hydration) !== JSON.stringify(afterHydration?.nutrition?.hydration)
 );
 
+// Both pages keep their cards and disable the actions, rather than replacing
+// the page with a sentence — so assert the controls are genuinely unreachable,
+// not just that an explanation is on screen.
 await go("Integrations");
-check("integrations gated behind cloud autosave", (await page.textContent("#root")).includes("cloud autosave"));
+check(
+  "integrations explain the autosave prerequisite",
+  (await page.textContent("#root")).includes("Cloud autosave required")
+);
+check(
+  "integrations gated behind cloud autosave",
+  await page.locator('button:has-text("Connect Oura")').isDisabled()
+);
 
 await go("Mechanics");
-check("mechanics gated behind cloud autosave", (await page.textContent("#root")).includes("cloud autosave"));
+check(
+  "mechanics explain the autosave prerequisite",
+  (await page.textContent("#root")).includes("Cloud autosave required")
+);
+check(
+  "mechanics gated behind cloud autosave",
+  await page.locator("#video").isDisabled()
+);
 
 await go("Account");
 check("account explains the recovery key", (await page.textContent("#root")).includes("server never sees it"));

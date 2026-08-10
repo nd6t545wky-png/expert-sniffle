@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { IsoDate } from "../../src/domain/state";
 import { PlanState, SessionReport, submitSessionReport } from "../../src/domain/session";
-import { Alert, Card, EmptyState, Field, PageHead } from "./Page";
+import { Alert, Card, EmptyState, PageHead } from "./Page";
+import { RangeField } from "./RangeField";
+import { formatIsoDate } from "../state/formatDate";
 
 /**
  * Post-session reporting and weekly tracking.
@@ -46,51 +48,65 @@ export function Tracking({ date, plan, reports, onReport }: TrackingProps) {
 
   return (
     <>
-      <PageHead eyebrow="Progress" title="How did that go?" intro={date} />
+      <PageHead eyebrow="Progress" title="How did that go?" intro={formatIsoDate(date)} />
 
       {existing ? (
         <Alert>
           Reported: RPE {existing.perceivedExertion}, arm {existing.armFeel}/10.
         </Alert>
       ) : (
-        <Card>
-          <form className="form-grid" onSubmit={handleSubmit}>
-            <Field id="rpe" label="Perceived exertion" hint={`${perceivedExertion} of 10`}>
-              <input
-                id="rpe"
-                type="range"
-                min={1}
-                max={10}
-                value={perceivedExertion}
-                onChange={(event) => setPerceivedExertion(Number(event.target.value))}
-              />
-            </Field>
+        // The prototype's check-out is a `.card.gate`, not a plain card: icon,
+        // heading, explanation, then the form.
+        <article className="card gate" id="post-card">
+          <div className="gate-icon">✓</div>
+          <h3>Plan resolved—check out</h3>
+          <p>Record what actually happened.</p>
 
-            <Field id="armFeel" label="Arm feel" hint={`${armFeel} of 10 — higher is better`}>
-              <input
-                id="armFeel"
-                type="range"
-                min={1}
-                max={10}
-                value={armFeel}
-                onChange={(event) => setArmFeel(Number(event.target.value))}
-              />
-            </Field>
+          <form id="post-form" className="form-grid" data-date={date} onSubmit={handleSubmit}>
+            <RangeField
+              name="rpe"
+              label="Session RPE"
+              min={1}
+              max={10}
+              help="1 very easy · 10 maximal"
+              value={perceivedExertion}
+              onChange={setPerceivedExertion}
+            />
 
-            <Field id="gamePitches" label="Game pitches">
+            <RangeField
+              name="armFeel"
+              label="Arm feel"
+              min={1}
+              max={10}
+              help="1 poor · 10 excellent"
+              value={armFeel}
+              onChange={setArmFeel}
+            />
+
+            <div className="field">
+              <label htmlFor="gamePitches">Game pitches</label>
               <input
                 id="gamePitches"
+                name="gamePitches"
                 type="number"
                 min={0}
                 max={200}
+                step={1}
                 value={gamePitches}
                 onChange={(event) => setGamePitches(Number(event.target.value))}
               />
-            </Field>
+            </div>
 
-            <Field id="notes" label="Notes" full>
-              <textarea id="notes" value={notes} onChange={(event) => setNotes(event.target.value)} />
-            </Field>
+            <div className="field full">
+              <label htmlFor="postNotes">Session notes</label>
+              <textarea
+                id="postNotes"
+                name="notes"
+                placeholder="Command, velocity, fatigue, changes, coach notes…"
+                value={notes}
+                onChange={(event) => setNotes(event.target.value)}
+              />
+            </div>
 
             <div className="form-actions">
               <button type="submit" className="btn btn-dark">
@@ -98,7 +114,7 @@ export function Tracking({ date, plan, reports, onReport }: TrackingProps) {
               </button>
             </div>
           </form>
-        </Card>
+        </article>
       )}
 
       {error && (

@@ -63,15 +63,6 @@ export function Integrations({ api, hasSyncKey }: IntegrationsProps) {
     }
   }
 
-  if (!hasSyncKey) {
-    return (
-      <>
-        <PageHead eyebrow="Connections" title="Wearables and health data." />
-        <Alert>Turn on cloud autosave before connecting Oura or Apple Health.</Alert>
-      </>
-    );
-  }
-
   return (
     <>
       <PageHead
@@ -80,13 +71,40 @@ export function Integrations({ api, hasSyncKey }: IntegrationsProps) {
         intro="Readiness improves when it can see sleep, HRV and resting heart rate."
       />
 
+      {/* The prototype leads this page with autosave, because everything below
+          depends on it. Without a key the wearable cards stay on the page and
+          say why they are unavailable — an almost-blank page reads as broken
+          rather than as a prerequisite that has not been met. */}
+      <Card className="integration">
+        <div className="integration-icon" aria-hidden="true">
+          ☁
+        </div>
+        <div>
+          <h3>Cloudflare encrypted autosave</h3>
+          <p>
+            {hasSyncKey
+              ? "On. Your signed-in account loads the same encrypted snapshot on every device."
+              : "Off. Turn this on before connecting Oura or Apple Health."}
+          </p>
+        </div>
+        <div className="integration-actions">
+          <span className={`status ${hasSyncKey ? "green" : "yellow"}`}>{hasSyncKey ? "On" : "Off"}</span>
+        </div>
+      </Card>
+
       <Card className="integration">
         <div className="integration-icon" aria-hidden="true">
           ◎
         </div>
         <div>
           <h3>Oura</h3>
-          <p>{oura?.connected ? `Connected${oura.updatedAt ? ` — updated ${oura.updatedAt}` : ""}` : "Not connected"}</p>
+          <p>
+            {!hasSyncKey
+              ? "Cloud autosave required"
+              : oura?.connected
+                ? `Connected${oura.updatedAt ? ` — updated ${oura.updatedAt}` : ""}`
+                : "Not connected"}
+          </p>
           {oura && !oura.configured && (
             <p className="fineprint">Oura application credentials have not been added to this deployment yet.</p>
           )}
@@ -108,7 +126,7 @@ export function Integrations({ api, hasSyncKey }: IntegrationsProps) {
         <button
           type="button"
           className="btn"
-          disabled={busy !== "" || !oura?.configured}
+          disabled={busy !== "" || !hasSyncKey || !oura?.configured}
           onClick={() => run("oura-connect", async () => {
             const { authorizeUrl } = await api.ouraConnect();
             window.location.href = authorizeUrl;
@@ -127,16 +145,18 @@ export function Integrations({ api, hasSyncKey }: IntegrationsProps) {
         <div>
           <h3>Apple Health</h3>
           <p>
-            {apple?.connected
-              ? `Connected${apple.lastUploadAt ? ` — last upload ${apple.lastUploadAt}` : " — no uploads yet"}`
-              : "Not connected"}
+            {!hasSyncKey
+              ? "Cloud autosave required"
+              : apple?.connected
+                ? `Connected${apple.lastUploadAt ? ` — last upload ${apple.lastUploadAt}` : " — no uploads yet"}`
+                : "Not connected"}
           </p>
         </div>
         <div className="integration-actions">
       <button
         type="button"
         className="btn"
-        disabled={busy !== ""}
+        disabled={busy !== "" || !hasSyncKey}
         onClick={() => run("apple-setup", async () => {
           const result = await api.appleSetup();
           setUploadToken(result.uploadToken);
