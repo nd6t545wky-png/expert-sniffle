@@ -111,12 +111,6 @@ describe("baseline programming overlay", () => {
     expect(cat?.stop).toBe("Stop for pain.");
   });
 
-  it("says plainly that the 2 kg ball is beyond the studied range", () => {
-    const result = applyBaselineProgramming(
-      session([task({ stage: 2, stageTitle: "Plyo Ball Preparation", name: "Plyo Ball Reverse Throw — 2,000 g" })])
-    );
-    expect(result.tasks[0].stop).toMatch(/heavier than any implement used in the published trials/);
-  });
 
   it("warns specifically on the light balls, where the risk concentrates", () => {
     const light = applyBaselineProgramming(
@@ -197,5 +191,76 @@ describe("where the additions land", () => {
     const names = order(result);
     expect(names.findIndex((n) => /Depth jump/.test(n))).toBeLessThan(names.indexOf("Trap bar deadlift"));
     expect(names.indexOf("Catch")).toBe(0);
+  });
+});
+
+describe("the 2 kg plyo ball is out", () => {
+  const plyo = (name: string): SessionTask => ({
+    id: `w5-d0-${name}`, stage: 2, stageTitle: "Plyo Ball Preparation",
+    stageDescription: "d", name, prescription: "1 × 5 · 50% perceived effort", cue: "c",
+  });
+
+  it("is removed wherever it appears", () => {
+    const result = applyBaselineProgramming(
+      session([plyo("Plyo Ball Reverse Throw — 2,000 g"), plyo("Plyo Ball Reverse Throw — 1,000 g")])
+    );
+    expect(result.tasks.map((t) => t.name)).toEqual(["Plyo Ball Reverse Throw — 1,000 g"]);
+  });
+
+  it("leaves the 1,000 g throw doing the same job", () => {
+    const result = applyBaselineProgramming(session([plyo("Plyo Ball Reverse Throw — 1,000 g")]));
+    expect(result.tasks.some((t) => /1,000 g/.test(t.name))).toBe(true);
+  });
+
+  it("does not remove anything else that happens to mention a number", () => {
+    const result = applyBaselineProgramming(
+      session([plyo("Plyo Ball Roll-In Throw — 450 g"), plyo("Plyo Ball Rocker Throw — 225 g")])
+    );
+    expect(result.tasks).toHaveLength(2);
+  });
+
+  it("does not touch a gym movement that mentions 2,000", () => {
+    const result = applyBaselineProgramming(
+      session([{ id: "w5-d0-x", stage: 4, stageTitle: "Whole-Body Force", stageDescription: "d",
+                 name: "Sled push — 2,000 g plate", prescription: "3 × 20 m", cue: "c" }])
+    );
+    expect(result.tasks.some((t) => /Sled push/.test(t.name))).toBe(true);
+  });
+});
+
+describe("the report's strength window is actually used", () => {
+  it("adds a back squat in the prescribed 77–87% band, from the tested max", () => {
+    const result = applyBaselineProgramming(
+      session([task({ id: "w5-d0-warm", name: "Low-volume power primer" })])
+    );
+    const squat = result.tasks.find((t) => t.name === "Back squat");
+    // 77–87% of the tested 145 kg, rounded to 2.5 kg.
+    expect(squat?.prescription).toBe("4 × 5 @ 112.5–125 kg · 77–87% of tested max");
+  });
+
+  it("loads it heavier than the speed squat, which is deliberately light", () => {
+    const result = applyBaselineProgramming(session([task()]));
+    const speed = result.tasks.find((t) => /Speed squat/.test(t.name));
+    const heavy = result.tasks.find((t) => t.name === "Back squat");
+    expect(speed?.prescription).toContain("94 kg");
+    expect(heavy?.prescription).toContain("112.5–125 kg");
+  });
+
+  it("puts the heavy squat after the fast work, never before it", () => {
+    const result = applyBaselineProgramming(
+      session([
+        task({ id: "w5-d0-warm", name: "Low-volume power primer" }),
+        task({ id: "w5-d0-dl", name: "Trap bar deadlift" }),
+      ])
+    );
+    const names = result.tasks.map((t) => t.name);
+    expect(names.indexOf("Depth jump — 15–20 cm box")).toBeLessThan(names.indexOf("Back squat"));
+    expect(names.findIndex((n) => /Speed squat/.test(n))).toBeLessThan(names.indexOf("Back squat"));
+    expect(names.indexOf("Back squat")).toBeLessThan(names.indexOf("Trap bar deadlift"));
+  });
+
+  it("is idempotent", () => {
+    const once = applyBaselineProgramming(session([task()]));
+    expect(applyBaselineProgramming(once).tasks.filter((t) => t.name === "Back squat")).toHaveLength(1);
   });
 });

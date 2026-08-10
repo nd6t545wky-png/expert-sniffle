@@ -90,6 +90,42 @@ function velocitySquatTask(prefix: string, stageTitle: string, stageDescription:
   };
 }
 
+
+/**
+ * The anterior-chain strength lift the report prescribes and the session did
+ * not have.
+ *
+ * ForceDecks asked for a progressive back squat at 4–8 reps × 3–5 sets,
+ * 77–87% of max, with bar-speed intent. Nothing in the gym block sat in that
+ * window: the trap bar runs 6 × 2, and the speed squat is 94 kg — 65% of max,
+ * deliberately light because it trains bar speed, not strength.
+ *
+ * The load comes from the tested 145 kg rather than an estimate, which is the
+ * whole reason the testing was worth wiring in.
+ *
+ * This raises Monday's lower-body count to four loaded movements — squat,
+ * trap bar, split squat and RDL. That is a real cost and it is a coaching
+ * decision, not one this file should make silently; it is flagged rather than
+ * resolved by dropping something on its own initiative.
+ */
+function backSquatTask(prefix: string, stageTitle: string, stageDescription: string): SessionTask {
+  const window = strengthWindowKg();
+  return {
+    id: `${prefix}-back-squat`,
+    stage: 4,
+    stageTitle,
+    stageDescription,
+    name: "Back squat",
+    prescription: `4 × 5 @ ${window.low}–${window.high} kg · ${PCT_MIN}–${PCT_MAX}% of tested max`,
+    cue: "Drive the bar with intent on every rep. Depth consistent, brace before the descent.",
+    setup: `From a rack with safeties. ${window.low}–${window.high} kg is ${PCT_MIN}–${PCT_MAX}% of the tested ${BASELINE_ANCHORS.backSquat1RmKg} kg max — start at the bottom of the window and progress across the block.`,
+    execution:
+      "Controlled down, fast up. Stop the set if bar speed drops sharply or depth changes, rather than grinding a rep out.",
+    rest: "3 minutes between work sets.",
+    stop: "End the set for loss of spinal position or knee pain, or if bar speed collapses.",
+  };
+}
+
 /**
  * Posterior-chain hinge. Named directly in the report's strength block
  * alongside the squat.
@@ -152,13 +188,12 @@ export const PLYO_EVIDENCE_NOTE =
 
 function withPlyoEvidence(task: SessionTask): SessionTask {
   if (task.stageTitle !== "Plyo Ball Preparation") return task;
-  const heavy = /2,?000\s*g/.test(task.name);
+  // The 2 kg ball had its own note; it is now removed outright, so the only
+  // remaining caveat is the light-ball one.
   const light = /1[0-2]?[05]\s*g\b/.test(task.name) && !/1,?000\s*g/.test(task.name);
-  const extra = heavy
-    ? " This ball is heavier than any implement used in the published trials, so there is no evidence base for it specifically."
-    : light
-      ? " Light balls produce the highest arm speeds and are where the reported injury risk concentrates."
-      : "";
+  const extra = light
+    ? " Light balls produce the highest arm speeds and are where the reported injury risk concentrates."
+    : "";
   return { ...task, stop: `${task.stop ?? ""} ${PLYO_EVIDENCE_NOTE}${extra}`.trim() };
 }
 
@@ -198,8 +233,32 @@ function withExplicitReducedDose(level: ReducedLevel | null) {
   };
 }
 
+
+/**
+ * The 2 kg plyo ball, removed at the athlete's request.
+ *
+ * It appeared once — Monday's reverse throw, 1 × 5 at 50% — as low-intent
+ * patterning work. It goes for two reasons. It is heavier than any implement
+ * used in the injury and velocity trials this programme cites (Reinold's RCT
+ * topped out at 32 oz / 907 g; the 2025 professional cohort reported 4–9 oz),
+ * so there is no evidence base for that specific load. And the 1,000 g
+ * reverse throw immediately after it does the same job, which means nothing
+ * has to be invented to replace it.
+ *
+ * Kept as a named rule rather than an edit to the extracted programme:
+ * `programmeContent.ts` is regenerated from the frozen v60 snapshot, so an
+ * edit there would be silently undone on the next extraction.
+ */
+const REMOVED_IMPLEMENTS = [/2,?000\s*g/];
+
+function isRemovedImplement(task: SessionTask): boolean {
+  return task.stageTitle === "Plyo Ball Preparation"
+    && REMOVED_IMPLEMENTS.some((pattern) => pattern.test(task.name));
+}
+
 export function applyBaselineProgramming(session: Session, level: ReducedLevel | null = null): Session {
   const tasks = session.tasks
+    .filter((task) => !isRemovedImplement(task))
     .map(withBarSpeedIntent)
     .map(withPlyoEvidence)
     .map(withExplicitReducedDose(level));
@@ -231,6 +290,9 @@ export function applyBaselineProgramming(session: Session, level: ReducedLevel |
   const early = [
     depthJumpTask(prefix, stageTitle, stageDescription),
     velocitySquatTask(prefix, stageTitle, stageDescription),
+    // Heavy strength follows the velocity work: light-and-fast first, then
+    // load. The reverse order leaves the fast work fatigued.
+    backSquatTask(prefix, stageTitle, stageDescription),
   ].filter((addition) => !tasks.some((task) => task.id === addition.id));
 
   const late = [rdlTask(prefix, stageTitle, stageDescription)].filter(
