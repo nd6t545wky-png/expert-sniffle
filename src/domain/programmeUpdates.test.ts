@@ -421,3 +421,68 @@ describe("the hinge is placed for competition, not for the label on the day", ()
     expect(rdl?.prescription).not.toContain("RPE 7–8");
   });
 });
+
+describe("warm-up microdoses", () => {
+  const prep = (name: string, id = name): SessionTask => ({
+    id: `w5-d0-${id}`, stage: 1, stageTitle: "Prepare",
+    stageDescription: "Raise temperature before mobility or throwing.",
+    name, prescription: "p", cue: "c",
+  });
+
+  const warmUp = (tasks: SessionTask[], day: number | null = 0) =>
+    applyBaselineProgramming(session(tasks), null, day)
+      .tasks.filter((t) => t.stageTitle === "Prepare")
+      .map((t) => t.name);
+
+  it("adds ankle stiffness and forearm prep to the warm-up", () => {
+    const names = warmUp([prep("Raise tissue temperature", "heat"), prep("Dynamic mobility flow", "mob")]);
+    expect(names).toContain("Ankle stiffness pogos");
+    expect(names).toContain("Wrist and forearm prep");
+  });
+
+  it("puts them after the existing warm-up, not before it", () => {
+    const names = warmUp([
+      prep("Raise tissue temperature", "heat"),
+      prep("Dynamic mobility flow", "mob"),
+      prep("Scapular and cuff activation", "scap"),
+    ]);
+    expect(names.indexOf("Ankle stiffness pogos")).toBeGreaterThan(names.indexOf("Dynamic mobility flow"));
+    expect(names.indexOf("Ankle stiffness pogos")).toBeGreaterThan(names.indexOf("Raise tissue temperature"));
+  });
+
+  it("keeps the forearm work last, closest to the first throw", () => {
+    const names = warmUp([prep("Raise tissue temperature", "heat"), prep("Dynamic mobility flow", "mob")]);
+    expect(names[names.length - 1]).toBe("Wrist and forearm prep");
+  });
+
+  it("runs on every day that has a warm-up, including game day", () => {
+    for (const day of [0, 1, 2, 3, 4, 5]) {
+      expect(warmUp([prep("Raise tissue temperature", "heat")], day)).toContain("Ankle stiffness pogos");
+    }
+  });
+
+  it("adds nothing to a day with no warm-up stage", () => {
+    // Sunday is rest — no Prepare stage, so nothing to prime.
+    const sunday = applyBaselineProgramming(
+      session([{ id: "w5-d6-r", stage: 1, stageTitle: "Rest", stageDescription: "d",
+                 name: "Complete training rest", prescription: "p", cue: "c" }]),
+      null,
+      6
+    ).tasks.map((t) => t.name);
+    expect(sunday).not.toContain("Ankle stiffness pogos");
+    expect(sunday).not.toContain("Wrist and forearm prep");
+  });
+
+  it("keeps the pogo dose low — this primes stiffness, it is not a jump session", () => {
+    const pogo = applyBaselineProgramming(session([prep("Raise tissue temperature", "heat")]), null, 0)
+      .tasks.find((t) => t.name === "Ankle stiffness pogos");
+    expect(pogo?.prescription).toContain("low amplitude");
+    expect(pogo?.cue).toMatch(/Speed off the ground beats height/);
+  });
+
+  it("is idempotent", () => {
+    const once = applyBaselineProgramming(session([prep("Raise tissue temperature", "heat")]), null, 0);
+    const twice = applyBaselineProgramming(once, null, 0);
+    expect(twice.tasks.filter((t) => t.name === "Ankle stiffness pogos")).toHaveLength(1);
+  });
+});

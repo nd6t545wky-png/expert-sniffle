@@ -385,6 +385,68 @@ function withSupersets(day: number | null) {
   };
 }
 
+
+// --- Warm-up additions ------------------------------------------------------
+
+/**
+ * Daily ankle-stiffness microdose.
+ *
+ * The warm-up went from mobility straight into plyo throws or a barbell with
+ * no elastic exposure at all. For most athletes that is a small omission. For
+ * this one it is the flagged limiter: soleus carnosine at Z −1.51 (the lowest
+ * value in the MFT scan), drop-jump ground contact of 0.348 s against a
+ * sub-0.25 s target, and 354 ms to peak force. The soleus is the ground-
+ * contact muscle and it is the weakest tissue on the report.
+ *
+ * That quality was trained twice a week — Friday's pogos and Monday's depth
+ * jumps. This is the classic case for a microdose: about a minute, negligible
+ * fatigue cost, and it tolerates daily frequency, so it runs every day the
+ * session has a warm-up. Sunday has no warm-up stage and correctly gets none.
+ *
+ * Deliberately low amplitude. This primes stiffness; it is not a jump session,
+ * and the depth jumps on Monday remain the actual training dose.
+ */
+function ankleStiffnessTask(prefix: string): SessionTask {
+  return {
+    id: `${prefix}-ankle-stiffness`,
+    stage: 1,
+    stageTitle: "Prepare",
+    stageDescription: "Raise temperature before mobility or throwing.",
+    name: "Ankle stiffness pogos",
+    prescription: "2 × 10 · low amplitude · minimal ground contact",
+    cue: "Stiff ankles, quiet landings, barely leave the floor. Speed off the ground beats height every rep.",
+    setup: "Firm, non-slip surface. Stand tall, weight through the midfoot.",
+    execution:
+      "Bounce from the ankles with the knees almost straight. Think of the floor as hot. Stop the set if contacts get heavy or slow.",
+    rest: "30 seconds between sets. This is priming, not conditioning.",
+    stop: "Stop for Achilles, calf or heel pain. Soreness here is a reason to skip it, not to push through.",
+  };
+}
+
+/**
+ * Forearm and wrist prep, before throwing rather than after it.
+ *
+ * The programme has forearm pronation and supination in the post-throw arm
+ * care circuit but nothing pre-throw, so the tissue that decelerates the wrist
+ * and takes the valgus load through the elbow went into the first throw cold.
+ * Cheap to fix and it belongs immediately before the throwing prep.
+ */
+function forearmPrepTask(prefix: string): SessionTask {
+  return {
+    id: `${prefix}-forearm-prep`,
+    stage: 1,
+    stageTitle: "Prepare",
+    stageDescription: "Raise temperature before mobility or throwing.",
+    name: "Wrist and forearm prep",
+    prescription: "Wrist circles 10/direction · pronation–supination 10/side · light gripper or towel squeeze 10",
+    cue: "Light and full-range. This wakes the forearm up; it is not a training set.",
+    setup: "No load, or the lightest implement available.",
+    execution: "Move through comfortable range at an easy tempo, both directions.",
+    rest: "Straight into the throwing prep.",
+    stop: "Stop for medial elbow or wrist pain — that is a reason to review the day, not to warm up harder.",
+  };
+}
+
 export function applyBaselineProgramming(
   session: Session,
   level: ReducedLevel | null = null,
@@ -397,6 +459,19 @@ export function applyBaselineProgramming(
     .map(withPlyoEvidence)
     .map(withSupersets(day))
     .map(withExplicitReducedDose(level));
+
+  // Warm-up additions run every day that has a warm-up. Sunday has no
+  // Prepare stage and correctly receives nothing.
+  const prepEnd = tasks.map((task) => task.stageTitle).lastIndexOf("Prepare");
+  if (prepEnd !== -1) {
+    const prepPrefix = String(tasks[0].id).split("-").slice(0, 2).join("-");
+    const warmUp = [ankleStiffnessTask(prepPrefix), forearmPrepTask(prepPrefix)].filter(
+      (addition) => !tasks.some((task) => task.id === addition.id)
+    );
+    // Ankle work after the mobility flow, forearm prep last so the throwing-
+    // specific preparation is closest to the first throw.
+    tasks.splice(prepEnd + 1, 0, ...warmUp);
+  }
 
   let gymIndex = tasks.findIndex((task) => GYM_STAGE_TITLES.includes(task.stageTitle));
 
