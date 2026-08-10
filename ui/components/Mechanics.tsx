@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { IsoDate } from "../../src/domain/state";
 import { MechanicsAnalysis, MechanicsAngle, MechanicsVideo, PitchingOsApi } from "../../src/domain/api";
-import { Alert, Card, EmptyState, Field, PageHead } from "./Page";
+import { Alert, Card, CardHead, EmptyState, Field, PageHead } from "./Page";
+import { MechanicsRoutine } from "./MechanicsRoutine";
+import { ANGLE_COVERAGE, CHECKPOINTS } from "../../src/domain/mechanicsDrills";
 
 /**
  * Pitching video library and AI movement screening.
@@ -99,9 +101,31 @@ export function Mechanics({ api, date, hasSyncKey }: MechanicsProps) {
         </Alert>
       )}
 
+      {/* What a good capture looks like, before it is taken rather than after
+          it fails. The four frames are the structure the Mustard app reads a
+          delivery at, and they are what this screen is judged against too. */}
+      <Card>
+        <CardHead title="What the screen reads" detail="Four frames of the delivery" />
+        <div className="mini-list">
+          {CHECKPOINTS.map((point, index) => (
+            <div className="mini-row" key={point.key}>
+              <span className="mini-icon">{index + 1}</span>
+              <div>
+                <strong>{point.label}</strong>
+                <p>{point.look}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+        <p className="fineprint">
+          One camera cannot see all of it. A single angle rates only what it can see and leaves the
+          rest unrated — shoot both the open side and the rear before changing anything.
+        </p>
+      </Card>
+
       <Card className="biomechanics-command-card">
         <div className="form-grid capture-essentials">
-          <Field id="angle" label="Camera angle">
+          <Field id="angle" label="Camera angle" hint={ANGLE_COVERAGE[angle]?.note}>
             <select id="angle" value={angle} onChange={(event) => setAngle(event.target.value as MechanicsAngle)}>
               {ANGLES.map(([value, label]) => (
                 <option key={value} value={value}>
@@ -160,6 +184,9 @@ export function Mechanics({ api, date, hasSyncKey }: MechanicsProps) {
 
       {analysis && <AnalysisResult analysis={analysis} />}
 
+      {/* The screen is only useful if it leads to work. */}
+      <MechanicsRoutine analysis={analysis} />
+
       {videos.length === 0 ? (
         <EmptyState title="No videos uploaded yet" detail="Uploads appear here with a playback link." />
       ) : (
@@ -198,15 +225,6 @@ export function Mechanics({ api, date, hasSyncKey }: MechanicsProps) {
 }
 
 function AnalysisResult({ analysis }: { analysis: MechanicsAnalysis }) {
-  const ratings: [string, number | null][] = [
-    ["Sequence", analysis.sequenceRating],
-    ["Lower half", analysis.lowerHalfRating],
-    ["Trunk", analysis.trunkRating],
-    ["Arm timing", analysis.armTimingRating],
-    ["Release", analysis.releaseRating],
-    ["Deceleration", analysis.decelerationRating],
-  ];
-
   return (
     <div className="alert" role="status">
       <strong>{analysis.sourceLabel}</strong>
@@ -221,18 +239,9 @@ function AnalysisResult({ analysis }: { analysis: MechanicsAnalysis }) {
         Confidence: {analysis.confidence} — {analysis.confidenceReason}
       </p>
 
-      {analysis.analyzable && (
-        <dl className="grid metrics">
-          {ratings
-            .filter(([, value]) => value !== null)
-            .map(([label, value]) => (
-              <div key={label}>
-                <dt>{label}</dt>
-                <dd>{value}/5</dd>
-              </div>
-            ))}
-        </dl>
-      )}
+      {/* Ratings are rendered by MechanicsRoutine, which also shows the ones
+          this capture could not rate — a bare list of the ratings that exist
+          makes a missing metric look like a passing one. */}
 
       {analysis.limitations?.length > 0 && (
         <>

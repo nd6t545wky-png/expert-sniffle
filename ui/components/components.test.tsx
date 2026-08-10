@@ -299,34 +299,78 @@ describe("Workload — high-intent restriction reaches the user", () => {
   });
 });
 
-describe("AnnualPlan", () => {
-  it("renders all 52 weeks", () => {
+describe("AnnualPlan — the year as a calendar", () => {
+  it("shows every month the programme touches, July 2026 to July 2027", () => {
     render(<AnnualPlan selectedWeek={1} onSelectWeek={vi.fn()} />);
-    expect(screen.getAllByRole("button")).toHaveLength(52);
+    expect(screen.getByText("July 2026")).toBeDefined();
+    expect(screen.getByText("July 2027")).toBeDefined();
+    // 13 months inclusive.
+    expect(document.querySelectorAll(".cal-month-card")).toHaveLength(13);
   });
 
-  it("labels each week with its phase", () => {
+  it("gives one tab per training cycle, coloured from the phase table", () => {
     render(<AnnualPlan selectedWeek={1} onSelectWeek={vi.fn()} />);
-    expect(screen.getByLabelText("Week 1, Winter Ball")).toBeDefined();
-    expect(screen.getByLabelText("Week 13, Transition")).toBeDefined();
-    expect(screen.getByLabelText("Week 15, Velocity Development")).toBeDefined();
-    expect(screen.getByLabelText("Week 27, Preseason")).toBeDefined();
-    expect(screen.getByLabelText("Week 37, Summer Season")).toBeDefined();
+    const cycles = document.querySelectorAll(".cal-cycle");
+    expect(cycles).toHaveLength(8);
+    expect(screen.getByText("FNCBA Winter · In Season")).toBeDefined();
+    expect(screen.getByText("GBL Preseason")).toBeDefined();
+    // Colour comes from the data, not from a class name written here.
+    expect((cycles[0] as HTMLElement).style.getPropertyValue("--cycle")).toBe("#e52b21");
   });
 
-  it("reports the position within the phase, not the year", () => {
-    render(<AnnualPlan selectedWeek={20} onSelectWeek={vi.fn()} />);
-    expect(screen.getByText(/week 6 of 12/)).toBeDefined();
+  it("marks the cycle the selected week belongs to", () => {
+    render(<AnnualPlan selectedWeek={11} onSelectWeek={vi.fn()} />);
+    expect(document.querySelector(".cal-cycle.active")?.textContent).toContain("GBL Preseason");
   });
 
-  it("reports selection upward", () => {
+  it("jumps to a cycle's first week when its tab is chosen", () => {
     const onSelectWeek = vi.fn();
     render(<AnnualPlan selectedWeek={1} onSelectWeek={onSelectWeek} />);
-    fireEvent.click(screen.getByLabelText("Week 30, Preseason"));
-    expect(onSelectWeek).toHaveBeenCalledWith(30);
+    fireEvent.click(screen.getByText("GBL Christmas Break"));
+    expect(onSelectWeek).toHaveBeenCalledWith(23);
+  });
+
+  it("selects the week a chosen day belongs to", () => {
+    const onSelectWeek = vi.fn();
+    render(<AnnualPlan selectedWeek={1} onSelectWeek={onSelectWeek} />);
+    // 13 July 2026 is the first day of week 1.
+    fireEvent.click(screen.getByLabelText(/^13 July, week 1,/));
+    expect(onSelectWeek).toHaveBeenCalledWith(1);
+    // A week later is week 2.
+    fireEvent.click(screen.getByLabelText(/^20 July, week 2,/));
+    expect(onSelectWeek).toHaveBeenCalledWith(2);
+  });
+
+  it("will not let a day outside the programme be selected", () => {
+    const onSelectWeek = vi.fn();
+    render(<AnnualPlan selectedWeek={1} onSelectWeek={onSelectWeek} />);
+    const outside = screen.getByLabelText("1 July, outside the programme") as HTMLButtonElement;
+    expect(outside.disabled).toBe(true);
+    fireEvent.click(outside);
+    expect(onSelectWeek).not.toHaveBeenCalled();
+  });
+
+  it("marks today, and only today", () => {
+    render(<AnnualPlan selectedWeek={1} onSelectWeek={vi.fn()} today="2026-08-10" />);
+    const marked = document.querySelectorAll(".cal-day.today");
+    expect(marked).toHaveLength(1);
+    expect(marked[0].getAttribute("aria-label")).toMatch(/^10 August,.*today$/);
+  });
+
+  it("switches between the year and a single month", () => {
+    render(<AnnualPlan selectedWeek={1} onSelectWeek={vi.fn()} />);
+    expect(document.querySelectorAll(".cal-month-card").length).toBeGreaterThan(1);
+    fireEvent.click(screen.getByRole("tab", { name: "Month" }));
+    expect(document.querySelectorAll(".cal-month-card")).toHaveLength(1);
+  });
+
+  it("opens the month a week belongs to when that month is clicked", () => {
+    render(<AnnualPlan selectedWeek={1} onSelectWeek={vi.fn()} />);
+    fireEvent.click(screen.getByText("October 2026"));
+    expect(document.querySelectorAll(".cal-month-card")).toHaveLength(1);
+    expect(screen.getByText("October 2026")).toBeDefined();
   });
 });
-
 
 describe("DayTabs — the week's days", () => {
   const pre = { "2026-08-05": {} };

@@ -528,7 +528,9 @@ export function App() {
         />
       )}
 
-      {page === "annual" && <AnnualPlan selectedWeek={selectedWeek} onSelectWeek={setSelectedWeek} />}
+      {page === "annual" && (
+        <AnnualPlan selectedWeek={selectedWeek} onSelectWeek={setSelectedWeek} today={today.openDate} />
+      )}
 
       {page === "nutrition" && (
         <Nutrition

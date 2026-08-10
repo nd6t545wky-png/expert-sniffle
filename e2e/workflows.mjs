@@ -268,13 +268,36 @@ await go("Tracking");
 check("duplicate report prevented by UI state", !(await page.isVisible('button:has-text("Submit report")')));
 
 // ------------------------------------------------------------ annual
+// The year is a calendar now: month grids, one colour per cycle, and days
+// that select the week they belong to.
 await go("Annual");
-const weekCount = await page.$$eval(".week-grid button", (b) => b.length);
-check("52 week cells", weekCount === 52, String(weekCount));
-await page.click('[aria-label="Week 30, Preseason"]');
-await page.waitForTimeout(150);
-check("selecting week 30 shows Preseason", (await page.textContent("#root")).includes("Preseason"));
-check("shows position within phase", /week 4 of 10/.test(await page.textContent("#root")));
+check("every month the programme touches", (await page.locator(".cal-month-card").count()) === 13);
+check("one tab per training cycle", (await page.locator(".cal-cycle").count()) === 8);
+check("cycle colour comes from the phase table", await page.locator(".cal-cycle").first().evaluate(
+  (n) => getComputedStyle(n).getPropertyValue("--cycle").trim() === "#e52b21"
+));
+
+// A day carries its week and cycle, and selecting it moves the selection.
+const day = page.locator('.cal-day[aria-label*="week 30"]').first();
+await day.click();
+await page.waitForTimeout(200);
+check("selecting a day selects its week", (await page.textContent("#root .page-head")).includes("Week 30"));
+check("and names the cycle that week belongs to", /GBL Summer|Preseason|Break/.test(await page.textContent("#root .page-head")));
+
+// Days outside the 52 weeks cannot be chosen.
+const outside = page.locator('.cal-day[aria-label*="outside the programme"]').first();
+check("days outside the programme are not selectable", await outside.isDisabled());
+
+// Year and month are two views of the same calendar.
+await page.click('button[role="tab"]:has-text("Month")');
+await page.waitForTimeout(200);
+check("month view shows one month", (await page.locator(".cal-month-card").count()) === 1);
+await page.click('button[role="tab"]:has-text("Year")');
+await page.waitForTimeout(200);
+check("year view comes back", (await page.locator(".cal-month-card").count()) === 13);
+check("no horizontal overflow on the calendar", await page.evaluate(
+  () => document.documentElement.scrollWidth <= document.documentElement.clientWidth
+));
 
 // ------------------------------------------------------------- day tabs
 // The regression these guard: the heading naming one weekday while the date
