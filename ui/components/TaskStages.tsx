@@ -109,6 +109,12 @@ export function TaskStages({
                     />
                     <div>
                       <div className="task-title">
+                        {/* A superset is only useful if it is obvious. The
+                            badge names the pair and the position in it, so
+                            "A1" and "A2" read as one block of work. */}
+                        {typeof task.superset === "string" && (
+                          <span className="superset-badge">Superset {task.superset}</span>
+                        )}
                         {task.name}
                         {skip && <span className="skip-badge">Skipped</span>}
                       </div>

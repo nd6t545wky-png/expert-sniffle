@@ -264,3 +264,109 @@ describe("the report's strength window is actually used", () => {
     expect(applyBaselineProgramming(once).tasks.filter((t) => t.name === "Back squat")).toHaveLength(1);
   });
 });
+
+describe("the week's gym work is spread, not stacked on Monday", () => {
+  const gymSession = () =>
+    session([
+      task({ id: "w5-d0-warm", name: "Low-volume power primer" }),
+      task({ id: "w5-d0-dl", name: "Trap bar deadlift" }),
+    ]);
+
+  const names = (day: number) => applyBaselineProgramming(gymSession(), null, day).tasks.map((t) => t.name);
+
+  it("puts reactive and heavy strength on Monday", () => {
+    const monday = names(0);
+    expect(monday.some((n) => /Depth jump/.test(n))).toBe(true);
+    expect(monday).toContain("Back squat");
+    // Bar speed belongs on the power day, not behind Monday's heavy squat.
+    expect(monday.some((n) => /Speed squat/.test(n))).toBe(false);
+    expect(monday).not.toContain("Romanian deadlift");
+  });
+
+  it("puts bar-speed work on Wednesday, the power day", () => {
+    const wednesday = names(2);
+    expect(wednesday.some((n) => /Speed squat/.test(n))).toBe(true);
+    expect(wednesday).not.toContain("Back squat");
+    expect(wednesday.some((n) => /Depth jump/.test(n))).toBe(false);
+  });
+
+  it("microdoses the hinge on Thursday, which carried no loading at all", () => {
+    const thursday = names(3);
+    expect(thursday).toContain("Romanian deadlift");
+    expect(thursday).not.toContain("Back squat");
+  });
+
+  it("adds nothing on the game day or the rest day", () => {
+    for (const day of [5, 6]) {
+      const added = names(day).filter((n) => /Depth jump|Speed squat|Back squat|Romanian/.test(n));
+      expect(added).toEqual([]);
+    }
+  });
+});
+
+describe("supersets are marked, and only where they belong", () => {
+  const supersetOf = (day: number, tasks: SessionTask[]) =>
+    Object.fromEntries(
+      applyBaselineProgramming(session(tasks), null, day).tasks.map((t) => [t.name, t.superset])
+    );
+
+  it("pairs the antagonist push and pull on Monday", () => {
+    const marked = supersetOf(0, [
+      task({ id: "a", name: "Bench press" }),
+      task({ id: "b", name: "Chest-supported dumbbell row" }),
+    ]);
+    expect(marked["Bench press"]).toBe("A1");
+    expect(marked["Chest-supported dumbbell row"]).toBe("A2");
+  });
+
+  it("pairs the hamstring and anti-rotation work too", () => {
+    const marked = supersetOf(0, [
+      task({ id: "a", name: "Nordic hamstring curl" }),
+      task({ id: "b", name: "Pallof press + farmer carry" }),
+    ]);
+    expect(marked["Nordic hamstring curl"]).toBe("B1");
+    expect(marked["Pallof press + farmer carry"]).toBe("B2");
+  });
+
+  it("never pairs anything that has to be fresh", () => {
+    // Density would convert these from strength and power work into
+    // conditioning, which is the opposite of what they are for.
+    const marked = supersetOf(0, [
+      task({ id: "a", name: "Trap bar deadlift" }),
+      task({ id: "b", name: "Bench press" }),
+    ]);
+    expect(marked["Trap bar deadlift"]).toBeUndefined();
+    const monday = applyBaselineProgramming(session([task({ id: "w5-d0-warm", name: "Low-volume power primer" })]), null, 0);
+    for (const t of monday.tasks.filter((x) => /Back squat|Depth jump/.test(x.name))) {
+      expect(t.superset).toBeUndefined();
+    }
+  });
+
+  it("tells the first movement not to rest and the second where to go back to", () => {
+    const paired = applyBaselineProgramming(
+      session([
+        task({ id: "a", name: "Bench press", rest: "2 minutes." }),
+        task({ id: "b", name: "Chest-supported dumbbell row", rest: "90 seconds." }),
+      ]),
+      null,
+      0
+    ).tasks;
+    // Find by name — the day's own additions sit in this list too.
+    expect(paired.find((t) => t.name === "Bench press")?.rest).toMatch(/No rest/);
+    expect(paired.find((t) => t.name === "Chest-supported dumbbell row")?.rest).toMatch(/return to A1/);
+  });
+
+  it("does not mark Monday's pairs on Wednesday", () => {
+    const marked = supersetOf(2, [task({ id: "a", name: "Bench press" })]);
+    expect(marked["Bench press"]).toBeUndefined();
+  });
+
+  it("pairs Wednesday's push press with the chin-up", () => {
+    const marked = supersetOf(2, [
+      task({ id: "a", name: "Push press" }),
+      task({ id: "b", name: "Chin-up" }),
+    ]);
+    expect(marked["Push press"]).toBe("A1");
+    expect(marked["Chin-up"]).toBe("A2");
+  });
+});

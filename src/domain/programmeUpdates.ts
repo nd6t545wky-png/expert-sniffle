@@ -256,15 +256,131 @@ function isRemovedImplement(task: SessionTask): boolean {
     && REMOVED_IMPLEMENTS.some((pattern) => pattern.test(task.name));
 }
 
-export function applyBaselineProgramming(session: Session, level: ReducedLevel | null = null): Session {
+
+// --- Weekly distribution ----------------------------------------------------
+
+/**
+ * Where each addition belongs in the week.
+ *
+ * Everything the testing called for was landing on Monday, which already
+ * carried seven lifts, while Tuesday ran speed work only and Thursday carried
+ * no loading at all. That is not a programme, it is one hard day and three
+ * light ones — and it is the opposite of what the MFT profile suggested, which
+ * was that this athlete tolerates frequency.
+ *
+ * So the work is spread:
+ *
+ *  Monday    reactive + heavy strength. The primary force day.
+ *  Wednesday bar-speed work. Wednesday is already the power day — med-ball,
+ *            jumps, push press — so the speed squat belongs with them, not
+ *            stacked behind Monday's heavy squat.
+ *  Thursday  the posterior-chain hinge, as a microdose. Thursday had no
+ *            loading whatsoever, and an RDL is cheap systemically: it fits
+ *            beside recovery work without competing with it.
+ *
+ * Friday is left alone — it is the pre-game microdose and already exists.
+ * Saturday is competition, Sunday is rest.
+ */
+const DAY_MONDAY = 0;
+const DAY_WEDNESDAY = 2;
+const DAY_THURSDAY = 3;
+
+// --- Supersets --------------------------------------------------------------
+
+/**
+ * Pairs that should be run together, and — just as important — what must not.
+ *
+ * Antagonist and non-competing pairs cost nothing in quality and buy back a
+ * lot of session time, which is the difference between an eleven-item Monday
+ * being done and being abandoned halfway.
+ *
+ * Nothing that depends on being fresh is paired: the heavy squat, the trap
+ * bar, the depth jump and the speed squat all run straight, because density
+ * degrades exactly the qualities they train. A superset there would quietly
+ * convert strength and power work into conditioning.
+ */
+const SUPERSET_RULES: { day: number; group: string; members: RegExp[] }[] = [
+  {
+    day: DAY_MONDAY,
+    group: "A",
+    members: [/^Bench press$/, /^Chest-supported dumbbell row$/],
+  },
+  {
+    day: DAY_MONDAY,
+    group: "B",
+    members: [/^Nordic hamstring curl$/, /Pallof press/],
+  },
+  {
+    day: DAY_WEDNESDAY,
+    group: "A",
+    members: [/^Push press$/, /^Chin-up$/],
+  },
+  {
+    day: DAY_WEDNESDAY,
+    group: "B",
+    members: [/Single-leg Romanian deadlift/, /cable chop/i],
+  },
+];
+
+/** Movements that must never be paired, whatever else is going on. */
+const NEVER_SUPERSET = [/Back squat/, /Speed squat/, /Depth jump/, /Trap bar/];
+
+function withSupersets(day: number | null) {
+  return (task: SessionTask): SessionTask => {
+    if (day === null) return task;
+    if (NEVER_SUPERSET.some((pattern) => pattern.test(task.name))) return task;
+
+    const rule = SUPERSET_RULES.find(
+      (candidate) => candidate.day === day && candidate.members.some((m) => m.test(task.name))
+    );
+    if (!rule) return task;
+
+    const position = rule.members.findIndex((m) => m.test(task.name)) + 1;
+    const partners = rule.members.length;
+    return {
+      ...task,
+      superset: `${rule.group}${position}`,
+      supersetOf: partners,
+      rest:
+        position < partners
+          ? "No rest — go straight into the next movement in this superset."
+          : `${task.rest ?? ""} Rest here, then return to ${rule.group}1.`.trim(),
+    };
+  };
+}
+
+export function applyBaselineProgramming(
+  session: Session,
+  level: ReducedLevel | null = null,
+  day: number | null = null
+): Session {
   const tasks = session.tasks
     .filter((task) => !isRemovedImplement(task))
     .map(withBarSpeedIntent)
     .map(withPlyoEvidence)
+    .map(withSupersets(day))
     .map(withExplicitReducedDose(level));
 
-  const gymIndex = tasks.findIndex((task) => GYM_STAGE_TITLES.includes(task.stageTitle));
-  if (gymIndex === -1) return { ...session, tasks };
+  let gymIndex = tasks.findIndex((task) => GYM_STAGE_TITLES.includes(task.stageTitle));
+
+  // Thursday carries no gym stage at all, which is exactly why it was chosen
+  // for the microdose — but it means there is no stage to insert into. Create
+  // one rather than silently dropping the work.
+  if (gymIndex === -1) {
+    const wantsWork = day === DAY_THURSDAY;
+    if (!wantsWork) return { ...session, tasks };
+    const after = tasks.filter((task) => task.stage <= 4).length;
+    tasks.splice(after, 0, {
+      id: `${String(tasks[0]?.id ?? "day").split("-").slice(0, 2).join("-")}-microdose`,
+      stage: 4,
+      stageTitle: "Whole-Body Force",
+      stageDescription: "Microdose — one hinge, kept cheap so it does not compete with recovery.",
+      name: "Microdose block",
+      prescription: "One movement, done well",
+      cue: "This is a small, deliberate dose on an otherwise unloaded day. Do not turn it into a session.",
+    });
+    gymIndex = after;
+  }
 
   const { stageTitle, stageDescription } = tasks[gymIndex];
   const prefix = String(tasks[gymIndex].id).split("-").slice(0, 2).join("-");
@@ -287,15 +403,21 @@ export function applyBaselineProgramming(session: Session, level: ReducedLevel |
   // slow contact, which is the exact quality the testing flagged as the
   // limiter. So these go early — right behind the primer, ahead of the heavy
   // strength work — and only the hinge goes at the end with the accessories.
+  // A null day means "wherever this session is" — used by tests and by any
+  // caller that has not said. It gets everything, as before.
+  const onMonday = day === null || day === DAY_MONDAY;
+  const onWednesday = day === null || day === DAY_WEDNESDAY;
+  const onThursday = day === null || day === DAY_THURSDAY;
+
   const early = [
-    depthJumpTask(prefix, stageTitle, stageDescription),
-    velocitySquatTask(prefix, stageTitle, stageDescription),
+    ...(onMonday ? [depthJumpTask(prefix, stageTitle, stageDescription)] : []),
+    ...(onWednesday ? [velocitySquatTask(prefix, stageTitle, stageDescription)] : []),
     // Heavy strength follows the velocity work: light-and-fast first, then
     // load. The reverse order leaves the fast work fatigued.
-    backSquatTask(prefix, stageTitle, stageDescription),
+    ...(onMonday ? [backSquatTask(prefix, stageTitle, stageDescription)] : []),
   ].filter((addition) => !tasks.some((task) => task.id === addition.id));
 
-  const late = [rdlTask(prefix, stageTitle, stageDescription)].filter(
+  const late = (onThursday ? [rdlTask(prefix, stageTitle, stageDescription)] : []).filter(
     (addition) => !tasks.some((task) => task.id === addition.id)
   );
 
@@ -308,9 +430,12 @@ export function applyBaselineProgramming(session: Session, level: ReducedLevel |
   }
   tasks.splice(lastGym + 1, 0, ...late);
 
-  // After the primer if there is one, otherwise at the head of the gym block.
-  const primerAt = tasks.findIndex((task) => /primer/i.test(task.name));
-  tasks.splice(primerAt === -1 ? gymIndex : primerAt + 1, 0, ...early);
+  // After whatever prepares for it: the named primer on Monday, the jumps on
+  // Wednesday. The jumps are the most neurally demanding thing in that
+  // session and have to come first, so the speed squat follows them rather
+  // than displacing them.
+  const anchor = tasks.findIndex((task) => /primer/i.test(task.name) || /broad jump/i.test(task.name));
+  tasks.splice(anchor === -1 ? gymIndex : anchor + 1, 0, ...early);
 
   return { ...session, tasks };
 }

@@ -228,7 +228,8 @@ export function App() {
             ? { planLevel: submission.planLevel, workloadFactor: submission.workloadFactor }
             : null,
         }),
-        level
+        level,
+        selectedDay
       );
     } catch {
       return null;

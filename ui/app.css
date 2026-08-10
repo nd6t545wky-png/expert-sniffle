@@ -177,3 +177,21 @@ body {
   border-radius: 50%;
   background: var(--blue);
 }
+
+/* --- Supersets -------------------------------------------------------------
+ * New: the prototype had no superset concept to style. Deliberately loud —
+ * a superset that is not obvious is just two exercises.
+ * ------------------------------------------------------------------------- */
+.superset-badge {
+  display: inline-block;
+  margin-right: 8px;
+  padding: 2px 7px;
+  border-radius: 7px;
+  background: var(--team-primary-soft);
+  color: var(--blue);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  vertical-align: middle;
+}
