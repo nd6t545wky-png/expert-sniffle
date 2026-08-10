@@ -129,6 +129,22 @@ function backSquatTask(prefix: string, stageTitle: string, stageDescription: str
 /**
  * Posterior-chain hinge. Named directly in the report's strength block
  * alongside the squat.
+ *
+ * It sits on Thursday, and the reason is competition timing rather than the
+ * label on the day. An RDL is the most eccentric-biased movement in the week
+ * and therefore the likeliest to produce delayed soreness, which peaks at
+ * 24–48 hours. Thursday puts it 48 hours from Saturday's first pitch; Friday
+ * would put it 24, which is the worst case.
+ *
+ * Friday is also the wrong character for it. Everything there — pogo,
+ * vertical jump, landmine push press at RPE 5–6, split-squat isometric — is
+ * sub-maximal and fast, deliberately potentiating. A loaded hinge changes
+ * what that day is. And dropping the RDL to Friday's intensity to make it fit
+ * would leave it rehearsing the pattern rather than training it, which
+ * defeats the point of placing it at all.
+ *
+ * RPE 7, not 7–8: a genuine stimulus, but Thursday is still a recovery day
+ * and the top of that range does not belong on one.
  */
 function rdlTask(prefix: string, stageTitle: string, stageDescription: string): SessionTask {
   const window = strengthWindowKg();
@@ -138,7 +154,7 @@ function rdlTask(prefix: string, stageTitle: string, stageDescription: string): 
     stageTitle,
     stageDescription,
     name: "Romanian deadlift",
-    prescription: `3 × 6 @ RPE 7–8 · hinge to mid-shin`,
+    prescription: `3 × 6 @ RPE 7 · hinge to mid-shin`,
     cue: "Push the hips back and keep the bar close. Feel the hamstrings load rather than the lower back.",
     setup: `Barbell from a rack at hip height. For reference, the report's strength window on the tested squat max is ${window.low}–${window.high} kg; the RDL is loaded by feel against that, not by the same percentage.`,
     execution:

@@ -403,3 +403,21 @@ describe("one primary bilateral lift on Monday, not two", () => {
     expect(thursday).toContain("Trap bar deadlift");
   });
 });
+
+describe("the hinge is placed for competition, not for the label on the day", () => {
+  it("sits 48 hours from Saturday, not 24", () => {
+    const thursday = applyBaselineProgramming(session([task()]), null, 3).tasks;
+    const friday = applyBaselineProgramming(session([task()]), null, 4).tasks;
+    expect(thursday.some((t) => t.name === "Romanian deadlift")).toBe(true);
+    // Friday is 24 hours out, which is where delayed soreness peaks.
+    expect(friday.some((t) => t.name === "Romanian deadlift")).toBe(false);
+  });
+
+  it("is loaded for a recovery day — RPE 7, not the top of the range", () => {
+    const rdl = applyBaselineProgramming(session([task()]), null, 3).tasks.find(
+      (t) => t.name === "Romanian deadlift"
+    );
+    expect(rdl?.prescription).toContain("RPE 7 ");
+    expect(rdl?.prescription).not.toContain("RPE 7–8");
+  });
+});
