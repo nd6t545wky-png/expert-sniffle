@@ -14,10 +14,13 @@ import {
   isPlanUnlocked,
   overridePlanLevel,
   planStateForDate,
+  sessionProgress,
+  skipTask,
   submitReadiness,
   submitSessionReport,
   throwLoad,
   totalThrowLoad,
+  undoSkipTask,
 } from "./session";
 import { ReadinessResult } from "./readiness";
 
@@ -349,5 +352,99 @@ describe("post-session report", () => {
     const outcome = submitSessionReport({}, unlocked, { ...input, date: "5th August" }, NOW);
     expect(outcome.ok).toBe(false);
     if (!outcome.ok) expect(outcome.reason).toBe("invalid-date");
+  });
+});
+
+describe("skipping a task", () => {
+  const unlocked: PlanState = { status: "unlocked", planLevel: "full", workloadFactor: 1 };
+  const locked: PlanState = { status: "locked", message: "Locked." };
+  const task = { id: "warmup", stageTitle: "Preparation" };
+  const at = new Date("2026-08-05T09:00:00.000Z");
+
+  it("records the reason, the note and when it happened", () => {
+    const outcome = skipTask({}, {}, unlocked, "2026-08-05", task, { reason: "Time constraint", notes: "short" }, at);
+    expect(outcome.ok).toBe(true);
+    if (!outcome.ok) return;
+    expect(outcome.skipped.warmup).toEqual({
+      reason: "Time constraint",
+      notes: "short",
+      skippedAt: "2026-08-05T09:00:00.000Z",
+    });
+  });
+
+  it("refuses a skip with no reason, including a whitespace-only one", () => {
+    for (const reason of ["", "   "]) {
+      const outcome = skipTask({}, {}, unlocked, "2026-08-05", task, { reason }, at);
+      expect(outcome.ok).toBe(false);
+      if (outcome.ok) return;
+      expect(outcome.reason).toBe("no-reason");
+    }
+  });
+
+  it("refuses to skip a health-hold action", () => {
+    const outcome = skipTask(
+      {}, {}, unlocked, "2026-08-05",
+      { id: "review", stageTitle: "Health Hold" },
+      { reason: "Time constraint" }, at
+    );
+    expect(outcome.ok).toBe(false);
+    if (outcome.ok) return;
+    expect(outcome.reason).toBe("health-hold");
+    expect(outcome.message).toContain("cannot be skipped");
+  });
+
+  it("refuses to skip before readiness has been submitted", () => {
+    const outcome = skipTask({}, {}, locked, "2026-08-05", task, { reason: "Time constraint" }, at);
+    expect(outcome.ok).toBe(false);
+    if (outcome.ok) return;
+    expect(outcome.reason).toBe("locked");
+  });
+
+  it("refuses to skip work already logged as completed", () => {
+    const outcome = skipTask({}, { "2026-08-05": ["warmup"] }, unlocked, "2026-08-05", task, { reason: "Time constraint" }, at);
+    expect(outcome.ok).toBe(false);
+    if (outcome.ok) return;
+    expect(outcome.reason).toBe("already-complete");
+  });
+
+  it("leaves other days and other tasks untouched", () => {
+    const existing = {
+      "2026-08-04": { other: { reason: "Rest", skippedAt: at.toISOString() } },
+      "2026-08-05": { mobility: { reason: "Rest", skippedAt: at.toISOString() } },
+    };
+    const outcome = skipTask(existing, {}, unlocked, "2026-08-05", task, { reason: "Time constraint" }, at);
+    expect(outcome.ok).toBe(true);
+    if (!outcome.ok) return;
+    expect(Object.keys(outcome.skipped).sort()).toEqual(["mobility", "warmup"]);
+    expect(existing["2026-08-04"].other).toBeDefined();
+  });
+
+  it("undoes a skip without touching the rest of the day", () => {
+    const next = undoSkipTask(
+      { "2026-08-05": { warmup: { reason: "Rest", skippedAt: at.toISOString() }, mobility: { reason: "Rest", skippedAt: at.toISOString() } } },
+      "2026-08-05",
+      "warmup"
+    );
+    expect(Object.keys(next)).toEqual(["mobility"]);
+  });
+});
+
+describe("session progress", () => {
+  const tasks = [{ id: "a" }, { id: "b" }, { id: "c" }, { id: "d" }];
+  const skip = { reason: "Rest", skippedAt: "2026-08-05T09:00:00.000Z" };
+
+  it("counts skipped work as resolved but never as completed", () => {
+    const progress = sessionProgress(tasks, ["a"], { b: skip });
+    expect(progress).toEqual({ total: 4, completed: 1, skipped: 1, resolved: 2, percent: 50 });
+  });
+
+  it("does not double-count a task that is both completed and skipped", () => {
+    const progress = sessionProgress(tasks, ["a"], { a: skip });
+    expect(progress.resolved).toBe(1);
+    expect(progress.skipped).toBe(0);
+  });
+
+  it("reports 0% rather than dividing by zero for an empty session", () => {
+    expect(sessionProgress([], [], {}).percent).toBe(0);
   });
 });

@@ -1,4 +1,4 @@
-import { ReactNode, useState } from "react";
+import { Fragment, ReactNode, useState } from "react";
 
 /**
  * App shell.
@@ -162,6 +162,8 @@ export interface ShellProps {
   appearance: string;
   onCycleAppearance: () => void;
   athleteName: string;
+  /** Second line of the sidebar's athlete chip, e.g. "RHP · 84 kg". */
+  athleteDetail?: string;
   page: PageId;
   onNavigate: (page: PageId) => void;
   onOpenPlan: () => void;
@@ -178,6 +180,7 @@ export function Shell({
   appearance,
   onCycleAppearance,
   athleteName,
+  athleteDetail = "",
   page,
   onNavigate,
   onOpenPlan,
@@ -205,8 +208,11 @@ export function Shell({
             <span>{athleteName}</span>
           </div>
         </div>
+        {/* Label and list are direct children of the sidebar, as in the
+            prototype — it is a flex column, and wrapping each group in a div
+            collapses six flex children into three and changes the spacing. */}
         {SIDEBAR_GROUPS.map((group) => (
-          <div key={group.label}>
+          <Fragment key={group.label}>
             <div className="nav-label">{group.label}</div>
             <nav className="nav-list">
               {group.items.map((item) => (
@@ -223,8 +229,18 @@ export function Shell({
                 </button>
               ))}
             </nav>
-          </div>
+          </Fragment>
         ))}
+
+        {/* `.athlete-chip` carries `margin-top: auto`: it is what pins the nav
+            to the top of the rail and itself to the bottom. */}
+        <button className="athlete-chip" type="button" onClick={() => onNavigate("profile")}>
+          <span className="avatar">{(athleteName || "A").slice(0, 1).toUpperCase()}</span>
+          <div>
+            <strong>{athleteName || "Athlete"}</strong>
+            <small>{athleteDetail}</small>
+          </div>
+        </button>
       </aside>
 
       <main className="main">

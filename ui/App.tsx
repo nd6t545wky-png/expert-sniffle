@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { IsoDate } from "../src/domain/state";
-import { ReadinessSubmission, SessionReport, ThrowIntent, totalThrowLoad } from "../src/domain/session";
+import { ReadinessSubmission, SessionReport, SkippedTask, ThrowIntent, totalThrowLoad } from "../src/domain/session";
 import { computeReadiness } from "../src/domain/readiness";
 import { PitchingOsApi } from "../src/domain/api";
 import { isValidSyncKey } from "../src/domain/sync";
@@ -29,12 +29,48 @@ import { Meal, Nutrition, NutritionTargets } from "./components/Nutrition";
 type Page = PageId;
 
 const SYNC_KEY_STORAGE = "dylan-pitching-os-sync-key-v1";
+const PAGE_STORAGE = "dylan-pitching-os-page-v1";
+
+/** Quiet period after the last change before autosave uploads. */
+const AUTOSAVE_DELAY_MS = 1500;
+
+const PAGE_IDS: Page[] = [
+  "dashboard",
+  "session",
+  "readiness",
+  "workload",
+  "tracking",
+  "annual",
+  "nutrition",
+  "mechanics",
+  "integrations",
+  "profile",
+];
 
 const DEFAULT_TARGETS: NutritionTargets = { calories: 0, protein: 0, carbs: 0, fat: 0, fluid: 0 };
 
 export function App() {
   const { state, load, update, submissions, planFor } = useAppState();
-  const [page, setPage] = useState<Page>("dashboard");
+  // Remembering the open page is what stops a reload — or a service-worker
+  // update, which reloads without asking — from dropping the athlete back on
+  // the dashboard mid-session. sessionStorage, not localStorage: a genuinely
+  // new visit should still start at Today.
+  const [page, setPage] = useState<Page>(() => {
+    try {
+      const stored = window.sessionStorage.getItem(PAGE_STORAGE);
+      return stored && PAGE_IDS.includes(stored as Page) ? (stored as Page) : "dashboard";
+    } catch {
+      return "dashboard";
+    }
+  });
+
+  useEffect(() => {
+    try {
+      window.sessionStorage.setItem(PAGE_STORAGE, page);
+    } catch {
+      // A blocked storage quota must not take the app down.
+    }
+  }, [page]);
   // One source of truth for "today" — date, week and day must agree, or a
   // readiness entry lands on a different day than the session it unlocked.
   const [today] = useState(() => currentSelection());
@@ -94,16 +130,14 @@ export function App() {
     }
   }, [state, selectedWeek, selectedDay, submission]);
 
-  const tasks = useMemo<PlanTask[]>(
-    () =>
-      (session?.tasks ?? []).map((task) => ({
-        id: task.id,
-        name: task.name,
-        prescription: task.prescription,
-      })),
-    [session]
-  );
+  // The plan renders stages, cues and detail panels, so it needs the whole
+  // task, not a name/prescription pair.
+  const tasks = useMemo<PlanTask[]>(() => session?.tasks ?? [], [session]);
   const completed = (state?.completedTasks ?? {}) as Record<IsoDate, string[] | undefined>;
+  const skippedTasks = (state?.skippedTasks ?? {}) as Record<
+    IsoDate,
+    Record<string, SkippedTask> | undefined
+  >;
   const weekLoad = totalThrowLoad(throwingEntries.slice(-7));
 
   const nutrition = (state?.nutrition ?? {}) as {
@@ -129,6 +163,55 @@ export function App() {
         ? "Merged with another device's newer data."
         : `Synced at ${new Date().toLocaleTimeString()}`
     );
+  }, [api, state, syncKey, update]);
+
+  // --- Autosave ------------------------------------------------------------
+  //
+  // Local changes reach the encrypted cloud snapshot on their own. Two things
+  // keep this from thrashing or looping:
+  //
+  //  * a debounce, so a slider dragged across ten values is one upload; and
+  //  * a fingerprint of what was last sent, because a successful sync can
+  //    itself change local state (a merge), and syncing that back immediately
+  //    would spin forever.
+  //
+  // A failure is left for the next change or a manual "Sync now" to retry —
+  // it is reported, never silently swallowed, and never blocks local work.
+  const lastSynced = useRef<string>("");
+  const syncing = useRef(false);
+
+  useEffect(() => {
+    if (!state || !isValidSyncKey(syncKey)) return;
+    const fingerprint = JSON.stringify(state);
+    if (fingerprint === lastSynced.current || syncing.current) return;
+
+    const timer = window.setTimeout(async () => {
+      syncing.current = true;
+      setSyncStatus("Saving…");
+      try {
+        const outcome = await syncNow({ api, syncKey }, state);
+        if (outcome.status === "failed") {
+          setSyncStatus(`Autosave failed: ${outcome.message}`);
+          return;
+        }
+        // Record what went up *before* applying a merge, so the merged result
+        // does not immediately look like a fresh local change.
+        lastSynced.current = fingerprint;
+        if (outcome.changed) {
+          lastSynced.current = JSON.stringify(outcome.state);
+          update(() => outcome.state);
+        }
+        setSyncStatus(
+          outcome.status === "conflict-resolved"
+            ? "Merged with another device's newer data."
+            : `Saved ${new Date().toLocaleTimeString()}`
+        );
+      } finally {
+        syncing.current = false;
+      }
+    }, AUTOSAVE_DELAY_MS);
+
+    return () => window.clearTimeout(timer);
   }, [api, state, syncKey, update]);
 
   if (load?.source === "corrupt") {
@@ -209,6 +292,11 @@ export function App() {
       syncStatus={syncKey ? "synced" : "local"}
       appearance={String((state.profile as { appearance?: string })?.appearance ?? "system")}
       athleteName={String((state.profile as { name?: string })?.name ?? "Athlete")}
+      athleteDetail={(() => {
+        const p = state.profile as { throwingHand?: string; weight?: number | string } | undefined;
+        const hand = p?.throwingHand === "Left" ? "LHP" : "RHP";
+        return p?.weight ? `${hand} · ${p.weight} kg` : hand;
+      })()}
       onCycleAppearance={() =>
         update((draft) => {
           const current = (draft.profile ?? {}) as { appearance?: string };
@@ -251,9 +339,24 @@ export function App() {
           plan={plan}
           submission={submission}
           onOpenReadiness={() => setPage("readiness")}
+          onOpenCheckout={() => setPage("tracking")}
           tasks={tasks}
           sessionTitle={session?.title}
+          sessionDescription={session?.description}
+          sessionDuration={String(session?.duration ?? "")}
+          sessionStress={String(session?.stress ?? "")}
           completed={completed}
+          skipped={skippedTasks}
+          onSkipTask={(forDate, next) =>
+            update((draft) => ({
+              ...draft,
+              skippedTasks: { ...draft.skippedTasks, [forDate]: next },
+              taskCompletionUpdatedAt: {
+                ...draft.taskCompletionUpdatedAt,
+                [forDate]: new Date().toISOString(),
+              },
+            }))
+          }
           onCompleteTask={(forDate, _taskId, next) =>
             update((draft) => ({
               ...draft,

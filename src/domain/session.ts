@@ -300,6 +300,112 @@ export function completeTask(
   return { ok: true, completed: [...completed, taskId] };
 }
 
+/** Un-complete a task. The prototype's checkbox toggles both ways. */
+export function uncompleteTask(
+  completedByDate: Record<IsoDate, string[] | undefined>,
+  date: IsoDate,
+  taskId: string
+): string[] {
+  return (completedByDate[date] ?? []).filter((id) => id !== taskId);
+}
+
+// --- Skipping ----------------------------------------------------------------
+
+export interface SkippedTask {
+  reason: string;
+  notes?: string;
+  skippedAt: string;
+}
+
+export type SkipRecords = Record<IsoDate, Record<string, SkippedTask> | undefined>;
+
+export type SkipOutcome =
+  | { ok: true; skipped: Record<string, SkippedTask> }
+  | { ok: false; reason: "locked" | "health-hold" | "no-reason" | "already-complete"; message: string };
+
+/**
+ * The one task category that cannot be skipped. A health hold's actions exist
+ * *because* the readiness check flagged something; letting them be dismissed
+ * would make the hold advisory, which is exactly what it must not be.
+ */
+export const UNSKIPPABLE_STAGE = "Health Hold";
+
+/**
+ * Record a skip. A skip resolves a task for check-out without recording it as
+ * completed, so it always carries a reason — an unexplained gap in the log is
+ * indistinguishable from work that was never assigned.
+ */
+export function skipTask(
+  skippedByDate: SkipRecords,
+  completedByDate: Record<IsoDate, string[] | undefined>,
+  plan: PlanState,
+  date: IsoDate,
+  task: { id: string; stageTitle?: string },
+  input: { reason: string; notes?: string },
+  now = new Date()
+): SkipOutcome {
+  if (plan.status === "locked") {
+    return { ok: false, reason: "locked", message: "Complete the readiness check before changing tasks." };
+  }
+  if (task.stageTitle === UNSKIPPABLE_STAGE) {
+    return {
+      ok: false,
+      reason: "health-hold",
+      message:
+        "Health-hold actions cannot be skipped. Follow the review guidance before resuming training.",
+    };
+  }
+  if ((completedByDate[date] ?? []).includes(task.id)) {
+    return { ok: false, reason: "already-complete", message: "That task is already logged as completed." };
+  }
+  const reason = input.reason.trim();
+  if (!reason) {
+    return { ok: false, reason: "no-reason", message: "Choose a reason before skipping this task." };
+  }
+  const notes = (input.notes ?? "").trim();
+  return {
+    ok: true,
+    skipped: {
+      ...(skippedByDate[date] ?? {}),
+      [task.id]: { reason, ...(notes ? { notes } : {}), skippedAt: now.toISOString() },
+    },
+  };
+}
+
+/** Return a skipped task to the plan. */
+export function undoSkipTask(
+  skippedByDate: SkipRecords,
+  date: IsoDate,
+  taskId: string
+): Record<string, SkippedTask> {
+  const current = { ...(skippedByDate[date] ?? {}) };
+  delete current[taskId];
+  return current;
+}
+
+/**
+ * Session progress. Skipped work is resolved but never counted as completed —
+ * the two are reported separately so a session finished by skipping half of it
+ * cannot read as a session that was done.
+ */
+export function sessionProgress(
+  tasks: { id: string }[],
+  completed: string[],
+  skipped: Record<string, SkippedTask>
+): { total: number; completed: number; skipped: number; resolved: number; percent: number } {
+  const total = tasks.length;
+  const completedCount = tasks.filter((task) => completed.includes(task.id)).length;
+  const skippedCount = tasks.filter((task) => !completed.includes(task.id) && skipped[task.id]).length;
+  const resolved = completedCount + skippedCount;
+  return {
+    total,
+    completed: completedCount,
+    skipped: skippedCount,
+    resolved,
+    percent: total ? Math.round((resolved / total) * 100) : 0,
+  };
+}
+
 // --- Post-session report -----------------------------------------------------
 
 export interface SessionReport {

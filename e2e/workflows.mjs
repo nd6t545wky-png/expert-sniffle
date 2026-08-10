@@ -65,7 +65,7 @@ await page.goto(BASE, { waitUntil: "networkidle" });
 // ---------------------------------------------------------------- gate
 await go("Session");
 check("session starts locked", (await page.textContent("#root")).includes("Health check-in required"));
-check("tasks hidden while locked", !(await page.isVisible('button:has-text("Mark complete")')));
+check("tasks hidden while locked", (await page.locator(".task-stage").count()) === 0);
 
 await shortcut("Active workload");
 await page.selectOption("select", "high");
@@ -158,7 +158,9 @@ check(
 
 // --------------------------------------------------------- plan unlocked
 check("session now unlocked", !(await page.textContent("#root")).includes("Locked"));
-check("tasks visible", await page.isVisible('button:has-text("Mark complete")'));
+check("tasks visible", (await page.locator(".task-stage").count()) > 0);
+check("tasks grouped into stages", (await page.locator(".task-stage .stage-number").count()) > 1);
+check("check-out is locked until the plan is resolved", (await page.textContent("#root")).includes("check-out locked"));
 
 // -------------------------------------------------------- duplicate guard
 await shortcut("Readiness");
@@ -171,12 +173,59 @@ check("duplicate did not add a second record", Object.keys(afterDup.pre).length 
 
 // ------------------------------------------------------- task completion
 await go("Session");
-await page.click('button:has-text("Mark complete")');
+// Tick the first task's checkbox, the way the original works.
+const firstCheck = page.locator(".task-stage[open] .task-check").first();
+await firstCheck.check();
 await page.waitForTimeout(250);
 const afterTask = await storage();
 const tasksDone = afterTask.completedTasks?.[submittedDate] || [];
 check("task completion persisted", tasksDone.length === 1, JSON.stringify(tasksDone));
-check("completed task shows as logged", await page.isVisible('button:has-text("Logged")'));
+check("completed task shows as ticked", await firstCheck.isChecked());
+
+// ------------------------------------------------------------- task detail
+await page.locator(".task-stage[open] .task-details").first().click();
+await page.waitForTimeout(200);
+const detail = await page.textContent('[role="dialog"]');
+check("task detail panel opens", /Why it is here/.test(detail) && /Stop rule/.test(detail));
+await page.keyboard.press("Escape");
+await page.waitForTimeout(200);
+check("escape closes the detail panel", (await page.locator('[role="dialog"]').count()) === 0);
+
+// ------------------------------------------------------------------- skip
+const skipButton = page.locator(".task-stage[open] .task-skip").first();
+await skipButton.click();
+await page.waitForTimeout(200);
+await page.click('button:has-text("Skip task")');
+await page.waitForTimeout(200);
+const afterNoReason = await storage();
+check(
+  "skip refused without a reason",
+  Object.keys(afterNoReason.skippedTasks?.[submittedDate] || {}).length === 0
+);
+
+await page.selectOption("#taskSkipReason", "Time constraint");
+await page.fill("#taskSkipNotes", "ran out of time");
+await page.click('button:has-text("Skip task")');
+await page.waitForTimeout(300);
+const afterSkip = await storage();
+const skips = afterSkip.skippedTasks?.[submittedDate] || {};
+const skipId = Object.keys(skips)[0];
+check("skip persisted with its reason", skips[skipId]?.reason === "Time constraint", JSON.stringify(skips[skipId]));
+check("skip keeps the optional note", skips[skipId]?.notes === "ran out of time");
+check(
+  "skipped work is not counted as completed",
+  !(afterSkip.completedTasks?.[submittedDate] || []).includes(skipId)
+);
+check("skipped task is labelled", (await page.textContent("#root")).includes("Skipped"));
+
+// undo it again so the rest of the run sees a clean plan
+await page.locator('button:has-text("Undo skip")').first().click();
+await page.waitForTimeout(250);
+const afterUndo = await storage();
+check(
+  "undo returns the task to the plan",
+  Object.keys(afterUndo.skippedTasks?.[submittedDate] || {}).length === 0
+);
 
 // ------------------------------------------------------------- workload
 await shortcut("Active workload");
@@ -221,6 +270,24 @@ await page.click('[aria-label="Week 30, Preseason"]');
 await page.waitForTimeout(150);
 check("selecting week 30 shows Preseason", (await page.textContent("#root")).includes("Preseason"));
 check("shows position within phase", /week 4 of 10/.test(await page.textContent("#root")));
+
+// ------------------------------------- the page survives a reload
+// v60 could drop you back on the dashboard unprompted. The open page is
+// remembered, so a reload (or a service-worker update, which reloads without
+// asking) resumes where you were.
+await go("Session");
+await page.reload({ waitUntil: "networkidle" });
+await page.waitForTimeout(500);
+check(
+  "reload stays on the session, not the dashboard",
+  (await page.locator(".task-stage").count()) > 0,
+  await page.textContent("#root h2")
+);
+
+// A state change must not bounce the view either.
+await page.locator(".task-stage[open] .task-check").first().click();
+await page.waitForTimeout(300);
+check("logging a task does not jump back to the dashboard", (await page.locator(".task-stage").count()) > 0);
 
 // ------------------------------------------------- persistence on reload
 const before = await storage();

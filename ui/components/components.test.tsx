@@ -1,9 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
-import { DailyPlan } from "./DailyPlan";
+import { DailyPlan, DailyPlanProps } from "./DailyPlan";
 import { AnnualPlan } from "./AnnualPlan";
 import { Workload } from "./Workload";
 import { PlanState, ReadinessSubmission } from "../../src/domain/session";
+import { SessionTask } from "../../src/domain/programmeSessions";
 
 const WEDNESDAY = "2026-08-05";
 const THURSDAY = "2026-08-06";
@@ -12,7 +13,20 @@ const unlocked: PlanState = { status: "unlocked", planLevel: "full", workloadFac
 const locked: PlanState = { status: "locked", message: "Complete the pre-session readiness check to unlock this session." };
 const held: PlanState = { status: "held", workloadFactor: 0, message: "Health hold." };
 
-const TASKS = [{ id: "warmup", name: "Warm-up", prescription: "Band series" }];
+function task(overrides: Partial<SessionTask> = {}): SessionTask {
+  return {
+    id: "warmup",
+    stage: 1,
+    stageTitle: "Preparation",
+    stageDescription: "Raise temperature and prime the movement",
+    name: "Warm-up",
+    prescription: "Band series",
+    cue: "Move through full range without forcing it.",
+    ...overrides,
+  };
+}
+
+const TASKS = [task()];
 
 function submission(overrides: Partial<ReadinessSubmission> = {}): ReadinessSubmission {
   return {
@@ -29,7 +43,7 @@ function submission(overrides: Partial<ReadinessSubmission> = {}): ReadinessSubm
 describe("DailyPlan — the readiness gate is visible in the UI", () => {
   it("shows the session as locked before readiness is submitted", () => {
     render(
-      <DailyPlan date={WEDNESDAY} plan={locked} tasks={TASKS} completed={{}} onCompleteTask={vi.fn()} onOverride={vi.fn()} />
+      <DailyPlan date={WEDNESDAY} plan={locked} tasks={TASKS} completed={{}} skipped={{}} onCompleteTask={vi.fn()} onSkipTask={vi.fn()} onOverride={vi.fn()} />
     );
     // The locked state now renders the prototype's gate card.
     expect(screen.getByText(/Health check-in required/)).toBeDefined();
@@ -39,39 +53,154 @@ describe("DailyPlan — the readiness gate is visible in the UI", () => {
 
   it("shows tasks once unlocked", () => {
     render(
-      <DailyPlan date={WEDNESDAY} plan={unlocked} tasks={TASKS} completed={{}} onCompleteTask={vi.fn()} onOverride={vi.fn()} />
+      <DailyPlan date={WEDNESDAY} plan={unlocked} tasks={TASKS} completed={{}} skipped={{}} onCompleteTask={vi.fn()} onSkipTask={vi.fn()} onOverride={vi.fn()} />
     );
     expect(screen.getByText("Warm-up")).toBeDefined();
   });
 
   it("surfaces a health hold", () => {
     render(
-      <DailyPlan date={WEDNESDAY} plan={held} tasks={TASKS} completed={{}} onCompleteTask={vi.fn()} onOverride={vi.fn()} />
+      <DailyPlan date={WEDNESDAY} plan={held} tasks={TASKS} completed={{}} skipped={{}} onCompleteTask={vi.fn()} onSkipTask={vi.fn()} onOverride={vi.fn()} />
     );
     expect(screen.getByRole("alert").textContent).toContain("Health hold");
   });
 
-  it("reports a completed task upward and marks it done", () => {
+  it("reports a completed task upward when its checkbox is ticked", () => {
     const onCompleteTask = vi.fn();
     render(
-      <DailyPlan date={WEDNESDAY} plan={unlocked} tasks={TASKS} completed={{}} onCompleteTask={onCompleteTask} onOverride={vi.fn()} />
+      <DailyPlan date={WEDNESDAY} plan={unlocked} tasks={TASKS} completed={{}} skipped={{}} onCompleteTask={onCompleteTask} onSkipTask={vi.fn()} onOverride={vi.fn()} />
     );
-    fireEvent.click(screen.getByRole("button", { name: "Mark complete" }));
+    fireEvent.click(screen.getByRole("checkbox", { name: "Complete Warm-up" }));
     expect(onCompleteTask).toHaveBeenCalledWith(WEDNESDAY, "warmup", ["warmup"]);
   });
 
-  it("does not offer completion twice for the same task", () => {
+  it("shows a completed task as ticked, and un-ticking returns it to the plan", () => {
+    const onCompleteTask = vi.fn();
     render(
       <DailyPlan
         date={WEDNESDAY}
         plan={unlocked}
         tasks={TASKS}
         completed={{ [WEDNESDAY]: ["warmup"] }}
-        onCompleteTask={vi.fn()}
+        skipped={{}}
+        onCompleteTask={onCompleteTask}
+        onSkipTask={vi.fn()}
         onOverride={vi.fn()}
       />
     );
-    expect(screen.getByRole("button", { name: "Logged" }).hasAttribute("disabled")).toBe(true);
+    const box = screen.getByRole("checkbox", { name: "Complete Warm-up" }) as HTMLInputElement;
+    expect(box.checked).toBe(true);
+    fireEvent.click(box);
+    expect(onCompleteTask).toHaveBeenCalledWith(WEDNESDAY, "warmup", []);
+  });
+
+  it("groups tasks into stages and reports each stage's progress", () => {
+    render(
+      <DailyPlan
+        date={WEDNESDAY}
+        plan={unlocked}
+        tasks={[
+          task(),
+          task({ id: "throw", stage: 2, stageTitle: "Throwing", name: "Catch play" }),
+        ]}
+        completed={{ [WEDNESDAY]: ["warmup"] }}
+        skipped={{}}
+        onCompleteTask={vi.fn()}
+        onSkipTask={vi.fn()}
+        onOverride={vi.fn()}
+      />
+    );
+    expect(screen.getByText("Preparation")).toBeDefined();
+    expect(screen.getByText("Throwing")).toBeDefined();
+    // One stage finished, one not — and the sidebar agrees.
+    expect(screen.getByLabelText("1 of 1 tasks resolved")).toBeDefined();
+    expect(screen.getByLabelText("0 of 1 tasks resolved")).toBeDefined();
+    expect(screen.getByText("1 of 2 resolved")).toBeDefined();
+  });
+});
+
+describe("DailyPlan — skipping", () => {
+  function renderPlan(overrides: Partial<DailyPlanProps> = {}) {
+    const props: DailyPlanProps = {
+      date: WEDNESDAY,
+      plan: unlocked,
+      tasks: TASKS,
+      completed: {},
+      skipped: {},
+      onCompleteTask: vi.fn(),
+      onSkipTask: vi.fn(),
+      onOverride: vi.fn(),
+      ...overrides,
+    };
+    render(<DailyPlan {...props} />);
+    return props;
+  }
+
+  it("will not skip without a recorded reason", () => {
+    const props = renderPlan();
+    fireEvent.click(screen.getByRole("button", { name: "Skip" }));
+    fireEvent.click(screen.getByRole("button", { name: "Skip task" }));
+    expect(props.onSkipTask).not.toHaveBeenCalled();
+  });
+
+  it("records the reason and the note with the skip", () => {
+    const props = renderPlan();
+    fireEvent.click(screen.getByRole("button", { name: "Skip" }));
+    fireEvent.change(screen.getByLabelText("Reason"), { target: { value: "Time constraint" } });
+    fireEvent.change(screen.getByLabelText("Optional note"), { target: { value: "short on time" } });
+    fireEvent.click(screen.getByRole("button", { name: "Skip task" }));
+
+    expect(props.onSkipTask).toHaveBeenCalled();
+    const [, next] = vi.mocked(props.onSkipTask).mock.calls[0];
+    expect(next.warmup.reason).toBe("Time constraint");
+    expect(next.warmup.notes).toBe("short on time");
+  });
+
+  it("shows a skipped task as skipped, not as done, and offers an undo", () => {
+    const props = renderPlan({
+      skipped: { [WEDNESDAY]: { warmup: { reason: "Time constraint", skippedAt: "2026-08-05T09:00:00.000Z" } } },
+    });
+    expect(screen.getByText("Skipped")).toBeDefined();
+    expect((screen.getByRole("checkbox", { name: "Skipped Warm-up" }) as HTMLInputElement).checked).toBe(false);
+    // Resolved for check-out, but never counted as completed work.
+    expect(screen.getByText("1 of 1 resolved · 1 skipped")).toBeDefined();
+
+    fireEvent.click(screen.getByRole("button", { name: "Undo skip" }));
+    expect(props.onSkipTask).toHaveBeenCalledWith(WEDNESDAY, {});
+  });
+
+  it("refuses to skip a health-hold action", () => {
+    const props = renderPlan({
+      plan: held,
+      tasks: [task({ id: "hold", stageTitle: "Health Hold", name: "Book a review" })],
+    });
+    // The stylesheet's Skip control is not even offered for a hold action.
+    expect(screen.queryByRole("button", { name: "Skip" })).toBeNull();
+    expect(props.onSkipTask).not.toHaveBeenCalled();
+  });
+
+  it("opens the detail panel for a task", () => {
+    renderPlan();
+    fireEvent.click(screen.getByRole("button", { name: "Details" }));
+    const dialog = screen.getByRole("dialog");
+    expect(dialog.textContent).toContain("Warm-up");
+    expect(dialog.textContent).toContain("Why it is here");
+    expect(dialog.textContent).toContain("Stop rule");
+  });
+
+  it("keeps check-out locked until every task is resolved", () => {
+    renderPlan({ tasks: [task(), task({ id: "throw", name: "Catch play" })] });
+    expect(screen.getByText(/check-out locked/i)).toBeDefined();
+  });
+
+  it("opens check-out once everything is resolved, however it was resolved", () => {
+    renderPlan({
+      tasks: [task(), task({ id: "throw", name: "Catch play" })],
+      completed: { [WEDNESDAY]: ["warmup"] },
+      skipped: { [WEDNESDAY]: { throw: { reason: "Time constraint", skippedAt: "2026-08-05T09:00:00.000Z" } } },
+    });
+    expect(screen.getByText(/Plan resolved/)).toBeDefined();
+    expect(screen.getByText(/1 task was skipped/)).toBeDefined();
   });
 
   it("requires a reason before overriding a reduced plan", () => {
@@ -83,7 +212,9 @@ describe("DailyPlan — the readiness gate is visible in the UI", () => {
         submission={submission()}
         tasks={TASKS}
         completed={{}}
+        skipped={{}}
         onCompleteTask={vi.fn()}
+        onSkipTask={vi.fn()}
         onOverride={onOverride}
       />
     );
@@ -101,7 +232,9 @@ describe("DailyPlan — the readiness gate is visible in the UI", () => {
         submission={submission()}
         tasks={TASKS}
         completed={{}}
+        skipped={{}}
         onCompleteTask={vi.fn()}
+        onSkipTask={vi.fn()}
         onOverride={onOverride}
       />
     );
@@ -119,7 +252,9 @@ describe("DailyPlan — the readiness gate is visible in the UI", () => {
         submission={submission({ planLevel: "hold", risk: "red" })}
         tasks={TASKS}
         completed={{}}
+        skipped={{}}
         onCompleteTask={vi.fn()}
+        onSkipTask={vi.fn()}
         onOverride={vi.fn()}
       />
     );
