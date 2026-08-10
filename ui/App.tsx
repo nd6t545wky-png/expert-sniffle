@@ -217,13 +217,18 @@ export function App() {
       // The programme's own session, then the adjustments driven by the
       // athlete's testing reports. Readiness scaling has already been applied
       // by buildSession, so the additions inherit the day's intent.
+      const level =
+        submission?.planLevel === "reduced" || submission?.planLevel === "recovery"
+          ? submission.planLevel
+          : null;
       return applyBaselineProgramming(
         buildSession(selectedWeekPlan, selectedDay, {
           risk: submission?.risk,
           adjustment: submission
             ? { planLevel: submission.planLevel, workloadFactor: submission.workloadFactor }
             : null,
-        })
+        }),
+        level
       );
     } catch {
       return null;

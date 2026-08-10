@@ -73,6 +73,15 @@ export function TaskDetailsModal({ task, onClose }: { task: SessionTask; onClose
         </button>
       </header>
       <div className="modal-body">
+        {/* When readiness has changed the dose, the original stays one tap
+            away — the reduced numbers replace it on the card, they do not
+            hide it. */}
+        {Boolean(task.adapted) && typeof task.adaptationNote === "string" && (
+          <div className="detail-block adaptation-detail">
+            <span>Readiness adjustment</span>
+            <p>{task.adaptationNote}</p>
+          </div>
+        )}
         {blocks.map(([label, body]) => (
           <div className="detail-block" key={label}>
             <span>{label}</span>

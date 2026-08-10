@@ -1,5 +1,12 @@
 import { Session, SessionTask } from "./programmeSessions";
 import { BASELINE_ANCHORS } from "./baseline";
+import {
+  ReducedLevel,
+  REDUCTION_RULES,
+  originalPrescription,
+  prescriptionKind,
+  reduceSetsAndReps,
+} from "./reducedVolume";
 
 /**
  * Programme adjustments driven by the athlete's own testing, and by the
@@ -161,8 +168,41 @@ function withPlyoEvidence(task: SessionTask): SessionTask {
  * Order matters only in that the additions land inside the gym stage, so
  * they inherit its heading and stay grouped with the rest of the lift.
  */
-export function applyBaselineProgramming(session: Session): Session {
-  const tasks = session.tasks.map(withBarSpeedIntent).map(withPlyoEvidence);
+/**
+ * State the reduced dose instead of describing how to compute it.
+ *
+ * The programme replaces a prescription with guidance when readiness drops —
+ * "Remove the final work set · use no more than 90% of the listed load".
+ * That is arithmetic handed to a fatigued athlete mid-session. The numbers
+ * come first now, with the rule that produced them kept underneath so the
+ * reasoning is still visible and the original is still one tap away.
+ */
+function withExplicitReducedDose(level: ReducedLevel | null) {
+  return (task: SessionTask): SessionTask => {
+    if (!level || !task.adapted) return task;
+    const original = originalPrescription(task.adaptationNote);
+    if (!original) return task;
+
+    const kind = prescriptionKind(task.stageTitle, task.name);
+    const explicit = reduceSetsAndReps(original, kind, level);
+    // Nothing parseable means nothing to state. Guessing a set count here
+    // would be worse than leaving the guidance the programme wrote.
+    if (!explicit) return task;
+
+    return {
+      ...task,
+      prescription: explicit,
+      cue: `${REDUCTION_RULES[level][kind]} ${task.cue}`,
+      adaptationNote: `${task.adaptationNote} · Reduced to ${explicit}.`,
+    };
+  };
+}
+
+export function applyBaselineProgramming(session: Session, level: ReducedLevel | null = null): Session {
+  const tasks = session.tasks
+    .map(withBarSpeedIntent)
+    .map(withPlyoEvidence)
+    .map(withExplicitReducedDose(level));
 
   const gymIndex = tasks.findIndex((task) => GYM_STAGE_TITLES.includes(task.stageTitle));
   if (gymIndex === -1) return { ...session, tasks };
