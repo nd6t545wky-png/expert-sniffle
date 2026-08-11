@@ -1,6 +1,7 @@
 import { formatIsoDate } from "../state/formatDate";
 import { Pitch } from "../../src/domain/pitchLog";
 import { PitchData } from "./PitchData";
+import { MovementPlot } from "./MovementPlot";
 import { useState } from "react";
 import { IsoDate } from "../../src/domain/state";
 import {
@@ -31,6 +32,8 @@ export interface ThrowingEntry {
 export interface WorkloadProps {
   /** Ball-flight data for the open day. */
   pitches?: Pitch[];
+  /** Every earlier day's pitches, for the movement comparison. */
+  priorPitches?: Pitch[];
   onImportPitches?: (pitches: Pitch[]) => void;
   onAddPitch?: (pitch: Pitch) => void;
   onRemovePitch?: (id: string) => void;
@@ -54,6 +57,7 @@ export function Workload({
   entries,
   onLog,
   pitches,
+  priorPitches,
   onImportPitches,
   onAddPitch,
   onRemovePitch,
@@ -154,6 +158,8 @@ export function Workload({
           onRemove={onRemovePitch}
         />
       )}
+
+      <MovementPlot pitches={pitches ?? []} priorPitches={priorPitches ?? []} />
     </>
   );
 }

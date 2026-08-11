@@ -926,3 +926,106 @@ body {
   font-size: 12px;
   font-weight: 600;
 }
+
+/* --- Movement plot ----------------------------------------------------------
+ * Where each pitch finishes, as a picture rather than two table columns.
+ *
+ * Nothing here is coloured by pitch type. A scatter compares every pair of
+ * series at once, and past three hues no ordering keeps them apart for a
+ * colour-blind reader — checked with the palette validator, not guessed. So
+ * identity is a name printed at each cluster, which works for every reader,
+ * and the marks stay in one neutral ink.
+ * ------------------------------------------------------------------------- */
+
+.movement-figure {
+  margin: 12px 0 0;
+}
+
+.movement-svg {
+  display: block;
+  width: 100%;
+  max-width: 460px;
+  margin: 0 auto;
+  height: auto;
+  overflow: visible;
+}
+
+/* Solid hairlines, one shade off the surface. Never dashed. */
+.movement-grid {
+  stroke: var(--line);
+  stroke-width: 1;
+}
+
+/* The zero crosshair is the one gridline that means something — a ball moving
+ * under gravity alone — so it is drawn a step stronger than the rest. */
+.movement-zero {
+  stroke: var(--muted);
+  stroke-width: 1.25;
+  opacity: .5;
+}
+
+/* One pitch. Quiet on purpose: the cloud is context, the named average is the
+ * message, and forty marks at full strength would drown it. */
+.movement-pitch {
+  fill: var(--ink);
+  opacity: .22;
+}
+
+/* The pitch type's average, with a surface ring so it stays legible sitting
+ * inside its own cloud. */
+.movement-mean {
+  fill: var(--ink);
+  stroke: var(--surface);
+  stroke-width: 2.5;
+}
+
+.movement-label {
+  fill: var(--ink);
+  font-size: 12.5px;
+  font-weight: 700;
+  paint-order: stroke;
+  stroke: var(--surface);
+  stroke-width: 3.5;
+  stroke-linejoin: round;
+}
+
+.movement-sublabel {
+  fill: var(--muted);
+  font-size: 10.5px;
+  font-variant-numeric: tabular-nums;
+  paint-order: stroke;
+  stroke: var(--surface);
+  stroke-width: 3;
+  stroke-linejoin: round;
+}
+
+/* The four directions in words, and the centre named. Signed inches on a bare
+ * axis is the version only a reader who already knew could use. */
+.movement-compass {
+  fill: var(--muted);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: .03em;
+}
+
+.movement-origin {
+  fill: var(--muted);
+  font-size: 9.5px;
+  letter-spacing: .02em;
+}
+
+/* A quieter button for a control that sits inside a card head. */
+.btn-small {
+  padding: 6px 12px;
+  font-size: 12px;
+  flex: 0 0 auto;
+}
+
+/* The scale, in inches. Recessive — the reader consults it, they do not read
+ * it — but present, because "is that eleven inches or twenty" is a question
+ * the compass words cannot answer. */
+.movement-tick {
+  fill: var(--muted);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}

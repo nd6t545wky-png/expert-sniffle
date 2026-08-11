@@ -8,6 +8,8 @@ import { Account } from "./Account";
 import { HealthForm } from "./HealthForm";
 import { Tracking } from "./Tracking";
 import { ProgressSpec, ProgressTrends } from "./ProgressTrends";
+import { MovementPlot } from "./MovementPlot";
+import { Pitch } from "../../src/domain/pitchLog";
 import { Dashboard } from "./Dashboard";
 import { SessionRecap } from "./SessionRecap";
 import { SessionRecap as Recap } from "../../src/domain/sessionRecap";
@@ -945,5 +947,122 @@ describe("Training trends — is the work moving the numbers", () => {
   it("renders nothing at all when there is no history to plot", () => {
     const { container } = render(<ProgressTrends specs={[]} />);
     expect(container.innerHTML).toBe("");
+  });
+});
+
+describe("Movement plot — where each pitch finishes", () => {
+  let n = 0;
+  const throwPitch = (over: Partial<Pitch>): Pitch => ({
+    id: `mp${(n += 1)}`,
+    date: "2026-08-12",
+    pitchType: "Fastball",
+    velocityMph: 88,
+    spinRpm: 2200,
+    spinEfficiencyPct: null,
+    inducedVertBreakIn: 16,
+    horzBreakIn: 11,
+    releaseHeightFt: null,
+    releaseSideFt: null,
+    extensionFt: null,
+    source: "rapsodo",
+    ...over,
+  });
+
+  const many = (count: number, over: Partial<Pitch>) =>
+    Array.from({ length: count }, () => throwPitch(over));
+
+  it("names each pitch type on the plot rather than in a colour key", () => {
+    render(
+      <MovementPlot
+        pitches={[
+          ...many(4, {}),
+          ...many(4, { pitchType: "Curveball", horzBreakIn: -9, inducedVertBreakIn: -11, velocityMph: 74 }),
+        ]}
+        priorPitches={[]}
+      />
+    );
+    // Identity is text on the chart — it never depends on matching a hue.
+    // Read off the plot itself; the table below carries the same names.
+    const onPlot = [...document.querySelectorAll(".movement-label")].map((n) => n.textContent);
+    expect(onPlot).toContain("Fastball");
+    expect(onPlot).toContain("Curveball");
+  });
+
+  it("labels the four directions in words", () => {
+    render(<MovementPlot pitches={many(3, {})} priorPitches={[]} />);
+    for (const word of ["ride ↑", "drop ↓", "arm side →", "← glove side", "no break"]) {
+      expect(screen.getByText(word)).toBeDefined();
+    }
+  });
+
+  it("says how many readings carried no break instead of dropping them quietly", () => {
+    render(
+      <MovementPlot
+        pitches={[
+          ...many(3, {}),
+          throwPitch({ horzBreakIn: null, inducedVertBreakIn: null, source: "pocketRadar" }),
+        ]}
+        priorPitches={[]}
+      />
+    );
+    expect(screen.getByText(/1 reading carried speed but no break/)).toBeDefined();
+  });
+
+  it("explains itself when every reading is speed-only", () => {
+    render(
+      <MovementPlot
+        pitches={many(3, { horzBreakIn: null, inducedVertBreakIn: null, source: "pocketRadar" })}
+        priorPitches={[]}
+      />
+    );
+    expect(screen.getByText("No break data yet")).toBeDefined();
+    expect(screen.getByText(/a radar gun cannot measure it/)).toBeDefined();
+  });
+
+  it("flags two pitches finishing in the same place at the same speed", () => {
+    render(
+      <MovementPlot
+        pitches={[
+          ...many(3, { pitchType: "Slider", horzBreakIn: -6, inducedVertBreakIn: 2, velocityMph: 79 }),
+          ...many(3, { pitchType: "Cutter", horzBreakIn: -3, inducedVertBreakIn: 4, velocityMph: 81 }),
+        ]}
+        priorPitches={[]}
+      />
+    );
+    expect(screen.getByText(/finish in much the same place/)).toBeDefined();
+  });
+
+  it("offers no history toggle when there is no history", () => {
+    render(<MovementPlot pitches={many(3, {})} priorPitches={[]} />);
+    expect(screen.queryByRole("button", { name: /every session/i })).toBeNull();
+  });
+
+  it("switches between this session and every session", () => {
+    render(
+      <MovementPlot
+        pitches={many(3, {})}
+        priorPitches={many(3, { date: "2026-08-05", pitchType: "Splitter", horzBreakIn: 6, inducedVertBreakIn: 2 })}
+      />
+    );
+    const onPlot = () => [...document.querySelectorAll(".movement-label")].map((n) => n.textContent);
+    // The earlier session's pitch is absent until the toggle is pressed.
+    expect(onPlot()).not.toContain("Splitter");
+    fireEvent.click(screen.getByRole("button", { name: /every session/i }));
+    expect(onPlot()).toContain("Splitter");
+  });
+
+  it("compares today against the earlier sessions, not against itself", () => {
+    render(
+      <MovementPlot
+        pitches={many(3, { horzBreakIn: 14, inducedVertBreakIn: 18 })}
+        priorPitches={many(3, { date: "2026-08-05", horzBreakIn: 11, inducedVertBreakIn: 16 })}
+      />
+    );
+    fireEvent.click(screen.getByText("Today against your earlier sessions"));
+    const cells = [...document.querySelectorAll("table")]
+      .flatMap((table) => [...table.querySelectorAll("td")])
+      .map((cell) => cell.textContent);
+    expect(cells).toContain("+3.0″");
+    expect(cells).toContain("+2.0″");
   });
 });

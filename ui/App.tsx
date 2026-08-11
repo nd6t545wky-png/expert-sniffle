@@ -345,6 +345,21 @@ export function App() {
   );
   const fastest = useMemo(() => topVelocity(pitches), [pitches]);
 
+  /**
+   * Every *earlier* day's pitches, for the movement comparison.
+   *
+   * Today is excluded rather than filtered out downstream: a session compared
+   * against a window that contains itself is compared against a blend of
+   * itself, and the difference shrinks toward nothing the more was thrown.
+   */
+  const priorPitches = useMemo(() => {
+    const all = (state?.pitches ?? {}) as Record<string, unknown>;
+    return Object.keys(all)
+      .filter((day) => day !== date)
+      .sort()
+      .flatMap((day) => readPitches(all, day));
+  }, [state, date]);
+
   const setPitches = useCallback(
     (mutate: (current: Pitch[]) => Pitch[]) =>
       update((draft) => {
@@ -806,6 +821,7 @@ export function App() {
             update((draft) => ({ ...draft, bullpens: { ...draft.bullpens, [entry.date]: entry } }))
           }
           pitches={pitches}
+          priorPitches={priorPitches}
           onImportPitches={(imported) => setPitches((current) => [...current, ...imported])}
           onAddPitch={(pitch) => setPitches((current) => [...current, pitch])}
           onRemovePitch={(id) => setPitches((current) => current.filter((p) => p.id !== id))}
