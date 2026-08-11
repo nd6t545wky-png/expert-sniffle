@@ -501,9 +501,19 @@ describe("HealthForm — connected health data reaching the check-in", () => {
   });
 });
 
-describe("Oura recovery trends — ported from v60", () => {
+describe("Recovery trends — readable without prior knowledge", () => {
   function withOura(date: string, oura: Record<string, unknown>) {
     return { [date]: { day: date, merged: {}, sources: { oura: { connected: true, data: oura } } } };
+  }
+
+  /** `count` days of the given metric, so a usual range can be established. */
+  function run(field: string, values: number[]) {
+    let prefill = {};
+    values.forEach((value, index) => {
+      const date = `2026-08-${String(index + 1).padStart(2, "0")}`;
+      prefill = { ...prefill, ...withOura(date, { [field]: value }) };
+    });
+    return prefill;
   }
 
   const trackingProps = {
@@ -513,62 +523,130 @@ describe("Oura recovery trends — ported from v60", () => {
     onReport: () => {},
   };
 
-  it("draws a line once the ring has synced days", () => {
-    const prefill = {
-      ...withOura("2026-08-01", { readinessScore: 70 }),
-      ...withOura("2026-08-02", { readinessScore: 82 }),
-    };
+  function show(prefill: Record<string, unknown>) {
     render(<Tracking {...trackingProps} healthPrefill={prefill} submissions={{}} />);
+  }
 
-    const chart = screen.getByRole("img", { name: "Oura readiness trend" });
-    expect(chart.querySelectorAll("circle")).toHaveLength(2);
-    expect(chart.querySelector("path")?.getAttribute("d")?.startsWith("M")).toBe(true);
-  });
-
-  it("shows the empty state for a metric the ring never returned", () => {
-    render(
-      <Tracking
-        {...trackingProps}
-        healthPrefill={withOura("2026-08-01", { readinessScore: 70 })}
-        submissions={{}}
-      />
-    );
-    expect(screen.getByText(/No blood oxygen data yet/)).toBeDefined();
-  });
-
-  it("renders all six of v60's series", () => {
-    render(<Tracking {...trackingProps} healthPrefill={{}} submissions={{}} />);
+  it("titles every series in plain English, not sensor jargon", () => {
+    show({});
     for (const title of [
-      "Oura readiness",
-      "Oura sleep",
-      "Oura activity",
-      "High-stress minutes",
-      "HRV",
+      "Recovery score",
+      "Sleep quality",
+      "Overnight recovery",
+      "Time under stress",
+      "Daily activity",
       "Blood oxygen",
     ]) {
       expect(screen.getByRole("heading", { name: title })).toBeDefined();
     }
+    // The old titles named the sensor rather than the thing measured.
+    expect(screen.queryByRole("heading", { name: "HRV" })).toBeNull();
+    expect(screen.queryByRole("heading", { name: "Oura readiness" })).toBeNull();
   });
 
-  it("says outright that blank days are not estimated", () => {
-    render(<Tracking {...trackingProps} healthPrefill={{}} submissions={{}} />);
-    expect(screen.getByText(/does not fill them with estimates/)).toBeDefined();
+  it("says which direction is good, because that is not guessable", () => {
+    show({});
+    // Every other chart's "up" is this one's bad news.
+    expect(screen.getByText(/Minutes during the day.*Lower is better\./)).toBeDefined();
+    expect(screen.getByText(/how recovered your body is.*Higher is better\./)).toBeDefined();
+  });
+
+  it("leads with the latest value, large, rather than only a shape", () => {
+    show(run("readinessScore", [70, 72, 68, 71, 69, 83]));
+    // The hero number on the card, not the axis label or the table row.
+    expect(document.querySelector(".trend-value strong")?.textContent).toContain("83");
+  });
+
+  it("judges today against the athlete's own usual range", () => {
+    // Six days at ~70, then an 83 — better than this athlete's normal.
+    show(run("readinessScore", [70, 72, 68, 71, 69, 83]));
+    expect(screen.getByText("Better than usual")).toBeDefined();
+    expect(screen.getByText(/you usually sit/)).toBeDefined();
+  });
+
+  it("calls a low day worse on a higher-is-better metric", () => {
+    show(run("readinessScore", [70, 72, 68, 71, 69, 41]));
+    expect(screen.getByText("Worse than usual")).toBeDefined();
+  });
+
+  it("inverts the verdict where lower is better", () => {
+    // A spike in stress minutes is bad news, not good news.
+    show(run("stressHighMinutes", [30, 25, 35, 28, 32, 240]));
+    expect(screen.getByText("Worse than usual")).toBeDefined();
+  });
+
+  it("will not call a day unusual before a normal is established", () => {
+    show(run("readinessScore", [70, 95]));
+    expect(screen.getByText("Building your normal")).toBeDefined();
+    expect(screen.queryByText("Better than usual")).toBeNull();
+  });
+
+  it("never states a verdict by colour alone", () => {
+    // A red/amber/green trio is indistinguishable under protanopia, so the
+    // sentence has to survive the tint being ignored entirely.
+    show(run("readinessScore", [70, 72, 68, 71, 69, 83]));
+    const pill = screen.getByText("Better than usual");
+    expect(pill.textContent).toContain("Better than usual");
+    expect(pill.className).toContain("is-better");
+  });
+
+  it("labels the y-axis, so a reader can tell whether 62 is high", () => {
+    show(run("hrvMs", [55, 60, 58, 62, 59, 61]));
+    const chart = document.querySelector(".trend-chart svg")!;
+    expect(chart.querySelectorAll(".trend-tick").length).toBeGreaterThanOrEqual(2);
+    expect(chart.querySelectorAll(".trend-gridline").length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("draws the usual range as a band behind the line", () => {
+    show(run("readinessScore", [70, 72, 68, 71, 69, 83]));
+    expect(document.querySelector(".trend-band")).not.toBeNull();
+  });
+
+  it("marks and labels only the latest point, never every point", () => {
+    show(run("readinessScore", [70, 72, 68, 71, 69, 83]));
+    const chart = document.querySelector(".trend-chart svg")!;
+    // A dot and a number on all six points is noise; the table carries them.
+    expect(chart.querySelectorAll(".trend-dot")).toHaveLength(1);
+    expect(chart.querySelectorAll(".trend-endlabel")).toHaveLength(1);
+    // But every point still has a generous hover target.
+    expect(chart.querySelectorAll(".trend-hit")).toHaveLength(6);
+  });
+
+  it("colours the latest marker by what it means, not by series identity", () => {
+    show(run("readinessScore", [70, 72, 68, 71, 69, 83]));
+    expect(document.querySelector(".trend-dot")!.getAttribute("class")).toContain("is-better");
+  });
+
+  it("offers every value as a table, not only on hover", () => {
+    show(run("readinessScore", [70, 72, 68, 71, 69, 83]));
+    expect(screen.getAllByText("See the numbers").length).toBeGreaterThan(0);
+    // Newest first, so the row that matters is the one you land on.
+    const rows = document.querySelectorAll(".trend-table tbody tr");
+    expect(rows).toHaveLength(6);
+    expect(rows[0].textContent).toContain("83");
+  });
+
+  it("shows the empty state for a metric the ring never returned", () => {
+    show(withOura("2026-08-01", { readinessScore: 70 }));
+    expect(screen.getByText(/No blood oxygen yet/i)).toBeDefined();
+  });
+
+  it("says plainly that blank days are not filled in", () => {
+    show({});
+    expect(screen.getByText(/nothing here is estimated or filled in/)).toBeDefined();
   });
 
   it("plots a zero-stress day rather than dropping it", () => {
-    const prefill = {
-      ...withOura("2026-08-01", { stressHighMinutes: 0 }),
-      ...withOura("2026-08-02", { stressHighMinutes: 140 }),
-    };
-    render(<Tracking {...trackingProps} healthPrefill={prefill} submissions={{}} />);
-    const chart = screen.getByRole("img", { name: "High-stress minutes trend" });
-    expect(chart.querySelectorAll("circle")).toHaveLength(2);
+    show(run("stressHighMinutes", [0, 140]));
+    const chart = screen.getByRole("img", { name: /Time under stress over/ });
+    expect(chart.querySelectorAll(".trend-hit")).toHaveLength(2);
   });
 
   it("does not crash when nothing has ever been imported", () => {
     expect(() => render(<Tracking {...trackingProps} />)).not.toThrow();
   });
 });
+
 
 describe("Dashboard readiness provenance", () => {
   const base = {

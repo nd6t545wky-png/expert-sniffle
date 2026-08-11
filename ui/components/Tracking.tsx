@@ -3,7 +3,7 @@ import { IsoDate } from "../../src/domain/state";
 import { PlanState, SessionReport, submitSessionReport } from "../../src/domain/session";
 import { OuraTrendDay, ouraTrendDays } from "../../src/domain/healthTrends";
 import { Alert, Card, EmptyState, PageHead } from "./Page";
-import { LineChart } from "./LineChart";
+import { SeriesSpec, TrendCard } from "./LineChart";
 import { RangeField } from "./RangeField";
 import { formatIsoDate } from "../state/formatDate";
 
@@ -24,63 +24,71 @@ export interface TrackingProps {
   submissions?: Record<IsoDate, unknown>;
 }
 
-/** The six series v60 charted, in its order. */
-const OURA_SERIES: {
-  key: string;
-  title: string;
-  caption: string;
-  getter: (day: OuraTrendDay) => number | null;
-  color: string;
-  allowZero?: boolean;
-  unit?: string;
-}[] = [
+/**
+ * v60's six series, retitled for someone who has never worn an Oura ring.
+ *
+ * "HRV" and "SpO₂" name the sensor, not the thing measured. Each entry now
+ * says what the number is, and which direction is the good one — which is not
+ * guessable for stress minutes, where every other chart's "up" is this one's
+ * bad news.
+ */
+const OURA_SERIES: SeriesSpec[] = [
   {
     key: "readiness",
-    title: "Oura readiness",
-    caption: "Oura’s daily score",
+    title: "Recovery score",
+    explain: "Oura’s overall read on how recovered your body is today.",
     getter: (day) => day.readiness,
-    color: "var(--blue)",
+    higherIsBetter: true,
+    scale: "out of 100",
+    max: 100,
   },
   {
     key: "sleep",
-    title: "Oura sleep",
-    caption: "Oura’s daily score",
+    title: "Sleep quality",
+    explain: "How well you slept, scored from time asleep, restfulness and timing.",
     getter: (day) => day.sleep,
-    color: "var(--teal)",
+    higherIsBetter: true,
+    scale: "out of 100",
+    max: 100,
   },
   {
-    key: "activity",
-    title: "Oura activity",
-    caption: "Oura’s daily score",
-    getter: (day) => day.activity,
-    color: "var(--blue)",
+    key: "hrv",
+    title: "Overnight recovery",
+    explain:
+      "Heart-rate variability — the beat-to-beat variation while you sleep. It falls when you are under strain.",
+    getter: (day) => day.hrv,
+    higherIsBetter: true,
+    unit: " ms",
   },
   {
     key: "stress",
     // Zero high-stress minutes is a real reading, and a good one — this is the
     // one series where dropping zeroes would hide the best days.
-    title: "High-stress minutes",
-    caption: "Oura daytime stress field",
+    title: "Time under stress",
+    explain: "Minutes during the day your body showed a stress response.",
     getter: (day) => day.stress,
-    color: "var(--teal)",
+    higherIsBetter: false,
     allowZero: true,
-    unit: "min",
+    unit: " min",
   },
   {
-    key: "hrv",
-    title: "HRV",
-    caption: "Nightly average returned by Oura",
-    getter: (day) => day.hrv,
-    color: "var(--blue)",
-    unit: "ms",
+    key: "activity",
+    title: "Daily activity",
+    explain: "How much you moved, scored against Oura’s daily target.",
+    getter: (day) => day.activity,
+    higherIsBetter: true,
+    scale: "out of 100",
+    max: 100,
   },
   {
     key: "spo2",
     title: "Blood oxygen",
-    caption: "Average SpO₂ when Oura returns it",
+    explain: "Average oxygen saturation overnight. It normally sits in the high nineties.",
     getter: (day) => day.spo2,
-    color: "var(--teal)",
+    higherIsBetter: true,
     unit: "%",
+    precision: 1,
+    max: 100,
   },
 ];
 
@@ -89,34 +97,20 @@ function OuraTrends({ days }: { days: OuraTrendDay[] }) {
     <details className="card disclosure-card quiet-disclosure">
       <summary>
         <span>
-          <strong>Oura recovery trends</strong>
-          <small>Values returned by Oura Cloud API v2</small>
+          <strong>Recovery trends</strong>
+          <small>What your Oura ring has recorded</small>
         </span>
         <span>Show</span>
       </summary>
       <div className="disclosure-body">
         <p className="fineprint disclosure-intro">
-          <strong>Source:</strong> these charts use Oura fields only. Missing or delayed ring-sync
-          days remain blank; Pitching OS does not fill them with estimates.
+          <strong>How to read these:</strong> each chart compares the latest reading against{" "}
+          <em>your own</em> usual range — the shaded band — rather than against anyone else’s
+          numbers. Days your ring did not sync stay blank; nothing here is estimated or filled in.
         </p>
-        <section className="grid two">
+        <section className="trend-grid">
           {OURA_SERIES.map((series) => (
-            <article key={series.key}>
-              <div className="card-head">
-                <div>
-                  <h3>{series.title}</h3>
-                  <p>{series.caption}</p>
-                </div>
-              </div>
-              <LineChart
-                days={days}
-                getter={series.getter}
-                color={series.color}
-                label={series.title}
-                allowZero={series.allowZero}
-                unit={series.unit}
-              />
-            </article>
+            <TrendCard key={series.key} days={days} series={series} />
           ))}
         </section>
       </div>

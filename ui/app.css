@@ -195,3 +195,220 @@ body {
   text-transform: uppercase;
   vertical-align: middle;
 }
+
+/* --- Recovery trends -------------------------------------------------------
+ * v60 drew a bare line on an unlabelled axis. These styles carry the parts
+ * that make one readable without prior knowledge: a labelled scale, the
+ * athlete's own usual range as a band, and a verdict that survives the colour
+ * being ignored.
+ *
+ * All six charts use ONE hue. v60 alternated --blue and --teal, which encode
+ * nothing — and in this stylesheet they are #007aff and #0a84ff, ΔE 2.6 apart
+ * in normal vision. Alternating them was decoration that read as meaning.
+ * ------------------------------------------------------------------------- */
+
+.trend-grid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+
+.trend-card {
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.trend-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.trend-head h3 {
+  margin: 0;
+  font-size: 15px;
+  letter-spacing: -.01em;
+}
+
+.trend-head p {
+  margin: 3px 0 0;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+/* Descriptions run one to three lines. Without a floor the charts start at a
+ * different height in every card and the grid reads as ragged. */
+@media (min-width: 641px) {
+  .trend-head p { min-height: 48px; }
+}
+
+/* The verdict. Word + arrow carry it; the tint is redundant, because the
+ * app's green and amber sit at CVD ΔE 5.1 and cannot be trusted alone. */
+.trend-verdict {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex: 0 0 auto;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: var(--surface-secondary);
+  color: var(--ink);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.trend-verdict.is-better { background: rgba(52, 199, 89, .16); }
+.trend-verdict.is-worse { background: rgba(255, 59, 48, .14); }
+.trend-verdict.is-normal { background: var(--surface-secondary); }
+.trend-verdict.is-unknown { background: var(--surface-secondary); color: var(--muted); }
+
+/* The answer to "how am I doing" is a number. Proportional figures — tabular
+ * makes a large standalone value look loose. */
+.trend-value {
+  margin: 0 0 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.trend-value strong {
+  font-size: 30px;
+  font-weight: 700;
+  letter-spacing: -.02em;
+  line-height: 1;
+  color: var(--ink);
+}
+
+.trend-unit {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.trend-caption {
+  color: var(--muted);
+  font-size: 10.5px;
+  line-height: 1.4;
+}
+
+.trend-chart { margin: 0; }
+
+.trend-chart svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+/* The athlete's usual range. A neutral wash, deliberately quiet — it is the
+ * backdrop a point is read against, not a mark competing with the line. */
+.trend-band { fill: var(--line); }
+
+.trend-tick,
+.trend-date {
+  fill: var(--muted);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Solid hairlines, one shade off the surface. Never dashed. */
+.trend-gridline,
+.trend-axis {
+  stroke: var(--line);
+  stroke-width: 1;
+}
+
+/* Neutral ink, not the accent. Under the team themes --blue resolves to red,
+ * and a red line drawn across "Better than usual" reads as an alarm. */
+.trend-line {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: .78;
+}
+
+/* The one mark that carries meaning, with a 2px surface ring so it stays
+ * legible where it sits on the line. */
+.trend-dot {
+  fill: var(--ink);
+  stroke: var(--surface);
+  stroke-width: 2;
+}
+
+.trend-dot.is-better { fill: var(--green); }
+.trend-dot.is-worse { fill: var(--red); }
+.trend-dot.is-normal { fill: var(--muted); }
+.trend-dot.is-unknown { fill: var(--muted); }
+
+/* Generous invisible hit targets — the visible marks are far too small to
+ * land on with a thumb. */
+.trend-hit { fill: transparent; }
+
+.trend-endlabel {
+  fill: var(--ink);
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  paint-order: stroke;
+  stroke: var(--surface);
+  stroke-width: 3;
+  stroke-linejoin: round;
+}
+
+/* Says what the shaded band is, once, in words. */
+.trend-key {
+  margin: 6px 0 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.trend-key-band {
+  width: 18px;
+  height: 9px;
+  border-radius: 3px;
+  background: var(--line);
+  flex: 0 0 auto;
+}
+
+/* The table view: every value reachable without hover, colour or a pointer. */
+.trend-table { margin-top: 8px; }
+
+.trend-table summary {
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 10.5px;
+  padding: 4px 0;
+}
+
+.trend-table table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.trend-table th,
+.trend-table td {
+  padding: 4px 6px;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+}
+
+.trend-table th { color: var(--muted); font-weight: 600; }
+
+@media (max-width: 640px) {
+  .trend-grid { grid-template-columns: 1fr; }
+  .trend-head { flex-direction: column; }
+}

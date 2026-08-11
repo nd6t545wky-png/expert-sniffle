@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { CHART, chartGeometry, ouraTrendDays, OuraTrendDay } from "./healthTrends";
+import {
+  CHART,
+  chartGeometry,
+  ouraTrendDays,
+  OuraTrendDay,
+  summariseMetric,
+} from "./healthTrends";
 
 function day(date: string, oura: Record<string, unknown>) {
   return { [date]: { day: date, merged: {}, sources: { oura: { connected: true, data: oura } } } };
@@ -153,5 +159,137 @@ describe("chartGeometry", () => {
 
   it("puts the axis at the foot of the plot area", () => {
     expect(chartGeometry(series([10]), readiness)!.axisY).toBe(CHART.height - CHART.bottom);
+  });
+});
+
+describe("summariseMetric — the plain-English verdict", () => {
+  const steady = [70, 72, 68, 71, 69];
+
+  it("reports the latest reading and its date", () => {
+    const summary = summariseMetric(series([...steady, 83]), readiness, { higherIsBetter: true });
+    expect(summary.latest).toBe(83);
+    expect(summary.latestDate).toBe("2026-08-06");
+  });
+
+  it("builds the usual range from the middle half of prior days", () => {
+    const summary = summariseMetric(series([...steady, 83]), readiness, { higherIsBetter: true });
+    expect(summary.usual!.low).toBeGreaterThanOrEqual(68);
+    expect(summary.usual!.high).toBeLessThanOrEqual(72);
+    // The latest day is judged, never folded into the normal it is judged by.
+    expect(summary.observations).toBe(5);
+  });
+
+  it("calls a high day better where higher is better", () => {
+    expect(summariseMetric(series([...steady, 83]), readiness, { higherIsBetter: true }).verdict).toBe(
+      "better"
+    );
+  });
+
+  it("calls a high day worse where lower is better", () => {
+    // 240 stress minutes is a bad day, not a personal best.
+    expect(
+      summariseMetric(series([30, 25, 35, 28, 32, 240]), stress, {
+        higherIsBetter: false,
+        allowZero: true,
+      }).verdict
+    ).toBe("worse");
+  });
+
+  it("calls a low stress day better", () => {
+    expect(
+      summariseMetric(series([30, 25, 35, 28, 32, 2]), stress, {
+        higherIsBetter: false,
+        allowZero: true,
+      }).verdict
+    ).toBe("better");
+  });
+
+  it("calls an in-range day normal", () => {
+    expect(summariseMetric(series([...steady, 70]), readiness, { higherIsBetter: true }).verdict).toBe(
+      "normal"
+    );
+  });
+
+  it("refuses a verdict before a normal is established", () => {
+    // Claiming "worse than usual" off two days is a claim about a baseline
+    // that does not exist yet.
+    const summary = summariseMetric(series([70, 40]), readiness, { higherIsBetter: true });
+    expect(summary.verdict).toBe("unknown");
+    expect(summary.usual).toBeNull();
+    expect(summary.latest).toBe(40);
+  });
+
+  it("reports nothing at all when the ring never returned the metric", () => {
+    expect(summariseMetric(series([null, null]), readiness, { higherIsBetter: true })).toEqual({
+      latest: null,
+      latestDate: null,
+      usual: null,
+      verdict: "unknown",
+      observations: 0,
+    });
+  });
+
+  it("ignores gaps rather than treating them as zeroes", () => {
+    const summary = summariseMetric(series([70, null, 72, 68, 71, 69, 83]), readiness, {
+      higherIsBetter: true,
+    });
+    expect(summary.observations).toBe(5);
+    expect(summary.latest).toBe(83);
+  });
+});
+
+describe("chart axis and band", () => {
+  it("labels the axis with round numbers a reader can hold in their head", () => {
+    const geometry = chartGeometry(series([10, 50, 90]), readiness)!;
+    for (const tick of geometry.ticks) {
+      expect(Number.isInteger(tick.value * 2)).toBe(true);
+    }
+    expect(geometry.ticks.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("keeps every tick inside the plot area", () => {
+    const geometry = chartGeometry(series([12, 480, 37]), readiness)!;
+    for (const tick of geometry.ticks) {
+      expect(tick.y).toBeGreaterThanOrEqual(CHART.top - 0.001);
+      expect(tick.y).toBeLessThanOrEqual(CHART.height - CHART.bottom + 0.001);
+    }
+  });
+
+  it("does not emit floating-point noise as a tick label", () => {
+    const geometry = chartGeometry(series([0.1, 0.2, 0.3]), readiness)!;
+    for (const tick of geometry.ticks) {
+      expect(String(tick.value)).not.toMatch(/\d{8,}/);
+    }
+  });
+
+  it("fits the usual-range band inside the axis rather than clipping it", () => {
+    // A band drawn outside the plot would misrepresent where normal sits.
+    const geometry = chartGeometry(series([70, 72, 83]), readiness, {
+      usual: { low: 20, high: 95 },
+    })!;
+    expect(geometry.band!.top).toBeGreaterThanOrEqual(CHART.top - 0.001);
+    expect(geometry.band!.bottom).toBeLessThanOrEqual(CHART.height - CHART.bottom + 0.001);
+  });
+
+  it("puts the band's high edge above its low edge on screen", () => {
+    const geometry = chartGeometry(series([70, 72, 83]), readiness, {
+      usual: { low: 68, high: 74 },
+    })!;
+    expect(geometry.band!.top).toBeLessThan(geometry.band!.bottom);
+  });
+
+  it("omits the band when there is no established usual range", () => {
+    expect(chartGeometry(series([70, 72]), readiness)!.band).toBeNull();
+  });
+
+  it("never lets padding push the axis past a metric's ceiling", () => {
+    // Blood oxygen cannot read 102%. An axis that says it could is a lie.
+    const geometry = chartGeometry(series([96, 97, 98]), readiness, { max: 100 })!;
+    for (const tick of geometry.ticks) expect(tick.value).toBeLessThanOrEqual(100);
+  });
+
+  it("gives a chart more than two gridlines to read against", () => {
+    const geometry = chartGeometry(series([60, 75, 95]), readiness)!;
+    expect(geometry.ticks.length).toBeGreaterThanOrEqual(3);
   });
 });
