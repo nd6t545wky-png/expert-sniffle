@@ -14,6 +14,7 @@ import { DEFAULT_STAT_IDS, MAX_STATS, buildRecap } from "../src/domain/sessionRe
 import { LoggedSet, loggedTonnage, readDayLog } from "../src/domain/setLog";
 import { fuelTargets } from "../src/domain/fuelling";
 import { Pitch, readPitches, topVelocity } from "../src/domain/pitchLog";
+import { ArmExam, readExams } from "../src/domain/armCare";
 import { PitchingOsApi } from "../src/domain/api";
 import { isValidSyncKey } from "../src/domain/sync";
 import { syncNow } from "../src/domain/cloudSync";
@@ -39,6 +40,7 @@ import { Tracking } from "./components/Tracking";
 import { AnnualPlan } from "./components/AnnualPlan";
 import { Account } from "./components/Account";
 import { BaselineTesting } from "./components/BaselineTesting";
+import { ArmCare } from "./components/ArmCare";
 import { Integrations } from "./components/Integrations";
 import { Mechanics } from "./components/Mechanics";
 import { Meal, Nutrition, NutritionTargets } from "./components/Nutrition";
@@ -339,6 +341,19 @@ export function App() {
       }),
     [update, date]
   );
+
+  /** Arm screens, and the bodyweight to open a new one with. */
+  const armExams = useMemo(() => readExams(state?.armExams), [state]);
+  const knownBodyweight = useMemo(() => {
+    const pre = (state?.pre ?? {}) as Record<string, { bodyweightKg?: unknown } | undefined>;
+    const weighed = Object.keys(pre)
+      .sort()
+      .reverse()
+      .map((day) => Number(pre[day]?.bodyweightKg))
+      .find((value) => Number.isFinite(value) && value > 0);
+    const profileWeight = Number((state?.profile as { weight?: unknown } | undefined)?.weight);
+    return weighed ?? (Number.isFinite(profileWeight) && profileWeight > 0 ? profileWeight : null);
+  }, [state]);
 
   const recapStats = useMemo(
     () => (Array.isArray(state?.recapStats) ? (state.recapStats as string[]) : [...DEFAULT_STAT_IDS]),
@@ -806,6 +821,26 @@ export function App() {
           the shell's "More" sheet, as in the prototype — not through a nav list
           rendered into the page body. */}
       {page === "profile" && <BaselineTesting />}
+
+      {page === "profile" && (
+        <ArmCare
+          date={date}
+          exams={armExams}
+          bodyweightKg={knownBodyweight}
+          onSave={(armExam) =>
+            update((draft) => ({
+              ...draft,
+              armExams: [...readExams(draft.armExams), armExam],
+            }))
+          }
+          onRemove={(id) =>
+            update((draft) => ({
+              ...draft,
+              armExams: readExams(draft.armExams).filter((item) => item.id !== id),
+            }))
+          }
+        />
+      )}
 
       {page === "profile" && (
         <Account

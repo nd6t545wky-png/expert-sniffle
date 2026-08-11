@@ -805,3 +805,90 @@ body {
   font-size: 12px;
   font-weight: 600;
 }
+
+/* --- Arm screen ------------------------------------------------------------
+ * A dynamometer battery scored against the athlete's own history. New screen;
+ * the prototype had no objective arm measure at all.
+ * ------------------------------------------------------------------------- */
+
+.arm-metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.arm-metric {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface-secondary);
+}
+/* A flag is a border and a word in the findings list, never colour alone. */
+.arm-metric.flag { border-color: var(--amber); box-shadow: inset 3px 0 0 var(--amber); }
+.arm-metric span {
+  color: var(--muted);
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+.arm-metric strong {
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -.02em;
+  font-variant-numeric: tabular-nums;
+}
+.arm-metric small { color: var(--muted); font-size: 10px; line-height: 1.35; }
+
+.arm-context { margin-bottom: 12px; }
+
+.arm-findings { margin: 6px 0 0; padding-left: 16px; }
+.arm-findings li { margin-top: 3px; }
+
+.arm-form { margin-top: 12px; }
+
+.arm-table {
+  width: 100%;
+  min-width: 360px;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.arm-table th,
+.arm-table td { padding: 6px 8px; text-align: left; border-bottom: 1px solid var(--line); }
+.arm-table thead th {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+.arm-table tbody th { font-weight: 600; font-size: 12.5px; white-space: nowrap; }
+.arm-table tbody tr:last-child td,
+.arm-table tbody tr:last-child th { border-bottom: 0; }
+.arm-table input {
+  width: 100%;
+  min-width: 72px;
+  min-height: 40px;
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+}
+
+.arm-history { margin-top: 10px; }
+.arm-history > summary {
+  cursor: pointer;
+  padding: 8px 0;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+}
