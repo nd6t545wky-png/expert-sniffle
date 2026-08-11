@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { IsoDate } from "../../src/domain/state";
 import { PlanState, SessionReport, submitSessionReport } from "../../src/domain/session";
+import { OuraTrendDay, ouraTrendDays } from "../../src/domain/healthTrends";
 import { Alert, Card, EmptyState, PageHead } from "./Page";
+import { LineChart } from "./LineChart";
 import { RangeField } from "./RangeField";
 import { formatIsoDate } from "../state/formatDate";
 
@@ -17,9 +19,119 @@ export interface TrackingProps {
   plan: PlanState;
   reports: Record<IsoDate, SessionReport | undefined>;
   onReport: (report: SessionReport) => void;
+  /** `state.healthPrefill` and `state.pre`, for the recovery trends. */
+  healthPrefill?: Record<IsoDate, unknown>;
+  submissions?: Record<IsoDate, unknown>;
 }
 
-export function Tracking({ date, plan, reports, onReport }: TrackingProps) {
+/** The six series v60 charted, in its order. */
+const OURA_SERIES: {
+  key: string;
+  title: string;
+  caption: string;
+  getter: (day: OuraTrendDay) => number | null;
+  color: string;
+  allowZero?: boolean;
+  unit?: string;
+}[] = [
+  {
+    key: "readiness",
+    title: "Oura readiness",
+    caption: "Oura’s daily score",
+    getter: (day) => day.readiness,
+    color: "var(--blue)",
+  },
+  {
+    key: "sleep",
+    title: "Oura sleep",
+    caption: "Oura’s daily score",
+    getter: (day) => day.sleep,
+    color: "var(--teal)",
+  },
+  {
+    key: "activity",
+    title: "Oura activity",
+    caption: "Oura’s daily score",
+    getter: (day) => day.activity,
+    color: "var(--blue)",
+  },
+  {
+    key: "stress",
+    // Zero high-stress minutes is a real reading, and a good one — this is the
+    // one series where dropping zeroes would hide the best days.
+    title: "High-stress minutes",
+    caption: "Oura daytime stress field",
+    getter: (day) => day.stress,
+    color: "var(--teal)",
+    allowZero: true,
+    unit: "min",
+  },
+  {
+    key: "hrv",
+    title: "HRV",
+    caption: "Nightly average returned by Oura",
+    getter: (day) => day.hrv,
+    color: "var(--blue)",
+    unit: "ms",
+  },
+  {
+    key: "spo2",
+    title: "Blood oxygen",
+    caption: "Average SpO₂ when Oura returns it",
+    getter: (day) => day.spo2,
+    color: "var(--teal)",
+    unit: "%",
+  },
+];
+
+function OuraTrends({ days }: { days: OuraTrendDay[] }) {
+  return (
+    <details className="card disclosure-card quiet-disclosure">
+      <summary>
+        <span>
+          <strong>Oura recovery trends</strong>
+          <small>Values returned by Oura Cloud API v2</small>
+        </span>
+        <span>Show</span>
+      </summary>
+      <div className="disclosure-body">
+        <p className="fineprint disclosure-intro">
+          <strong>Source:</strong> these charts use Oura fields only. Missing or delayed ring-sync
+          days remain blank; Pitching OS does not fill them with estimates.
+        </p>
+        <section className="grid two">
+          {OURA_SERIES.map((series) => (
+            <article key={series.key}>
+              <div className="card-head">
+                <div>
+                  <h3>{series.title}</h3>
+                  <p>{series.caption}</p>
+                </div>
+              </div>
+              <LineChart
+                days={days}
+                getter={series.getter}
+                color={series.color}
+                label={series.title}
+                allowZero={series.allowZero}
+                unit={series.unit}
+              />
+            </article>
+          ))}
+        </section>
+      </div>
+    </details>
+  );
+}
+
+export function Tracking({
+  date,
+  plan,
+  reports,
+  onReport,
+  healthPrefill,
+  submissions,
+}: TrackingProps) {
   const [perceivedExertion, setPerceivedExertion] = useState(6);
   const [armFeel, setArmFeel] = useState(8);
   const [gamePitches, setGamePitches] = useState(0);
@@ -28,6 +140,7 @@ export function Tracking({ date, plan, reports, onReport }: TrackingProps) {
 
   const existing = reports[date];
   const recent = Object.values(reports).filter(Boolean) as SessionReport[];
+  const trendDays = ouraTrendDays(healthPrefill, submissions);
 
   function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -153,6 +266,8 @@ export function Tracking({ date, plan, reports, onReport }: TrackingProps) {
         </table>
         </Card>
       )}
+
+      <OuraTrends days={trendDays} />
     </>
   );
 }

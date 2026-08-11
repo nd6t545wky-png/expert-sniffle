@@ -129,6 +129,55 @@ export function hasImportedData(record: HealthPrefillRecord): boolean {
 }
 
 /**
+ * What fed the readiness number, for the dashboard's provenance tag.
+ *
+ * The tag is the only place the dashboard says whether a score came off a
+ * device or out of a questionnaire, so it must not claim a ring that did not
+ * report.
+ */
+export function wearableLabel(record: HealthPrefillRecord): {
+  label: string;
+  kind: "sensor" | "manual";
+} {
+  if (record.sources?.oura?.data) return { label: "Oura + check-in", kind: "sensor" };
+  if (record.sources?.appleHealth?.data) return { label: "Apple + check-in", kind: "sensor" };
+  return { label: "Health check-in", kind: "manual" };
+}
+
+/** Which timestamp a stored record was written at, for last-writer-wins. */
+function recordTimestamp(record: unknown): number {
+  if (!isRecord(record)) return 0;
+  for (const key of ["updatedAt", "fetchedAt"]) {
+    const parsed = Date.parse(String(record[key] ?? ""));
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  return 0;
+}
+
+/**
+ * Fold a bulk history fetch into the per-date map, newest write winning.
+ *
+ * A history sweep must never clobber a fresher single-day fetch: the daily
+ * route returns a wider `merged` set than the history route does, so blindly
+ * overwriting today with its history row would quietly drop fields the
+ * check-in is using.
+ */
+export function mergeHistory(
+  existing: Record<string, unknown> | undefined,
+  records: Record<string, unknown>,
+  fetchedAt: string
+): Record<string, unknown> {
+  const merged: Record<string, unknown> = { ...(existing ?? {}) };
+  for (const [date, record] of Object.entries(records)) {
+    if (!isRecord(record)) continue;
+    const incoming = { ...record, fetchedAt };
+    const current = merged[date];
+    if (!current || recordTimestamp(incoming) >= recordTimestamp(current)) merged[date] = incoming;
+  }
+  return merged;
+}
+
+/**
  * Form fields the device filled in, by the form's own field names.
  *
  * The form marks these read-only. `sleepQuality` is included when a sleep

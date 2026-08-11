@@ -1,5 +1,6 @@
 import { IsoDate } from "../../src/domain/state";
 import { PlanState, ReadinessSubmission } from "../../src/domain/session";
+import { HealthPrefillRecord, wearableLabel } from "../../src/domain/healthPrefill";
 import { PageId } from "./Shell";
 
 /**
@@ -15,6 +16,8 @@ export interface DashboardProps {
   date: IsoDate;
   plan: PlanState;
   submission?: ReadinessSubmission;
+  /** Today's imported health payload, for the readiness tile's source tag. */
+  health?: HealthPrefillRecord;
   /** e.g. "Week 4 · FNCBA Winter · In Season" */
   eyebrow: string;
   /** e.g. "Friday 7 August" */
@@ -40,6 +43,7 @@ export interface DashboardProps {
 export function Dashboard({
   plan,
   submission,
+  health,
   eyebrow,
   heading,
   focus,
@@ -60,6 +64,7 @@ export function Dashboard({
 }: DashboardProps) {
   const locked = plan.status === "locked";
   const held = plan.status === "held";
+  const source = wearableLabel(health ?? {});
 
   const kicker = held
     ? "Health hold"
@@ -125,8 +130,18 @@ export function Dashboard({
           <span className="metric-detail">
             {submission ? `Plan level ${submission.planLevel}` : "Complete today’s check-in"}
           </span>
-          <span className="data-source manual" title="Entered or confirmed by the athlete">
-            Health check-in
+          {/* Whether this score came off a device or out of a questionnaire is
+              the whole point of the tag — it must not claim a ring that did
+              not report. */}
+          <span
+            className={`data-source ${source.kind}`}
+            title={
+              source.kind === "sensor"
+                ? "Imported from a connected sensor or health service"
+                : "Entered or confirmed by the athlete"
+            }
+          >
+            {source.label}
           </span>
           <span className="metric-arrow" aria-hidden="true">
             ›

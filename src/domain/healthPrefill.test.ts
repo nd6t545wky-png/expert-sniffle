@@ -13,6 +13,8 @@ import {
   readinessContextFor,
   sleepQualityFromScore,
   sourceNames,
+  wearableLabel,
+  mergeHistory,
   wearableInputs,
 } from "./healthPrefill";
 import { BASELINE_MIN_COUNT, computeReadiness, ReadinessInputs } from "./readiness";
@@ -303,5 +305,61 @@ describe("readinessContextFor — the wiring the scorer was missing", () => {
 
   it("leaves a source undefined rather than claiming a device for a typed value", () => {
     expect(metricSources({}).hrvSource).toBeUndefined();
+  });
+});
+
+describe("wearableLabel", () => {
+  it("names the ring when the ring reported", () => {
+    const record = readPrefill({ d: payload({ hrvMs: 60 }) }, "d");
+    expect(wearableLabel(record)).toEqual({ label: "Oura + check-in", kind: "sensor" });
+  });
+
+  it("falls back to Apple Health", () => {
+    const record = readPrefill({ d: payload(null, { hrvMs: 60 }) }, "d");
+    expect(wearableLabel(record)).toEqual({ label: "Apple + check-in", kind: "sensor" });
+  });
+
+  it("does not claim a device that reported nothing", () => {
+    // The tag is the only provenance signal on the dashboard tile, so a
+    // manual check-in must never be dressed up as sensor data.
+    expect(wearableLabel({})).toEqual({ label: "Health check-in", kind: "manual" });
+    expect(wearableLabel({ error: "offline" }).kind).toBe("manual");
+  });
+});
+
+describe("mergeHistory", () => {
+  const record = (day: string) => ({ day, merged: { sleepHours: 8 } });
+
+  it("adds every day the sweep returned", () => {
+    const merged = mergeHistory({}, { "2026-08-01": record("2026-08-01") }, "2026-08-11T00:00:00Z");
+    expect(Object.keys(merged)).toEqual(["2026-08-01"]);
+    expect((merged["2026-08-01"] as { fetchedAt: string }).fetchedAt).toBe("2026-08-11T00:00:00Z");
+  });
+
+  it("does not clobber a fresher single-day fetch", () => {
+    // The daily route returns a wider merged set than the history route. A
+    // sweep overwriting today would quietly drop fields the check-in is using.
+    const existing = {
+      "2026-08-11": { merged: { sleepHours: 7, hrvMs: 62 }, fetchedAt: "2026-08-11T09:00:00Z" },
+    };
+    const merged = mergeHistory(existing, { "2026-08-11": record("2026-08-11") }, "2026-08-11T01:00:00Z");
+    expect((merged["2026-08-11"] as { merged: { hrvMs?: number } }).merged.hrvMs).toBe(62);
+  });
+
+  it("replaces a staler record", () => {
+    const existing = { "2026-08-01": { merged: {}, fetchedAt: "2026-07-01T00:00:00Z" } };
+    const merged = mergeHistory(existing, { "2026-08-01": record("2026-08-01") }, "2026-08-11T00:00:00Z");
+    expect((merged["2026-08-01"] as { fetchedAt: string }).fetchedAt).toBe("2026-08-11T00:00:00Z");
+  });
+
+  it("leaves untouched days alone", () => {
+    const existing = { "2026-07-01": { merged: {}, fetchedAt: "2026-07-01T00:00:00Z" } };
+    const merged = mergeHistory(existing, {}, "2026-08-11T00:00:00Z");
+    expect(merged["2026-07-01"]).toBe(existing["2026-07-01"]);
+  });
+
+  it("skips junk in the response instead of storing it", () => {
+    const merged = mergeHistory({}, { "2026-08-01": "nonsense" }, "2026-08-11T00:00:00Z");
+    expect(merged).toEqual({});
   });
 });

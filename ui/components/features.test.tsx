@@ -6,6 +6,8 @@ import { Mechanics } from "./Mechanics";
 import { Nutrition } from "./Nutrition";
 import { Account } from "./Account";
 import { HealthForm } from "./HealthForm";
+import { Tracking } from "./Tracking";
+import { Dashboard } from "./Dashboard";
 
 const KEY = "a".repeat(64);
 
@@ -410,7 +412,7 @@ describe("HealthForm — connected health data reaching the check-in", () => {
     expect(sleep.value).toBe("6.4");
     expect(sleep.readOnly).toBe(true);
     // A sleep score of 62 is an "Average" night on the 1-5 scale.
-    expect((screen.getByLabelText("Sleep quality") as HTMLSelectElement).value).toBe("3");
+    expect((screen.getByLabelText("Sleep quality") as unknown as HTMLSelectElement).value).toBe("3");
     expect(screen.getByText(/Health data prefilled/)).toBeDefined();
     expect(screen.getByText(/auto-imported/)).toBeDefined();
   });
@@ -496,5 +498,115 @@ describe("HealthForm — connected health data reaching the check-in", () => {
     expect(detail.inputs.hrvMs).toBe(62);
     expect(detail.sources.hrvSource).toBe("oura");
     expect(detail.bodyweightKg).toBe(91.5);
+  });
+});
+
+describe("Oura recovery trends — ported from v60", () => {
+  function withOura(date: string, oura: Record<string, unknown>) {
+    return { [date]: { day: date, merged: {}, sources: { oura: { connected: true, data: oura } } } };
+  }
+
+  const trackingProps = {
+    date: "2026-08-11" as const,
+    plan: { status: "locked", message: "" } as const,
+    reports: {},
+    onReport: () => {},
+  };
+
+  it("draws a line once the ring has synced days", () => {
+    const prefill = {
+      ...withOura("2026-08-01", { readinessScore: 70 }),
+      ...withOura("2026-08-02", { readinessScore: 82 }),
+    };
+    render(<Tracking {...trackingProps} healthPrefill={prefill} submissions={{}} />);
+
+    const chart = screen.getByRole("img", { name: "Oura readiness trend" });
+    expect(chart.querySelectorAll("circle")).toHaveLength(2);
+    expect(chart.querySelector("path")?.getAttribute("d")?.startsWith("M")).toBe(true);
+  });
+
+  it("shows the empty state for a metric the ring never returned", () => {
+    render(
+      <Tracking
+        {...trackingProps}
+        healthPrefill={withOura("2026-08-01", { readinessScore: 70 })}
+        submissions={{}}
+      />
+    );
+    expect(screen.getByText(/No blood oxygen data yet/)).toBeDefined();
+  });
+
+  it("renders all six of v60's series", () => {
+    render(<Tracking {...trackingProps} healthPrefill={{}} submissions={{}} />);
+    for (const title of [
+      "Oura readiness",
+      "Oura sleep",
+      "Oura activity",
+      "High-stress minutes",
+      "HRV",
+      "Blood oxygen",
+    ]) {
+      expect(screen.getByRole("heading", { name: title })).toBeDefined();
+    }
+  });
+
+  it("says outright that blank days are not estimated", () => {
+    render(<Tracking {...trackingProps} healthPrefill={{}} submissions={{}} />);
+    expect(screen.getByText(/does not fill them with estimates/)).toBeDefined();
+  });
+
+  it("plots a zero-stress day rather than dropping it", () => {
+    const prefill = {
+      ...withOura("2026-08-01", { stressHighMinutes: 0 }),
+      ...withOura("2026-08-02", { stressHighMinutes: 140 }),
+    };
+    render(<Tracking {...trackingProps} healthPrefill={prefill} submissions={{}} />);
+    const chart = screen.getByRole("img", { name: "High-stress minutes trend" });
+    expect(chart.querySelectorAll("circle")).toHaveLength(2);
+  });
+
+  it("does not crash when nothing has ever been imported", () => {
+    expect(() => render(<Tracking {...trackingProps} />)).not.toThrow();
+  });
+});
+
+describe("Dashboard readiness provenance", () => {
+  const base = {
+    date: "2026-08-11" as const,
+    plan: { status: "locked", message: "Check in first." } as const,
+    eyebrow: "Week 4",
+    heading: "Tuesday 11 August",
+    focus: "Build",
+    teamName: "Norths",
+    teamLogo: "",
+    teamLogoAlt: "",
+    sessionTitle: "Session",
+    sessionDescription: "",
+    sessionDuration: "60 min",
+    sessionStress: "Moderate",
+    taskCount: 0,
+    completedCount: 0,
+    weekLoad: 0,
+    hydrationLitres: 0,
+    fluidTarget: 0,
+    onNavigate: () => {},
+    onOpenPlan: () => {},
+  };
+
+  it("credits Oura when the ring supplied the day's data", () => {
+    render(
+      <Dashboard
+        {...base}
+        health={{ sources: { oura: { connected: true, data: { hrvMs: 60 } as never } } }}
+      />
+    );
+    const tag = screen.getByText("Oura + check-in");
+    expect(tag.className).toContain("sensor");
+  });
+
+  it("does not claim a device for a manual check-in", () => {
+    render(<Dashboard {...base} />);
+    const tag = screen.getByText("Health check-in");
+    expect(tag.className).toContain("manual");
   });
 });

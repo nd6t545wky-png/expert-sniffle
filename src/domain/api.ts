@@ -337,7 +337,23 @@ export interface HealthHistoryResponse {
   startDay: IsoDate;
   endDay: IsoDate;
   days: number;
-  records: Record<IsoDate, { day: IsoDate; merged: HealthSummary }>;
+  /**
+   * Each day carries the same `merged` + `sources` shape as the daily route,
+   * so a history record can be stored into `healthPrefill` as-is. `merged`
+   * holds a narrower field set here, but `sources.oura.data` is the full
+   * summary either way — which is what the trend charts read.
+   */
+  records: Record<
+    IsoDate,
+    {
+      day: IsoDate;
+      merged: HealthSummary;
+      sources?: {
+        oura: { connected: boolean; data: HealthSummary | null; updatedAt: string; error: string };
+        appleHealth: { connected: boolean; data: HealthSummary | null; updatedAt: string };
+      };
+    }
+  >;
   refreshError: string;
 }
 

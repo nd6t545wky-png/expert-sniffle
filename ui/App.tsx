@@ -9,7 +9,7 @@ import {
   totalThrowLoad,
 } from "../src/domain/session";
 import { MetricSource, ReadinessInputs, computeReadiness } from "../src/domain/readiness";
-import { HealthPrefillRecord } from "../src/domain/healthPrefill";
+import { HealthPrefillRecord, mergeHistory, readPrefill } from "../src/domain/healthPrefill";
 import { PitchingOsApi } from "../src/domain/api";
 import { isValidSyncKey } from "../src/domain/sync";
 import { syncNow } from "../src/domain/cloudSync";
@@ -46,6 +46,9 @@ const PAGE_STORAGE = "dylan-pitching-os-page-v1";
 
 /** Quiet period after the last change before autosave uploads. */
 const AUTOSAVE_DELAY_MS = 1500;
+
+/** How stale the ring backfill may get before it is swept again. */
+const HEALTH_HISTORY_INTERVAL_MS = 12 * 60 * 60 * 1000;
 
 /**
  * Pages that are about today rather than about whatever is being browsed.
@@ -202,6 +205,35 @@ export function App() {
     const seeded = seedBaselinePbs(state);
     if (seeded !== state) update(() => seeded as typeof state);
   }, [state, update]);
+
+  // Backfill the last 28 days of ring data once a day.
+  //
+  // Without this the trends only ever hold days the check-in happened to be
+  // opened on, which on a rest day is none of them — the chart would be a
+  // record of app usage rather than of recovery. Throttled by the stored
+  // timestamp so it is one request per day, not one per mount.
+  const historyRun = useRef(false);
+  useEffect(() => {
+    if (!state || historyRun.current || !isValidSyncKey(syncKey)) return;
+    const last = Date.parse(String(state.healthHistoryFetchedAt ?? "")) || 0;
+    if (Date.now() - last < HEALTH_HISTORY_INTERVAL_MS) return;
+    historyRun.current = true;
+    api
+      .healthHistory(today.openDate, 28, true)
+      .then((result) => {
+        const fetchedAt = new Date().toISOString();
+        update((draft) => ({
+          ...draft,
+          healthPrefill: mergeHistory(draft.healthPrefill, result.records ?? {}, fetchedAt),
+          healthHistoryFetchedAt: fetchedAt,
+        }));
+      })
+      // A failed backfill is not worth interrupting anything over — the charts
+      // simply show what they already have, and it retries tomorrow.
+      .catch(() => {
+        historyRun.current = false;
+      });
+  }, [state, syncKey, api, today.openDate, update]);
 
   // The programme's prescriptions depend on training maxes and on Friday's
   // game pitch count, so give it those before building a session.
@@ -459,6 +491,7 @@ export function App() {
           date={date}
           plan={plan}
           submission={submission}
+          health={readPrefill(state.healthPrefill, date)}
           eyebrow={weekMeta.eyebrow}
           heading={weekMeta.heading}
           focus={weekMeta.focus}
@@ -563,6 +596,8 @@ export function App() {
           plan={plan}
           reports={reports}
           onReport={(report) => update((draft) => ({ ...draft, post: { ...draft.post, [report.date]: report } }))}
+          healthPrefill={state.healthPrefill}
+          submissions={state.pre}
         />
       )}
 
