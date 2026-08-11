@@ -1,6 +1,8 @@
+import { ReactNode } from "react";
 import {
   CHART,
   ChartGeometry,
+  ChartPoint,
   MetricSummary,
   OuraTrendDay,
   Verdict,
@@ -59,11 +61,11 @@ const VERDICT_COPY: Record<Verdict, { label: string; glyph: string }> = {
   unknown: { label: "Building your normal", glyph: "·" },
 };
 
-function round(value: number, precision = 0): string {
+export function round(value: number, precision = 0): string {
   return value.toFixed(precision);
 }
 
-function shortDate(date: string): string {
+export function shortDate(date: string): string {
   return formatIsoDate(date, { day: "numeric", month: "short" });
 }
 
@@ -132,37 +134,87 @@ export function TrendCard({ days, series }: { days: OuraTrendDay[]; series: Seri
             </span>
           </p>
 
-          {geometry && <Plot geometry={geometry} series={series} summary={summary} />}
+          {geometry && (
+            <TrendPlot
+              geometry={geometry}
+              title={series.title}
+              unit={series.unit}
+              precision={series.precision}
+              tone={summary.verdict}
+              tableNote={
+                summary.usual ? (
+                  <p className="fineprint">
+                    Your usual range is the middle half of the {summary.observations} days before
+                    this one.
+                  </p>
+                ) : null
+              }
+            />
+          )}
         </>
       )}
     </article>
   );
 }
 
-function Plot({
+/**
+ * The chart itself: axis, line, marks, and the table that carries every value.
+ *
+ * Shared by the recovery trends and the training trends. The two cards say
+ * different things above it — "worse than usual" against a rolling normal, and
+ * "personal best" against a season — but the drawing is the same drawing, and
+ * one implementation means one place where a scaling bug can live.
+ */
+export function TrendPlot({
   geometry,
-  series,
-  summary,
+  title,
+  unit,
+  precision: precisionOption,
+  tone,
+  best,
+  tableNote,
 }: {
   geometry: ChartGeometry;
-  series: SeriesSpec;
-  summary: MetricSummary;
+  title: string;
+  unit?: string;
+  precision?: number;
+  /** Class suffix on the latest marker — the one mark that carries colour. */
+  tone: string;
+  /** High-water mark to ring, where the series has one worth naming. */
+  best?: ChartPoint | null;
+  tableNote?: ReactNode;
 }) {
   const { points, path, ticks, band, plotLeft, plotRight, axisY } = geometry;
   const last = points[points.length - 1];
-  const precision = series.precision ?? 0;
+  const precision = precisionOption ?? 0;
+  // Ringing the latest point as well would put two marks on one dot; when the
+  // latest *is* the best, the verdict pill already says so.
+  const bestMark = best && best.date !== last.date ? best : null;
 
-  // The end label sits above the point, unless the point is near the ceiling —
-  // then it drops below, rather than being clipped by the top of the box.
-  const labelAbove = last.y > CHART.top + 16;
-  const labelY = labelAbove ? last.y - 11 : last.y + 17;
+  // The end label goes on the side the line does *not* arrive from.
+  //
+  // Sitting it above by default put "88.2 kg" straight through the bodyweight
+  // line: the label extends back to the left of the last point, which is
+  // exactly where a descending final segment is. Falling back to the other
+  // side keeps it inside the box when the point is near the floor or ceiling.
+  const previous = points[points.length - 2];
+  const arrivesFromAbove = previous ? previous.y < last.y : false;
+  const above = last.y - 11;
+  const below = last.y + 17;
+  const labelY = arrivesFromAbove
+    ? below < axisY - 4
+      ? below
+      : above
+    : above > CHART.top + 4
+      ? above
+      : below;
 
   return (
     <figure className="trend-chart">
       <svg
         viewBox={`0 0 ${CHART.width} ${CHART.height}`}
         role="img"
-        aria-label={`${series.title} over the last ${points.length} recorded days`}
+        aria-label={`${title} over the last ${points.length} recorded days`}
       >
         {/* The athlete's usual range, behind everything. A point outside this
             band is the whole message of the chart, so the band is a neutral
@@ -196,7 +248,24 @@ function Plot({
         {/* Only the latest point gets a marker, coloured by what it means. A
             dot on all twenty-one points is noise, and the table below carries
             every value anyway. */}
-        <circle className={`trend-dot is-${summary.verdict}`} cx={last.x} cy={last.y} r={5} />
+        <circle className={`trend-dot is-${tone}`} cx={last.x} cy={last.y} r={5} />
+
+        {/* The high-water mark, as a hollow ring plus the word. Never the ring
+            alone: an unlabelled second marker is a mystery, and a reader who
+            cannot see the colour difference has nothing left to read. */}
+        {bestMark && (
+          <>
+            <circle className="trend-best" cx={bestMark.x} cy={bestMark.y} r={4.5} />
+            <text
+              className="trend-bestlabel"
+              x={bestMark.x}
+              y={bestMark.y > CHART.top + 18 ? bestMark.y - 10 : bestMark.y + 18}
+              textAnchor="middle"
+            >
+              best
+            </text>
+          </>
+        )}
 
         {/* Nudged clear of the marker — anchored flush to it, the halo and the
             dot sat on top of each other. */}
@@ -207,7 +276,7 @@ function Plot({
           textAnchor={points.length > 1 ? "end" : "middle"}
         >
           {round(last.value, precision)}
-          {series.unit ?? ""}
+          {unit ?? ""}
         </text>
 
         {/* Invisible, generous hover targets — the visible marks are too small
@@ -215,7 +284,7 @@ function Plot({
             value, so these only supplement the table. */}
         {points.map((point) => (
           <circle key={point.date} className="trend-hit" cx={point.x} cy={point.y} r={9}>
-            <title>{`${shortDate(point.date)}: ${round(point.value, precision)}${series.unit ?? ""}`}</title>
+            <title>{`${shortDate(point.date)}: ${round(point.value, precision)}${unit ?? ""}`}</title>
           </circle>
         ))}
 
@@ -230,9 +299,11 @@ function Plot({
         )}
       </svg>
 
-      <p className="trend-key">
-        <span className="trend-key-band" aria-hidden="true" /> shaded band = your usual range
-      </p>
+      {band && (
+        <p className="trend-key">
+          <span className="trend-key-band" aria-hidden="true" /> shaded band = your usual range
+        </p>
+      )}
 
       {/* Every value stays reachable without hovering or seeing colour. */}
       <details className="trend-table">
@@ -241,7 +312,7 @@ function Plot({
           <thead>
             <tr>
               <th scope="col">Day</th>
-              <th scope="col">{series.title}</th>
+              <th scope="col">{title}</th>
             </tr>
           </thead>
           <tbody>
@@ -250,17 +321,13 @@ function Plot({
                 <td>{shortDate(point.date)}</td>
                 <td>
                   {round(point.value, precision)}
-                  {series.unit ?? ""}
+                  {unit ?? ""}
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
-        {summary.usual && (
-          <p className="fineprint">
-            Your usual range is the middle half of the {summary.observations} days before this one.
-          </p>
-        )}
+        {tableNote}
       </details>
     </figure>
   );

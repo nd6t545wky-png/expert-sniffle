@@ -349,6 +349,40 @@ body {
 .trend-dot.is-normal { fill: var(--muted); }
 .trend-dot.is-unknown { fill: var(--muted); }
 
+/* Training trends. "Down" is not tinted as a warning: bodyweight falling may
+ * be the goal, and a squat 2 kg off its best in a deload week is the plan
+ * working. Only the high-water mark earns a colour. */
+.trend-dot.is-progress-best { fill: var(--green); }
+.trend-dot.is-progress-up { fill: var(--green); }
+.trend-dot.is-progress-level { fill: var(--muted); }
+.trend-dot.is-progress-down { fill: var(--muted); }
+
+.trend-verdict.is-progress-best { background: rgba(52, 199, 89, .16); }
+.trend-verdict.is-progress-up { background: rgba(52, 199, 89, .16); }
+.trend-verdict.is-progress-level { background: var(--surface-secondary); }
+.trend-verdict.is-progress-down { background: var(--surface-secondary); color: var(--muted); }
+
+/* The high-water mark: a hollow ring, so it reads as a marker rather than as
+ * a second data point. The word "best" sits beside it — the ring alone would
+ * be a mystery, and unreadable to anyone who cannot pick out the colour. */
+.trend-best {
+  fill: var(--surface);
+  stroke: var(--ink);
+  stroke-width: 2;
+}
+
+.trend-bestlabel {
+  fill: var(--muted);
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  paint-order: stroke;
+  stroke: var(--surface);
+  stroke-width: 3;
+  stroke-linejoin: round;
+}
+
 /* Generous invisible hit targets — the visible marks are far too small to
  * land on with a thumb. */
 .trend-hit { fill: transparent; }

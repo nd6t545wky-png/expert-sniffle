@@ -254,22 +254,28 @@ function niceTicks(lo: number, hi: number): number[] {
  * Returns null when there is nothing to draw, which is the caller's cue to
  * render the empty state rather than an axis with no line on it.
  */
-export function chartGeometry(
-  days: OuraTrendDay[],
-  getter: (day: OuraTrendDay) => number | null,
-  options: {
-    allowZero?: boolean;
-    usual?: { low: number; high: number } | null;
-    /** Hard ceiling for the scale — a score out of 100 never reaches 102. */
-    max?: number;
-  } = {}
+export interface GeometryOptions {
+  allowZero?: boolean;
+  usual?: { low: number; high: number } | null;
+  /** Hard ceiling for the scale — a score out of 100 never reaches 102. */
+  max?: number;
+}
+
+/**
+ * Geometry for any dated series.
+ *
+ * Split out of `chartGeometry` so the same axis, band and tick logic serves
+ * the recovery trends, a season of lift maxes and a velocity history. One
+ * implementation means one place where a scaling bug can live.
+ */
+export function seriesGeometry(
+  series: { value: number | null; date: IsoDate }[],
+  options: GeometryOptions = {}
 ): ChartGeometry | null {
-  const raw = days
-    .map((day) => ({ value: getter(day), date: day.date }))
-    .filter((item): item is { value: number; date: IsoDate } => {
-      if (item.value === null || !Number.isFinite(item.value)) return false;
-      return options.allowZero ? item.value >= 0 : item.value > 0;
-    });
+  const raw = series.filter((item): item is { value: number; date: IsoDate } => {
+    if (item.value === null || !Number.isFinite(item.value)) return false;
+    return options.allowZero ? item.value >= 0 : item.value > 0;
+  });
 
   if (raw.length === 0) return null;
 
@@ -322,4 +328,16 @@ export function chartGeometry(
     plotLeft: CHART.left,
     plotRight: CHART.width - CHART.right,
   };
+}
+
+/** The recovery-trend flavour: pull one metric off each day, then lay it out. */
+export function chartGeometry(
+  days: OuraTrendDay[],
+  getter: (day: OuraTrendDay) => number | null,
+  options: GeometryOptions = {}
+): ChartGeometry | null {
+  return seriesGeometry(
+    days.map((day) => ({ value: getter(day), date: day.date })),
+    options
+  );
 }

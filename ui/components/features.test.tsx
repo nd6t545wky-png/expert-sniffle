@@ -7,6 +7,7 @@ import { Nutrition } from "./Nutrition";
 import { Account } from "./Account";
 import { HealthForm } from "./HealthForm";
 import { Tracking } from "./Tracking";
+import { ProgressSpec, ProgressTrends } from "./ProgressTrends";
 import { Dashboard } from "./Dashboard";
 import { SessionRecap } from "./SessionRecap";
 import { SessionRecap as Recap } from "../../src/domain/sessionRecap";
@@ -829,5 +830,120 @@ describe("SessionRecap — the Strava-style share card", () => {
     setup({ recap: { ...recap, available: [], stats: [], highlights: [], hasContent: false } });
     expect(screen.getByText(/Nothing is logged/)).toBeDefined();
     expect(screen.queryByRole("button", { name: "Save image" })).toBeNull();
+  });
+});
+
+describe("Training trends — is the work moving the numbers", () => {
+  const points = (values: [string, number][]) =>
+    values.map(([date, value]) => ({ date, value }));
+
+  const lift = {
+    key: "lift-Trap bar deadlift",
+    title: "Trap bar deadlift",
+    explain: "Estimated one-rep max from your heaviest set that day.",
+    higherIsBetter: true,
+    unit: " kg",
+    precision: 1,
+  };
+
+  function show(specs: ProgressSpec[]) {
+    render(<ProgressTrends specs={specs} />);
+  }
+
+  it("leads with the latest value and how far it has come", () => {
+    show([
+      {
+        ...lift,
+        points: points([
+          ["2026-07-13", 145],
+          ["2026-07-20", 151.7],
+          ["2026-08-03", 159.5],
+        ]),
+      },
+    ]);
+    expect(document.querySelector(".trend-value strong")?.textContent).toContain("159.5");
+    expect(screen.getByText(/\+14\.5 kg since 13 July/)).toBeDefined();
+    expect(screen.getByText(/3 sessions/)).toBeDefined();
+  });
+
+  it("compares against where the athlete started, not against a usual range", () => {
+    show([
+      {
+        ...lift,
+        points: points([
+          ["2026-07-13", 145],
+          ["2026-08-03", 159.5],
+        ]),
+      },
+    ]);
+    // The Oura framing would read "better than usual" forever on a rising line.
+    expect(screen.queryByText(/than usual/)).toBeNull();
+    expect(screen.getByText("Best on record")).toBeDefined();
+    // No usual range means no band, so its key must not appear either.
+    expect(screen.queryByText(/shaded band/)).toBeNull();
+  });
+
+  it("names the high-water mark when the latest session is off it", () => {
+    show([
+      {
+        ...lift,
+        points: points([
+          ["2026-07-13", 145],
+          ["2026-07-20", 160],
+          ["2026-08-03", 152],
+        ]),
+      },
+    ]);
+    expect(screen.getByText("best")).toBeDefined();
+    expect(screen.getByText(/Best on record: 160\.0 kg on 20 July/)).toBeDefined();
+    expect(screen.getByText("Up on where you started")).toBeDefined();
+  });
+
+  it("never calls a bodyweight a best — neither direction is good news", () => {
+    show([
+      {
+        key: "bodyweight",
+        title: "Bodyweight",
+        explain: "What you weighed at check-in.",
+        higherIsBetter: null,
+        unit: " kg",
+        precision: 1,
+        points: points([
+          ["2026-07-13", 89.4],
+          ["2026-08-10", 88.2],
+        ]),
+      },
+    ]);
+    expect(screen.getByText("Down on where you started")).toBeDefined();
+    expect(screen.queryByText("Best on record")).toBeNull();
+    expect(screen.queryByText("best")).toBeNull();
+  });
+
+  it("says the strength figures are estimates, not maxes that were lifted", () => {
+    show([{ ...lift, points: points([["2026-07-13", 145], ["2026-08-03", 159.5]]) }]);
+    // The caveat spans an <em>, so it is read off the paragraph's text.
+    const intro = document.querySelector(".disclosure-intro")?.textContent ?? "";
+    expect(intro).toMatch(/estimated one-rep maxes.*not maxes you lifted/);
+  });
+
+  it("keeps every value reachable without hovering or seeing colour", () => {
+    show([
+      {
+        ...lift,
+        points: points([
+          ["2026-07-13", 145],
+          ["2026-08-03", 159.5],
+        ]),
+      },
+    ]);
+    const rows = [...document.querySelectorAll(".trend-table tbody tr")];
+    expect(rows.length).toBe(2);
+    // Newest first, as the recovery tables read.
+    expect(rows[0].textContent).toContain("159.5");
+  });
+
+  it("renders nothing at all when there is no history to plot", () => {
+    const { container } = render(<ProgressTrends specs={[]} />);
+    expect(container.innerHTML).toBe("");
   });
 });

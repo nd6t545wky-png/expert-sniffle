@@ -12,6 +12,13 @@ import { MetricSource, ReadinessInputs, computeReadiness } from "../src/domain/r
 import { HealthPrefillRecord, mergeHistory, readPrefill } from "../src/domain/healthPrefill";
 import { DEFAULT_STAT_IDS, MAX_STATS, buildRecap } from "../src/domain/sessionRecap";
 import { LoggedSet, loggedTonnage, readDayLog } from "../src/domain/setLog";
+import {
+  MIN_POINTS_FOR_TREND,
+  bodyweightHistory,
+  liftProgress,
+  taskNamesForDates,
+  velocityHistory,
+} from "../src/domain/progressTrends";
 import { fuelTargetsFromBaseline } from "../src/domain/fuelling";
 import { Pitch, readPitches, topVelocity } from "../src/domain/pitchLog";
 import { ArmExam, readExams } from "../src/domain/armCare";
@@ -37,6 +44,7 @@ import { DayTab, dayStatus } from "./components/DayTabs";
 import { HealthForm } from "./components/HealthForm";
 import { Workload, ThrowingEntry } from "./components/Workload";
 import { Tracking } from "./components/Tracking";
+import { ProgressSpec } from "./components/ProgressTrends";
 import { AnnualPlan } from "./components/AnnualPlan";
 import { Account } from "./components/Account";
 import { BaselineTesting } from "./components/BaselineTesting";
@@ -92,6 +100,9 @@ const PAGE_IDS: Page[] = [
 ];
 
 const DEFAULT_TARGETS: NutritionTargets = { calories: 0, protein: 0, carbs: 0, fat: 0, fluid: 0 };
+
+/** At most this many lift cards, busiest first. */
+const MAX_LIFT_CARDS = 6;
 
 export function App() {
   const { state, load, update, submissions, planFor } = useAppState();
@@ -355,6 +366,71 @@ export function App() {
       .find((value) => Number.isFinite(value) && value > 0);
     const profileWeight = Number((state?.profile as { weight?: unknown } | undefined)?.weight);
     return weighed ?? (Number.isFinite(profileWeight) && profileWeight > 0 ? profileWeight : null);
+  }, [state]);
+
+  /**
+   * The training trends: has anything moved since this started?
+   *
+   * Built from the whole log rather than the open day, so the series survive
+   * flicking between dates. Lifts are capped — a card per movement in the
+   * programme would bury the three the athlete actually cares about under
+   * twenty they trained twice.
+   */
+  const progress = useMemo<ProgressSpec[]>(() => {
+    const logs = state?.setLogs as Record<string, unknown> | undefined;
+    const names = taskNamesForDates(Object.keys(logs ?? {}));
+
+    const velocity = velocityHistory(
+      state?.pitches as Record<string, unknown> | undefined,
+      state?.post as Record<string, { bestVelocity?: unknown } | undefined> | undefined
+    );
+    const weight = bodyweightHistory(state?.pre as Record<string, unknown> | undefined);
+
+    const specs: ProgressSpec[] = [];
+
+    if (velocity.length >= MIN_POINTS_FOR_TREND) {
+      specs.push({
+        key: "velocity",
+        title: "Top throwing speed",
+        explain:
+          "The fastest pitch measured each day, from your pitch log or the figure you entered at check-out.",
+        points: velocity,
+        higherIsBetter: true,
+        unit: " mph",
+        precision: 1,
+      });
+    }
+
+    for (const lift of liftProgress(logs, names).slice(0, MAX_LIFT_CARDS)) {
+      specs.push({
+        key: `lift-${lift.name}`,
+        title: lift.name,
+        // Short on purpose. The card above spells out what an estimated one-rep
+        // max is; repeating the full sentence on every lift pushed the number
+        // itself below the fold on a phone.
+        explain: "Estimated one-rep max from your heaviest set that day.",
+        points: lift.points,
+        higherIsBetter: true,
+        unit: " kg",
+        precision: 1,
+      });
+    }
+
+    if (weight.length >= MIN_POINTS_FOR_TREND) {
+      specs.push({
+        key: "bodyweight",
+        title: "Bodyweight",
+        // No direction: gaining and losing are both goals depending on the
+        // block, so the card reports the movement and does not grade it.
+        explain: "What you weighed at check-in.",
+        points: weight,
+        higherIsBetter: null,
+        unit: " kg",
+        precision: 1,
+      });
+    }
+
+    return specs;
   }, [state]);
 
   const recapStats = useMemo(
@@ -750,6 +826,7 @@ export function App() {
           recapCaption={recapCaption}
           recapStats={recapStats}
           onToggleRecapStat={toggleRecapStat}
+          progress={progress}
           onRecapCaption={(caption) =>
             update((draft) => ({
               ...draft,

@@ -7,6 +7,7 @@ import { PitchingOsApi } from "../../src/domain/api";
 import { SessionRecap } from "./SessionRecap";
 import { Alert, Card, EmptyState, PageHead } from "./Page";
 import { SeriesSpec, TrendCard } from "./LineChart";
+import { ProgressSpec, ProgressTrends } from "./ProgressTrends";
 import { RangeField } from "./RangeField";
 import { formatIsoDate } from "../state/formatDate";
 
@@ -33,6 +34,8 @@ export interface TrackingProps {
   onRecapCaption?: (caption: string) => void;
   recapStats?: string[];
   onToggleRecapStat?: (id: string) => void;
+  /** Lift, velocity and bodyweight series — see `progressTrends`. */
+  progress?: ProgressSpec[];
 }
 
 /**
@@ -143,6 +146,7 @@ export function Tracking({
   onRecapCaption,
   recapStats,
   onToggleRecapStat,
+  progress,
 }: TrackingProps) {
   const [perceivedExertion, setPerceivedExertion] = useState(6);
   const [armFeel, setArmFeel] = useState(8);
@@ -327,6 +331,8 @@ export function Tracking({
           onToggleStat={onToggleRecapStat ?? (() => {})}
         />
       )}
+
+      <ProgressTrends specs={progress ?? []} />
 
       <OuraTrends days={trendDays} />
     </>
