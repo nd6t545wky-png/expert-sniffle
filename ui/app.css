@@ -412,3 +412,162 @@ body {
   .trend-grid { grid-template-columns: 1fr; }
   .trend-head { flex-direction: column; }
 }
+
+/* --- Session recap ---------------------------------------------------------
+ * A photo with the day's work on it. New screen, no counterpart in the
+ * prototype, so styles.css has nothing to say about it — built from the same
+ * tokens as everything else.
+ *
+ * The preview is HTML so it reflows and themes; the exported PNG is drawn on
+ * a canvas at a fixed size (see ui/state/recapCard.ts). Both read the same
+ * recap object.
+ * ------------------------------------------------------------------------- */
+
+.recap-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius);
+  /* Portrait, matching the exported 1080x1350. */
+  aspect-ratio: 4 / 5;
+  background: #101014;
+  margin-bottom: 14px;
+}
+
+.recap-photo {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  /* Cover, never stretch — distorting a training photo changes what the
+     athlete looks like. */
+  object-fit: cover;
+}
+
+.recap-photo-empty {
+  background: linear-gradient(160deg, #23232b 0%, #101014 70%);
+}
+
+/* A bottom-weighted scrim. Without it the white text is readable over a dark
+   photo and invisible over a bright one, which is to say unreliable. */
+.recap-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 20px;
+  /* Ramps early and hard. A gentler scrim tested legible over a dark photo
+     and unreadable over a bright sky, which makes the card unreliable rather
+     than subtle. These stops match the canvas export exactly — the two must
+     not drift, or the saved image reads differently from the preview. */
+  background: linear-gradient(
+    to bottom,
+    rgba(8, 8, 10, 0) 8%,
+    rgba(8, 8, 10, .58) 30%,
+    rgba(8, 8, 10, .90) 58%,
+    rgba(8, 8, 10, .96) 100%
+  );
+  /* Belt and braces. The scrim strength depends on where the text block
+     starts, which depends on how much was logged — so the text also carries
+     its own shadow and stays legible whatever the photo is doing under it. */
+  text-shadow: 0 1px 10px rgba(0, 0, 0, .75);
+  color: #fff;
+}
+
+.recap-eyebrow {
+  margin: 0;
+  color: rgba(255, 255, 255, .72);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.recap-title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -.02em;
+  line-height: 1.15;
+}
+
+.recap-focus {
+  margin: 0;
+  color: rgba(255, 255, 255, .72);
+  font-size: 12px;
+}
+
+.recap-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.recap-stats li { display: flex; flex-direction: column; }
+.recap-stats strong {
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1;
+}
+.recap-stats span {
+  margin-top: 3px;
+  color: rgba(255, 255, 255, .72);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+}
+.recap-stats small { color: rgba(255, 255, 255, .55); font-size: 9px; }
+
+.recap-highlights {
+  margin: 4px 0 0;
+  padding: 0 0 0 14px;
+  list-style: none;
+  color: rgba(255, 255, 255, .78);
+  font-size: 11px;
+  line-height: 1.5;
+}
+.recap-highlights li { position: relative; }
+.recap-highlights li::before {
+  content: "";
+  position: absolute;
+  left: -14px;
+  top: 6px;
+  width: 5px;
+  height: 5px;
+  border-radius: 1px;
+  background: rgba(255, 255, 255, .45);
+}
+
+.recap-caption {
+  margin: 6px 0 0;
+  color: rgba(255, 255, 255, .82);
+  font-size: 12px;
+  font-style: italic;
+  line-height: 1.4;
+}
+
+.recap-field { margin-bottom: 12px; }
+.recap-actions { flex-wrap: wrap; gap: 8px; }
+
+/* The file input is driven by a styled button, but must stay reachable by
+   keyboard and by assistive tech — so it is hidden, not removed. */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+@media (min-width: 700px) {
+  .recap-card { max-width: 420px; }
+}

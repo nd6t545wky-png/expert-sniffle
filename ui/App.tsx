@@ -10,6 +10,7 @@ import {
 } from "../src/domain/session";
 import { MetricSource, ReadinessInputs, computeReadiness } from "../src/domain/readiness";
 import { HealthPrefillRecord, mergeHistory, readPrefill } from "../src/domain/healthPrefill";
+import { buildRecap } from "../src/domain/sessionRecap";
 import { PitchingOsApi } from "../src/domain/api";
 import { isValidSyncKey } from "../src/domain/sync";
 import { syncNow } from "../src/domain/cloudSync";
@@ -278,6 +279,27 @@ export function App() {
     Record<string, SkippedTask> | undefined
   >;
   const weekLoad = totalThrowLoad(throwingEntries.slice(-7));
+
+  // What the day actually was, for the shareable recap card. Built from the
+  // logged record only — a card is a public claim about training, so anything
+  // not logged is omitted rather than defaulted to zero.
+  const recap = useMemo(
+    () =>
+      buildRecap({
+        date,
+        session,
+        tasks,
+        completed: completed[date] ?? [],
+        skipped: skippedTasks[date] ?? {},
+        report: reports[date] ?? null,
+        submission: submission ?? null,
+        throwing: (state?.bullpens as Record<string, ThrowingEntry | undefined>)?.[date] ?? null,
+      }),
+    [date, session, tasks, completed, skippedTasks, reports, submission, state]
+  );
+  const recapCaption = String(
+    (state?.recapCaptions as Record<string, unknown> | undefined)?.[date] ?? ""
+  );
 
   // The week's seven days. Each tab's date comes from the same
   // `dateForWeekDay` derivation that produces `date`, so a tab can never point
@@ -598,6 +620,16 @@ export function App() {
           onReport={(report) => update((draft) => ({ ...draft, post: { ...draft.post, [report.date]: report } }))}
           healthPrefill={state.healthPrefill}
           submissions={state.pre}
+          recap={recap}
+          api={api}
+          hasSyncKey={isValidSyncKey(syncKey)}
+          recapCaption={recapCaption}
+          onRecapCaption={(caption) =>
+            update((draft) => ({
+              ...draft,
+              recapCaptions: { ...(draft.recapCaptions as Record<string, string>), [date]: caption },
+            }))
+          }
         />
       )}
 

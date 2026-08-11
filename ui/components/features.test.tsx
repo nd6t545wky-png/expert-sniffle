@@ -8,6 +8,7 @@ import { Account } from "./Account";
 import { HealthForm } from "./HealthForm";
 import { Tracking } from "./Tracking";
 import { Dashboard } from "./Dashboard";
+import { SessionRecap } from "./SessionRecap";
 
 const KEY = "a".repeat(64);
 
@@ -686,5 +687,97 @@ describe("Dashboard readiness provenance", () => {
     render(<Dashboard {...base} />);
     const tag = screen.getByText("Health check-in");
     expect(tag.className).toContain("manual");
+  });
+});
+
+describe("SessionRecap — the Strava-style share card", () => {
+  const recap = {
+    date: "2026-08-11" as const,
+    title: "Bullpen",
+    focus: "Command",
+    effort: "75% effort",
+    stats: [
+      { label: "Session", value: "12", detail: "of 18 done" },
+      { label: "Throws", value: "42" },
+    ],
+    highlights: ["Back squat · 3 × 5 @ 130 kg"],
+    hasContent: true,
+  };
+
+  function setup(options: { api?: PitchingOsApi; hasSyncKey?: boolean; caption?: string } = {}) {
+    const captions: string[] = [];
+    render(
+      <SessionRecap
+        date="2026-08-11"
+        recap={recap}
+        api={options.api ?? apiWith({})}
+        hasSyncKey={options.hasSyncKey ?? true}
+        caption={options.caption ?? ""}
+        onCaption={(value) => captions.push(value)}
+      />
+    );
+    return { captions };
+  }
+
+  it("shows the day's work on the card", () => {
+    setup();
+    expect(screen.getByText("Bullpen")).toBeDefined();
+    expect(screen.getByText(/75% effort/)).toBeDefined();
+    expect(screen.getByText("42")).toBeDefined();
+    expect(screen.getByText("Back squat · 3 × 5 @ 130 kg")).toBeDefined();
+  });
+
+  it("asks for a photo for this day, not for a shared pool", async () => {
+    const calls = { calls: [] as string[] };
+    setup({ api: apiWith({}, calls) });
+    await waitFor(() => expect(calls.calls.join()).toContain("/api/session-photos/2026-08-11"));
+  });
+
+  it("does not reach for a photo without an account to store it against", () => {
+    const calls = { calls: [] as string[] };
+    setup({ api: apiWith({}, calls), hasSyncKey: false });
+    expect(calls.calls).toHaveLength(0);
+    expect(screen.getByText(/Cloud autosave required/)).toBeDefined();
+  });
+
+  it("says plainly that saving publishes nothing", () => {
+    // The card leaves the app as a file. Where it goes next must be the
+    // athlete's decision, and the UI has to say so.
+    setup();
+    expect(screen.getByText(/Nothing is posted anywhere/)).toBeDefined();
+  });
+
+  it("still offers the card when there is no photo", () => {
+    setup();
+    expect(screen.getByRole("button", { name: "Add photo" })).toBeDefined();
+    expect(screen.getByRole("button", { name: "Save image" })).toBeDefined();
+    // Remove is meaningless with nothing attached.
+    expect(screen.queryByRole("button", { name: "Remove photo" })).toBeNull();
+  });
+
+  it("carries the caption back to the caller so it syncs", () => {
+    const { captions } = setup();
+    fireEvent.change(screen.getByLabelText("Caption"), { target: { value: "First bullpen back" } });
+    expect(captions).toContain("First bullpen back");
+  });
+
+  it("shows the caption on the card itself", () => {
+    setup({ caption: "Felt sharp" });
+    expect(screen.getByText("Felt sharp")).toBeDefined();
+  });
+
+  it("explains itself instead of rendering an empty card on an unlogged day", () => {
+    render(
+      <SessionRecap
+        date="2026-08-11"
+        recap={{ ...recap, stats: [], highlights: [], hasContent: false }}
+        api={apiWith({})}
+        hasSyncKey
+        caption=""
+        onCaption={() => {}}
+      />
+    );
+    expect(screen.getByText(/Nothing is logged/)).toBeDefined();
+    expect(screen.queryByRole("button", { name: "Save image" })).toBeNull();
   });
 });

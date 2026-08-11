@@ -2,6 +2,9 @@ import { useState } from "react";
 import { IsoDate } from "../../src/domain/state";
 import { PlanState, SessionReport, submitSessionReport } from "../../src/domain/session";
 import { OuraTrendDay, ouraTrendDays } from "../../src/domain/healthTrends";
+import { SessionRecap as Recap } from "../../src/domain/sessionRecap";
+import { PitchingOsApi } from "../../src/domain/api";
+import { SessionRecap } from "./SessionRecap";
 import { Alert, Card, EmptyState, PageHead } from "./Page";
 import { SeriesSpec, TrendCard } from "./LineChart";
 import { RangeField } from "./RangeField";
@@ -22,6 +25,12 @@ export interface TrackingProps {
   /** `state.healthPrefill` and `state.pre`, for the recovery trends. */
   healthPrefill?: Record<IsoDate, unknown>;
   submissions?: Record<IsoDate, unknown>;
+  /** The day's work, for the shareable recap card. */
+  recap?: Recap;
+  api?: PitchingOsApi;
+  hasSyncKey?: boolean;
+  recapCaption?: string;
+  onRecapCaption?: (caption: string) => void;
 }
 
 /**
@@ -125,6 +134,11 @@ export function Tracking({
   onReport,
   healthPrefill,
   submissions,
+  recap,
+  api,
+  hasSyncKey,
+  recapCaption,
+  onRecapCaption,
 }: TrackingProps) {
   const [perceivedExertion, setPerceivedExertion] = useState(6);
   const [armFeel, setArmFeel] = useState(8);
@@ -259,6 +273,17 @@ export function Tracking({
           </tbody>
         </table>
         </Card>
+      )}
+
+      {recap && api && (
+        <SessionRecap
+          date={date}
+          recap={recap}
+          api={api}
+          hasSyncKey={Boolean(hasSyncKey)}
+          caption={recapCaption ?? ""}
+          onCaption={onRecapCaption ?? (() => {})}
+        />
       )}
 
       <OuraTrends days={trendDays} />

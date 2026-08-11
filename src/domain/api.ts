@@ -177,6 +177,42 @@ export class PitchingOsApi {
     );
   }
 
+  // --- session photos --------------------------------------------------------
+
+  /**
+   * The photo for a day, as bytes.
+   *
+   * Served against the bearer key rather than a signed URL, so the caller gets
+   * a Blob to turn into an object URL. A link that worked outside the app
+   * would be a private training photo on a public URL.
+   */
+  async sessionPhoto(day: IsoDate): Promise<Blob | null> {
+    const response = await this.fetcher(`${this.baseUrl}/api/session-photos/${encodeURIComponent(day)}`, {
+      headers: this.headers(),
+    });
+    if (response.status === 404) return null;
+    if (!response.ok) throw new ApiError("Could not load the session photo", response.status);
+    return response.blob();
+  }
+
+  uploadSessionPhoto(day: IsoDate, file: Blob) {
+    return this.request<{ saved: boolean; day: IsoDate; byteSize: number }>(
+      `/api/session-photos/${encodeURIComponent(day)}`,
+      { method: "PUT", headers: { "Content-Type": file.type }, body: file }
+    );
+  }
+
+  deleteSessionPhoto(day: IsoDate) {
+    return this.request<{ deleted: boolean; day: IsoDate }>(
+      `/api/session-photos/${encodeURIComponent(day)}`,
+      { method: "DELETE" }
+    );
+  }
+
+  listSessionPhotos() {
+    return this.request<{ days: IsoDate[] }>("/api/session-photos");
+  }
+
   // --- mechanics -------------------------------------------------------------
 
   listMechanicsVideos() {

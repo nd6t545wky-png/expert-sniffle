@@ -1558,6 +1558,96 @@ async function deleteMechanicsVideo(request: Request, env: Env, id: string): Pro
   return json({ deleted: true });
 }
 
+// -- Session photos (Strava-style recap card) -------------------------------
+
+/**
+ * The photo attached to a day's session.
+ *
+ * Deliberately has no database table. Ownership is *structural*: the object
+ * key is `${keyHash}/session/${day}`, so a request can only ever address its
+ * own photo — there is no lookup that could return someone else's row, and no
+ * schema to migrate. The caption travels in the encrypted sync blob with the
+ * rest of the athlete's data, which is where it belongs.
+ *
+ * Bytes are served against the bearer key rather than a signed URL, so a photo
+ * link cannot be forwarded out of the app and remain valid.
+ */
+function sessionPhotoKey(keyHash: string, day: string): string {
+  return `${keyHash}/session/${day}`;
+}
+
+async function uploadSessionPhoto(request: Request, env: Env, day: string): Promise<Response> {
+  const keyHash = await recoveryKeyHash(request);
+  if (!keyHash) return json({ error: "Cloud autosave recovery key required" }, 401);
+  if (!validDay(day)) return json({ error: "A valid session day is required" }, 400);
+
+  const contentType = (request.headers.get("Content-Type") || "").split(";")[0].toLowerCase();
+  if (!IMAGE_TYPES.has(contentType)) return json({ error: "Use a JPEG, PNG or WebP image" }, 415);
+  const byteSize = boundedContentLength(request, MAX_MEAL_PHOTO_BYTES);
+  if (!byteSize) return json({ error: "Photo must be between 1 byte and 20 MB" }, 413);
+  if (!request.body) return json({ error: "Photo body is required" }, 400);
+
+  const mediaBucket = privateMediaBucket(env);
+  if (!mediaBucket) return json({ error: "Private media storage is awaiting account activation" }, 503);
+
+  await mediaBucket.put(sessionPhotoKey(keyHash, day), request.body, {
+    httpMetadata: { contentType, cacheControl: "private, no-store" },
+    customMetadata: { owner: keyHash, day },
+  });
+
+  return json({ saved: true, day, byteSize });
+}
+
+async function sessionPhotoContent(request: Request, env: Env, day: string): Promise<Response> {
+  const keyHash = await recoveryKeyHash(request);
+  if (!keyHash) return json({ error: "Cloud autosave recovery key required" }, 401);
+  if (!validDay(day)) return json({ error: "A valid session day is required" }, 400);
+
+  const mediaBucket = privateMediaBucket(env);
+  if (!mediaBucket) return json({ error: "Private media storage is awaiting account activation" }, 503);
+
+  const object = await mediaBucket.get(sessionPhotoKey(keyHash, day));
+  if (!object) return json({ error: "No photo for that session" }, 404);
+
+  return new Response(object.body, {
+    headers: new Headers({
+      "Cache-Control": "private, no-store",
+      "Content-Type": object.httpMetadata?.contentType || "application/octet-stream",
+      "Content-Length": String(object.size),
+      "X-Content-Type-Options": "nosniff",
+    }),
+  });
+}
+
+async function deleteSessionPhoto(request: Request, env: Env, day: string): Promise<Response> {
+  const keyHash = await recoveryKeyHash(request);
+  if (!keyHash) return json({ error: "Cloud autosave recovery key required" }, 401);
+  if (!validDay(day)) return json({ error: "A valid session day is required" }, 400);
+
+  const mediaBucket = privateMediaBucket(env);
+  if (!mediaBucket) return json({ error: "Private media storage is awaiting account activation" }, 503);
+
+  await mediaBucket.delete(sessionPhotoKey(keyHash, day));
+  return json({ deleted: true, day });
+}
+
+/** Which days have a photo, so the recap list does not guess. */
+async function listSessionPhotos(request: Request, env: Env): Promise<Response> {
+  const keyHash = await recoveryKeyHash(request);
+  if (!keyHash) return json({ error: "Cloud autosave recovery key required" }, 401);
+
+  const mediaBucket = privateMediaBucket(env);
+  if (!mediaBucket) return json({ error: "Private media storage is awaiting account activation" }, 503);
+
+  const listed = await mediaBucket.list({ prefix: `${keyHash}/session/`, limit: 500 });
+  const days = listed.objects
+    .map((object) => object.key.slice(`${keyHash}/session/`.length))
+    .filter((day) => validDay(day))
+    .sort();
+
+  return json({ days });
+}
+
 async function privateMediaContent(env: Env, url: URL, id: string, kind: "mechanics" | "nutrition", request: Request): Promise<Response> {
   const mediaBucket = privateMediaBucket(env);
   if (!mediaBucket) return json({ error: "Private media storage is awaiting account activation" }, 503);
@@ -2220,6 +2310,18 @@ async function routeApi(request: Request, env: Env, url: URL): Promise<Response 
     if (blocked) return blocked;
     if (request.method === "PUT") return uploadMechanicsVideo(request, env, url, id);
     if (request.method === "DELETE") return deleteMechanicsVideo(request, env, id);
+  }
+  if (url.pathname === "/api/session-photos" && request.method === "GET") return listSessionPhotos(request, env);
+  const sessionPhotoMatch = /^\/api\/session-photos\/(\d{4}-\d{2}-\d{2})$/.exec(url.pathname);
+  if (sessionPhotoMatch) {
+    const day = sessionPhotoMatch[1];
+    // The photo is read with the bearer key, so a GET needs no origin check —
+    // but anything that writes does.
+    if (request.method === "GET") return sessionPhotoContent(request, env, day);
+    const blocked = requireSameOrigin(request, url, env);
+    if (blocked) return blocked;
+    if (request.method === "PUT") return uploadSessionPhoto(request, env, day);
+    if (request.method === "DELETE") return deleteSessionPhoto(request, env, day);
   }
   if (url.pathname === "/api/nutrition/analyze" && request.method === "POST") {
     const blocked = requireSameOrigin(request, url, env);
