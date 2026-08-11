@@ -8,7 +8,8 @@ import {
   ThrowIntent,
   totalThrowLoad,
 } from "../src/domain/session";
-import { computeReadiness } from "../src/domain/readiness";
+import { MetricSource, ReadinessInputs, computeReadiness } from "../src/domain/readiness";
+import { HealthPrefillRecord } from "../src/domain/healthPrefill";
 import { PitchingOsApi } from "../src/domain/api";
 import { isValidSyncKey } from "../src/domain/sync";
 import { syncNow } from "../src/domain/cloudSync";
@@ -349,8 +350,20 @@ export function App() {
 
   if (!state) return <main className="app">Loading…</main>;
 
-  function handleReadinessSubmitted(result: ReturnType<typeof computeReadiness>, forDate: IsoDate) {
+  function handleReadinessSubmitted(
+    result: ReturnType<typeof computeReadiness>,
+    forDate: IsoDate,
+    detail: {
+      inputs: ReadinessInputs;
+      sources: { hrvSource?: MetricSource; restingHeartRateSource?: MetricSource; sleepSource?: MetricSource };
+      bodyweightKg: number | null;
+    }
+  ) {
     update((draft) => {
+      // The answers and their provenance are stored alongside the score. The
+      // rolling HRV and resting-heart-rate baselines are medians over prior
+      // check-ins, so a record that keeps only its score contributes nothing
+      // and the signals gated on those baselines stay permanently dormant.
       const next: ReadinessSubmission = {
         date: forDate,
         score: result.score,
@@ -358,10 +371,20 @@ export function App() {
         planLevel: result.planLevel,
         workloadFactor: result.workloadFactor,
         submittedAt: new Date().toISOString(),
+        inputs: detail.inputs,
+        ...detail.sources,
+        ...(detail.bodyweightKg !== null ? { bodyweightKg: detail.bodyweightKg } : {}),
       };
       return { ...draft, pre: { ...draft.pre, [forDate]: next } };
     });
     setPage("session");
+  }
+
+  function handleHealthPrefill(forDate: IsoDate, record: HealthPrefillRecord) {
+    update((draft) => ({
+      ...draft,
+      healthPrefill: { ...draft.healthPrefill, [forDate]: record },
+    }));
   }
 
   function updateNutrition(mutate: (current: typeof nutrition) => typeof nutrition) {
@@ -511,7 +534,16 @@ export function App() {
       )}
 
       {page === "readiness" && (
-        <HealthForm date={date} plan={plan} existing={state.pre} onSubmitted={handleReadinessSubmitted} />
+        <HealthForm
+          date={date}
+          plan={plan}
+          existing={state.pre}
+          onSubmitted={handleReadinessSubmitted}
+          api={api}
+          prefill={state.healthPrefill}
+          onPrefill={handleHealthPrefill}
+          hasSyncKey={isValidSyncKey(syncKey)}
+        />
       )}
 
       {page === "workload" && (

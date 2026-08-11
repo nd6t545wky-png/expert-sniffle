@@ -1,10 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, cleanup } from "@testing-library/react";
 import { PitchingOsApi } from "../../src/domain/api";
 import { Integrations } from "./Integrations";
 import { Mechanics } from "./Mechanics";
 import { Nutrition } from "./Nutrition";
 import { Account } from "./Account";
+import { HealthForm } from "./HealthForm";
 
 const KEY = "a".repeat(64);
 
@@ -337,5 +338,163 @@ describe("Account", () => {
     render(<Account api={api} syncKey="" onSyncKey={vi.fn()} onSyncNow={vi.fn()} syncStatus="" />);
     await waitFor(() => screen.getByRole("button", { name: "Sync now" }));
     expect(screen.getByRole("button", { name: "Sync now" }).hasAttribute("disabled")).toBe(true);
+  });
+});
+
+describe("HealthForm — connected health data reaching the check-in", () => {
+  const LOCKED = { status: "locked", message: "Submit the check-in." } as const;
+
+  /** The daily-health payload the Worker returns. */
+  function daily(oura: Record<string, unknown> | null, apple: Record<string, unknown> | null = null) {
+    const merged: Record<string, unknown> = {};
+    for (const source of [apple, oura]) {
+      for (const [key, value] of Object.entries(source ?? {})) {
+        if (value !== null && value !== undefined) merged[key] = value;
+      }
+    }
+    return {
+      day: "2026-08-11",
+      merged,
+      sources: {
+        oura: { connected: Boolean(oura), data: oura, updatedAt: "", error: "" },
+        appleHealth: { connected: Boolean(apple), data: apple, updatedAt: "" },
+      },
+    };
+  }
+
+  function setup(options: {
+    api: PitchingOsApi;
+    prefill?: Record<string, unknown>;
+    hasSyncKey?: boolean;
+    existing?: Record<string, unknown>;
+  }) {
+    const prefills: [string, unknown][] = [];
+    const submissions: unknown[] = [];
+    const view = render(
+      <HealthForm
+        date="2026-08-11"
+        plan={LOCKED}
+        existing={options.existing ?? {}}
+        onSubmitted={(_result, date, detail) => submissions.push({ date, detail })}
+        api={options.api}
+        prefill={options.prefill ?? {}}
+        onPrefill={(date, record) => prefills.push([date, record])}
+        hasSyncKey={options.hasSyncKey ?? true}
+      />
+    );
+    return { view, prefills, submissions };
+  }
+
+  it("fetches connected health data when the check-in opens", async () => {
+    // The regression this whole module exists for: the rebuilt form rendered
+    // hardcoded defaults and never asked the server for anything.
+    const calls = { calls: [] as string[] };
+    const api = apiWith({ "/integrations/daily": daily({ sleepHours: 7.2, sleepScore: 88 }) }, calls);
+    const { prefills } = setup({ api });
+
+    await waitFor(() => expect(prefills).toHaveLength(1));
+    expect(calls.calls[0]).toContain("/api/integrations/daily?day=2026-08-11");
+  });
+
+  it("does not ask the server when there is no account to ask about", () => {
+    const calls = { calls: [] as string[] };
+    setup({ api: apiWith({}, calls), hasSyncKey: false });
+    expect(calls.calls).toHaveLength(0);
+  });
+
+  it("shows imported values in the fields and marks them read-only", () => {
+    const record = daily({ sleepHours: 6.4, sleepScore: 62 });
+    setup({ api: apiWith({}), prefill: { "2026-08-11": record }, hasSyncKey: false });
+
+    const sleep = screen.getByLabelText("Sleep duration") as HTMLInputElement;
+    expect(sleep.value).toBe("6.4");
+    expect(sleep.readOnly).toBe(true);
+    // A sleep score of 62 is an "Average" night on the 1-5 scale.
+    expect((screen.getByLabelText("Sleep quality") as HTMLSelectElement).value).toBe("3");
+    expect(screen.getByText(/Health data prefilled/)).toBeDefined();
+    expect(screen.getByText(/auto-imported/)).toBeDefined();
+  });
+
+  it("names both devices when both supplied data", () => {
+    const record = daily({ sleepHours: 7 }, { restingHeartRate: 52 });
+    setup({ api: apiWith({}), prefill: { "2026-08-11": record }, hasSyncKey: false });
+    expect(screen.getByText(/Oura \+ Apple Health/)).toBeDefined();
+  });
+
+  it("keeps a typed answer when a payload arrives afterwards", async () => {
+    // Prefill layers *under* the athlete's input. An import landing mid-form
+    // must never overwrite an answer already given.
+    const api = apiWith({ "/integrations/daily": daily({ sleepHours: 9.5, sleepScore: 90 }) });
+    const { view } = setup({ api });
+
+    fireEvent.change(screen.getByLabelText("Sleep duration"), { target: { value: "5" } });
+    await waitFor(() => expect((screen.getByLabelText("Sleep duration") as HTMLInputElement).value).toBe("5"));
+    view.unmount();
+  });
+
+  it("surfaces a failed import instead of silently scoring without it", async () => {
+    const api = apiWith({}); // every route 404s
+    const { prefills } = setup({ api });
+    await waitFor(() => expect(prefills).toHaveLength(1));
+    expect((prefills[0][1] as { error?: string }).error).toBeTruthy();
+  });
+
+  it("says it is checking while the fetch is in flight", () => {
+    setup({ api: apiWith({ "/integrations/daily": daily({ sleepHours: 8 }) }) });
+    expect(screen.getByText(/Checking connected health sources/)).toBeDefined();
+  });
+
+  it("offers a retry when nothing has been imported yet", () => {
+    // A submitted day is history, so no fetch fires — which leaves the
+    // already-fetched empty payload on screen.
+    setup({
+      api: apiWith({}),
+      prefill: { "2026-08-11": {} },
+      existing: { "2026-08-11": { score: 80 } },
+    });
+    expect(screen.getByText(/No connected health values yet/)).toBeDefined();
+    expect(screen.getByRole("button", { name: "Check again" })).toBeDefined();
+  });
+
+  it("says nothing about health sources when there is no account", () => {
+    setup({ api: apiWith({}), hasSyncKey: false });
+    expect(screen.queryByText(/connected health/i)).toBeNull();
+  });
+
+  it("lets Oura's readiness score move the number the athlete is shown", () => {
+    // The scorer weights an Oura readiness score at 25%. With the same
+    // subjective answers, a poor ring reading must pull the score down.
+    const score = () =>
+      Number(document.querySelector(".session-status")?.textContent?.match(/(\d+)\/100/)?.[1]);
+
+    setup({ api: apiWith({}), prefill: { "2026-08-11": daily({ readinessScore: 40 }) }, hasSyncKey: false });
+    const low = score();
+
+    cleanup();
+    setup({ api: apiWith({}), prefill: { "2026-08-11": daily({ readinessScore: 95 }) }, hasSyncKey: false });
+    const high = score();
+
+    expect(low).toBeLessThan(high);
+  });
+
+  it("passes the answers and their provenance to the submission handler", () => {
+    const record = daily({ sleepHours: 7.2, sleepScore: 88, hrvMs: 62, bodyweightKg: 91.5 });
+    const { submissions } = setup({
+      api: apiWith({}),
+      prefill: { "2026-08-11": record },
+      hasSyncKey: false,
+    });
+
+    fireEvent.submit(document.querySelector("#pre-form")!);
+
+    expect(submissions).toHaveLength(1);
+    const { detail } = submissions[0] as {
+      detail: { inputs: Record<string, unknown>; sources: Record<string, unknown>; bodyweightKg: number };
+    };
+    // Without these travelling with the submission, tomorrow's rolling HRV
+    // baseline has nothing to build a median from.
+    expect(detail.inputs.hrvMs).toBe(62);
+    expect(detail.sources.hrvSource).toBe("oura");
+    expect(detail.bodyweightKg).toBe(91.5);
   });
 });

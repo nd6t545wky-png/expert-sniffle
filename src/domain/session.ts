@@ -9,7 +9,14 @@
  */
 
 import { IsoDate, isIsoDate } from "./state";
-import { PlanLevel, ReadinessResult, RiskLevel, WORKLOAD_FACTOR } from "./readiness";
+import {
+  MetricSource,
+  PlanLevel,
+  ReadinessInputs,
+  ReadinessResult,
+  RiskLevel,
+  WORKLOAD_FACTOR,
+} from "./readiness";
 
 /** Monday-first, matching the prototype's DAY_NAMES ordering. */
 export const DAY_NAMES = Object.freeze([
@@ -54,6 +61,19 @@ export interface ReadinessSubmission {
   submittedAt: string;
   /** Present when the athlete manually raised the plan level. */
   manualOverride?: ManualOverride;
+
+  /**
+   * The answers this score came from, kept so later check-ins can build
+   * rolling baselines from them. Optional because records written before
+   * check-ins stored their inputs are still valid submissions — they simply
+   * do not contribute to a median.
+   */
+  inputs?: ReadinessInputs;
+  /** Which device supplied each imported metric, for same-source baselines. */
+  hrvSource?: MetricSource;
+  restingHeartRateSource?: MetricSource;
+  sleepSource?: MetricSource;
+  bodyweightKg?: number;
 }
 
 export interface ManualOverride {

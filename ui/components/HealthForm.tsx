@@ -1,7 +1,18 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { IsoDate } from "../../src/domain/state";
 import { ReadinessInputs, computeReadiness } from "../../src/domain/readiness";
 import { PlanState, submitReadiness } from "../../src/domain/session";
+import { PitchingOsApi } from "../../src/domain/api";
+import {
+  HealthPrefillRecord,
+  importedBodyweight,
+  importedFields,
+  metricSources,
+  readPrefill,
+  readinessContextFor,
+  sourceNames,
+  wearableInputs,
+} from "../../src/domain/healthPrefill";
 import { Alert } from "./Page";
 import { RangeField } from "./RangeField";
 
@@ -16,6 +27,12 @@ import { RangeField } from "./RangeField";
  *
  * Scoring is delegated entirely to src/domain/readiness, so the thresholds
  * cannot drift between what is shown and what is applied.
+ *
+ * Connected health data is fetched for the date being filled in and layers
+ * *underneath* the athlete's answers: defaults, then whatever Oura or Apple
+ * Health reported, then anything typed. Ordering it that way means a payload
+ * arriving mid-form can never overwrite an answer already given, and a device
+ * value the athlete has deliberately changed stays changed.
  */
 
 const DEFAULTS: ReadinessInputs = {
@@ -55,19 +72,83 @@ export interface HealthFormProps {
   date: IsoDate;
   plan: PlanState;
   existing: Record<IsoDate, unknown>;
-  onSubmitted: (submission: ReturnType<typeof computeReadiness>, date: IsoDate) => void;
+  onSubmitted: (
+    submission: ReturnType<typeof computeReadiness>,
+    date: IsoDate,
+    detail: { inputs: ReadinessInputs; sources: ReturnType<typeof metricSources>; bodyweightKg: number | null }
+  ) => void;
+  api: PitchingOsApi;
+  /** `state.healthPrefill` — every date's fetched payload. */
+  prefill: Record<IsoDate, unknown>;
+  onPrefill: (date: IsoDate, record: HealthPrefillRecord) => void;
+  /** Without a sync key there is no account to read connected data from. */
+  hasSyncKey: boolean;
 }
 
-export function HealthForm({ date, plan, existing, onSubmitted }: HealthFormProps) {
-  const [values, setValues] = useState<ReadinessInputs>(DEFAULTS);
+export function HealthForm({
+  date,
+  plan,
+  existing,
+  onSubmitted,
+  api,
+  prefill,
+  onPrefill,
+  hasSyncKey,
+}: HealthFormProps) {
+  const [manual, setManual] = useState<Partial<ReadinessInputs>>({});
   const [notes, setNotes] = useState("");
   const [error, setError] = useState<string>("");
+  const [loading, setLoading] = useState(false);
+  /** The date a fetch is in flight for, so an effect re-run cannot double-fire. */
+  const fetching = useRef<string>("");
 
-  const preview = computeReadiness(values);
   const alreadySubmitted = existing[date] !== undefined;
+  const health = readPrefill(prefill, date);
+  const imported = importedFields(health);
+
+  const load = useRef<(force: boolean) => void>(() => {});
+  load.current = (force: boolean) => {
+    if (!hasSyncKey) return;
+    // A submitted day is history — refetching would only invite an edit to a
+    // check-in that has already set the day's plan.
+    if (alreadySubmitted && !force) return;
+    if (fetching.current === date) return;
+    fetching.current = date;
+    setLoading(true);
+    api
+      .dailyHealth(date, force)
+      .then((result) => onPrefill(date, { ...result, fetchedAt: new Date().toISOString() }))
+      .catch((cause: unknown) =>
+        onPrefill(date, {
+          error: cause instanceof Error ? cause.message : "Health import failed",
+          fetchedAt: new Date().toISOString(),
+        })
+      )
+      .finally(() => {
+        fetching.current = "";
+        setLoading(false);
+      });
+  };
+
+  // Answers are per-date. Carrying yesterday's typed soreness into today's
+  // blank form would be worse than a default.
+  useEffect(() => {
+    setManual({});
+    setNotes("");
+    setError("");
+  }, [date]);
+
+  useEffect(() => {
+    load.current(false);
+  }, [date, hasSyncKey]);
+
+  // Defaults, then the devices, then the athlete. Nothing typed is ever lost.
+  const values: ReadinessInputs = { ...DEFAULTS, ...wearableInputs(health), ...manual };
+  const preview = computeReadiness(values, readinessContextFor(existing, health, date));
+  const bodyweightKg = importedBodyweight(health);
 
   function set<K extends keyof ReadinessInputs>(key: K, value: ReadinessInputs[K]) {
-    setValues((current) => ({ ...current, [key]: value }));
+    setManual((current) => ({ ...current, [key]: value }));
   }
 
   function handleSubmit(event: React.FormEvent) {
@@ -79,7 +160,10 @@ export function HealthForm({ date, plan, existing, onSubmitted }: HealthFormProp
       setError(outcome.message);
       return;
     }
-    onSubmitted(preview, date);
+    // The inputs travel with the submission because the rolling HRV and
+    // resting-heart-rate baselines are built from prior check-ins. A record
+    // that keeps only its score can never contribute to tomorrow's median.
+    onSubmitted(preview, date, { inputs: values, sources: metricSources(health), bodyweightKg });
   }
 
   return (
@@ -94,6 +178,13 @@ export function HealthForm({ date, plan, existing, onSubmitted }: HealthFormProp
           training level.
         </p>
 
+        <PrefillBanner
+          health={health}
+          loading={loading}
+          hasSyncKey={hasSyncKey}
+          onRefresh={() => load.current(true)}
+        />
+
         <form id="pre-form" className="form-grid" data-date={date} onSubmit={handleSubmit}>
           <div className="field">
             <label htmlFor="sleepHours">Sleep duration</label>
@@ -105,11 +196,31 @@ export function HealthForm({ date, plan, existing, onSubmitted }: HealthFormProp
               max={14}
               step={0.1}
               value={values.sleepHours}
+              readOnly={imported.has("sleepHours")}
+              aria-readonly={imported.has("sleepHours") || undefined}
               onChange={(event) => set("sleepHours", Number(event.target.value))}
               required
             />
-            <small>Hours last night</small>
+            <small>Hours last night{imported.has("sleepHours") ? " · auto-imported" : ""}</small>
           </div>
+
+          {/* Bodyweight is not scored, but the ring reports it and the check-in
+              is where it is worth capturing. It appears only when a device
+              supplied it — an empty box here would just be another field. */}
+          {bodyweightKg !== null && (
+            <div className="field">
+              <label htmlFor="bodyweight">Bodyweight</label>
+              <input
+                id="bodyweight"
+                name="bodyweight"
+                type="number"
+                value={bodyweightKg}
+                readOnly
+                aria-readonly="true"
+              />
+              <small>kg · auto-imported</small>
+            </div>
+          )}
 
           <div className="field">
             <label htmlFor="sleepQuality">Sleep quality</label>
@@ -126,7 +237,11 @@ export function HealthForm({ date, plan, existing, onSubmitted }: HealthFormProp
                 </option>
               ))}
             </select>
-            <small>Required when no device score is available</small>
+            <small>
+              {imported.has("sleepQuality")
+                ? "Derived from the imported sleep score — change it if it reads wrong"
+                : "Required when no device score is available"}
+            </small>
           </div>
 
           {SCALE_FIELDS.map(([key, label, min, max, help]) => (
@@ -244,6 +359,86 @@ export function HealthForm({ date, plan, existing, onSubmitted }: HealthFormProp
       )}
     </>
   );
+}
+
+/**
+ * What the connected sources are doing right now — v60's `sourceLine`.
+ *
+ * The four states are all worth showing. Silence when an import has failed is
+ * how an athlete ends up trusting a manually-typed check-in that they believe
+ * came off the ring, so a failure says so and offers a retry.
+ *
+ * `.health-prefill` is a two-child flex row in the stylesheet: a text block and
+ * an action. Rendering it as anything else collapses the layout.
+ */
+function PrefillBanner({
+  health,
+  loading,
+  hasSyncKey,
+  onRefresh,
+}: {
+  health: HealthPrefillRecord;
+  loading: boolean;
+  hasSyncKey: boolean;
+  onRefresh: () => void;
+}) {
+  const names = sourceNames(health);
+
+  if (names.length > 0) {
+    return (
+      <div className="alert info health-prefill" role="status">
+        <div>
+          <strong>Health data prefilled</strong>
+          {names.join(" + ")} supplied the available sleep, HRV, resting-heart-rate or bodyweight
+          fields. Subjective readiness and soreness still require your input.
+        </div>
+        <button className="btn btn-outline" type="button" onClick={onRefresh}>
+          Refresh
+        </button>
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="alert info health-prefill" role="status">
+        <div>
+          <strong>Checking connected health sources…</strong>
+          Oura and Apple Health values will appear here when available.
+        </div>
+      </div>
+    );
+  }
+
+  if (health.error) {
+    return (
+      <div className="alert warn health-prefill" role="status">
+        <div>
+          <strong>Health import unavailable</strong>
+          {health.error}
+        </div>
+        <button className="btn btn-outline" type="button" onClick={onRefresh}>
+          Try again
+        </button>
+      </div>
+    );
+  }
+
+  if (hasSyncKey) {
+    return (
+      <div className="alert info health-prefill" role="status">
+        <div>
+          <strong>No connected health values yet</strong>
+          You can still complete the check-in manually.
+        </div>
+        <button className="btn btn-outline" type="button" onClick={onRefresh}>
+          Check again
+        </button>
+      </div>
+    );
+  }
+
+  return null;
 }
 
 const RISK_TONE: Record<string, string> = {
