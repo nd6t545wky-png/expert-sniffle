@@ -88,9 +88,14 @@ function FuelCard({ fuel, onAdopt }: { fuel: FuelTargets; onAdopt?: () => void }
         </div>
       )}
       <p className="fineprint">
-        Set from today&rsquo;s session and your bodyweight, using general sports-nutrition ranges
-        (carbohydrate 3&ndash;6 g/kg by demand, protein 1.8 g/kg, fat no lower than 0.8 g/kg). Guidance
-        for a healthy training day, not clinical advice.
+        {fuel.energyFromMeasuredBmr
+          ? "Energy is your measured basal rate from the DEXA scan, times an activity factor for the day. "
+          : "Energy is built up from the macros, since no measured basal rate is on file. "}
+        {fuel.proteinFromLeanMass
+          ? "Protein is 2.4 g per kg of your measured lean mass — not total mass, so the target holds as fat comes off. "
+          : "Protein is 1.8 g per kg of bodyweight, pending a body-composition scan. "}
+        Carbohydrate is 3&ndash;6 g/kg of bodyweight by the day&rsquo;s demand; fat takes what is left,
+        never below 0.8 g/kg. Guidance for a healthy training day, not clinical advice.
       </p>
     </article>
   );

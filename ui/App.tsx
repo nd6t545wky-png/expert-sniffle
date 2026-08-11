@@ -12,7 +12,7 @@ import { MetricSource, ReadinessInputs, computeReadiness } from "../src/domain/r
 import { HealthPrefillRecord, mergeHistory, readPrefill } from "../src/domain/healthPrefill";
 import { DEFAULT_STAT_IDS, MAX_STATS, buildRecap } from "../src/domain/sessionRecap";
 import { LoggedSet, loggedTonnage, readDayLog } from "../src/domain/setLog";
-import { fuelTargets } from "../src/domain/fuelling";
+import { fuelTargetsFromBaseline } from "../src/domain/fuelling";
 import { Pitch, readPitches, topVelocity } from "../src/domain/pitchLog";
 import { ArmExam, readExams } from "../src/domain/armCare";
 import { PitchingOsApi } from "../src/domain/api";
@@ -316,7 +316,9 @@ export function App() {
       .map((day) => Number(pre[day]?.bodyweightKg))
       .find((value) => Number.isFinite(value) && value > 0);
     const profileWeight = Number((state?.profile as { weight?: unknown } | undefined)?.weight);
-    return fuelTargets({
+    // The scan supplies lean mass and basal rate; bodyweight prefers a fresher
+    // reading, because it is the one figure expected to move week to week.
+    return fuelTargetsFromBaseline({
       bodyweightKg: weighed ?? (Number.isFinite(profileWeight) ? profileWeight : null),
       stress: session?.stress,
       duration: session?.duration,

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { fuelTargets, sessionDemand } from "./fuelling";
+import { fuelTargets, fuelTargetsFromBaseline, sessionDemand } from "./fuelling";
 
 describe("sessionDemand", () => {
   it("reads the session's own stress label", () => {
@@ -90,5 +90,74 @@ describe("fuelTargets", () => {
 
   it("carries the reason through to the targets", () => {
     expect(fuelTargets({ bodyweightKg: weight, planLevel: "hold" })!.reason).toBe("Health hold");
+  });
+});
+
+describe("fuelTargets — built on the athlete's own measurements", () => {
+  // The DEXA figures: 89.4 kg total, 65.6 kg lean, BMR 2028.
+  const scan = { bodyweightKg: 89.4, leanMassKg: 65.6, basalKcal: 2028 };
+
+  it("scales protein to lean mass, not total mass", () => {
+    const measured = fuelTargets({ ...scan, stress: "Moderate" })!;
+    // 65.6 x 2.4 = 157.4 -> 155 to the nearest 5.
+    expect(measured.protein).toBe(155);
+    expect(measured.proteinFromLeanMass).toBe(true);
+  });
+
+  it("holds the protein target as fat comes off", () => {
+    // The flaw in scaling to total mass: losing 5 kg of fat would cut the
+    // protein target by 9 g at exactly the moment it should hold.
+    const before = fuelTargets({ ...scan, stress: "Moderate" })!;
+    const after = fuelTargets({ ...scan, bodyweightKg: 84.4, stress: "Moderate" })!;
+    expect(after.protein).toBe(before.protein);
+  });
+
+  it("falls back to total mass when no scan is available", () => {
+    const estimated = fuelTargets({ bodyweightKg: 89.4, stress: "Moderate" })!;
+    expect(estimated.proteinFromLeanMass).toBe(false);
+    expect(estimated.protein).toBe(160);
+  });
+
+  it("builds energy from the measured basal rate", () => {
+    const measured = fuelTargets({ ...scan, stress: "Moderate" })!;
+    expect(measured.energyFromMeasuredBmr).toBe(true);
+    // 2028 x 1.7 = 3448, before the macro split rounds it.
+    expect(measured.calories).toBeGreaterThan(3200);
+    expect(measured.calories).toBeLessThan(3700);
+  });
+
+  it("moves energy with the day, not just carbohydrate", () => {
+    const hard = fuelTargets({ ...scan, stress: "High" })!;
+    const rest = fuelTargets({ ...scan, hasSession: false })!;
+    expect(hard.calories).toBeGreaterThan(rest.calories);
+    expect(hard.carbs).toBeGreaterThan(rest.carbs);
+  });
+
+  it("never thins fat below the floor to make the sum work", () => {
+    // A low basal rate against a hard day's carbohydrate leaves no room for
+    // fat. The floor wins and energy rises, rather than prescribing a split
+    // that compromises hormonal function.
+    const squeezed = fuelTargets({ ...scan, basalKcal: 1200, stress: "High" })!;
+    expect(squeezed.fat / 89.4).toBeGreaterThanOrEqual(0.8);
+    const fromMacros = squeezed.protein * 4 + squeezed.carbs * 4 + squeezed.fat * 9;
+    expect(Math.abs(squeezed.calories - fromMacros)).toBeLessThanOrEqual(25);
+  });
+
+  it("still adds up on a normal day", () => {
+    const day = fuelTargets({ ...scan, stress: "Moderate" })!;
+    const fromMacros = day.protein * 4 + day.carbs * 4 + day.fat * 9;
+    expect(Math.abs(day.calories - fromMacros)).toBeLessThanOrEqual(25);
+  });
+
+  it("uses the scan by default, but a fresher bodyweight when there is one", () => {
+    const fromScan = fuelTargetsFromBaseline({ stress: "Moderate" })!;
+    expect(fromScan.proteinFromLeanMass).toBe(true);
+    expect(fromScan.energyFromMeasuredBmr).toBe(true);
+
+    // Bodyweight is the figure expected to move; lean mass and basal rate
+    // only change with a new scan.
+    const weighedToday = fuelTargetsFromBaseline({ bodyweightKg: 86, stress: "Moderate" })!;
+    expect(weighedToday.carbs).toBeLessThan(fromScan.carbs);
+    expect(weighedToday.protein).toBe(fromScan.protein);
   });
 });

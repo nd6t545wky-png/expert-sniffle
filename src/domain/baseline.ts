@@ -63,6 +63,12 @@ export const BASELINE_ANCHORS = {
   depthJumpBoxCm: [15, 20] as const,
   /** Measured basal metabolic rate, Harris-Benedict via DEXA lean mass. */
   basalMetabolicRateKcal: 2028,
+  /** DEXA, 2026-04-27. Lean mass is what protein targets should scale to. */
+  bodyMassKg: 89.4,
+  leanMassKg: 65.6,
+  fatMassKg: 20.2,
+  bodyFatPercent: 22.6,
+  heightCm: 177,
 } as const;
 
 export const BASELINE_SECTIONS: BaselineSection[] = [
