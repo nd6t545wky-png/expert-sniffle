@@ -5,6 +5,7 @@ import { formatIsoDate } from "../state/formatDate";
 import { Alert, Card, PageHead } from "./Page";
 import { DayTab, DayTabs } from "./DayTabs";
 import { TaskStages } from "./TaskStages";
+import { DaySetLog, LoggedSet } from "../../src/domain/setLog";
 import { SkipTaskModal, TaskDetailsModal } from "./TaskModals";
 import {
   PlanState,
@@ -30,6 +31,9 @@ import {
 export type PlanTask = SessionTask;
 
 export interface DailyPlanProps {
+  /** What was actually lifted today, and how to record it. */
+  setLog?: DaySetLog;
+  onLogSets?: (task: SessionTask, sets: LoggedSet[]) => void;
   date: IsoDate;
   plan: PlanState;
   submission?: ReadinessSubmission;
@@ -72,6 +76,8 @@ export function DailyPlan({
   date,
   plan,
   submission,
+  setLog,
+  onLogSets,
   tasks,
   sessionTitle,
   sessionDescription,
@@ -242,6 +248,8 @@ export function DailyPlan({
               completed={done}
               skipped={skips}
               onToggle={handleToggle}
+              setLog={setLog}
+              onLogSets={onLogSets}
               onDetails={setDetailsTask}
               onSkip={setSkipCandidate}
               onUndoSkip={(task) => onSkipTask(date, undoSkipTask(skipped, date, task.id))}

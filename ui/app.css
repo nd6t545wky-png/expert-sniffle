@@ -626,3 +626,107 @@ body {
 /* The card is a phone-shaped image; on a wide screen it should not stretch
    to the width of a desktop card. */
 .recap-card { max-width: 360px; }
+
+/* --- Set logging -----------------------------------------------------------
+ * Reps and load, inline in the task row. New: the prototype recorded that a
+ * lift was done, never what was done.
+ * ------------------------------------------------------------------------- */
+
+.setlog-summary {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.setlog {
+  margin-top: 8px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface-secondary);
+}
+
+.setlog-rows { display: flex; flex-direction: column; gap: 6px; }
+
+.setlog-row {
+  display: grid;
+  grid-template-columns: 18px 1fr 1fr 24px;
+  align-items: end;
+  gap: 8px;
+}
+
+.setlog-index {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  padding-bottom: 8px;
+  font-variant-numeric: tabular-nums;
+}
+
+.setlog-row label { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.setlog-row label span { color: var(--muted); font-size: 9px; text-transform: uppercase; letter-spacing: .06em; }
+
+/* Inputs are sized for a thumb at a squat rack, not a desk. */
+.setlog-row input {
+  width: 100%;
+  min-height: 40px;
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+}
+
+.setlog-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+.setlog-actions .btn { min-height: 36px; padding: 0 14px; font-size: 12px; }
+
+/* --- Fuelling ---------------------------------------------------------------
+ * Targets set by the day's session. New screen furniture; the prototype's
+ * nutrition page had fixed targets only.
+ * ------------------------------------------------------------------------- */
+
+.fuel-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(88px, 1fr));
+  gap: 10px;
+  margin: 4px 0 14px;
+  padding: 0;
+  list-style: none;
+}
+.fuel-grid li {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface-secondary);
+}
+.fuel-grid span {
+  color: var(--muted);
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+.fuel-grid strong {
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -.02em;
+}
+.fuel-grid small { margin-left: 3px; color: var(--muted); font-size: 11px; font-weight: 600; }

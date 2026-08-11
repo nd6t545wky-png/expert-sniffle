@@ -1,5 +1,7 @@
+import { useState } from "react";
 import { SessionTask } from "../../src/domain/programmeSessions";
 import { SkippedTask, UNSKIPPABLE_STAGE } from "../../src/domain/session";
+import { DaySetLog, LoggedSet, bestOneRepMax, isLoggable, prescribedSets } from "../../src/domain/setLog";
 
 /**
  * The day's work, grouped into collapsible stages — v60's `renderTasks`.
@@ -22,6 +24,125 @@ export interface TaskStagesProps {
   onDetails: (task: SessionTask) => void;
   onSkip: (task: SessionTask) => void;
   onUndoSkip: (task: SessionTask) => void;
+  /** What was actually lifted today, keyed by task id. */
+  setLog?: DaySetLog;
+  onLogSets?: (task: SessionTask, sets: LoggedSet[]) => void;
+}
+
+/**
+ * Reps and load, set by set.
+ *
+ * Opens pre-filled from the prescription, because the difference between
+ * logging four sets in ten seconds and not bothering is exactly this. Nothing
+ * is stored until Save — a pre-filled row is a suggestion, not a record.
+ */
+function SetLogger({
+  task,
+  logged,
+  onSave,
+}: {
+  task: SessionTask;
+  logged: LoggedSet[] | undefined;
+  onSave: (sets: LoggedSet[]) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [rows, setRows] = useState<LoggedSet[]>(() => logged ?? prescribedSets(task));
+
+  const best = logged ? bestOneRepMax(logged) : null;
+
+  if (!open) {
+    return (
+      <div className="setlog-summary">
+        <button
+          className="text-button"
+          type="button"
+          onClick={() => {
+            setRows(logged ?? prescribedSets(task));
+            setOpen(true);
+          }}
+        >
+          {logged ? "Edit sets" : "Log sets"}
+        </button>
+        {logged && (
+          <span>
+            {logged.map((set) => `${set.reps}×${set.kg || "bw"}`).join(" · ")}
+            {best ? ` · e1RM ${best} kg` : ""}
+          </span>
+        )}
+      </div>
+    );
+  }
+
+  const update = (index: number, field: keyof LoggedSet, value: number) =>
+    setRows((current) => current.map((row, at) => (at === index ? { ...row, [field]: value } : row)));
+
+  return (
+    <form
+      className="setlog"
+      onSubmit={(event) => {
+        event.preventDefault();
+        // A zero-rep row is a set that did not happen, not a set of zero.
+        onSave(rows.filter((row) => row.reps > 0));
+        setOpen(false);
+      }}
+    >
+      <div className="setlog-rows">
+        {rows.map((row, index) => (
+          <div className="setlog-row" key={index}>
+            <span className="setlog-index">{index + 1}</span>
+            <label>
+              <span>Reps</span>
+              <input
+                type="number"
+                min={0}
+                max={100}
+                inputMode="numeric"
+                value={row.reps}
+                onChange={(event) => update(index, "reps", Number(event.target.value))}
+              />
+            </label>
+            <label>
+              <span>kg</span>
+              <input
+                type="number"
+                min={0}
+                max={500}
+                step={0.5}
+                inputMode="decimal"
+                value={row.kg}
+                onChange={(event) => update(index, "kg", Number(event.target.value))}
+              />
+            </label>
+            <button
+              className="text-button danger-text"
+              type="button"
+              aria-label={`Remove set ${index + 1}`}
+              onClick={() => setRows((current) => current.filter((_, at) => at !== index))}
+            >
+              ×
+            </button>
+          </div>
+        ))}
+      </div>
+      <div className="setlog-actions">
+        <button
+          className="text-button"
+          type="button"
+          onClick={() =>
+            setRows((current) => [...current, current[current.length - 1] ?? { reps: 5, kg: 0 }])
+          }
+        >
+          + Add set
+        </button>
+        <button className="btn btn-outline" type="button" onClick={() => setOpen(false)}>
+          Cancel
+        </button>
+        <button className="btn btn-dark" type="submit">
+          Save sets
+        </button>
+      </div>
+    </form>
+  );
 }
 
 export function TaskStages({
@@ -33,6 +154,8 @@ export function TaskStages({
   onDetails,
   onSkip,
   onUndoSkip,
+  setLog,
+  onLogSets,
 }: TaskStagesProps) {
   const done = new Set(completed);
   const isResolved = (task: SessionTask) => done.has(task.id) || Boolean(skipped[task.id]);
@@ -120,6 +243,13 @@ export function TaskStages({
                       </div>
                       <div className="task-prescription">{task.prescription}</div>
                       <p className="task-cue">{task.cue}</p>
+                      {onLogSets && isLoggable(task) && (
+                        <SetLogger
+                          task={task}
+                          logged={setLog?.[task.id]}
+                          onSave={(sets) => onLogSets(task, sets)}
+                        />
+                      )}
                       {skip && (
                         <p className="task-skip-note">
                           <strong>{skip.reason}</strong>

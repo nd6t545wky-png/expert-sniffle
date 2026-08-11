@@ -10,6 +10,7 @@ import { Tracking } from "./Tracking";
 import { Dashboard } from "./Dashboard";
 import { SessionRecap } from "./SessionRecap";
 import { SessionRecap as Recap } from "../../src/domain/sessionRecap";
+import { SessionReport } from "../../src/domain/session";
 
 const KEY = "a".repeat(64);
 
@@ -698,7 +699,7 @@ describe("Check-out velocity capture", () => {
       date: "2026-08-11" as const,
       plan: { status: "unlocked", planLevel: "full", workloadFactor: 1 } as const,
       reports: {},
-      onReport: (report: Record<string, unknown>) => saved.push(report),
+      onReport: (report: SessionReport) => saved.push(report as unknown as Record<string, unknown>),
     };
 
     const { unmount } = render(<Tracking {...props} />);

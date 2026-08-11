@@ -11,6 +11,8 @@ import {
 import { MetricSource, ReadinessInputs, computeReadiness } from "../src/domain/readiness";
 import { HealthPrefillRecord, mergeHistory, readPrefill } from "../src/domain/healthPrefill";
 import { DEFAULT_STAT_IDS, MAX_STATS, buildRecap } from "../src/domain/sessionRecap";
+import { LoggedSet, loggedTonnage, readDayLog } from "../src/domain/setLog";
+import { fuelTargets } from "../src/domain/fuelling";
 import { PitchingOsApi } from "../src/domain/api";
 import { isValidSyncKey } from "../src/domain/sync";
 import { syncNow } from "../src/domain/cloudSync";
@@ -293,6 +295,33 @@ export function App() {
     return total > 0 ? Math.round(total) : null;
   }, [state, date]);
 
+  /** What was actually lifted today, and the tonnage that follows from it. */
+  const setLog = useMemo(
+    () => readDayLog(state?.setLogs as Record<string, unknown> | undefined, date),
+    [state, date]
+  );
+
+  /**
+   * What today's session says to eat. Bodyweight comes from the most recent
+   * check-in that carried one, falling back to the athlete profile.
+   */
+  const fuel = useMemo(() => {
+    const pre = (state?.pre ?? {}) as Record<string, { bodyweightKg?: unknown } | undefined>;
+    const weighed = Object.keys(pre)
+      .sort()
+      .reverse()
+      .map((day) => Number(pre[day]?.bodyweightKg))
+      .find((value) => Number.isFinite(value) && value > 0);
+    const profileWeight = Number((state?.profile as { weight?: unknown } | undefined)?.weight);
+    return fuelTargets({
+      bodyweightKg: weighed ?? (Number.isFinite(profileWeight) ? profileWeight : null),
+      stress: session?.stress,
+      duration: session?.duration,
+      planLevel: plan.status === "unlocked" ? plan.planLevel : plan.status === "held" ? "hold" : null,
+      hasSession: Boolean(session),
+    });
+  }, [state, session, plan]);
+
   const recapStats = useMemo(
     () => (Array.isArray(state?.recapStats) ? (state.recapStats as string[]) : [...DEFAULT_STAT_IDS]),
     [state]
@@ -313,10 +342,11 @@ export function App() {
         submission: submission ?? null,
         throwing: (state?.bullpens as Record<string, ThrowingEntry | undefined>)?.[date] ?? null,
         calories: dayCalories,
+        tonnageKg: loggedTonnage(setLog),
         pbs: state?.pbs,
         chosen: recapStats,
       }),
-    [date, session, tasks, completed, skippedTasks, reports, submission, state, dayCalories, recapStats]
+    [date, session, tasks, completed, skippedTasks, reports, submission, state, dayCalories, recapStats, setLog]
   );
   const recapCaption = String(
     (state?.recapCaptions as Record<string, unknown> | undefined)?.[date] ?? ""
@@ -577,6 +607,18 @@ export function App() {
           date={date}
           plan={plan}
           submission={submission}
+          setLog={setLog}
+          onLogSets={(task, sets) =>
+            update((draft) => {
+              const logs = (draft.setLogs ?? {}) as Record<string, Record<string, LoggedSet[]>>;
+              const day = { ...(logs[date] ?? {}) };
+              // Saving an empty list clears the entry rather than storing an
+              // empty array that would read as "logged, but nothing".
+              if (sets.length) day[task.id] = sets;
+              else delete day[task.id];
+              return { ...draft, setLogs: { ...logs, [date]: day } };
+            })
+          }
           onOpenReadiness={() => setPage("readiness")}
           onOpenCheckout={() => setPage("tracking")}
           dayTabs={dayTabs}
@@ -694,6 +736,19 @@ export function App() {
               meals: {
                 ...(current.meals ?? {}),
                 [date]: (current.meals?.[date] ?? []).filter((meal) => meal.id !== id),
+              },
+            }))
+          }
+          fuel={fuel}
+          onAdoptFuel={(targets) =>
+            updateNutrition((current) => ({
+              ...current,
+              targets: {
+                calories: targets.calories,
+                protein: targets.protein,
+                carbs: targets.carbs,
+                fat: targets.fat,
+                fluid: targets.fluid,
               },
             }))
           }

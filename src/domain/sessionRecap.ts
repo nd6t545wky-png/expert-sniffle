@@ -88,6 +88,8 @@ export interface RecapInput {
   throwing?: { throws?: number; intent?: string } | null;
   /** Calories eaten, from the nutrition log. */
   calories?: number | null;
+  /** Kilograms actually lifted, from the set log. */
+  tonnageKg?: number | null;
   /** `state.pbs`, for deciding whether today set one. */
   pbs?: unknown;
   /** Stat ids to show, in order. Falls back to the defaults. */
@@ -124,34 +126,6 @@ function text(value: unknown, fallback = ""): string {
  * the session actually was.
  */
 const HEADLINE_STAGES = [/throw/i, /plyo/i, /velocity|power|force/i, /strength|gym|lift/i];
-
-/** Stages whose prescriptions count as barbell/dumbbell tonnage. */
-const LIFTING_STAGE = /strength|gym|lift|force|power/i;
-
-const SETS_REPS_LOAD = /(\d+)\s*×\s*(\d+)[^@]*@\s*(\d+(?:\.\d+)?)\s*(?:[–-]\s*\d+(?:\.\d+)?\s*)?kg/i;
-
-/**
- * Total weight moved in the completed lifting, in kilograms.
- *
- * This is the card's answer to Strava's elevation gain: one honest number
- * summing the day's mechanical work. Only *completed* tasks count, and a
- * prescription with no load in kilograms (an RPE-only or bodyweight entry)
- * contributes nothing rather than a guess.
- *
- * Where a load is a range — "4 × 6 @ 60–70 kg" — the bottom is used. This
- * number goes on a card that leaves the app, so it errs downward.
- */
-export function tonnageLifted(tasks: SessionTask[], done: Set<string>): number {
-  let total = 0;
-  for (const task of tasks) {
-    if (!done.has(task.id)) continue;
-    if (!LIFTING_STAGE.test(String(task.stageTitle ?? ""))) continue;
-    const match = String(task.prescription ?? "").match(SETS_REPS_LOAD);
-    if (!match) continue;
-    total += Number(match[1]) * Number(match[2]) * Number(match[3]);
-  }
-  return Math.round(total);
-}
 
 /** Minutes from a duration string like "60 min" or "70–80 minutes". */
 export function durationMinutes(duration: unknown): number | null {
@@ -209,8 +183,11 @@ export function buildRecap(input: RecapInput): SessionRecap {
     add({ id: "throws", label: "Throws", value: grouped(throws), detail: text(input.throwing?.intent) || undefined });
   }
 
-  const tonnage = tonnageLifted(tasks, done);
-  if (tonnage > 0) add({ id: "tonnage", label: "Volume lifted", value: `${grouped(tonnage)} kg` });
+  // Logged sets only. This used to fall back to the prescription, which meant
+  // a day where the load was dropped still reported the load that was planned
+  // — a card claiming weight that was never lifted.
+  const tonnage = count(input.tonnageKg);
+  if (tonnage !== null) add({ id: "tonnage", label: "Volume lifted", value: `${grouped(tonnage)} kg` });
 
   const minutes = durationMinutes(input.session?.duration);
   if (minutes !== null) add({ id: "duration", label: "Session time", value: `${minutes} min` });

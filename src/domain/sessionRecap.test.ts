@@ -175,29 +175,16 @@ describe("buildRecap — the Strava-style data points", () => {
     task("l3", "Strength", "Nordic curl", "3 × 6 @ RPE 7"),
   ];
 
-  it("totals the weight actually moved", () => {
-    // 3×5×130 = 1950, plus 4×6×80 = 1920. The RPE-only lift has no load.
-    const recap = buildRecap({
-      ...base,
-      tasks: lifting,
-      completed: ["l1", "l2", "l3"],
-      chosen: ["tonnage"],
-    });
+  it("reports the tonnage that was actually logged", () => {
+    const recap = buildRecap({ ...base, tonnageKg: 3870, chosen: ["tonnage"] });
     expect(recap.stats[0].value).toBe("3,870 kg");
   });
 
-  it("uses the bottom of a load range rather than overclaiming", () => {
-    const recap = buildRecap({
-      ...base,
-      tasks: [task("l2", "Strength", "Bench press", "4 × 6 @ 80–90 kg")],
-      completed: ["l2"],
-      chosen: ["tonnage"],
-    });
-    expect(recap.stats[0].value).toBe("1,920 kg");
-  });
-
-  it("counts no tonnage for a lift that was not completed", () => {
-    const recap = buildRecap({ ...base, tasks: lifting, completed: [] });
+  it("claims no tonnage when no sets were logged", () => {
+    // This is the fix for a card that used to report the prescribed load on a
+    // day the athlete dropped the weight. Ticking a lift is not evidence of
+    // how much was on the bar.
+    const recap = buildRecap({ ...base, tasks: lifting, completed: ["l1", "l2", "l3"] });
     expect(recap.available.some((stat) => stat.id === "tonnage")).toBe(false);
   });
 

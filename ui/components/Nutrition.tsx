@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { IsoDate } from "../../src/domain/state";
 import { FoodProduct, NutritionEstimate, PitchingOsApi } from "../../src/domain/api";
+import { DEMAND_NOTE, FuelTargets } from "../../src/domain/fuelling";
 import { Alert, Card, EmptyState, Field, Metric, PageHead, TaskRow } from "./Page";
 import { WaterTracker } from "./WaterTracker";
 
@@ -41,6 +42,58 @@ export interface NutritionProps {
   onAddMeal: (meal: Meal) => void;
   onRemoveMeal: (id: string) => void;
   onHydration: (litres: number | "reset") => void;
+  /** Targets derived from today's session, when a bodyweight is known. */
+  fuel?: FuelTargets | null;
+  onAdoptFuel?: (targets: FuelTargets) => void;
+}
+
+/**
+ * What today's session says to eat.
+ *
+ * No general nutrition app can do this — none of them know what training is
+ * scheduled. Carbohydrate moves with the day's demand; protein does not,
+ * because recovery is when it is used.
+ */
+function FuelCard({ fuel, onAdopt }: { fuel: FuelTargets; onAdopt?: () => void }) {
+  return (
+    <article className="card card-pad fuel">
+      <div className="card-head">
+        <div>
+          <h3>Today&rsquo;s fuelling</h3>
+          <p>{fuel.reason} · {DEMAND_NOTE[fuel.demand]}</p>
+        </div>
+      </div>
+      <ul className="fuel-grid">
+        {[
+          ["Calories", `${fuel.calories}`, "kcal"],
+          ["Carbohydrate", `${fuel.carbs}`, "g"],
+          ["Protein", `${fuel.protein}`, "g"],
+          ["Fat", `${fuel.fat}`, "g"],
+          ["Fluid", `${fuel.fluid}`, "L"],
+        ].map(([label, value, unit]) => (
+          <li key={label}>
+            <span>{label}</span>
+            <strong>
+              {value}
+              <small>{unit}</small>
+            </strong>
+          </li>
+        ))}
+      </ul>
+      {onAdopt && (
+        <div className="form-actions">
+          <button className="btn btn-outline" type="button" onClick={onAdopt}>
+            Use these as today&rsquo;s targets
+          </button>
+        </div>
+      )}
+      <p className="fineprint">
+        Set from today&rsquo;s session and your bodyweight, using general sports-nutrition ranges
+        (carbohydrate 3&ndash;6 g/kg by demand, protein 1.8 g/kg, fat no lower than 0.8 g/kg). Guidance
+        for a healthy training day, not clinical advice.
+      </p>
+    </article>
+  );
 }
 
 
@@ -58,6 +111,8 @@ export function Nutrition({
   onAddMeal,
   onRemoveMeal,
   onHydration,
+  fuel,
+  onAdoptFuel,
 }: NutritionProps) {
   const [description, setDescription] = useState("");
   const [barcode, setBarcode] = useState("");
@@ -130,6 +185,8 @@ export function Nutrition({
         intro="Photo or plain language first. Review once, then it is added to your day."
         className="nutrition-page-head"
       />
+
+      {fuel && <FuelCard fuel={fuel} onAdopt={onAdoptFuel ? () => onAdoptFuel(fuel) : undefined} />}
 
       <section className="grid metrics">
         <Metric
