@@ -10,7 +10,7 @@ import {
 } from "../src/domain/session";
 import { MetricSource, ReadinessInputs, computeReadiness } from "../src/domain/readiness";
 import { HealthPrefillRecord, mergeHistory, readPrefill } from "../src/domain/healthPrefill";
-import { buildRecap } from "../src/domain/sessionRecap";
+import { DEFAULT_STAT_IDS, MAX_STATS, buildRecap } from "../src/domain/sessionRecap";
 import { PitchingOsApi } from "../src/domain/api";
 import { isValidSyncKey } from "../src/domain/sync";
 import { syncNow } from "../src/domain/cloudSync";
@@ -280,6 +280,24 @@ export function App() {
   >;
   const weekLoad = totalThrowLoad(throwingEntries.slice(-7));
 
+  // Calories eaten on the day, for the recap card. Read here rather than from
+  // the nutrition view below, which is derived later in the render.
+  const dayCalories = useMemo(() => {
+    const nutritionState = (state?.nutrition ?? {}) as { meals?: Record<string, unknown> };
+    const dayMeals = nutritionState.meals?.[date];
+    if (!Array.isArray(dayMeals)) return null;
+    const total = dayMeals
+      .filter((meal): meal is { calories?: unknown; deletedAt?: unknown } => Boolean(meal))
+      .filter((meal) => !meal.deletedAt)
+      .reduce((sum, meal) => sum + (Number(meal.calories) || 0), 0);
+    return total > 0 ? Math.round(total) : null;
+  }, [state, date]);
+
+  const recapStats = useMemo(
+    () => (Array.isArray(state?.recapStats) ? (state.recapStats as string[]) : [...DEFAULT_STAT_IDS]),
+    [state]
+  );
+
   // What the day actually was, for the shareable recap card. Built from the
   // logged record only — a card is a public claim about training, so anything
   // not logged is omitted rather than defaulted to zero.
@@ -294,11 +312,29 @@ export function App() {
         report: reports[date] ?? null,
         submission: submission ?? null,
         throwing: (state?.bullpens as Record<string, ThrowingEntry | undefined>)?.[date] ?? null,
+        calories: dayCalories,
+        pbs: state?.pbs,
+        chosen: recapStats,
       }),
-    [date, session, tasks, completed, skippedTasks, reports, submission, state]
+    [date, session, tasks, completed, skippedTasks, reports, submission, state, dayCalories, recapStats]
   );
   const recapCaption = String(
     (state?.recapCaptions as Record<string, unknown> | undefined)?.[date] ?? ""
+  );
+
+  /** Toggle a stat on the card, keeping the chosen order and the six-stat cap. */
+  const toggleRecapStat = useCallback(
+    (id: string) =>
+      update((draft) => {
+        const current = Array.isArray(draft.recapStats)
+          ? (draft.recapStats as string[])
+          : [...DEFAULT_STAT_IDS];
+        const next = current.includes(id)
+          ? current.filter((item) => item !== id)
+          : [...current, id].slice(0, MAX_STATS);
+        return { ...draft, recapStats: next };
+      }),
+    [update]
   );
 
   // The week's seven days. Each tab's date comes from the same
@@ -624,6 +660,8 @@ export function App() {
           api={api}
           hasSyncKey={isValidSyncKey(syncKey)}
           recapCaption={recapCaption}
+          recapStats={recapStats}
+          onToggleRecapStat={toggleRecapStat}
           onRecapCaption={(caption) =>
             update((draft) => ({
               ...draft,

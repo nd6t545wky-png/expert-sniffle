@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildRecap } from "./sessionRecap";
+import { buildRecap, MAX_STATS } from "./sessionRecap";
 import { SessionTask } from "./programmeSessions";
 
 function task(id: string, stageTitle: string, name: string, prescription = "3 × 5"): SessionTask {
@@ -23,6 +23,12 @@ const TASKS = [
 
 const base = { date: "2026-08-11" as const, session: { title: "Tuesday · Bullpen", focus: "Command" } };
 
+/** Every stat id, to prove the six-stat cap holds. */
+const recapAllIds = [
+  "throws", "tonnage", "duration", "topVelocity", "load", "calories",
+  "rpe", "armFeel", "gamePitches", "readiness", "session", "skipped",
+];
+
 describe("buildRecap — what a shareable card may claim", () => {
   it("names the session and the day's approved effort", () => {
     const recap = buildRecap({ ...base, submission: { planLevel: "reduced" } });
@@ -34,7 +40,7 @@ describe("buildRecap — what a shareable card may claim", () => {
 
   it("counts completed work against the whole task list", () => {
     const recap = buildRecap({ ...base, tasks: TASKS, completed: ["t1", "t2"] });
-    const session = recap.stats.find((stat) => stat.label === "Session")!;
+    const session = recap.available.find((stat) => stat.label === "Session")!;
     expect(session.value).toBe("2");
     expect(session.detail).toBe("of 4 done");
   });
@@ -43,25 +49,25 @@ describe("buildRecap — what a shareable card may claim", () => {
     // A card reporting 4 of 4 on a day where two were skipped is the kind of
     // flattery that makes a training diary useless a season later.
     const recap = buildRecap({ ...base, tasks: TASKS, completed: ["t1"], skipped: { t3: {}, t4: {} } });
-    expect(recap.stats.find((stat) => stat.label === "Skipped")!.value).toBe("2");
+    expect(recap.available.find((stat) => stat.label === "Skipped")!.value).toBe("2");
   });
 
   it("does not print a skipped row when nothing was skipped", () => {
     const recap = buildRecap({ ...base, tasks: TASKS, completed: ["t1"] });
-    expect(recap.stats.some((stat) => stat.label === "Skipped")).toBe(false);
+    expect(recap.available.some((stat) => stat.label === "Skipped")).toBe(false);
   });
 
   it("counts a task that was completed after being skipped as completed", () => {
     const recap = buildRecap({ ...base, tasks: TASKS, completed: ["t3"], skipped: { t3: {} } });
-    expect(recap.stats.find((stat) => stat.label === "Session")!.value).toBe("1");
-    expect(recap.stats.some((stat) => stat.label === "Skipped")).toBe(false);
+    expect(recap.available.find((stat) => stat.label === "Session")!.value).toBe("1");
+    expect(recap.available.some((stat) => stat.label === "Skipped")).toBe(false);
   });
 
   it("omits throws entirely when the throwing log was never opened", () => {
     // The critical rule: a card is a public claim. Printing "0 throws" for an
     // unlogged day is a false statement about training, not a summary.
     const recap = buildRecap({ ...base, tasks: TASKS, completed: ["t2"] });
-    expect(recap.stats.some((stat) => stat.label === "Throws")).toBe(false);
+    expect(recap.available.some((stat) => stat.label === "Throws")).toBe(false);
   });
 
   it("omits a zero rather than reporting it, for every logged number", () => {
@@ -72,7 +78,7 @@ describe("buildRecap — what a shareable card may claim", () => {
       submission: { score: 0 },
     });
     for (const label of ["Throws", "RPE", "Arm feel", "Game pitches", "Readiness"]) {
-      expect(recap.stats.some((stat) => stat.label === label)).toBe(false);
+      expect(recap.available.some((stat) => stat.label === label)).toBe(false);
     }
   });
 
@@ -83,10 +89,10 @@ describe("buildRecap — what a shareable card may claim", () => {
       report: { perceivedExertion: 7, armFeel: 8, gamePitches: 62 },
       submission: { score: 81 },
     });
-    const value = (label: string) => recap.stats.find((stat) => stat.label === label)?.value;
+    const value = (label: string) => recap.available.find((stat) => stat.label === label)?.value;
     expect(value("Throws")).toBe("42");
     expect(value("Game pitches")).toBe("62");
-    expect(value("RPE")).toBe("7");
+    expect(value("Session RPE")).toBe("7");
     expect(value("Arm feel")).toBe("8");
     expect(value("Readiness")).toBe("81");
   });
@@ -126,7 +132,7 @@ describe("buildRecap — what a shareable card may claim", () => {
   it("does not make a card out of a day the plan was opened and closed", () => {
     // "0 of 14 done" is not a session recap.
     const recap = buildRecap({ ...base, tasks: TASKS, completed: [] });
-    expect(recap.stats.some((stat) => stat.label === "Session")).toBe(false);
+    expect(recap.available.some((stat) => stat.label === "Session")).toBe(false);
     expect(recap.hasContent).toBe(false);
   });
 
@@ -159,5 +165,136 @@ describe("buildRecap — what a shareable card may claim", () => {
         throwing: null,
       })
     ).not.toThrow();
+  });
+});
+
+describe("buildRecap — the Strava-style data points", () => {
+  const lifting = [
+    task("l1", "Strength", "Back squat", "3 × 5 @ 130 kg"),
+    task("l2", "Strength", "Bench press", "4 × 6 @ 80–90 kg"),
+    task("l3", "Strength", "Nordic curl", "3 × 6 @ RPE 7"),
+  ];
+
+  it("totals the weight actually moved", () => {
+    // 3×5×130 = 1950, plus 4×6×80 = 1920. The RPE-only lift has no load.
+    const recap = buildRecap({
+      ...base,
+      tasks: lifting,
+      completed: ["l1", "l2", "l3"],
+      chosen: ["tonnage"],
+    });
+    expect(recap.stats[0].value).toBe("3,870 kg");
+  });
+
+  it("uses the bottom of a load range rather than overclaiming", () => {
+    const recap = buildRecap({
+      ...base,
+      tasks: [task("l2", "Strength", "Bench press", "4 × 6 @ 80–90 kg")],
+      completed: ["l2"],
+      chosen: ["tonnage"],
+    });
+    expect(recap.stats[0].value).toBe("1,920 kg");
+  });
+
+  it("counts no tonnage for a lift that was not completed", () => {
+    const recap = buildRecap({ ...base, tasks: lifting, completed: [] });
+    expect(recap.available.some((stat) => stat.id === "tonnage")).toBe(false);
+  });
+
+  it("computes training load only when both halves were logged", () => {
+    const withBoth = buildRecap({
+      ...base,
+      session: { ...base.session, duration: "60 min" },
+      report: { perceivedExertion: 7 },
+      chosen: ["load"],
+    });
+    expect(withBoth.stats[0].value).toBe("420");
+
+    // RPE with no duration is not a load.
+    const withoutDuration = buildRecap({ ...base, report: { perceivedExertion: 7 } });
+    expect(withoutDuration.available.some((stat) => stat.id === "load")).toBe(false);
+  });
+
+  it("reads a duration range at its midpoint", () => {
+    const recap = buildRecap({
+      ...base,
+      session: { ...base.session, duration: "70–80 minutes" },
+      chosen: ["duration"],
+    });
+    expect(recap.stats[0].value).toBe("75 min");
+  });
+
+  it("awards a PB only when the logged value beat the stored one", () => {
+    const beat = buildRecap({
+      ...base,
+      report: { bestVelocity: 92, velocityType: "pulldown" },
+      pbs: { velocity: { pulldown: { value: 89 } } },
+    });
+    expect(beat.pb).toEqual({ label: "Pulldown velocity", value: "92 mph", previous: "89 mph" });
+
+    const missed = buildRecap({
+      ...base,
+      report: { bestVelocity: 88, velocityType: "pulldown" },
+      pbs: { velocity: { pulldown: { value: 89 } } },
+    });
+    expect(missed.pb).toBeNull();
+  });
+
+  it("does not award a PB for equalling the stored best", () => {
+    const recap = buildRecap({
+      ...base,
+      report: { bestVelocity: 89, velocityType: "pulldown" },
+      pbs: { velocity: { pulldown: { value: 89 } } },
+    });
+    expect(recap.pb).toBeNull();
+  });
+
+  it("says what a first-ever reading beat", () => {
+    const recap = buildRecap({
+      ...base,
+      report: { bestVelocity: 84, velocityType: "gameFastball" },
+      pbs: {},
+    });
+    expect(recap.pb!.previous).toBe("first recorded");
+  });
+
+  it("shows the athlete's chosen stats, in their order", () => {
+    const recap = buildRecap({
+      ...base,
+      throwing: { throws: 42 },
+      report: { perceivedExertion: 7, armFeel: 8 },
+      chosen: ["armFeel", "throws"],
+    });
+    expect(recap.stats.map((stat) => stat.id)).toEqual(["armFeel", "throws"]);
+  });
+
+  it("drops a chosen stat the day cannot support rather than printing it blank", () => {
+    const recap = buildRecap({ ...base, throwing: { throws: 42 }, chosen: ["topVelocity", "throws"] });
+    expect(recap.stats.map((stat) => stat.id)).toEqual(["throws"]);
+  });
+
+  it("never puts more than six on the card", () => {
+    const recap = buildRecap({
+      ...base,
+      tasks: TASKS,
+      completed: TASKS.map((item) => item.id),
+      session: { ...base.session, duration: "60 min" },
+      throwing: { throws: 42 },
+      calories: 3100,
+      report: { perceivedExertion: 7, armFeel: 8, gamePitches: 60, bestVelocity: 90, velocityType: "pulldown" },
+      submission: { score: 81 },
+      chosen: recapAllIds,
+    });
+    expect(recap.stats.length).toBeLessThanOrEqual(MAX_STATS);
+  });
+
+  it("falls back to the default six when nothing has been chosen", () => {
+    const recap = buildRecap({
+      ...base,
+      throwing: { throws: 42 },
+      session: { ...base.session, duration: "60 min" },
+      chosen: null,
+    });
+    expect(recap.stats.map((stat) => stat.id)).toEqual(["throws", "duration"]);
   });
 });

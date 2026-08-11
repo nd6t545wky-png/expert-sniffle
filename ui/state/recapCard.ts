@@ -4,8 +4,12 @@
  * Deliberately not a screenshot of the on-screen card. A screenshot is
  * whatever size the phone happened to be, in whatever theme was active, with
  * whatever the browser felt like doing to the fonts. This draws a fixed
- * 1080×1350 — Instagram's portrait size, and a sane crop everywhere else — so
- * the file is the same on every device.
+ * 1080×1920 so the file is identical on every device.
+ *
+ * Laid out like the reference: the photo full-bleed and largely unobscured,
+ * the numbers set over its upper half in two columns — a small label above a
+ * large value. Type is sized for a phone screen at arm's length, which is the
+ * only place this image is ever read.
  *
  * It reads the same `SessionRecap` the on-screen card reads, so the image that
  * leaves the app cannot claim something the screen did not show.
@@ -14,10 +18,16 @@
 import { SessionRecap } from "../../src/domain/sessionRecap";
 import { formatIsoDate } from "./formatDate";
 
-export const RECAP_CARD = { width: 1080, height: 1350 } as const;
+/**
+ * 9:16 — the story format the reference card uses, and what Instagram,
+ * TikTok and WhatsApp all expect. A 4:5 card gets letterboxed by all three.
+ */
+export const RECAP_CARD = { width: 1080, height: 1920 } as const;
 
 const INK = "#ffffff";
 const MUTED = "rgba(255,255,255,.72)";
+/** The PB row. Gold reads as an award and is legible on a dark photo. */
+const PB_GOLD = "#ffd166";
 const PAD = 72;
 
 function loadImage(src: string): Promise<HTMLImageElement | null> {
@@ -49,6 +59,21 @@ function drawCover(
   const drawWidth = image.width * scale;
   const drawHeight = image.height * scale;
   context.drawImage(image, (width - drawWidth) / 2, (height - drawHeight) / 2, drawWidth, drawHeight);
+}
+
+/**
+ * Trims a line to fit, ending with an ellipsis rather than mid-phrase.
+ *
+ * Plain wrapping left lines reading "… · 90–120 ft ·" — a dangling separator
+ * that looks like a rendering fault rather than a shortened line.
+ */
+function ellipsize(context: CanvasRenderingContext2D, text: string, maxWidth: number): string {
+  if (context.measureText(text).width <= maxWidth) return text;
+  let cut = text;
+  while (cut.length > 1 && context.measureText(`${cut}…`).width > maxWidth) {
+    cut = cut.slice(0, -1);
+  }
+  return `${cut.replace(/[\s·—-]+$/, "")}…`;
 }
 
 /** Wraps text to a width, returning the lines actually drawn. */
@@ -95,121 +120,107 @@ export async function drawRecapCard({ recap, caption, photoUrl }: RecapCardInput
     context.fillRect(0, 0, width, height);
   }
 
-  // A bottom-weighted scrim so white text clears any photo underneath it.
-  // Without this the card is unreadable over a bright sky exactly as often as
-  // it is readable, which is to say it is not a card.
-  // Stops mirror `.recap-overlay` in ui/app.css. Measured over a white frame:
-  // a gentler ramp left the title and date unreadable, so the fade starts high
-  // and reaches near-opaque before the tallest possible text block begins.
-  const scrim = context.createLinearGradient(0, height * 0.08, 0, height);
-  scrim.addColorStop(0, "rgba(8,8,10,0)");
-  scrim.addColorStop(0.24, "rgba(8,8,10,.58)");
-  scrim.addColorStop(0.54, "rgba(8,8,10,.90)");
-  scrim.addColorStop(1, "rgba(8,8,10,.96)");
+  // A light top-down wash only. The reference leaves the photo almost
+  // untouched, so legibility rests mainly on the text shadow below — a heavy
+  // scrim would hide the thing the athlete photographed.
+  const scrim = context.createLinearGradient(0, 0, 0, height);
+  scrim.addColorStop(0, "rgba(8,8,10,.52)");
+  scrim.addColorStop(0.45, "rgba(8,8,10,.30)");
+  scrim.addColorStop(0.72, "rgba(8,8,10,.34)");
+  scrim.addColorStop(1, "rgba(8,8,10,.72)");
   context.fillStyle = scrim;
   context.fillRect(0, 0, width, height);
 
-  // How strong the scrim is where a given line sits depends on how much was
-  // logged, so every line also carries its own shadow. Matches the
-  // `text-shadow` on `.recap-overlay`.
-  context.shadowColor = "rgba(0,0,0,.75)";
-  context.shadowBlur = 18;
+  // Every line carries its own shadow, so the card stays readable over a
+  // bright sky without darkening the photo into mud.
+  context.shadowColor = "rgba(0,0,0,.8)";
+  context.shadowBlur = 22;
   context.shadowOffsetY = 2;
 
   const family =
     '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
   context.textBaseline = "alphabetic";
 
-  let y = height - PAD;
-
-  // Caption sits at the very bottom, then everything stacks upward from it.
-  if (caption) {
-    context.font = `400 34px ${family}`;
-    context.fillStyle = MUTED;
-    const lines = wrap(context, caption, width - PAD * 2, 2);
-    for (const line of [...lines].reverse()) {
-      context.fillText(line, PAD, y);
-      y -= 44;
-    }
-    y -= 18;
-  }
-
-  // Highlights: the work worth naming, one per line.
-  if (recap.highlights.length > 0) {
-    context.font = `400 30px ${family}`;
-    for (const line of [...recap.highlights].reverse()) {
-      context.fillStyle = MUTED;
-      const [text] = wrap(context, line, width - PAD * 2 - 34, 1);
-      context.fillText(text ?? line, PAD + 34, y);
-      // A small square marker instead of a bullet glyph, which renders
-      // differently on every platform.
-      context.fillStyle = "rgba(255,255,255,.45)";
-      context.fillRect(PAD, y - 11, 12, 12);
-      y -= 46;
-    }
-    y -= 22;
-  }
-
-  // Stats row: the numbers, evenly spaced across the card.
-  //
-  // The block is three stacked lines — value, label, detail — and it is laid
-  // out from its *bottom* upward. Drawing the label and detail below a single
-  // baseline instead put them straight through the highlights, because the
-  // highlights had already claimed that space on the way up.
-  if (recap.stats.length > 0) {
-    const columns = Math.min(recap.stats.length, 4);
-    const shown = recap.stats.slice(0, columns);
-    const columnWidth = (width - PAD * 2) / columns;
-
-    const hasDetail = shown.some((stat) => stat.detail);
-    const detailY = y;
-    const labelY = hasDetail ? detailY - 34 : detailY;
-    const valueY = labelY - 40;
-
-    shown.forEach((stat, index) => {
-      const x = PAD + columnWidth * index;
-      context.fillStyle = INK;
-      context.font = `700 66px ${family}`;
-      context.fillText(stat.value, x, valueY);
-
-      context.fillStyle = MUTED;
-      context.font = `600 26px ${family}`;
-      context.fillText(stat.label.toUpperCase(), x, labelY);
-
-      if (stat.detail) {
-        context.fillStyle = "rgba(255,255,255,.55)";
-        context.font = `400 24px ${family}`;
-        context.fillText(stat.detail, x, detailY);
-      }
-    });
-
-    // Clear the cap height of the 66px value row, plus a gap.
-    y = valueY - 70;
-  }
-
-  // Title and date, above the numbers.
-  if (recap.focus) {
-    context.fillStyle = MUTED;
-    context.font = `400 32px ${family}`;
-    const [line] = wrap(context, recap.focus, width - PAD * 2, 1);
-    context.fillText(line ?? recap.focus, PAD, y);
-    y -= 54;
-  }
-
-  context.fillStyle = INK;
-  context.font = `700 70px ${family}`;
-  const titleLines = wrap(context, recap.title, width - PAD * 2, 2);
-  for (const line of [...titleLines].reverse()) {
-    context.fillText(line, PAD, y);
-    y -= 78;
-  }
+  // --- Header ---------------------------------------------------------------
+  let y = 150;
 
   context.fillStyle = MUTED;
-  context.font = `600 28px ${family}`;
+  context.font = `600 34px ${family}`;
   const eyebrow = recap.effort
     ? `${formatIsoDate(recap.date)} · ${recap.effort}`
     : formatIsoDate(recap.date);
-  context.fillText(eyebrow.toUpperCase(), PAD, y - 6);
+  context.fillText(eyebrow.toUpperCase(), PAD, y);
+
+  y += 84;
+  context.fillStyle = INK;
+  context.font = `700 82px ${family}`;
+  for (const line of wrap(context, recap.title, width - PAD * 2, 2)) {
+    context.fillText(line, PAD, y);
+    y += 92;
+  }
+
+  if (recap.focus) {
+    context.fillStyle = MUTED;
+    context.font = `400 36px ${family}`;
+    const [line] = wrap(context, recap.focus, width - PAD * 2, 1);
+    context.fillText(line ?? recap.focus, PAD, y);
+    y += 56;
+  }
+
+  // A personal best is the reason to post at all — it gets its own row.
+  if (recap.pb) {
+    y += 22;
+    context.fillStyle = PB_GOLD;
+    context.font = `700 36px ${family}`;
+    context.fillText(`★  NEW PB · ${recap.pb.label.toUpperCase()} ${recap.pb.value}`, PAD, y);
+    y += 40;
+  }
+
+  // --- Stats, two columns ---------------------------------------------------
+  y += 74;
+  const columnWidth = (width - PAD * 2) / 2;
+
+  recap.stats.forEach((stat, index) => {
+    const column = index % 2;
+    const row = Math.floor(index / 2);
+    const x = PAD + column * columnWidth;
+    const top = y + row * 148;
+
+    context.fillStyle = MUTED;
+    context.font = `500 32px ${family}`;
+    context.fillText(stat.label, x, top);
+
+    context.fillStyle = INK;
+    context.font = `700 76px ${family}`;
+    context.fillText(stat.value, x, top + 76);
+  });
+
+  // --- Footer: the named work, then the caption -----------------------------
+  let footer = height - PAD - 20;
+
+  if (caption) {
+    context.font = `400 38px ${family}`;
+    context.fillStyle = INK;
+    const lines = wrap(context, caption, width - PAD * 2, 2);
+    for (const line of [...lines].reverse()) {
+      context.fillText(line, PAD, footer);
+      footer -= 50;
+    }
+    footer -= 24;
+  }
+
+  if (recap.highlights.length > 0) {
+    context.font = `400 32px ${family}`;
+    for (const line of [...recap.highlights].slice(0, 3).reverse()) {
+      context.fillStyle = MUTED;
+      context.fillText(ellipsize(context, line, width - PAD * 2 - 36), PAD + 36, footer);
+      // A small square marker instead of a bullet glyph, which renders
+      // differently on every platform.
+      context.fillStyle = "rgba(255,255,255,.5)";
+      context.fillRect(PAD, footer - 12, 13, 13);
+      footer -= 50;
+    }
+  }
 
   return new Promise((resolve) => canvas.toBlob((blob) => resolve(blob), "image/png"));
 }

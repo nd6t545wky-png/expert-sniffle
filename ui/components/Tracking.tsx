@@ -31,6 +31,8 @@ export interface TrackingProps {
   hasSyncKey?: boolean;
   recapCaption?: string;
   onRecapCaption?: (caption: string) => void;
+  recapStats?: string[];
+  onToggleRecapStat?: (id: string) => void;
 }
 
 /**
@@ -139,10 +141,14 @@ export function Tracking({
   hasSyncKey,
   recapCaption,
   onRecapCaption,
+  recapStats,
+  onToggleRecapStat,
 }: TrackingProps) {
   const [perceivedExertion, setPerceivedExertion] = useState(6);
   const [armFeel, setArmFeel] = useState(8);
   const [gamePitches, setGamePitches] = useState(0);
+  const [bestVelocity, setBestVelocity] = useState(0);
+  const [velocityType, setVelocityType] = useState("pulldown");
   const [notes, setNotes] = useState("");
   const [error, setError] = useState("");
 
@@ -159,6 +165,10 @@ export function Tracking({
       armFeel,
       gamePitches,
       notes,
+      // Zero means "not measured today" — storing it would put a 0 mph on the
+      // recap card and, worse, could never beat a stored PB but would still
+      // read as a recorded attempt.
+      ...(bestVelocity > 0 ? { bestVelocity, velocityType } : {}),
     });
     if (!outcome.ok) {
       setError(outcome.message);
@@ -216,6 +226,36 @@ export function Tracking({
                 value={gamePitches}
                 onChange={(event) => setGamePitches(Number(event.target.value))}
               />
+            </div>
+
+            <div className="field">
+              <label htmlFor="bestVelocity">Best velocity</label>
+              <input
+                id="bestVelocity"
+                name="bestVelocity"
+                type="number"
+                min={0}
+                max={120}
+                step={0.1}
+                value={bestVelocity || ""}
+                placeholder="—"
+                onChange={(event) => setBestVelocity(Number(event.target.value))}
+              />
+              <small>mph · leave blank if nothing was measured</small>
+            </div>
+
+            <div className="field">
+              <label htmlFor="velocityType">Velocity type</label>
+              <select
+                id="velocityType"
+                name="velocityType"
+                value={velocityType}
+                onChange={(event) => setVelocityType(event.target.value)}
+              >
+                <option value="pulldown">Pulldown</option>
+                <option value="gameFastball">Game fastball</option>
+              </select>
+              <small>Which personal best this counts towards</small>
             </div>
 
             <div className="field full">
@@ -283,6 +323,8 @@ export function Tracking({
           hasSyncKey={Boolean(hasSyncKey)}
           caption={recapCaption ?? ""}
           onCaption={onRecapCaption ?? (() => {})}
+          chosen={recapStats ?? []}
+          onToggleStat={onToggleRecapStat ?? (() => {})}
         />
       )}
 

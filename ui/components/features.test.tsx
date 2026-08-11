@@ -9,6 +9,7 @@ import { HealthForm } from "./HealthForm";
 import { Tracking } from "./Tracking";
 import { Dashboard } from "./Dashboard";
 import { SessionRecap } from "./SessionRecap";
+import { SessionRecap as Recap } from "../../src/domain/sessionRecap";
 
 const KEY = "a".repeat(64);
 
@@ -690,40 +691,75 @@ describe("Dashboard readiness provenance", () => {
   });
 });
 
+describe("Check-out velocity capture", () => {
+  it("stores a measured velocity, and omits it when nothing was measured", () => {
+    const saved: Record<string, unknown>[] = [];
+    const props = {
+      date: "2026-08-11" as const,
+      plan: { status: "unlocked", planLevel: "full", workloadFactor: 1 } as const,
+      reports: {},
+      onReport: (report: Record<string, unknown>) => saved.push(report),
+    };
+
+    const { unmount } = render(<Tracking {...props} />);
+    fireEvent.submit(document.querySelector("#post-form")!);
+    // A blank field means "not measured" — storing 0 would put 0 mph on the
+    // recap card and read as a recorded attempt.
+    expect(saved[0].bestVelocity).toBeUndefined();
+    unmount();
+
+    render(<Tracking {...props} />);
+    fireEvent.change(screen.getByLabelText("Best velocity"), { target: { value: "92" } });
+    fireEvent.submit(document.querySelector("#post-form")!);
+    expect(saved[1].bestVelocity).toBe(92);
+    expect(saved[1].velocityType).toBe("pulldown");
+  });
+});
+
 describe("SessionRecap — the Strava-style share card", () => {
-  const recap = {
+  const stats = [
+    { id: "throws", label: "Throws", value: "42" },
+    { id: "tonnage", label: "Volume lifted", value: "3,870 kg" },
+  ];
+  const recap: Recap = {
     date: "2026-08-11" as const,
     title: "Bullpen",
     focus: "Command",
     effort: "75% effort",
-    stats: [
-      { label: "Session", value: "12", detail: "of 18 done" },
-      { label: "Throws", value: "42" },
-    ],
+    available: [...stats, { id: "rpe", label: "Session RPE", value: "7" }],
+    stats,
     highlights: ["Back squat · 3 × 5 @ 130 kg"],
+    pb: null,
     hasContent: true,
   };
 
-  function setup(options: { api?: PitchingOsApi; hasSyncKey?: boolean; caption?: string } = {}) {
+  function setup(
+    options: { api?: PitchingOsApi; hasSyncKey?: boolean; caption?: string; recap?: Recap } = {}
+  ) {
     const captions: string[] = [];
+    const toggled: string[] = [];
     render(
       <SessionRecap
         date="2026-08-11"
-        recap={recap}
+        recap={options.recap ?? recap}
         api={options.api ?? apiWith({})}
         hasSyncKey={options.hasSyncKey ?? true}
         caption={options.caption ?? ""}
         onCaption={(value) => captions.push(value)}
+        chosen={["throws", "tonnage"]}
+        onToggleStat={(id) => toggled.push(id)}
       />
     );
-    return { captions };
+    return { captions, toggled };
   }
 
   it("shows the day's work on the card", () => {
     setup();
     expect(screen.getByText("Bullpen")).toBeDefined();
     expect(screen.getByText(/75% effort/)).toBeDefined();
-    expect(screen.getByText("42")).toBeDefined();
+    // "42" also appears in the picker's preview of the same stat.
+    expect(document.querySelector(".recap-stats")!.textContent).toContain("42");
+    expect(document.querySelector(".recap-stats")!.textContent).toContain("3,870 kg");
     expect(screen.getByText("Back squat · 3 × 5 @ 130 kg")).toBeDefined();
   });
 
@@ -744,12 +780,13 @@ describe("SessionRecap — the Strava-style share card", () => {
     // The card leaves the app as a file. Where it goes next must be the
     // athlete's decision, and the UI has to say so.
     setup();
-    expect(screen.getByText(/Nothing is posted anywhere/)).toBeDefined();
+    expect(screen.getByText(/Nothing is posted automatically/)).toBeDefined();
   });
 
   it("still offers the card when there is no photo", () => {
     setup();
     expect(screen.getByRole("button", { name: "Add photo" })).toBeDefined();
+    expect(screen.getByRole("button", { name: "Share" })).toBeDefined();
     expect(screen.getByRole("button", { name: "Save image" })).toBeDefined();
     // Remove is meaningless with nothing attached.
     expect(screen.queryByRole("button", { name: "Remove photo" })).toBeNull();
@@ -766,17 +803,29 @@ describe("SessionRecap — the Strava-style share card", () => {
     expect(screen.getByText("Felt sharp")).toBeDefined();
   });
 
+  it("lets the athlete choose which numbers appear", () => {
+    const { toggled } = setup();
+    fireEvent.click(screen.getByText("Session RPE"));
+    expect(toggled).toEqual(["rpe"]);
+  });
+
+  it("shows a personal best when one was set", () => {
+    setup({
+      recap: {
+        ...recap,
+        pb: { label: "Pulldown velocity", value: "92 mph", previous: "89 mph" },
+      },
+    });
+    expect(screen.getByText(/New PB · Pulldown velocity 92 mph/)).toBeDefined();
+  });
+
+  it("says nothing about a PB when none was set", () => {
+    setup();
+    expect(screen.queryByText(/New PB/)).toBeNull();
+  });
+
   it("explains itself instead of rendering an empty card on an unlogged day", () => {
-    render(
-      <SessionRecap
-        date="2026-08-11"
-        recap={{ ...recap, stats: [], highlights: [], hasContent: false }}
-        api={apiWith({})}
-        hasSyncKey
-        caption=""
-        onCaption={() => {}}
-      />
-    );
+    setup({ recap: { ...recap, available: [], stats: [], highlights: [], hasContent: false } });
     expect(screen.getByText(/Nothing is logged/)).toBeDefined();
     expect(screen.queryByRole("button", { name: "Save image" })).toBeNull();
   });

@@ -435,6 +435,10 @@ export interface SessionReport {
   gamePitches?: number;
   notes?: string;
   submittedAt: string;
+  /** Fastest measured throw, when one was measured. Absent means not measured. */
+  bestVelocity?: number;
+  /** Which personal best `bestVelocity` counts towards. */
+  velocityType?: string;
 }
 
 export type ReportOutcome =
