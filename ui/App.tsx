@@ -6,6 +6,7 @@ import {
   SessionReport,
   SkippedTask,
   ThrowIntent,
+  isHighIntentDay,
   totalThrowLoad,
 } from "../src/domain/session";
 import { MetricSource, ReadinessInputs, computeReadiness } from "../src/domain/readiness";
@@ -716,6 +717,14 @@ export function App() {
           prefill={state.healthPrefill}
           onPrefill={handleHealthPrefill}
           hasSyncKey={isValidSyncKey(syncKey)}
+          armExams={armExams}
+          // A game or a high-intent bullpen is the day the pre/post pair can
+          // actually be captured; it cannot be recovered afterwards.
+          isOutingDay={
+            isHighIntentDay(DAY_NAMES[selectedDay]) ||
+            /compete|game/i.test(String(session?.title ?? "") + String(session?.focus ?? ""))
+          }
+          onOpenArmScreen={() => setPage("profile")}
         />
       )}
 

@@ -12,6 +12,8 @@ import {
   latestOutingPair,
   limbSymmetry,
   readExams,
+  retentionForCheckIn,
+  armPrompt,
 } from "./armCare";
 
 const FULL = {
@@ -207,5 +209,76 @@ describe("readExams", () => {
     expect(readExams([{ nope: 1 }])).toEqual([]);
     const sorted = readExams([exam({ id: "b", date: "2026-08-12" }), exam({ id: "a", date: "2026-08-01" })]);
     expect(sorted.map((e) => e.id)).toEqual(["a", "b"]);
+  });
+});
+
+describe("retentionForCheckIn — what the daily score may use", () => {
+  const pre = exam({ id: "pre", date: "2026-08-09", timing: "preOuting" });
+  const post = exam({
+    id: "post",
+    date: "2026-08-09",
+    timing: "postOuting",
+    throwing: { ...FULL, grip: 20 },
+  });
+
+  it("supplies a fresh retention figure", () => {
+    expect(retentionForCheckIn([pre, post], "2026-08-10")!.value).toBe(81);
+  });
+
+  it("withholds a stale one rather than scoring today off old news", () => {
+    // A fortnight-old post-outing reading is a fact about a fortnight ago.
+    expect(retentionForCheckIn([pre, post], "2026-08-25")).toBeNull();
+  });
+
+  it("holds the figure right up to the edge of the window", () => {
+    expect(retentionForCheckIn([pre, post], "2026-08-12")).not.toBeNull();
+    expect(retentionForCheckIn([pre, post], "2026-08-13")).toBeNull();
+  });
+
+  it("returns nothing without a pair", () => {
+    expect(retentionForCheckIn([pre], "2026-08-10")).toBeNull();
+  });
+});
+
+describe("armPrompt", () => {
+  const today = "2026-08-11";
+
+  it("asks for the pre-outing screen first, because it cannot be recovered later", () => {
+    const prompt = armPrompt([], today, { isOutingDay: true })!;
+    expect(prompt.kind).toBe("preOuting");
+  });
+
+  it("asks for the post-outing screen once the pre one exists", () => {
+    const pre = exam({ id: "pre", date: today, timing: "preOuting" });
+    expect(armPrompt([pre], today, { isOutingDay: true })!.kind).toBe("postOuting");
+  });
+
+  it("stops asking once the pair is complete", () => {
+    const pre = exam({ id: "pre", date: today, timing: "preOuting" });
+    const post = exam({ id: "post", date: today, timing: "postOuting" });
+    const fresh = exam({ id: "f", date: "2026-08-10", timing: "fresh" });
+    expect(armPrompt([fresh, pre, post], today, { isOutingDay: true })).toBeNull();
+  });
+
+  it("asks for a weekly baseline when the last fresh screen has aged out", () => {
+    const old = exam({ id: "old", date: "2026-08-01", timing: "fresh" });
+    const prompt = armPrompt([old], today, { isOutingDay: false })!;
+    expect(prompt.kind).toBe("weekly");
+    expect(prompt.text).toMatch(/10 days ago/);
+  });
+
+  it("says nothing on a normal day with a current baseline", () => {
+    const recent = exam({ id: "r", date: "2026-08-09", timing: "fresh" });
+    expect(armPrompt([recent], today, { isOutingDay: false })).toBeNull();
+  });
+
+  it("does not nag an athlete who has never run a screen", () => {
+    // The check-in is the one form filled in every day. Telling someone who
+    // may not own a dynamometer that a screen is "due" is a permanent nag.
+    expect(armPrompt([], today, { isOutingDay: false })).toBeNull();
+  });
+
+  it("still asks on an outing day, because that pair is time-critical", () => {
+    expect(armPrompt([], today, { isOutingDay: true })!.kind).toBe("preOuting");
   });
 });

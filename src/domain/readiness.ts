@@ -55,6 +55,13 @@ export interface ReadinessInputs {
   ouraRestMode?: "yes" | "no" | "";
   hrvMs?: number;
   restingHeartRate?: number;
+
+  /**
+   * Strength held after the last outing, as a percentage of the pre-outing
+   * arm screen. Supplied only when that pair was measured recently — a
+   * fortnight-old retention figure says nothing about today.
+   */
+  armRetentionPct?: number;
 }
 
 export interface Baseline {
@@ -185,6 +192,21 @@ export function computeReadiness(values: ReadinessInputs, context: ReadinessCont
 
   if (ouraRestMode) signals.push({ type: "rest_mode", severity: "high", text: "Oura Rest Mode is active" });
 
+  // Post-outing strength retention. This is the one arm-screen figure that
+  // belongs in a daily score: it is measured against the same day's own
+  // pre-test, so it speaks to acute fatigue. ER:IR and limb symmetry are
+  // seasonal qualities — feeding those in would reduce every session for
+  // months while the ratio recovered, which is a silent training suppressor
+  // rather than a readiness signal.
+  const armRetention = Number(values.armRetentionPct);
+  if (Number.isFinite(armRetention) && armRetention > 0 && armRetention < 90) {
+    signals.push({
+      type: "arm_retention",
+      severity: armRetention < 80 ? "high" : "moderate",
+      text: `Arm held ${Math.round(armRetention)}% of pre-outing strength, under the 90% target`,
+    });
+  }
+
   const sleepBaseline = context.sleepHoursBaseline ?? NO_BASELINE;
   const energyBaseline = context.energyBaseline ?? NO_BASELINE;
   const moodBaseline = context.moodBaseline ?? NO_BASELINE;
@@ -234,6 +256,9 @@ export function computeReadiness(values: ReadinessInputs, context: ReadinessCont
       Number(values.sleepHours) < 5.5 ||
       painValues.some((value) => value >= 4) ||
       values.previousSessionResponse === "much_worse" ||
+      // Losing more than a fifth of arm strength across an outing is its own
+      // reason for a recovery day, not something to average away.
+      (Number.isFinite(armRetention) && armRetention > 0 && armRetention < 80) ||
       signals.length >= 2);
 
   const reducedFlag =

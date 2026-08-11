@@ -13,6 +13,7 @@ import {
   sourceNames,
   wearableInputs,
 } from "../../src/domain/healthPrefill";
+import { ArmExam, ArmPrompt, armFindings, armPrompt, armTrend, retentionForCheckIn } from "../../src/domain/armCare";
 import { Alert } from "./Page";
 import { RangeField } from "./RangeField";
 
@@ -83,6 +84,11 @@ export interface HealthFormProps {
   onPrefill: (date: IsoDate, record: HealthPrefillRecord) => void;
   /** Without a sync key there is no account to read connected data from. */
   hasSyncKey: boolean;
+  /** Arm screens, for the flags and the retention signal. */
+  armExams?: ArmExam[];
+  /** True on a game or high-intent day, which is when the pair matters. */
+  isOutingDay?: boolean;
+  onOpenArmScreen?: () => void;
 }
 
 export function HealthForm({
@@ -94,6 +100,9 @@ export function HealthForm({
   prefill,
   onPrefill,
   hasSyncKey,
+  armExams = [],
+  isOutingDay = false,
+  onOpenArmScreen,
 }: HealthFormProps) {
   const [manual, setManual] = useState<Partial<ReadinessInputs>>({});
   const [notes, setNotes] = useState("");
@@ -142,8 +151,24 @@ export function HealthForm({
     load.current(false);
   }, [date, hasSyncKey]);
 
+  // The arm screen contributes exactly one number to the score: how much
+  // strength was held after the last outing, and only while that reading is
+  // still fresh. The other arm figures are shown but never scored — they are
+  // seasonal, and letting them cut the daily dose would suppress training for
+  // months at a time.
+  const retention = retentionForCheckIn(armExams, date);
+  const armFlags = armExams.length
+    ? armFindings(armExams[armExams.length - 1], armTrend(armExams), retention)
+    : [];
+  const prompt: ArmPrompt | null = armPrompt(armExams, date, { isOutingDay });
+
   // Defaults, then the devices, then the athlete. Nothing typed is ever lost.
-  const values: ReadinessInputs = { ...DEFAULTS, ...wearableInputs(health), ...manual };
+  const values: ReadinessInputs = {
+    ...DEFAULTS,
+    ...wearableInputs(health),
+    ...(retention ? { armRetentionPct: retention.value } : {}),
+    ...manual,
+  };
   const preview = computeReadiness(values, readinessContextFor(existing, health, date));
   const bodyweightKg = importedBodyweight(health);
 
@@ -184,6 +209,37 @@ export function HealthForm({
           hasSyncKey={hasSyncKey}
           onRefresh={() => load.current(true)}
         />
+
+        {prompt && (
+          <div className="alert info health-prefill" role="status">
+            <div>
+              <strong>
+                {prompt.kind === "weekly" ? "Arm screen due" : "Arm screen"}
+              </strong>
+              {prompt.text}
+            </div>
+            {onOpenArmScreen && (
+              <button className="btn btn-outline" type="button" onClick={onOpenArmScreen}>
+                Open
+              </button>
+            )}
+          </div>
+        )}
+
+        {armFlags.length > 0 && (
+          <div
+            className={`alert ${armFlags.some((f) => f.severity === "watch") ? "warn" : "info"} health-prefill`}
+            role="status"
+          >
+            <div>
+              <strong>From your last arm screen</strong>
+              {armFlags.map((finding) => finding.text).join(" ")}
+              {retention
+                ? ""
+                : " Only a post-outing retention figure feeds today's score; the rest is context."}
+            </div>
+          </div>
+        )}
 
         <form id="pre-form" className="form-grid" data-date={date} onSubmit={handleSubmit}>
           <div className="field">
