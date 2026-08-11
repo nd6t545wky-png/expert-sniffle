@@ -1,4 +1,6 @@
 import { formatIsoDate } from "../state/formatDate";
+import { Pitch } from "../../src/domain/pitchLog";
+import { PitchData } from "./PitchData";
 import { useState } from "react";
 import { IsoDate } from "../../src/domain/state";
 import {
@@ -27,6 +29,11 @@ export interface ThrowingEntry {
 }
 
 export interface WorkloadProps {
+  /** Ball-flight data for the open day. */
+  pitches?: Pitch[];
+  onImportPitches?: (pitches: Pitch[]) => void;
+  onAddPitch?: (pitch: Pitch) => void;
+  onRemovePitch?: (id: string) => void;
   date: IsoDate;
   plan: PlanState;
   entries: ThrowingEntry[];
@@ -41,7 +48,16 @@ const INTENTS: { value: ThrowIntent; label: string }[] = [
   { value: "high", label: "High intent / game" },
 ];
 
-export function Workload({ date, plan, entries, onLog }: WorkloadProps) {
+export function Workload({
+  date,
+  plan,
+  entries,
+  onLog,
+  pitches,
+  onImportPitches,
+  onAddPitch,
+  onRemovePitch,
+}: WorkloadProps) {
   const [intent, setIntent] = useState<ThrowIntent>("low");
   const [throws, setThrows] = useState(20);
   const [error, setError] = useState("");
@@ -128,6 +144,16 @@ export function Workload({ date, plan, entries, onLog }: WorkloadProps) {
         Rising load with rising soreness is worth a conversation with your coach; the number on its
         own is not a verdict.
       </p>
+
+      {onImportPitches && onAddPitch && onRemovePitch && (
+        <PitchData
+          date={date}
+          pitches={pitches ?? []}
+          onImport={onImportPitches}
+          onAdd={onAddPitch}
+          onRemove={onRemovePitch}
+        />
+      )}
     </>
   );
 }

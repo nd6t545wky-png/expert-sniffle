@@ -730,3 +730,78 @@ body {
   letter-spacing: -.02em;
 }
 .fuel-grid small { margin-left: 3px; color: var(--muted); font-size: 11px; font-weight: 600; }
+
+/* --- Pitch data ------------------------------------------------------------
+ * Ball flight: imported from Rapsodo, TrackMan or Pocket Radar, or typed in.
+ * New screen furniture — the prototype had no pitch-level data at all.
+ * ------------------------------------------------------------------------- */
+
+.pitch-import {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+.pitch-import span { color: var(--muted); font-size: 11px; }
+
+.pitch-best {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 0 0 14px;
+}
+.pitch-best span {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+.pitch-best strong { font-size: 26px; font-weight: 700; letter-spacing: -.02em; }
+.pitch-best small { color: var(--muted); font-size: 12px; }
+
+/* Wide tables scroll in their own container so the page never does. */
+.scroll-x { overflow-x: auto; margin-bottom: 14px; }
+
+.pitch-table {
+  width: 100%;
+  min-width: 420px;
+  border-collapse: collapse;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+.pitch-table th,
+.pitch-table td {
+  padding: 8px 10px;
+  text-align: left;
+  border-bottom: 1px solid var(--line);
+  white-space: nowrap;
+}
+.pitch-table thead th {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+.pitch-table tbody tr:last-child td { border-bottom: 0; }
+.pitch-table td:first-child { font-weight: 600; }
+
+.pitch-add {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 10px;
+  align-items: end;
+  padding-top: 4px;
+}
+.pitch-add .form-actions { grid-column: 1 / -1; }
+
+.pitch-list { margin-top: 10px; }
+.pitch-list > summary {
+  cursor: pointer;
+  padding: 8px 0;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+}

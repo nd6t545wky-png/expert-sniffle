@@ -13,6 +13,7 @@ import { HealthPrefillRecord, mergeHistory, readPrefill } from "../src/domain/he
 import { DEFAULT_STAT_IDS, MAX_STATS, buildRecap } from "../src/domain/sessionRecap";
 import { LoggedSet, loggedTonnage, readDayLog } from "../src/domain/setLog";
 import { fuelTargets } from "../src/domain/fuelling";
+import { Pitch, readPitches, topVelocity } from "../src/domain/pitchLog";
 import { PitchingOsApi } from "../src/domain/api";
 import { isValidSyncKey } from "../src/domain/sync";
 import { syncNow } from "../src/domain/cloudSync";
@@ -322,6 +323,23 @@ export function App() {
     });
   }, [state, session, plan]);
 
+  /** Ball flight for the open day, and the fastest pitch on it. */
+  const pitches = useMemo(
+    () => readPitches(state?.pitches as Record<string, unknown> | undefined, date),
+    [state, date]
+  );
+  const fastest = useMemo(() => topVelocity(pitches), [pitches]);
+
+  const setPitches = useCallback(
+    (mutate: (current: Pitch[]) => Pitch[]) =>
+      update((draft) => {
+        const all = (draft.pitches ?? {}) as Record<string, Pitch[]>;
+        const next = mutate(Array.isArray(all[date]) ? all[date] : []);
+        return { ...draft, pitches: { ...all, [date]: next } };
+      }),
+    [update, date]
+  );
+
   const recapStats = useMemo(
     () => (Array.isArray(state?.recapStats) ? (state.recapStats as string[]) : [...DEFAULT_STAT_IDS]),
     [state]
@@ -338,7 +356,14 @@ export function App() {
         tasks,
         completed: completed[date] ?? [],
         skipped: skippedTasks[date] ?? {},
-        report: reports[date] ?? null,
+        // The measured pitch log outranks the number typed at check-out — it is
+        // the device's reading rather than a recollection. It supplies the
+        // speed only: which personal best a bullpen fastball counts toward is
+        // the athlete's call at check-out, and guessing "pulldown" here would
+        // award a pulldown PB for a pitch that was never one.
+        report: fastest
+          ? { ...(reports[date] ?? {}), bestVelocity: fastest.mph }
+          : (reports[date] ?? null),
         submission: submission ?? null,
         throwing: (state?.bullpens as Record<string, ThrowingEntry | undefined>)?.[date] ?? null,
         calories: dayCalories,
@@ -346,7 +371,7 @@ export function App() {
         pbs: state?.pbs,
         chosen: recapStats,
       }),
-    [date, session, tasks, completed, skippedTasks, reports, submission, state, dayCalories, recapStats, setLog]
+    [date, session, tasks, completed, skippedTasks, reports, submission, state, dayCalories, recapStats, setLog, fastest]
   );
   const recapCaption = String(
     (state?.recapCaptions as Record<string, unknown> | undefined)?.[date] ?? ""
@@ -687,6 +712,10 @@ export function App() {
           onLog={(entry) =>
             update((draft) => ({ ...draft, bullpens: { ...draft.bullpens, [entry.date]: entry } }))
           }
+          pitches={pitches}
+          onImportPitches={(imported) => setPitches((current) => [...current, ...imported])}
+          onAddPitch={(pitch) => setPitches((current) => [...current, pitch])}
+          onRemovePitch={(id) => setPitches((current) => current.filter((p) => p.id !== id))}
         />
       )}
 

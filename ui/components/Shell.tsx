@@ -77,8 +77,8 @@ const ICON_PATHS: Record<PageId, ReactNode> = {
       <path d="m14 5 3 3-3 3M10 19l-3-3 3-3" />
     </>
   ),
-  // Readiness and workload have no nav entry of their own; they borrow the
-  // section they belong to.
+  // Readiness has no nav entry of its own; it borrows the section it belongs
+  // to. Workload now has one, in both the sidebar and the phone's More sheet.
   readiness: (
     <>
       <path d="M7 3h10a2 2 0 0 1 2 2v16H5V5a2 2 0 0 1 2-2Z" />
@@ -125,6 +125,9 @@ export const SIDEBAR_GROUPS: { label: string; items: { id: PageId; label: string
   {
     label: "Track",
     items: [
+      // Throwing was reachable only from a dashboard tile, which made the
+      // pitch log effectively undiscoverable. It is a page; it gets a link.
+      { id: "workload", label: "Throwing" },
       { id: "tracking", label: "Progress" },
       { id: "nutrition", label: "Nutrition" },
       { id: "mechanics", label: "Biomechanics" },
@@ -141,6 +144,7 @@ export const SIDEBAR_GROUPS: { label: string; items: { id: PageId; label: string
 
 /** What the phone's "More" button opens, as in the prototype. */
 const MORE_ITEMS: { id: PageId; label: string }[] = [
+  { id: "workload", label: "Throwing" },
   { id: "annual", label: "Year" },
   { id: "mechanics", label: "Biomechanics" },
   { id: "profile", label: "Athlete" },
