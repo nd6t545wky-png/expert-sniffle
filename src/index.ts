@@ -1890,6 +1890,61 @@ async function analyzeMealText(request: Request, env: Env, url: URL): Promise<Re
   });
 }
 
+/**
+ * Micronutrients Open Food Facts already returns and the app used to discard.
+ *
+ * The key is the app's own id; the value is the OFF field stem, its ceiling
+ * for a plausibility check, and the factor converting the label's unit to the
+ * app's. OFF reports every one of these in grams per 100 g regardless of how
+ * the pack states it, so milligram and microgram nutrients are scaled here.
+ */
+const OFF_MICRONUTRIENTS: { id: string; stem: string; factor: number; max: number }[] = [
+  { id: "fibre", stem: "fiber", factor: 1, max: 100 },
+  { id: "saturatedFat", stem: "saturated-fat", factor: 1, max: 100 },
+  { id: "sugars", stem: "sugars", factor: 1, max: 100 },
+  { id: "sodium", stem: "sodium", factor: 1000, max: 100 },
+  { id: "potassium", stem: "potassium", factor: 1000, max: 100 },
+  { id: "calcium", stem: "calcium", factor: 1000, max: 100 },
+  { id: "iron", stem: "iron", factor: 1000, max: 1 },
+  { id: "magnesium", stem: "magnesium", factor: 1000, max: 10 },
+  { id: "zinc", stem: "zinc", factor: 1000, max: 1 },
+  { id: "vitaminC", stem: "vitamin-c", factor: 1000, max: 10 },
+  { id: "vitaminD", stem: "vitamin-d", factor: 1000000, max: 0.01 },
+  { id: "vitaminB12", stem: "vitamin-b12", factor: 1000000, max: 0.001 },
+];
+
+/**
+ * Read the micronutrients a label declared, per 100 g and per serving.
+ *
+ * A nutrient the label did not declare is *absent* from the result, never
+ * zero. That distinction is the whole feature: a food with no iron figure is
+ * not a food with no iron, and adding it up as zero is how every calorie
+ * tracker produces a confident daily total that is simply wrong.
+ */
+function readMicronutrients(
+  nutrients: Record<string, unknown>,
+  servingQuantity: number | null
+): { per100g: Record<string, number>; perServing: Record<string, number> } {
+  const per100g: Record<string, number> = {};
+  const perServing: Record<string, number> = {};
+
+  for (const micro of OFF_MICRONUTRIENTS) {
+    const raw = Number(nutrients[`${micro.stem}_100g`]);
+    if (Number.isFinite(raw) && raw >= 0 && raw <= micro.max) {
+      per100g[micro.id] = Math.round(raw * micro.factor * 1000) / 1000;
+    }
+
+    const declared = Number(nutrients[`${micro.stem}_serving`]);
+    if (Number.isFinite(declared) && declared >= 0 && declared <= micro.max * 50) {
+      perServing[micro.id] = Math.round(declared * micro.factor * 1000) / 1000;
+    } else if (per100g[micro.id] !== undefined && servingQuantity) {
+      perServing[micro.id] = Math.round((per100g[micro.id] * servingQuantity) / 100 * 1000) / 1000;
+    }
+  }
+
+  return { per100g, perServing };
+}
+
 async function lookupBarcode(request: Request, env: Env, url: URL): Promise<Response> {
   const keyHash = await nutritionKeyHash(request, env, url);
   if (!keyHash) return json({ error: "Sign in again to look up food" }, 401);
@@ -1932,6 +1987,7 @@ async function lookupBarcode(request: Request, env: Env, url: URL): Promise<Resp
     ? Object.fromEntries(Object.entries(per100g).map(([name, value]) => [name, value === null ? null : Math.round((value * servingQuantity) / 100)]))
     : null;
   const perServing = Object.values(directServing).some((value) => value !== null) ? directServing : scaledServing;
+  const micros = readMicronutrients(nutrients, servingQuantity);
 
   return json({
     found: true,
@@ -1943,6 +1999,10 @@ async function lookupBarcode(request: Request, env: Env, url: URL): Promise<Resp
       servingQuantity,
       per100g,
       perServing,
+      // Absent keys mean the label stayed silent, which the app reports rather
+      // than rounding to zero.
+      micronutrientsPer100g: micros.per100g,
+      micronutrientsPerServing: micros.perServing,
       imageUrl: typeof product.image_front_url === "string" ? product.image_front_url : "",
       dataWarnings: Array.isArray(product.data_quality_errors_tags) ? product.data_quality_errors_tags.slice(0, 8) : [],
       source: "Open Food Facts product label database",
@@ -2007,6 +2067,7 @@ async function searchFoodProducts(request: Request, env: Env, url: URL): Promise
         : null;
       const perServing = Object.values(directServing).some((value) => value !== null) ? directServing : scaledServing;
       if (![...Object.values(per100g), ...Object.values(perServing || {})].some((value) => value !== null)) return [];
+      const micros = readMicronutrients(nutrients, servingQuantity);
       return [
         {
           code,
@@ -2016,6 +2077,8 @@ async function searchFoodProducts(request: Request, env: Env, url: URL): Promise
           servingQuantity,
           per100g,
           perServing,
+          micronutrientsPer100g: micros.per100g,
+          micronutrientsPerServing: micros.perServing,
           imageUrl: typeof product.image_front_small_url === "string" ? product.image_front_small_url : typeof product.image_front_url === "string" ? product.image_front_url : "",
           dataWarnings: Array.isArray(product.data_quality_errors_tags) ? product.data_quality_errors_tags.slice(0, 8) : [],
         },

@@ -9,6 +9,7 @@ import { HealthForm } from "./HealthForm";
 import { Tracking } from "./Tracking";
 import { ProgressSpec, ProgressTrends } from "./ProgressTrends";
 import { MovementPlot } from "./MovementPlot";
+import { Micronutrients } from "./Micronutrients";
 import { Pitch } from "../../src/domain/pitchLog";
 import { Dashboard } from "./Dashboard";
 import { SessionRecap } from "./SessionRecap";
@@ -1064,5 +1065,51 @@ describe("Movement plot — where each pitch finishes", () => {
       .map((cell) => cell.textContent);
     expect(cells).toContain("+3.0″");
     expect(cells).toContain("+2.0″");
+  });
+});
+
+describe("Micronutrients — the difference between zero and 'the label did not say'", () => {
+  it("marks a total as a floor when some foods stayed silent", () => {
+    render(<Micronutrients foods={[{ iron: 4 }, {}]} />);
+    expect(screen.getByText("at least")).toBeDefined();
+    expect(screen.getByText(/1 of 2 foods declared it/)).toBeDefined();
+  });
+
+  it("states a total plainly when every food declared it", () => {
+    render(<Micronutrients foods={[{ iron: 4 }, { iron: 5 }]} />);
+    expect(screen.queryByText("at least")).toBeNull();
+    expect(screen.getAllByText(/Every food today declared it/).length).toBeGreaterThan(0);
+  });
+
+  it("draws no bar for a nutrient nothing declared", () => {
+    // An empty track reads as "none of it", which is the one thing this card
+    // exists to avoid saying.
+    render(<Micronutrients foods={[{ iron: 4 }]} />);
+    const unknown = document.querySelectorAll(".micro-row.is-unknown");
+    expect(unknown.length).toBeGreaterThan(0);
+    for (const row of unknown) expect(row.querySelector(".micro-bar")).toBeNull();
+    // The declared one still gets its bar.
+    expect(document.querySelector(".micro-row:not(.is-unknown) .micro-bar")).not.toBeNull();
+  });
+
+  it("never calls a partial total a shortfall", () => {
+    render(<Micronutrients foods={[{ iron: 0.2 }, {}, {}]} />);
+    expect(screen.queryByText(/% of the/)).toBeNull();
+  });
+
+  it("calls a shortfall when the figure is complete", () => {
+    render(<Micronutrients foods={[{ calcium: 100 }, { calcium: 100 }]} />);
+    expect(screen.getByText(/Calcium is 20% of the 1000mg target/)).toBeDefined();
+  });
+
+  it("scales the saturated-fat guidance with the day's calorie target", () => {
+    render(<Micronutrients foods={[{ saturatedFat: 10 }]} calorieTarget={3600} />);
+    // 3600 kcal × 10% ÷ 9 = 40 g.
+    expect(screen.getByText(/40g limit/)).toBeDefined();
+  });
+
+  it("says so when nothing carried label detail at all", () => {
+    render(<Micronutrients foods={[{}, {}]} />);
+    expect(screen.getByText(/None of today’s 2 foods carried label detail/)).toBeDefined();
   });
 });

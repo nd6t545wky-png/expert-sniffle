@@ -4,6 +4,7 @@ import { FoodProduct, NutritionEstimate, PitchingOsApi } from "../../src/domain/
 import { DEMAND_NOTE, FuelTargets } from "../../src/domain/fuelling";
 import { Alert, Card, EmptyState, Field, Metric, PageHead, TaskRow } from "./Page";
 import { WaterTracker } from "./WaterTracker";
+import { Micronutrients } from "./Micronutrients";
 
 /**
  * Meals, hydration and food lookup.
@@ -23,6 +24,14 @@ export interface Meal {
   fat: number;
   source: string;
   createdAt: string;
+  /**
+   * What this food's label declared beyond the macros, keyed by nutrient id.
+   *
+   * Absent entirely when nothing was declared, and individual nutrients are
+   * absent when that one was not — the distinction between "zero" and "the
+   * label did not say" is the whole point of the micronutrient card.
+   */
+  micronutrients?: Record<string, number>;
 }
 
 export interface NutritionTargets {
@@ -166,7 +175,9 @@ export function Nutrition({
   }
 
   function addProduct(product: FoodProduct) {
-    const per = product.perServing ?? product.per100g;
+    const usingServing = product.perServing !== null && product.perServing !== undefined;
+    const per = usingServing ? product.perServing! : product.per100g;
+    const micros = usingServing ? product.micronutrientsPerServing : product.micronutrientsPer100g;
     onAddMeal({
       id: newId(),
       name: `${product.brand ? `${product.brand} ` : ""}${product.name}`.trim(),
@@ -174,6 +185,10 @@ export function Nutrition({
       protein: Math.round(Number(per.protein ?? 0)),
       carbs: Math.round(Number(per.carbs ?? 0)),
       fat: Math.round(Number(per.fat ?? 0)),
+      // Whichever column the macros came from, take the micronutrients from
+      // the same one — mixing a per-serving macro with a per-100 g iron would
+      // silently rescale one nutrient against another.
+      ...(micros && Object.keys(micros).length ? { micronutrients: micros } : {}),
       source: "openfoodfacts",
       createdAt: new Date().toISOString(),
     });
@@ -213,6 +228,11 @@ export function Nutrition({
         logged={hydrationLitres}
         goal={targets.fluid}
         onChange={onHydration}
+      />
+
+      <Micronutrients
+        foods={meals.map((meal) => meal.micronutrients ?? {})}
+        calorieTarget={targets.calories || fuel?.calories || null}
       />
 
       <Card>

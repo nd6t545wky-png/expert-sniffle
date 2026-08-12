@@ -424,6 +424,13 @@ export interface FoodProduct {
   servingQuantity: number | null;
   per100g: Record<string, number | null>;
   perServing: Record<string, number | null> | null;
+  /**
+   * What the label declared beyond the macros. A nutrient the label stayed
+   * silent on is *absent* from these, never zero — the app reports the
+   * silence rather than counting it as none.
+   */
+  micronutrientsPer100g?: Record<string, number>;
+  micronutrientsPerServing?: Record<string, number>;
   imageUrl: string;
   dataWarnings: string[];
 }

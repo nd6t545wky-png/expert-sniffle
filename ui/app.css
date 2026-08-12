@@ -1029,3 +1029,86 @@ body {
   font-size: 10px;
   font-variant-numeric: tabular-nums;
 }
+
+/* --- Micronutrients ---------------------------------------------------------
+ * The card's whole job is the distinction between "zero" and "the label did
+ * not say", so the styles carry it: an undeclared nutrient is visibly recessed
+ * rather than drawn as an empty bar that reads as none, and a partial total
+ * gets a hatched fill so it cannot be mistaken for a finished figure.
+ * ------------------------------------------------------------------------- */
+
+.micro-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 14px;
+}
+
+/* A divider, because twelve stacked rows of heading-bar-note run together
+ * without one. */
+.micro-row + .micro-row {
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+
+.micro-row.is-unknown { opacity: .55; }
+
+/* Nothing declared it, so there is no bar — the note carries the row and the
+ * spacing has to make up the difference. */
+.micro-row.is-unknown .micro-note { margin-top: 5px; }
+
+.micro-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.micro-head strong { font-size: 13px; }
+
+.micro-amount {
+  color: var(--ink);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.micro-amount small { color: var(--muted); font-size: 10.5px; }
+
+/* "at least" is the honest half of a partial total, so it is not fine print. */
+.micro-atleast { color: var(--muted); font-size: 11px; }
+
+.micro-bar {
+  height: 6px;
+  margin: 6px 0 5px;
+  border-radius: 3px;
+  background: var(--surface-secondary);
+  overflow: hidden;
+}
+
+.micro-fill {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  background: var(--ink);
+  opacity: .72;
+}
+
+/* A floor, drawn as one: the hatching says the bar could still grow. Never
+ * colour alone — the row's text says "at least" as well. */
+.micro-fill.is-partial {
+  background: repeating-linear-gradient(
+    135deg,
+    var(--ink) 0 4px,
+    transparent 4px 8px
+  );
+  opacity: .5;
+}
+
+.micro-note {
+  margin: 0;
+  color: var(--muted);
+  font-size: 10.5px;
+  line-height: 1.5;
+}
