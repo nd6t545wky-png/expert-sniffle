@@ -5,6 +5,7 @@ import { MAX_STATS, SessionRecap as Recap } from "../../src/domain/sessionRecap"
 import { drawRecapCard, RECAP_CARD } from "../state/recapCard";
 import { Alert } from "./Page";
 import { formatIsoDate } from "../state/formatDate";
+import { ConfirmButton } from "./ConfirmButton";
 
 /**
  * The session recap — a photo with the day's work on it, for sharing.
@@ -302,14 +303,13 @@ export function SessionRecap({
           {photoUrl ? "Change photo" : "Add photo"}
         </button>
         {photoUrl && (
-          <button
+          <ConfirmButton
+            label="Remove photo"
+            describe="this session's photo"
+            onConfirm={() => void handleRemove()}
             className="btn btn-outline"
-            type="button"
             disabled={Boolean(busy)}
-            onClick={() => void handleRemove()}
-          >
-            Remove photo
-          </button>
+          />
         )}
         <button className="btn btn-dark" type="button" disabled={Boolean(busy)} onClick={() => void handleShare(true)}>
           Share

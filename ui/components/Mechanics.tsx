@@ -4,6 +4,7 @@ import { MechanicsAnalysis, MechanicsAngle, MechanicsVideo, PitchingOsApi } from
 import { Alert, Card, CardHead, EmptyState, Field, PageHead } from "./Page";
 import { MechanicsRoutine } from "./MechanicsRoutine";
 import { KinematicsCapture } from "./KinematicsCapture";
+import { ConfirmButton } from "./ConfirmButton";
 import { ANGLE_COVERAGE, CHECKPOINTS } from "../../src/domain/mechanicsDrills";
 import { Capture } from "../../src/domain/kinematics";
 
@@ -236,16 +237,17 @@ export function Mechanics({
                   </div>
                 </div>
                 <div className="task-actions">
-                  <button
-                    type="button"
+                  <ConfirmButton
+                    label="Delete"
+                    describe={video.fileName || "this video"}
                     className="btn btn-outline"
-                    onClick={async () => {
-                      await api.deleteMechanicsVideo(video.id);
-                      await refresh();
+                    onConfirm={() => {
+                      void (async () => {
+                        await api.deleteMechanicsVideo(video.id);
+                        await refresh();
+                      })();
                     }}
-                  >
-                    Delete
-                  </button>
+                  />
                 </div>
               </li>
             ))}

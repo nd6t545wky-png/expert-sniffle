@@ -18,6 +18,8 @@ const clamp = (value: number, min: number, max: number) => Math.min(max, Math.ma
 const BOTTLE_PATH =
   "M70 47v16c0 9-12 12-20 25-8 13-12 27-12 44v158c0 22 11 32 31 32h42c20 0 31-10 31-32V132c0-17-4-31-12-44-8-13-20-16-20-25V47Z";
 
+import { ConfirmButton } from "./ConfirmButton";
+
 const wave = (y: number) =>
   `M-180 ${y} Q-135 ${y - 8} -90 ${y}T0 ${y}T90 ${y}T180 ${y}T270 ${y}T360 ${y}V340H-180Z`;
 
@@ -128,13 +130,12 @@ export function WaterTracker({ date, logged, goal, presets = [0.5, 0.75], onChan
                 +{Math.round(value * 1000)} mL
               </button>
             ))}
-            <button
+            <ConfirmButton
+              label="Reset today"
+              describe="today's hydration"
               className="text-button danger-text water-reset"
-              type="button"
-              onClick={() => onChange("reset")}
-            >
-              Reset today
-            </button>
+              onConfirm={() => onChange("reset")}
+            />
           </div>
           <p className="fineprint">
             This records fluid volume only. Your target should reflect your sports-dietitian plan and

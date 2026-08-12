@@ -1310,3 +1310,16 @@ body {
   display: block;
   margin-top: 4px;
 }
+
+/* --- Confirming a destructive action ----------------------------------------
+ * The armed state of a delete. Laid out inline so the row does not jump when
+ * the button becomes two buttons — a shifting row is how the wrong thing gets
+ * tapped, which is the failure this guard exists to prevent.
+ * ------------------------------------------------------------------------- */
+
+.confirm-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}

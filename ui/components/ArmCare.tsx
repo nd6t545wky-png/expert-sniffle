@@ -15,6 +15,7 @@ import {
 } from "../../src/domain/armCare";
 import { Alert, EmptyState } from "./Page";
 import { formatIsoDate } from "../state/formatDate";
+import { ConfirmButton } from "./ConfirmButton";
 
 /**
  * The arm screen: a dynamometer battery scored against the athlete's own
@@ -286,14 +287,11 @@ export function ArmCare({ date, exams, bodyweightKg, onSave, onRemove }: ArmCare
                         {value && !value.complete ? "*" : ""}
                       </td>
                       <td>
-                        <button
-                          className="text-button danger-text"
-                          type="button"
-                          aria-label={`Remove screen from ${item.date}`}
-                          onClick={() => onRemove(item.id)}
-                        >
-                          Remove
-                        </button>
+                        <ConfirmButton
+                          label="Remove"
+                          describe={`the screen from ${item.date}`}
+                          onConfirm={() => onRemove(item.id)}
+                        />
                       </td>
                     </tr>
                   );

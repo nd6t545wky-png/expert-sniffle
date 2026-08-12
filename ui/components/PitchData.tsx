@@ -10,6 +10,7 @@ import {
   topVelocity,
 } from "../../src/domain/pitchLog";
 import { Alert, EmptyState } from "./Page";
+import { ConfirmButton } from "./ConfirmButton";
 
 /**
  * Ball flight — the one category the app had nothing for.
@@ -286,14 +287,11 @@ export function PitchData({ date, pitches, onImport, onAdd, onRemove }: PitchDat
                     <td>{pitch.spinRpm ?? "—"}</td>
                     <td>{SOURCE_LABEL[pitch.source]}</td>
                     <td>
-                      <button
-                        className="text-button danger-text"
-                        type="button"
-                        aria-label={`Remove ${pitch.pitchType || "pitch"} at ${pitch.velocityMph} mph`}
-                        onClick={() => onRemove(pitch.id)}
-                      >
-                        Remove
-                      </button>
+                      <ConfirmButton
+                        label="Remove"
+                        describe={`${pitch.pitchType || "pitch"} at ${pitch.velocityMph} mph`}
+                        onConfirm={() => onRemove(pitch.id)}
+                      />
                     </td>
                   </tr>
                 ))}

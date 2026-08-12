@@ -16,6 +16,7 @@ import {
   readFrame,
 } from "../../src/domain/kinematics";
 import { Alert, EmptyState } from "./Page";
+import { ConfirmButton } from "./ConfirmButton";
 
 /**
  * Measured kinematics: scrub to a checkpoint, tap the body points, read the
@@ -483,14 +484,11 @@ export function KinematicsCapture({
                   {capture.date} · {VIEW_LABELS[capture.view]} ·{" "}
                   {captureProgress(capture, CHECKPOINTS.map((point) => point.key)).done} checkpoints
                 </span>
-                <button
-                  className="text-button danger-text"
-                  type="button"
-                  aria-label={`Remove the measurement from ${capture.date}`}
-                  onClick={() => onRemove(capture.id)}
-                >
-                  Remove
-                </button>
+                <ConfirmButton
+                  label="Remove"
+                  describe={`the measurement from ${capture.date}`}
+                  onConfirm={() => onRemove(capture.id)}
+                />
               </li>
             ))}
           </ul>

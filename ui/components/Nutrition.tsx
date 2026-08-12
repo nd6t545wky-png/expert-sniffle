@@ -5,6 +5,7 @@ import { DEMAND_NOTE, FuelTargets } from "../../src/domain/fuelling";
 import { Alert, Card, EmptyState, Field, Metric, PageHead, TaskRow } from "./Page";
 import { WaterTracker } from "./WaterTracker";
 import { Micronutrients } from "./Micronutrients";
+import { ConfirmButton } from "./ConfirmButton";
 
 /**
  * Meals, hydration and food lookup.
@@ -390,9 +391,12 @@ export function Nutrition({
               title={meal.name}
               detail={`${meal.calories} kcal · P ${meal.protein}g`}
               actions={
-                <button type="button" className="btn btn-outline" onClick={() => onRemoveMeal(meal.id)}>
-                  Remove
-                </button>
+                <ConfirmButton
+                  label="Remove"
+                  describe={meal.name}
+                  onConfirm={() => onRemoveMeal(meal.id)}
+                  className="btn btn-outline"
+                />
               }
             />
           ))}

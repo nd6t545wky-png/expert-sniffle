@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { render, screen, fireEvent, waitFor, cleanup } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, cleanup, act } from "@testing-library/react";
 import { PitchingOsApi } from "../../src/domain/api";
 import { Integrations } from "./Integrations";
 import { Mechanics } from "./Mechanics";
@@ -12,6 +12,9 @@ import { MovementPlot } from "./MovementPlot";
 import { Micronutrients } from "./Micronutrients";
 import { KinematicsCapture } from "./KinematicsCapture";
 import { DataBackup } from "./DataBackup";
+import { ConfirmButton, DISARM_MS } from "./ConfirmButton";
+import { PitchData } from "./PitchData";
+import { WaterTracker } from "./WaterTracker";
 import { Pitch } from "../../src/domain/pitchLog";
 import { Dashboard } from "./Dashboard";
 import { SessionRecap } from "./SessionRecap";
@@ -217,7 +220,9 @@ describe("Nutrition", () => {
     // Tapping the bottle itself adds 250 mL, and reset clears the day.
     fireEvent.click(screen.getByRole("button", { name: /Add 250 millilitres/ }));
     expect(onHydration).toHaveBeenCalledWith(0.25);
-    fireEvent.click(screen.getByRole("button", { name: "Reset today" }));
+    // Reset is destructive, so it arms first and only acts on the second tap.
+    fireEvent.click(screen.getByRole("button", { name: /^Reset today today's hydration$/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Confirm: reset today/ }));
     expect(onHydration).toHaveBeenCalledWith("reset");
   });
 
@@ -1138,7 +1143,10 @@ describe("Kinematics capture — measured angles from the athlete's own video", 
       />
     );
     expect(screen.getByText("Saved measurements (1)")).toBeDefined();
-    fireEvent.click(screen.getByRole("button", { name: /Remove the measurement from 2026-08-05/ }));
+    fireEvent.click(screen.getByRole("button", { name: /^Remove the measurement from 2026-08-05$/ }));
+    // Guarded: the first tap only arms it.
+    expect(removed).toHaveLength(0);
+    fireEvent.click(screen.getByRole("button", { name: /Confirm: remove the measurement/ }));
     expect(removed).toEqual(["k1"]);
   });
 
@@ -1221,5 +1229,100 @@ describe("Data backup — the only way data leaves this app", () => {
     await waitFor(() => expect(screen.getByText(/broken.json was not imported/)).toBeDefined());
     expect(screen.getByText(/not valid JSON/)).toBeDefined();
     expect(replaced).toHaveLength(0);
+  });
+});
+
+describe("ConfirmButton — destructive actions ask once", () => {
+  it("does nothing on the first tap", () => {
+    const fired: number[] = [];
+    render(<ConfirmButton label="Remove" describe="the slider" onConfirm={() => fired.push(1)} />);
+    fireEvent.click(screen.getByRole("button", { name: "Remove the slider" }));
+    expect(fired).toHaveLength(0);
+    expect(screen.getByText("Remove?")).toBeDefined();
+  });
+
+  it("acts on the second tap", () => {
+    const fired: number[] = [];
+    render(<ConfirmButton label="Remove" describe="the slider" onConfirm={() => fired.push(1)} />);
+    fireEvent.click(screen.getByRole("button", { name: "Remove the slider" }));
+    fireEvent.click(screen.getByRole("button", { name: /Confirm: remove the slider/ }));
+    expect(fired).toHaveLength(1);
+  });
+
+  it("can be cancelled", () => {
+    const fired: number[] = [];
+    render(<ConfirmButton label="Remove" describe="the slider" onConfirm={() => fired.push(1)} />);
+    fireEvent.click(screen.getByRole("button", { name: "Remove the slider" }));
+    fireEvent.click(screen.getByRole("button", { name: "Keep the slider" }));
+    expect(fired).toHaveLength(0);
+    expect(screen.getByRole("button", { name: "Remove the slider" })).toBeDefined();
+  });
+
+  it("says out loud that the second tap cannot be undone", () => {
+    render(<ConfirmButton label="Remove" describe="the slider" onConfirm={() => {}} />);
+    fireEvent.click(screen.getByRole("button", { name: "Remove the slider" }));
+    // The guard has to exist for a screen reader, not only as a visual pause.
+    expect(screen.getByRole("button", { name: /This cannot be undone/ })).toBeDefined();
+  });
+
+  it("disarms itself rather than staying a trap for the next tap", async () => {
+    vi.useFakeTimers();
+    try {
+      const fired: number[] = [];
+      render(<ConfirmButton label="Remove" describe="the slider" onConfirm={() => fired.push(1)} />);
+      fireEvent.click(screen.getByRole("button", { name: "Remove the slider" }));
+      expect(screen.getByText("Remove?")).toBeDefined();
+      act(() => {
+        vi.advanceTimersByTime(DISARM_MS + 50);
+      });
+      expect(screen.queryByText("Remove?")).toBeNull();
+      expect(fired).toHaveLength(0);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
+
+describe("destructive actions across the app are guarded", () => {
+  it("does not remove a pitch on the first tap", () => {
+    const removed: string[] = [];
+    render(
+      <PitchData
+        date="2026-08-12"
+        pitches={[
+          {
+            id: "p1",
+            date: "2026-08-12",
+            pitchType: "Slider",
+            velocityMph: 79,
+            spinRpm: null,
+            spinEfficiencyPct: null,
+            inducedVertBreakIn: null,
+            horzBreakIn: null,
+            releaseHeightFt: null,
+            releaseSideFt: null,
+            extensionFt: null,
+            source: "manual",
+          },
+        ]}
+        onImport={() => {}}
+        onAdd={() => {}}
+        onRemove={(id) => removed.push(id)}
+      />
+    );
+    fireEvent.click(screen.getByText("Every pitch (1)"));
+    fireEvent.click(screen.getByRole("button", { name: /^Remove Slider at 79 mph$/ }));
+    expect(removed).toHaveLength(0);
+    fireEvent.click(screen.getByRole("button", { name: /Confirm: remove Slider at 79 mph/ }));
+    expect(removed).toEqual(["p1"]);
+  });
+
+  it("does not wipe the day's hydration on the first tap", () => {
+    const changes: (number | "reset")[] = [];
+    render(<WaterTracker date="2026-08-12" logged={2} goal={3.6} onChange={(v) => changes.push(v)} />);
+    fireEvent.click(screen.getByRole("button", { name: /^Reset today today's hydration$/ }));
+    expect(changes).toHaveLength(0);
+    fireEvent.click(screen.getByRole("button", { name: /Confirm: reset today/ }));
+    expect(changes).toEqual(["reset"]);
   });
 });
