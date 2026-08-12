@@ -234,7 +234,18 @@ check(
 
 // ------------------------------------------------------------- workload
 await shortcut("Active workload");
-const today = await page.evaluate(() => new Date().getDay()); // 0=Sun
+// The weekday has to come from Brisbane, not from this machine's clock. The
+// app anchors every date to Australia/Brisbane; `new Date().getDay()` reads
+// UTC, and for the ten hours a day those disagree this check asserted the
+// opposite of what the app was correctly doing — it failed on a Tuesday and
+// again on a Wednesday during one afternoon of work.
+const today = await page.evaluate(() => {
+  const brisbane = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Australia/Brisbane",
+    weekday: "short",
+  }).format(new Date());
+  return ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].indexOf(brisbane);
+}); // 0=Sun, in the app's own timezone
 const isHighIntentDay = today === 3 || today === 6; // Wed or Sat
 await page.selectOption("select", "high");
 await page.click('button:has-text("Log throwing")');
