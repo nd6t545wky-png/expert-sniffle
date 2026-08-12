@@ -15,6 +15,7 @@ import {
   readFrame,
   tiltFromVertical,
 } from "./kinematics";
+import { OBP_SOURCE } from "./obpReference";
 
 const p = (x: number, y: number) => ({ x, y });
 
@@ -111,7 +112,7 @@ describe("readFrame", () => {
   });
 
   it("marks a value outside its reference band", () => {
-    // Elbow band is 80–105°; a straight arm is well outside it.
+    // The measured elbow band is 92–116°; a straight arm is well outside it.
     const readings = readFrame(
       capture({ footStrike: { shoulder: p(0.3, 0.4), elbow: p(0.5, 0.4), wrist: p(0.7, 0.4) } }),
       "footStrike"
@@ -122,13 +123,17 @@ describe("readFrame", () => {
   });
 
   it("never marks a band on a measurement that has none", () => {
+    // Trunk lean is an unsigned lean off vertical; the reference data splits
+    // trunk angle into signed anterior and lateral parts. Different quantity,
+    // so no band and never a verdict.
     const readings = readFrame(
-      capture({ footStrike: { hip: p(0.5, 0.7), shoulder: p(0.5, 0.4), elbow: p(0.7, 0.4) } }),
+      capture({ footStrike: { hip: p(0.5, 0.9), shoulder: p(0.9, 0.1) } }),
       "footStrike"
     );
-    const slot = readings.find((row) => row.measurement.id === "shoulderAbduction")!;
-    expect(slot.value).not.toBeNull();
-    expect(slot.outsideBand).toBe(false);
+    const trunk = readings.find((row) => row.measurement.id === "trunkTilt")!;
+    expect(trunk.value).not.toBeNull();
+    expect(trunk.measurement.band).toBeUndefined();
+    expect(trunk.outsideBand).toBe(false);
   });
 
   it("falls back to a square frame rather than dividing by a bad aspect", () => {
@@ -264,8 +269,8 @@ describe("kinematicFindings", () => {
       "footStrike"
     );
     const [finding] = kinematicFindings(readings, null);
-    expect(finding.text).toMatch(/Elbow angle measured 180°, outside the 80–105° range/);
-    expect(finding.text).toMatch(/laboratory motion capture/);
+    expect(finding.text).toMatch(/Elbow angle measured 180°, outside the 92–115.8° range/);
+    expect(finding.text).toMatch(/411 pitches from 100 college and professional pitchers/);
   });
 
   it("reads a straightening knee as the lead leg blocking", () => {
@@ -286,13 +291,48 @@ describe("kinematicFindings", () => {
 });
 
 describe("the measurement set", () => {
-  it("only bands the measurements with published laboratory ranges", () => {
+  it("bands only what the reference population actually measured the same way", () => {
     const banded = MEASUREMENTS.filter((m) => m.band).map((m) => m.id);
-    expect(banded.sort()).toEqual(["elbowFlexion", "hipShoulderSeparation"]);
+    expect(banded.sort()).toEqual(["elbowFlexion", "hipShoulderSeparation", "shoulderAbduction"]);
   });
 
   it("gives every view at least one measurement it can actually see", () => {
     expect(measurementsFor("side").length).toBeGreaterThan(0);
     expect(measurementsFor("front").length).toBeGreaterThan(0);
+  });
+});
+
+describe("reference bands", () => {
+  it("bands only the measurements whose geometry matches the reference data", () => {
+    // Trunk lean and shoulder tilt are a different construction from anything
+    // OBP publishes — the lab splits trunk angle into signed anterior and
+    // lateral components. A band over the wrong quantity is worse than none.
+    const banded = MEASUREMENTS.filter((m) => m.band).map((m) => m.id).sort();
+    expect(banded).toEqual([
+      "elbowFlexion",
+      "hipShoulderSeparation",
+      "shoulderAbduction",
+    ]);
+    expect(MEASUREMENTS.find((m) => m.id === "trunkTilt")?.band).toBeUndefined();
+    expect(MEASUREMENTS.find((m) => m.id === "shoulderLineTilt")?.band).toBeUndefined();
+  });
+
+  it("uses the measured middle half rather than a remembered range", () => {
+    // The hand-written band said 40–60°. 411 measured pitches put the middle
+    // half at 25–35°, which is the correction this data bought.
+    const separation = MEASUREMENTS.find((m) => m.id === "hipShoulderSeparation")!;
+    expect(separation.band!.low).toBeCloseTo(25.2, 1);
+    expect(separation.band!.high).toBeCloseTo(34.7, 1);
+  });
+
+  it("names the population in the band's own words", () => {
+    const elbow = MEASUREMENTS.find((m) => m.id === "elbowFlexion")!;
+    expect(elbow.band!.source).toMatch(/411 pitches from 100 college and professional pitchers/);
+    expect(elbow.band!.source).toMatch(/OpenBiomechanics/);
+  });
+
+  it("carries the source counts for the UI to cite", () => {
+    expect(OBP_SOURCE.pitches).toBe(411);
+    expect(OBP_SOURCE.athletes).toBe(100);
   });
 });

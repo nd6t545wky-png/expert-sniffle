@@ -23,14 +23,19 @@
  *     see.
  *   - **A missing landmark is missing.** A measurement whose points were not
  *     all placed is absent, never estimated from the ones that were.
- *   - **Reference bands come from laboratory motion capture**, on other
- *     pitchers, in three dimensions. They are context for a conversation, not
- *     a grade, and comparing a phone-video figure against one is a rough
- *     comparison by construction. The athlete's own history is the better
- *     measure and the UI leads with it.
+ *   - **Reference bands are real measurements of other pitchers, not targets.**
+ *     They come from the OpenBiomechanics Project — 411 pitches from 100
+ *     college and professional pitchers, marker-based 3D capture in a lab. Two
+ *     things follow. The population is elite, so the middle of their range
+ *     describes them rather than setting a goal for anyone else. And they were
+ *     measured in three dimensions where this app sees a projection, so a band
+ *     is only published where the two constructions actually correspond — four
+ *     of the six measurements here. The athlete's own history remains the
+ *     better comparison and the UI leads with it.
  */
 
 import { IsoDate } from "./state";
+import { OBP_SOURCE, obpBandFor } from "./obpReference";
 
 /** A tap on the frame, normalised to 0–1 of width and height. */
 export interface Point {
@@ -176,15 +181,28 @@ export interface Measurement {
   compute: (frame: Frame, aspect: number) => number | null;
 }
 
-const LAB =
-  "reported for adult pitchers in laboratory motion capture, in three dimensions";
+/**
+ * Where a band comes from.
+ *
+ * Previously two measurements carried a range quoted from memory of the
+ * literature. Both were wrong: the hip–shoulder separation band said 40–60°,
+ * where 411 measured pitches put the middle half at 25–35°, and the elbow band
+ * sat low. They are now derived from real data, and the two measurements whose
+ * geometry does not correspond to anything OBP publishes carry no band at all
+ * rather than a plausible-looking one.
+ */
+const LAB = `measured across ${OBP_SOURCE.pitches} pitches from ${OBP_SOURCE.athletes} college and professional pitchers (${OBP_SOURCE.cite})`;
 
 /**
  * The measurements, per camera view.
  *
- * Only two carry a reference band. The rest are reported as the athlete's own
- * number tracked over time, because a band nobody can defend is worse than no
- * band — it turns an individual, coachable trait into a mark out of ten.
+ * Bands are attached below from measured data, and only where this app's
+ * geometry matches what the reference population measured. Trunk lean and
+ * shoulder tilt get none: the lab splits trunk angle into signed anterior and
+ * lateral components, while this app reports one unsigned lean off vertical.
+ * They are different quantities, and a band over the wrong quantity is worse
+ * than no band — it turns an individual, coachable trait into a mark out of ten
+ * against something that was never measured.
  */
 export const MEASUREMENTS: Measurement[] = [
   {
@@ -194,7 +212,6 @@ export const MEASUREMENTS: Measurement[] = [
     view: "side",
     needs: ["shoulder", "elbow", "wrist"],
     why: "How bent the throwing elbow is. 180° would be a straight arm.",
-    band: { low: 80, high: 105, source: LAB },
     compute: (frame, aspect) =>
       frame.elbow && frame.shoulder && frame.wrist
         ? angleAt(frame.elbow, frame.shoulder, frame.wrist, aspect)
@@ -241,7 +258,6 @@ export const MEASUREMENTS: Measurement[] = [
     view: "front",
     needs: ["leftShoulder", "rightShoulder", "leftHip", "rightHip"],
     why: "How far the shoulders have stayed closed while the hips have opened. The most-studied single number in pitching mechanics.",
-    band: { low: 40, high: 60, source: LAB },
     compute: (frame, aspect) =>
       frame.leftShoulder && frame.rightShoulder && frame.leftHip && frame.rightHip
         ? angleBetweenLines(
@@ -269,6 +285,25 @@ export const MEASUREMENTS: Measurement[] = [
     },
   },
 ];
+
+/**
+ * Attach the measured reference bands.
+ *
+ * Done here rather than inline so the numbers have exactly one source — the
+ * generated table — and a measurement with no honest counterpart in that table
+ * simply never gets a `band`, which every reader downstream already handles.
+ *
+ * The band is the middle half of the reference population, matching how the
+ * rest of the app talks about a usual range. Not the full spread: p10–p90 on
+ * this data is wide enough to contain almost anything, which would make the
+ * band true and useless.
+ */
+for (const measurement of MEASUREMENTS) {
+  const reference = obpBandFor(measurement.id);
+  if (reference) {
+    measurement.band = { low: reference.p25, high: reference.p75, source: LAB };
+  }
+}
 
 export function measurementsFor(view: KinematicView): Measurement[] {
   return MEASUREMENTS.filter((measurement) => measurement.view === view);
@@ -433,12 +468,20 @@ export function kinematicFindings(readings: Reading[], block: number | null): Ki
   }
 
   if (block !== null) {
+    // The reference population's own middle half, so the number has somewhere
+    // to stand. Deliberately not a pass mark: a quarter of measured college and
+    // professional pitchers sit below this band and a quarter above it.
+    const reference = obpBandFor("leadLegBlock");
+    const where = reference
+      ? ` The middle half of ${OBP_SOURCE.athletes} measured pitchers straightened ${reference.p25}–${reference.p75}°.`
+      : "";
+
     findings.push({
       severity: block > 0 ? "note" : "watch",
       text:
         block > 0
-          ? `Your front knee straightened ${block}° between foot strike and release — that is the lead leg blocking.`
-          : `Your front knee bent a further ${Math.abs(block)}° between foot strike and release rather than straightening.`,
+          ? `Your front knee straightened ${block}° between foot strike and release — that is the lead leg blocking.${where}`
+          : `Your front knee bent a further ${Math.abs(block)}° between foot strike and release rather than straightening.${where}`,
     });
   }
 

@@ -15,6 +15,7 @@ import {
   measurementHistory,
   readFrame,
 } from "../../src/domain/kinematics";
+import { OBP_SOURCE } from "../../src/domain/obpReference";
 import { Alert, EmptyState } from "./Page";
 import { ConfirmButton } from "./ConfirmButton";
 
@@ -185,9 +186,16 @@ export function KinematicsCapture({
       <Alert>
         <strong>What this is, and is not</strong>
         One camera sees a flat picture of a three-dimensional movement, so these angles are
-        projections — accurate enough to track against yourself session to session, and rougher
-        than a laboratory figure. Reference ranges come from lab motion capture on other pitchers.
-        Your own history is the number that means the most here.
+        projections — good enough to track against yourself session to session, and rougher than a
+        laboratory figure. Where a range is shown it is the middle half of {OBP_SOURCE.pitches}{" "}
+        pitches from {OBP_SOURCE.athletes} college and professional pitchers measured with markers
+        in a lab (
+        <a href={OBP_SOURCE.url} target="_blank" rel="noreferrer">
+          {OBP_SOURCE.cite}
+        </a>
+        ). That is a description of them, not a target for you — a quarter of them sit below each
+        band and a quarter above. Measurements whose geometry does not match what that lab recorded
+        carry no range at all. Your own history is still the number that means the most here.
       </Alert>
 
       <div className="kin-sources">
