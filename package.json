@@ -10,7 +10,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "e2e": "node e2e/workflows.mjs && node e2e/migration.mjs && node e2e/autosave.mjs",
+    "e2e": "node e2e/workflows.mjs && node e2e/migration.mjs && node e2e/autosave.mjs && node e2e/offline.mjs",
     "e2e:serve": "npm run build && (cd dist && python3 -m http.server 8899 --bind 127.0.0.1)"
   },
   "dependencies": {
