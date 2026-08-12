@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { PitchingOsApi } from "../../src/domain/api";
 import { Alert, Card, PageHead } from "./Page";
+import { APPLE_FIELDS } from "../../src/domain/appleHealth";
 
 /**
  * Oura and Apple Health.
@@ -199,10 +200,95 @@ export function Integrations({ api, hasSyncKey }: IntegrationsProps) {
             </button>
           </div>
           <button type="button" className="btn btn-outline" onClick={() => setUploadToken("")}>
-            I've saved it
+            I&apos;ve saved it
           </button>
         </Alert>
       )}
+
+      {/* A token with no recipe is not an integration. Apple keeps Health and
+          Fitness data on the device — there is no cloud API to connect to and
+          no OAuth to click through — so a Shortcut posting the numbers is the
+          only route, and it has to be spelled out to be usable. */}
+      <details className="card disclosure-card quiet-disclosure">
+        <summary>
+          <span>
+            <strong>Setting up the Apple Fitness Shortcut</strong>
+            <small>What to build on the iPhone, and the exact names to use</small>
+          </span>
+          <span>Show</span>
+        </summary>
+        <div className="disclosure-body">
+          <p className="fineprint disclosure-intro">
+            Apple keeps Health and Fitness data on your phone and watch. There is no account to
+            connect and no Apple server to ask, so nothing can pull these numbers — the phone has to
+            push them. A Shortcut set to run each morning does that in about a minute of setup.
+          </p>
+
+          <ol className="shortcut-steps">
+            <li>
+              Open <strong>Shortcuts</strong> on the iPhone and make a new shortcut.
+            </li>
+            <li>
+              Add a <strong>Find Health Samples</strong> action for each figure you want — Active
+              Energy, Exercise Minutes, Stand Hours, Steps, Resting Heart Rate, Heart Rate
+              Variability, Sleep, Weight — set each to <em>Today</em> and to the right total
+              (<em>Sum</em> for energy, minutes, hours and steps; <em>Average</em> for heart rate and
+              HRV; <em>Latest</em> for weight).
+            </li>
+            <li>
+              Add a <strong>Dictionary</strong> action and put each result under the name in the
+              table below. Leave out anything you do not want to send.
+            </li>
+            <li>
+              Add <strong>Get Contents of URL</strong>. Set the address to the upload address above,
+              method <strong>POST</strong>, request body <strong>JSON</strong> with the dictionary,
+              and one header: <code>Authorization</code> set to{" "}
+              <code>Bearer &lt;your upload key&gt;</code>.
+            </li>
+            <li>
+              In the <strong>Automation</strong> tab, run it daily — first thing in the morning, so
+              the day is complete before the check-in asks about it.
+            </li>
+          </ol>
+
+          <div className="scroll-x">
+            <table className="pitch-table">
+              <thead>
+                <tr>
+                  <th scope="col">Name to use</th>
+                  <th scope="col">What to put in it</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>
+                    <code>day</code>
+                  </td>
+                  <td>The date as 2026-08-12. Required — everything else is optional.</td>
+                </tr>
+                {/* Generated from the same table the Worker validates against,
+                    so what this page tells you to send is what it accepts. */}
+                {APPLE_FIELDS.map((field) => (
+                  <tr key={field.id}>
+                    <td>
+                      <code>{field.id}</code>
+                    </td>
+                    <td>{field.describe}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <p className="fineprint">
+            Send whatever you have — a payload with only <code>day</code> and{" "}
+            <code>activeCalories</code> is fine. Anything missing stays missing rather than being
+            recorded as zero. If a figure arrives under a slightly different name the upload still
+            works: <code>activeEnergy</code>, <code>exercise</code>, <code>stand</code>,{" "}
+            <code>weight</code> and a few others are all understood.
+          </p>
+        </div>
+      </details>
 
       {error && (
         <Alert tone="danger" role="alert">

@@ -1,4 +1,5 @@
 import { createAuth } from "./auth";
+import { isEmptyPayload, readApplePayload, suppliedFields } from "./domain/appleHealth";
 import type { Env } from "./env";
 
 const MAX_PAYLOAD_BYTES = 750_000;
@@ -960,6 +961,12 @@ async function rowToSummary(row: { summary_encrypted: string } | null, env: Env)
     hrvMs: finiteNumber(summary.hrvMs, 0, 500),
     bodyweightKg: finiteNumber(summary.bodyweightKg, 35, 250),
     activityScore: finiteNumber(summary.activityScore, 0, 100),
+    // The two Apple Fitness rings the whitelist never carried. Without them
+    // the ingest could accept a Move/Exercise payload and the reader would
+    // drop it on the way back out.
+    exerciseMinutes: finiteNumber(summary.exerciseMinutes, 0, 1440),
+    standHours: finiteNumber(summary.standHours, 0, 24),
+    respiratoryRate: finiteNumber(summary.respiratoryRate, 0, 60),
     steps: finiteNumber(summary.steps, 0, 200_000),
     activeCalories: finiteNumber(summary.activeCalories, 0, 20_000),
     totalCalories: finiteNumber(summary.totalCalories, 0, 30_000),
@@ -1217,17 +1224,15 @@ async function ingestAppleHealth(request: Request, env: Env): Promise<Response> 
   const day = typeof body.day === "string" ? body.day : "";
   if (!validDay(day)) return json({ error: "Apple Health payload needs a valid day" }, 400);
 
-  const summary = {
-    sleepHours: finiteNumber(body.sleepHours, 0, 24),
-    sleepScore: null,
-    readinessScore: null,
-    restingHeartRate: finiteNumber(body.restingHeartRate, 20, 240),
-    hrvMs: finiteNumber(body.hrvMs, 0, 500),
-    bodyweightKg: finiteNumber(body.bodyweightKg, 35, 250),
-  };
-  if (Object.values(summary).every((value) => value === null)) {
+  // Validated against the shared field table, which the setup instructions are
+  // also generated from — two hand-kept lists would drift, and the failure is
+  // silent: a Shortcut built from a documented name the Worker no longer takes
+  // gets a 400 the phone never shows, which reads as the ring not syncing.
+  const read = readApplePayload(body);
+  if (isEmptyPayload(read)) {
     return json({ error: "No supported Apple Health values were supplied" }, 400);
   }
+  const summary = { ...read, sleepScore: null, readinessScore: null };
 
   await upsertHealthDaily(connection.key_hash, "apple_health", day, summary, env);
   const now = new Date().toISOString();
@@ -1236,7 +1241,7 @@ async function ingestAppleHealth(request: Request, env: Env): Promise<Response> 
   )
     .bind(connection.key_hash, now)
     .run();
-  return json({ saved: true, day, received: Object.fromEntries(Object.entries(summary).filter(([, value]) => value !== null)) });
+  return json({ saved: true, day, received: suppliedFields(read) });
 }
 
 async function disconnectAppleHealth(request: Request, env: Env): Promise<Response> {
