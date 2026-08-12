@@ -1112,3 +1112,182 @@ body {
   font-size: 10.5px;
   line-height: 1.5;
 }
+
+/* --- Measured kinematics ----------------------------------------------------
+ * A video, a tap surface over it, and the angles that fall out. The stage
+ * carries the *video's own* aspect ratio so the picture fills it exactly —
+ * the taps and the frame have to share one coordinate space, or every angle
+ * is measured against letterbox bars.
+ * ------------------------------------------------------------------------- */
+
+.kin-sources,
+.kin-views,
+.kin-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin: 12px 0;
+}
+
+.kin-views .is-active,
+.kin-checkpoint.is-active {
+  border: 1px solid var(--blue);
+  box-shadow: inset 0 0 0 1px var(--blue);
+}
+
+.kin-stage {
+  position: relative;
+  width: 100%;
+  max-width: 560px;
+  margin: 12px auto;
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: #000;
+}
+
+.kin-video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+}
+
+/* Covers the video exactly. This is a correctness rule, not a layout choice:
+ * taps are normalised against this box and the angles are corrected with the
+ * *video's* aspect ratio, so any inset here would measure the frame against a
+ * height it does not have. The transport lives outside the stage for this
+ * reason. */
+.kin-overlay {
+  position: absolute;
+  inset: 0;
+}
+
+.kin-overlay.is-placing { cursor: crosshair; }
+
+/* A placed point: a ring with its order number, so a mis-tap can be found. */
+.kin-point {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  margin: -10px 0 0 -10px;
+  display: grid;
+  place-items: center;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, .55);
+  pointer-events: none;
+}
+
+.kin-point b {
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.kin-transport {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 10px 0;
+}
+
+.kin-transport input[type="range"] { flex: 1; min-width: 0; }
+
+.kin-time {
+  color: var(--muted);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  flex: 0 0 auto;
+}
+
+.kin-checkpoints {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.kin-checkpoint {
+  padding: 10px 12px;
+  text-align: left;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.kin-checkpoint strong { display: block; font-size: 12px; }
+.kin-checkpoint small { display: block; margin-top: 3px; color: var(--muted); font-size: 10px; }
+
+/* The instruction for the next tap. Loud on purpose — it is the only thing
+ * telling the athlete which body point the app is waiting for. */
+.kin-prompt {
+  margin: 10px 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--team-primary-soft);
+  color: var(--ink);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.kin-prompt strong { display: block; margin-bottom: 2px; }
+
+.kin-readings,
+.kin-derived,
+.kin-saved {
+  list-style: none;
+  margin: 12px 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+
+.kin-readings > li.is-pending { opacity: .55; }
+
+.kin-reading-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.kin-why,
+.kin-history {
+  margin: 3px 0 0;
+  color: var(--muted);
+  font-size: 10.5px;
+  line-height: 1.5;
+}
+
+.kin-derived {
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.kin-derived li {
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.kin-derived strong {
+  display: block;
+  color: var(--ink);
+  font-size: 17px;
+  font-variant-numeric: tabular-nums;
+}
+
+.kin-saved li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 11.5px;
+}

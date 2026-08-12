@@ -10,6 +10,7 @@ import { Tracking } from "./Tracking";
 import { ProgressSpec, ProgressTrends } from "./ProgressTrends";
 import { MovementPlot } from "./MovementPlot";
 import { Micronutrients } from "./Micronutrients";
+import { KinematicsCapture } from "./KinematicsCapture";
 import { Pitch } from "../../src/domain/pitchLog";
 import { Dashboard } from "./Dashboard";
 import { SessionRecap } from "./SessionRecap";
@@ -1111,5 +1112,43 @@ describe("Micronutrients — the difference between zero and 'the label did not 
   it("says so when nothing carried label detail at all", () => {
     render(<Micronutrients foods={[{}, {}]} />);
     expect(screen.getByText(/None of today’s 2 foods carried label detail/)).toBeDefined();
+  });
+});
+
+describe("Kinematics capture — measured angles from the athlete's own video", () => {
+  const noop = () => {};
+
+  it("offers only the measurements the chosen camera view can see", () => {
+    render(<KinematicsCapture date="2026-08-12" captures={[]} onSave={noop} onRemove={noop} />);
+    // Nothing measurable until a video is open.
+    expect(screen.getByText("No video open")).toBeDefined();
+  });
+
+  it("lists saved measurements and lets one be removed", () => {
+    const removed: string[] = [];
+    render(
+      <KinematicsCapture
+        date="2026-08-12"
+        captures={[
+          { id: "k1", date: "2026-08-05", view: "side", aspect: 16 / 9, times: {}, frames: {} },
+        ]}
+        onSave={noop}
+        onRemove={(id) => removed.push(id)}
+      />
+    );
+    expect(screen.getByText("Saved measurements (1)")).toBeDefined();
+    fireEvent.click(screen.getByRole("button", { name: /Remove the measurement from 2026-08-05/ }));
+    expect(removed).toEqual(["k1"]);
+  });
+
+  it("says plainly that the video is never uploaded", () => {
+    render(<KinematicsCapture date="2026-08-12" captures={[]} onSave={noop} onRemove={noop} />);
+    expect(screen.getByText(/video itself is never uploaded/)).toBeDefined();
+  });
+
+  it("leads with what a single camera cannot do", () => {
+    render(<KinematicsCapture date="2026-08-12" captures={[]} onSave={noop} onRemove={noop} />);
+    expect(screen.getByText("What this is, and is not")).toBeDefined();
+    expect(screen.getByText(/these angles are projections/)).toBeDefined();
   });
 });

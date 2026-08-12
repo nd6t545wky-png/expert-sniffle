@@ -22,6 +22,7 @@ import {
 import { fuelTargetsFromBaseline } from "../src/domain/fuelling";
 import { Pitch, readPitches, topVelocity } from "../src/domain/pitchLog";
 import { ArmExam, readExams } from "../src/domain/armCare";
+import { readCaptures } from "../src/domain/kinematics";
 import { PitchingOsApi } from "../src/domain/api";
 import { isValidSyncKey } from "../src/domain/sync";
 import { syncNow } from "../src/domain/cloudSync";
@@ -369,6 +370,9 @@ export function App() {
       }),
     [update, date]
   );
+
+  /** Hand-digitised delivery measurements. */
+  const captures = useMemo(() => readCaptures(state?.kinematics), [state]);
 
   /** Arm screens, and the bodyweight to open a new one with. */
   const armExams = useMemo(() => readExams(state?.armExams), [state]);
@@ -908,7 +912,26 @@ export function App() {
         />
       )}
 
-      {page === "mechanics" && <Mechanics api={api} date={date} hasSyncKey={isValidSyncKey(syncKey)} />}
+      {page === "mechanics" && (
+        <Mechanics
+          api={api}
+          date={date}
+          hasSyncKey={isValidSyncKey(syncKey)}
+          captures={captures}
+          onSaveCapture={(capture) =>
+            update((draft) => ({
+              ...draft,
+              kinematics: [...readCaptures(draft.kinematics), capture],
+            }))
+          }
+          onRemoveCapture={(id) =>
+            update((draft) => ({
+              ...draft,
+              kinematics: readCaptures(draft.kinematics).filter((capture) => capture.id !== id),
+            }))
+          }
+        />
+      )}
 
       {page === "integrations" && <Integrations api={api} hasSyncKey={isValidSyncKey(syncKey)} />}
 

@@ -3,7 +3,9 @@ import { IsoDate } from "../../src/domain/state";
 import { MechanicsAnalysis, MechanicsAngle, MechanicsVideo, PitchingOsApi } from "../../src/domain/api";
 import { Alert, Card, CardHead, EmptyState, Field, PageHead } from "./Page";
 import { MechanicsRoutine } from "./MechanicsRoutine";
+import { KinematicsCapture } from "./KinematicsCapture";
 import { ANGLE_COVERAGE, CHECKPOINTS } from "../../src/domain/mechanicsDrills";
+import { Capture } from "../../src/domain/kinematics";
 
 /**
  * Pitching video library and AI movement screening.
@@ -17,6 +19,10 @@ export interface MechanicsProps {
   api: PitchingOsApi;
   date: IsoDate;
   hasSyncKey: boolean;
+  /** Hand-digitised kinematics — see `src/domain/kinematics`. */
+  captures?: Capture[];
+  onSaveCapture?: (capture: Capture) => void;
+  onRemoveCapture?: (id: string) => void;
 }
 
 const ANGLES: [MechanicsAngle, string][] = [
@@ -30,7 +36,14 @@ function newMediaId(): string {
   return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-export function Mechanics({ api, date, hasSyncKey }: MechanicsProps) {
+export function Mechanics({
+  api,
+  date,
+  hasSyncKey,
+  captures,
+  onSaveCapture,
+  onRemoveCapture,
+}: MechanicsProps) {
   const [videos, setVideos] = useState<MechanicsVideo[]>([]);
   const [angle, setAngle] = useState<MechanicsAngle>("open_side");
   const [analysis, setAnalysis] = useState<MechanicsAnalysis | null>(null);
@@ -190,6 +203,19 @@ export function Mechanics({ api, date, hasSyncKey }: MechanicsProps) {
 
       {/* The screen is only useful if it leads to work. */}
       <MechanicsRoutine analysis={analysis} />
+
+      {/* The screen rates six qualities one to five; this measures the
+          delivery in degrees and milliseconds. They answer different
+          questions, so both are here. */}
+      {onSaveCapture && onRemoveCapture && (
+        <KinematicsCapture
+          date={date}
+          captures={captures ?? []}
+          onSave={onSaveCapture}
+          onRemove={onRemoveCapture}
+          videos={videos}
+        />
+      )}
 
       {videos.length === 0 ? (
         <EmptyState title="No videos uploaded yet" detail="Uploads appear here with a playback link." />
