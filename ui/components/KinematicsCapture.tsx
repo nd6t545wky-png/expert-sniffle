@@ -16,6 +16,8 @@ import {
   readFrame,
 } from "../../src/domain/kinematics";
 import { OBP_SOURCE } from "../../src/domain/obpReference";
+import { Handedness, poseSummary } from "../../src/domain/poseMapping";
+import { detectFrame } from "../state/poseDetector";
 import { Alert, EmptyState } from "./Page";
 import { ConfirmButton } from "./ConfirmButton";
 
@@ -71,6 +73,9 @@ export function KinematicsCapture({
   const [playing, setPlaying] = useState(false);
   const [draft, setDraft] = useState<Capture>(() => fresh(date, "side"));
   const [checkpoint, setCheckpoint] = useState(CHECKPOINTS[0].key);
+  const [hand, setHand] = useState<Handedness>("right");
+  const [finding, setFinding] = useState(false);
+  const [poseNote, setPoseNote] = useState("");
 
   // A local file becomes an object URL, which has to be released or the blob
   // stays in memory for the life of the page.
@@ -155,6 +160,33 @@ export function KinematicsCapture({
         [checkpoint]: { ...(current.frames[checkpoint] ?? {}), [next.id]: point },
       },
     }));
+  }
+
+  /**
+   * Ask the model to place the points on this frame.
+   *
+   * Points already placed by hand are kept — a correction survives a re-run —
+   * and anything the model was unsure of is left for the athlete rather than
+   * guessed.
+   */
+  async function findPoints() {
+    const video = videoRef.current;
+    if (!video) return;
+    setFinding(true);
+    setPoseNote("");
+    try {
+      const result = await detectFrame(video, draft.view, hand, frame);
+      setDraft((current) => ({
+        ...current,
+        aspect: video.videoWidth > 0 ? video.videoWidth / video.videoHeight : current.aspect,
+        frames: { ...current.frames, [checkpoint]: result.frame },
+      }));
+      setPoseNote(poseSummary(result, marks.length));
+    } catch (cause) {
+      setPoseNote(cause instanceof Error ? cause.message : String(cause));
+    } finally {
+      setFinding(false);
+    }
   }
 
   function undo() {
@@ -350,6 +382,47 @@ export function KinematicsCapture({
             </button>
           </div>
 
+          <div className="kin-controls">
+            <button
+              className="btn btn-dark btn-small"
+              type="button"
+              disabled={finding}
+              onClick={() => void findPoints()}
+            >
+              {finding ? "Finding…" : "Find the points for me"}
+            </button>
+            <label className="kin-hand">
+              Throws
+              <select
+                aria-label="Throwing arm"
+                value={hand}
+                onChange={(event) => setHand(event.target.value as Handedness)}
+              >
+                <option value="right">right-handed</option>
+                <option value="left">left-handed</option>
+              </select>
+            </label>
+            <button
+              className="btn btn-outline btn-small"
+              type="button"
+              disabled={marks.every((mark) => !frame[mark.id])}
+              onClick={() =>
+                setDraft((current) => ({
+                  ...current,
+                  frames: { ...current.frames, [checkpoint]: {} },
+                }))
+              }
+            >
+              Clear frame
+            </button>
+          </div>
+
+          {poseNote && (
+            <p className="kin-posenote" role="status">
+              {poseNote}
+            </p>
+          )}
+
           <div className="kin-checkpoints" role="group" aria-label="Delivery checkpoint">
             {CHECKPOINTS.map((point) => {
               const done = Object.keys(draft.frames[point.key] ?? {}).length;
@@ -372,6 +445,13 @@ export function KinematicsCapture({
               );
             })}
           </div>
+
+          <p className="fineprint">
+            Finding the points downloads a pose model the first time you use it — about 17 MB, kept
+            afterwards so it works offline. It places the points; it does not change the
+            measurement, and every point it places stays visible and can be re-tapped. A landmark it
+            was unsure of is left out rather than guessed.
+          </p>
 
           <p className="kin-prompt" role="status">
             {next ? (

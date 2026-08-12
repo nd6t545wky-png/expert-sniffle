@@ -1391,3 +1391,25 @@ body {
   background: var(--surface-secondary);
   font-size: 11px;
 }
+
+/* Throwing hand sits with the detect button — it decides which arm the model
+ * reads as the throwing one, so it belongs beside the control it changes. */
+.kin-hand {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.kin-hand select { font-size: 12px; padding: 4px 6px; }
+
+.kin-posenote {
+  margin: 8px 0 0;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: var(--surface-secondary);
+  color: var(--ink);
+  font-size: 11.5px;
+  line-height: 1.5;
+}
