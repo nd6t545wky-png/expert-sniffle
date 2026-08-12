@@ -8,6 +8,7 @@ import {
   inferView,
   readSequence,
   sequenceSummary,
+  chooseSubject,
 } from "./poseSequence";
 import { POSE_INDEX } from "./poseMapping";
 
@@ -192,5 +193,51 @@ describe("readSequence", () => {
     });
     expect(summary).toMatch(/placed 2 of 4 checkpoints/);
     expect(summary).toMatch(/Could not find foot strike or ball release/);
+  });
+});
+
+describe("chooseSubject", () => {
+  const person = (x: number, y: number) =>
+    Array.from({ length: 33 }, (_, i) =>
+      i === POSE_INDEX.leftHip || i === POSE_INDEX.rightHip
+        ? { x, y, visibility: 0.95 }
+        : { x, y, visibility: 0.95 }
+    );
+
+  it("picks the person who moves, not the one standing still", () => {
+    // The failure this exists for: a real bullpen clip had a team-mate
+    // standing behind the pitcher, the model tracked the team-mate, and the
+    // knees never moved for seven seconds.
+    const frames = Array.from({ length: 20 }, (_, i) => ({
+      timeSeconds: i * 0.033,
+      people: [person(0.2, 0.5), person(0.5 + i * 0.01, 0.5)],
+    }));
+    const chosen = chooseSubject(frames);
+    expect(chosen).toHaveLength(20);
+    // The mover started at 0.5 and drifted right.
+    expect(chosen[19].landmarks[POSE_INDEX.leftHip].x).toBeGreaterThan(0.6);
+  });
+
+  it("keeps a person's identity as they cross the frame", () => {
+    const frames = Array.from({ length: 15 }, (_, i) => ({
+      timeSeconds: i * 0.033,
+      // Order deliberately swapped each frame, as a model may report it.
+      people:
+        i % 2 === 0
+          ? [person(0.15, 0.5), person(0.5 + i * 0.02, 0.5)]
+          : [person(0.5 + i * 0.02, 0.5), person(0.15, 0.5)],
+    }));
+    const chosen = chooseSubject(frames);
+    // Every sample should belong to the mover, never the stationary one.
+    expect(chosen.every((s) => s.landmarks[POSE_INDEX.leftHip].x > 0.4)).toBe(true);
+  });
+
+  it("returns the only person when there is only one", () => {
+    const frames = [{ timeSeconds: 0, people: [person(0.4, 0.5)] }];
+    expect(chooseSubject(frames)).toHaveLength(1);
+  });
+
+  it("returns nothing when the model found nobody", () => {
+    expect(chooseSubject([{ timeSeconds: 0, people: [] }])).toEqual([]);
   });
 });

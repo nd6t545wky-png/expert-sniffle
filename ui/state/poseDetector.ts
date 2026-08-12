@@ -1,6 +1,6 @@
 import type { Frame, KinematicView } from "../../src/domain/kinematics";
 import { Handedness, PoseResult, poseToFrame } from "../../src/domain/poseMapping";
-import type { PoseSample } from "../../src/domain/poseSequence";
+import { CrowdSample, PoseSample, chooseSubject } from "../../src/domain/poseSequence";
 
 /**
  * Loading the pose model, on demand and never before.
@@ -30,7 +30,7 @@ async function load(): Promise<PoseRunner> {
   const landmarker = await vision.PoseLandmarker.createFromOptions(fileset, {
     baseOptions: { modelAssetPath: "/pose/pose_landmarker_lite.task" },
     runningMode: "VIDEO",
-    numPoses: 1,
+    numPoses: 4,
   });
   return {
     detect: (video, timestampMs) =>
@@ -49,11 +49,36 @@ export class PoseUnavailable extends Error {}
 export const SAMPLE_FPS = 30;
 
 /**
+ * How fast the clip is played while being read.
+ *
+ * Each frame costs one pose detection, and playback does not wait for it — so
+ * on a slow phone the frames that arrive while a detection is running are
+ * simply missed. Playing at half speed halves the media time that passes per
+ * detection, which doubles the sample density on exactly the devices that
+ * need it and costs nothing on a device that was already keeping up. The
+ * price is wall-clock: a three-second delivery takes six seconds to read.
+ */
+const READ_RATE = 0.5;
+
+type FrameCallbackVideo = HTMLVideoElement & {
+  requestVideoFrameCallback?: (callback: VideoFrameRequestCallback) => number;
+};
+
+/**
  * Walk the whole clip, collecting a pose per sampled frame.
  *
- * Seeking and waiting per frame is slower than decoding in a stream, and it is
- * the only approach that works the same way in every browser — `requestVideoFrameCallback`
- * is still not universal. A delivery is a second or two, so the cost is bounded.
+ * This plays the clip rather than stepping through it, because stepping does
+ * not reliably work. `seeked` fires when the browser has *located* a frame,
+ * not when it has decoded and presented one, and there is no event that
+ * means "the seek you asked for is now readable" — so reading the video into
+ * the pose model after a seek can hand back whatever was there before. On a
+ * real bullpen clip that produced 217 identical poses, hip fixed to three
+ * decimal places for seven seconds: flat trajectories, nonsense checkpoints,
+ * handedness decided by a coin toss. Playing the clip and taking the frames
+ * the browser says it has painted gives moving frames every time.
+ *
+ * Seeking survives as the fallback for browsers without
+ * `requestVideoFrameCallback`, where it is the only option available.
  */
 export async function samplePoses(
   video: HTMLVideoElement,
@@ -64,37 +89,126 @@ export async function samplePoses(
   if (duration <= 0) return [];
 
   const wasPlaying = !video.paused;
-  video.pause();
   const startedAt = video.currentTime;
+  const rate = video.playbackRate;
+  const muted = video.muted;
+  video.pause();
 
-  const step = 1 / SAMPLE_FPS;
-  const samples: PoseSample[] = [];
-
-  for (let t = 0; t < duration; t += step) {
-    await seek(video, t);
-    const result = runner.detect(video, Math.round(t * 1000));
-    const landmarks = result?.landmarks?.[0];
-    if (Array.isArray(landmarks) && landmarks.length) {
-      samples.push({ timeSeconds: t, landmarks: landmarks as never });
+  const crowd: CrowdSample[] = [];
+  const take = (timeSeconds: number) => {
+    const result = runner.detect(video, Math.round(timeSeconds * 1000));
+    const people = result?.landmarks;
+    if (Array.isArray(people) && people.length) {
+      crowd.push({ timeSeconds, people: people as never });
     }
-    onProgress?.(Math.min(1, t / duration));
+    onProgress?.(Math.min(1, timeSeconds / duration));
+  };
+
+  const withFrameCallback = video as FrameCallbackVideo;
+  if (typeof withFrameCallback.requestVideoFrameCallback === "function") {
+    await readByPlaying(withFrameCallback, duration, take);
+  } else {
+    for (let t = 0; t < duration; t += 1 / SAMPLE_FPS) {
+      await seek(video, t);
+      take(t);
+    }
   }
 
+  video.pause();
+  video.playbackRate = rate;
+  video.muted = muted;
   await seek(video, startedAt);
   if (wasPlaying) void video.play();
-  return samples;
+  // A bullpen clip nearly always has a catcher or team-mate in it. The pitcher
+  // is the one who moves.
+  return chooseSubject(crowd);
 }
 
-function seek(video: HTMLVideoElement, to: number): Promise<void> {
+/**
+ * Play the clip through, reading each frame the browser reports painting.
+ *
+ * The callback fires once per presented frame and carries the media time of
+ * that exact frame, so the timestamps are the real ones rather than a counter
+ * that assumes nothing was missed. Frames closer together than the sample
+ * rate are skipped: past thirty a second there is nothing left to see.
+ */
+function readByPlaying(
+  video: FrameCallbackVideo,
+  duration: number,
+  take: (timeSeconds: number) => void
+): Promise<void> {
+  const request = video.requestVideoFrameCallback;
+  if (!request) return Promise.resolve();
+
   return new Promise((resolve) => {
-    const done = () => {
-      video.removeEventListener("seeked", done);
+    let settled = false;
+    const finish = () => {
+      if (settled) return;
+      settled = true;
+      video.removeEventListener("ended", finish);
+      video.removeEventListener("error", finish);
       resolve();
     };
-    video.addEventListener("seeked", done);
+
+    let last = -Infinity;
+    const step: VideoFrameRequestCallback = (_now, metadata) => {
+      if (settled) return;
+      const t = Number.isFinite(metadata?.mediaTime) ? metadata.mediaTime : video.currentTime;
+      if (t - last >= 1 / SAMPLE_FPS - 0.005) {
+        last = t;
+        take(t);
+      }
+      if (video.ended) {
+        finish();
+        return;
+      }
+      request.call(video, step);
+    };
+
+    video.addEventListener("ended", finish);
+    video.addEventListener("error", finish);
+    // A clip that stalls mid-decode must not leave the athlete waiting forever.
+    setTimeout(finish, Math.max(20_000, (duration / READ_RATE) * 1000 * 3));
+
+    video.muted = true;
+    video.currentTime = 0;
+    video.playbackRate = READ_RATE;
+    request.call(video, step);
+    const started = video.play();
+    if (started && typeof started.catch === "function") started.catch(() => finish());
+  });
+}
+
+/**
+ * Seek, and wait for the new frame to be presented if the browser will say so.
+ *
+ * Used to restore the playhead after a read, and to step through the clip on
+ * browsers that cannot drive the read from playback. A timeout keeps a
+ * stalled decode from hanging the run.
+ */
+function seek(video: HTMLVideoElement, to: number): Promise<void> {
+  return new Promise((resolve) => {
+    let settled = false;
+    const done = () => {
+      if (settled) return;
+      settled = true;
+      resolve();
+    };
+
+    const onSeeked = () => {
+      video.removeEventListener("seeked", onSeeked);
+      const withFrameCallback = video as FrameCallbackVideo;
+      if (typeof withFrameCallback.requestVideoFrameCallback === "function") {
+        withFrameCallback.requestVideoFrameCallback(() => done());
+      } else {
+        requestAnimationFrame(() => requestAnimationFrame(() => done()));
+      }
+    };
+
+    video.addEventListener("seeked", onSeeked);
     video.currentTime = to;
-    // A seek to a time the browser is already at fires nothing.
-    if (Math.abs(video.currentTime - to) < 0.001) done();
+    // A decode that never completes must not stall the whole clip.
+    setTimeout(done, 500);
   });
 }
 

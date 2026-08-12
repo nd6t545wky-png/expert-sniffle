@@ -34,6 +34,102 @@ export interface PoseSample {
   landmarks: PoseLandmark[];
 }
 
+/** One sampled frame before a subject is chosen: everyone the model found. */
+export interface CrowdSample {
+  timeSeconds: number;
+  people: PoseLandmark[][];
+}
+
+// --- Picking the pitcher out of the frame ------------------------------------
+
+/**
+ * Hip centre, which is the most stable point to track a person by — it stays
+ * visible through a delivery where wrists and ankles do not.
+ */
+function centre(person: PoseLandmark[]): { x: number; y: number } | null {
+  const lh = person[POSE_INDEX.leftHip];
+  const rh = person[POSE_INDEX.rightHip];
+  if (!lh || !rh) return null;
+  if (!Number.isFinite(lh.x) || !Number.isFinite(rh.x)) return null;
+  return { x: (lh.x + rh.x) / 2, y: (lh.y + rh.y) / 2 };
+}
+
+/**
+ * How far apart two people can be between frames and still be the same person.
+ *
+ * A pitcher crosses a fraction of the frame in a thirtieth of a second; two
+ * different people standing metres apart do not swap places in one.
+ */
+export const SAME_PERSON_DISTANCE = 0.2;
+
+interface Track {
+  samples: PoseSample[];
+  motion: number;
+  last: { x: number; y: number };
+}
+
+/**
+ * Follow each person through the clip and return the one who is pitching.
+ *
+ * A bullpen video almost always has someone else in it — a catcher, a coach, a
+ * team-mate waiting their turn. Asking the model for one pose gives whichever
+ * body it likes, and on a real clip it took the team-mate standing still: the
+ * knees never moved for seven seconds and every checkpoint was nonsense.
+ *
+ * The pitcher is the person who moves. Bodies are followed frame to frame by
+ * hip centre, and the track with the most accumulated motion is the subject —
+ * which is true whoever is in shot, wherever they stand, and however many of
+ * them there are.
+ */
+export function chooseSubject(frames: CrowdSample[]): PoseSample[] {
+  const tracks: Track[] = [];
+
+  for (const frame of frames) {
+    const claimed = new Set<Track>();
+    for (const person of frame.people) {
+      const here = centre(person);
+      if (!here) continue;
+
+      let best: Track | null = null;
+      let bestDistance = SAME_PERSON_DISTANCE;
+      for (const track of tracks) {
+        if (claimed.has(track)) continue;
+        const distance = Math.hypot(track.last.x - here.x, track.last.y - here.y);
+        if (distance < bestDistance) {
+          bestDistance = distance;
+          best = track;
+        }
+      }
+
+      if (best) {
+        best.motion += bestDistance;
+        best.last = here;
+        best.samples.push({ timeSeconds: frame.timeSeconds, landmarks: person });
+        claimed.add(best);
+      } else {
+        const track: Track = {
+          samples: [{ timeSeconds: frame.timeSeconds, landmarks: person }],
+          motion: 0,
+          last: here,
+        };
+        tracks.push(track);
+        claimed.add(track);
+      }
+    }
+  }
+
+  if (tracks.length === 0) return [];
+  // Longer tracks accumulate motion simply by lasting, so it is compared per
+  // frame — a person present throughout who barely moves must not win over the
+  // one who is actually throwing.
+  return tracks.reduce((best, track) =>
+    track.motion / Math.max(1, track.samples.length) >
+    best.motion / Math.max(1, best.samples.length)
+      ? track
+      : best
+  ).samples;
+}
+
 const at = (sample: PoseSample, index: number): PoseLandmark | null => {
   const mark = sample.landmarks[index];
   if (!mark || !Number.isFinite(mark.x) || !Number.isFinite(mark.y)) return null;
