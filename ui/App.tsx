@@ -967,6 +967,8 @@ export function App() {
           onSyncKey={setSyncKey}
           onSyncNow={handleSyncNow}
           syncStatus={syncStatus}
+          state={state}
+          onReplaceState={(next) => update(() => next)}
         />
       )}
     </Shell>

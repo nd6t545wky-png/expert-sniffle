@@ -1291,3 +1291,22 @@ body {
   gap: 10px;
   font-size: 11.5px;
 }
+
+/* --- Data backup ------------------------------------------------------------
+ * The only way data leaves this app. Deliberately plain — the important part
+ * is the warning above it, not the buttons.
+ * ------------------------------------------------------------------------- */
+
+.backup-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 12px 0;
+}
+
+/* Import problems are listed one per line inside the alert, which lays its
+ * children out as blocks after the <strong>. */
+.backup-issue {
+  display: block;
+  margin-top: 4px;
+}

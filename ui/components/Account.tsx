@@ -12,6 +12,8 @@ import {
   signOut,
 } from "../state/authClient";
 import { Alert, Card, CardHead, Field, PageHead, TaskRow } from "./Page";
+import { DataBackup } from "./DataBackup";
+import { AppState } from "../../src/domain/state";
 
 /**
  * Sign-in, workspace and cloud-sync status.
@@ -26,6 +28,9 @@ export interface AccountProps {
   onSyncKey: (key: string) => void;
   onSyncNow: () => void;
   syncStatus: string;
+  /** Everything stored, for the backup file. */
+  state?: AppState | null;
+  onReplaceState?: (state: AppState) => void;
 }
 
 interface Status {
@@ -35,7 +40,15 @@ interface Status {
   syncKey?: string;
 }
 
-export function Account({ api, syncKey, onSyncKey, onSyncNow, syncStatus }: AccountProps) {
+export function Account({
+  api,
+  syncKey,
+  onSyncKey,
+  onSyncNow,
+  syncStatus,
+  state,
+  onReplaceState,
+}: AccountProps) {
   const [status, setStatus] = useState<Status | null>(null);
   const [error, setError] = useState("");
   const [manualKey, setManualKey] = useState("");
@@ -254,6 +267,8 @@ export function Account({ api, syncKey, onSyncKey, onSyncNow, syncStatus }: Acco
       </div>
       {syncStatus && <p className="fineprint">{syncStatus}</p>}
       </Card>
+
+      {onReplaceState && <DataBackup state={state ?? null} onReplace={onReplaceState} />}
 
       {error && (
         <Alert tone="danger" role="alert">

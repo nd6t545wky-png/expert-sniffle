@@ -11,6 +11,7 @@ import { ProgressSpec, ProgressTrends } from "./ProgressTrends";
 import { MovementPlot } from "./MovementPlot";
 import { Micronutrients } from "./Micronutrients";
 import { KinematicsCapture } from "./KinematicsCapture";
+import { DataBackup } from "./DataBackup";
 import { Pitch } from "../../src/domain/pitchLog";
 import { Dashboard } from "./Dashboard";
 import { SessionRecap } from "./SessionRecap";
@@ -1150,5 +1151,75 @@ describe("Kinematics capture — measured angles from the athlete's own video", 
     render(<KinematicsCapture date="2026-08-12" captures={[]} onSave={noop} onRemove={noop} />);
     expect(screen.getByText("What this is, and is not")).toBeDefined();
     expect(screen.getByText(/these angles are projections/)).toBeDefined();
+  });
+});
+
+describe("Data backup — the only way data leaves this app", () => {
+  const state = { version: 1, pre: { "2026-08-10": { score: 78 } } } as never;
+
+  it("warns that the recovery key is the only way back in", () => {
+    render(<DataBackup state={state} onReplace={() => {}} />);
+    expect(screen.getByText("Your recovery key is the only way back in")).toBeDefined();
+    expect(screen.getByText(/a backup file is the only thing that survives both/)).toBeDefined();
+  });
+
+  it("says how much is in the file, in the singular when it should be", () => {
+    render(<DataBackup state={state} onReplace={() => {}} />);
+    expect(screen.getByText(/^1 record, schema version 1\./)).toBeDefined();
+  });
+
+  it("cannot export when there is nothing loaded", () => {
+    render(<DataBackup state={null} onReplace={() => {}} />);
+    expect(screen.getByRole("button", { name: "Download a backup" })).toHaveProperty("disabled", true);
+  });
+
+  it("writes nothing until the replacement is confirmed", async () => {
+    const replaced: unknown[] = [];
+    render(<DataBackup state={state} onReplace={(next) => replaced.push(next)} />);
+
+    const file = new File(
+      [JSON.stringify({ version: 1, pre: { "2026-01-01": { score: 60 } } })],
+      "backup.json",
+      { type: "application/json" }
+    );
+    fireEvent.change(document.querySelector('input[aria-label="Backup file"]')!, {
+      target: { files: [file] },
+    });
+
+    await waitFor(() => expect(screen.getByText("Replace everything on this device?")).toBeDefined());
+    // Choosing the file must not have written anything yet.
+    expect(replaced).toHaveLength(0);
+
+    fireEvent.click(screen.getByRole("button", { name: "Replace everything" }));
+    expect(replaced).toHaveLength(1);
+  });
+
+  it("lets the replacement be cancelled", async () => {
+    const replaced: unknown[] = [];
+    render(<DataBackup state={state} onReplace={(next) => replaced.push(next)} />);
+    const file = new File([JSON.stringify({ version: 1 })], "backup.json", {
+      type: "application/json",
+    });
+    fireEvent.change(document.querySelector('input[aria-label="Backup file"]')!, {
+      target: { files: [file] },
+    });
+    await waitFor(() => expect(screen.getByText("Replace everything on this device?")).toBeDefined());
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    await waitFor(() =>
+      expect(screen.queryByText("Replace everything on this device?")).toBeNull()
+    );
+    expect(replaced).toHaveLength(0);
+  });
+
+  it("refuses a bad file with reasons rather than half-applying it", async () => {
+    const replaced: unknown[] = [];
+    render(<DataBackup state={state} onReplace={(next) => replaced.push(next)} />);
+    const file = new File(["{ not json"], "broken.json", { type: "application/json" });
+    fireEvent.change(document.querySelector('input[aria-label="Backup file"]')!, {
+      target: { files: [file] },
+    });
+    await waitFor(() => expect(screen.getByText(/broken.json was not imported/)).toBeDefined());
+    expect(screen.getByText(/not valid JSON/)).toBeDefined();
+    expect(replaced).toHaveLength(0);
   });
 });
