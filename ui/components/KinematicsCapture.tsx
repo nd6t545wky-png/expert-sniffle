@@ -16,8 +16,9 @@ import {
   readFrame,
 } from "../../src/domain/kinematics";
 import { OBP_SOURCE } from "../../src/domain/obpReference";
-import { Handedness, poseSummary } from "../../src/domain/poseMapping";
-import { detectFrame } from "../state/poseDetector";
+import { Handedness, poseSummary, poseToFrame } from "../../src/domain/poseMapping";
+import { readSequence, sequenceSummary } from "../../src/domain/poseSequence";
+import { detectFrame, samplePoses } from "../state/poseDetector";
 import { Alert, EmptyState } from "./Page";
 import { ConfirmButton } from "./ConfirmButton";
 
@@ -74,8 +75,11 @@ export function KinematicsCapture({
   const [draft, setDraft] = useState<Capture>(() => fresh(date, "side"));
   const [checkpoint, setCheckpoint] = useState(CHECKPOINTS[0].key);
   const [hand, setHand] = useState<Handedness>("right");
+  const handRef = useRef<Handedness>("right");
+  handRef.current = hand;
   const [finding, setFinding] = useState(false);
   const [poseNote, setPoseNote] = useState("");
+  const [readProgress, setReadProgress] = useState(0);
 
   // A local file becomes an object URL, which has to be released or the blob
   // stays in memory for the life of the page.
@@ -186,6 +190,62 @@ export function KinematicsCapture({
       setPoseNote(cause instanceof Error ? cause.message : String(cause));
     } finally {
       setFinding(false);
+    }
+  }
+
+  /**
+   * Read the whole clip: camera view, throwing arm, all four checkpoints, and
+   * the landmarks on each of them. Nothing is asked of the athlete.
+   *
+   * Anything the clip does not support is left unset rather than filled in — a
+   * checkpoint placed on a guess would put every angle at the wrong instant,
+   * and nothing downstream could tell.
+   */
+  async function analyseClip() {
+    const video = videoRef.current;
+    if (!video) return;
+    setFinding(true);
+    setPoseNote("Reading the clip…");
+    setReadProgress(0);
+
+    try {
+      const samples = await samplePoses(video, setReadProgress);
+      const reading = readSequence(samples);
+      setPoseNote(sequenceSummary(reading));
+
+      const view = reading.view ?? draft.view;
+      const hand = reading.hand ?? handRef.current;
+      if (reading.hand) setHand(reading.hand);
+
+      // Place the landmarks on each checkpoint the clip gave up, from the
+      // sample nearest that moment.
+      const frames: Capture["frames"] = {};
+      const times: Capture["times"] = {};
+      for (const point of CHECKPOINTS) {
+        const when = reading.checkpoints[point.key as keyof typeof reading.checkpoints];
+        if (when === null || when === undefined) continue;
+        const nearest = samples.reduce((best, sample) =>
+          Math.abs(sample.timeSeconds - when) < Math.abs(best.timeSeconds - when) ? sample : best
+        );
+        times[point.key] = Math.round(nearest.timeSeconds * 1000) / 1000;
+        frames[point.key] = poseToFrame(nearest.landmarks, view, hand).frame;
+      }
+
+      setDraft((current) => ({
+        ...current,
+        view,
+        aspect: video.videoWidth > 0 ? video.videoWidth / video.videoHeight : current.aspect,
+        times: { ...current.times, ...times },
+        frames: { ...current.frames, ...frames },
+      }));
+
+      const firstFound = CHECKPOINTS.find((point) => times[point.key] !== undefined);
+      if (firstFound) setCheckpoint(firstFound.key);
+    } catch (cause) {
+      setPoseNote(cause instanceof Error ? cause.message : String(cause));
+    } finally {
+      setFinding(false);
+      setReadProgress(0);
     }
   }
 
@@ -384,12 +444,22 @@ export function KinematicsCapture({
 
           <div className="kin-controls">
             <button
-              className="btn btn-dark btn-small"
+              className="btn btn-dark"
+              type="button"
+              disabled={finding}
+              onClick={() => void analyseClip()}
+            >
+              {finding
+                ? `Reading the clip… ${Math.round(readProgress * 100)}%`
+                : "Analyse the whole delivery"}
+            </button>
+            <button
+              className="btn btn-outline btn-small"
               type="button"
               disabled={finding}
               onClick={() => void findPoints()}
             >
-              {finding ? "Finding…" : "Find the points for me"}
+              This frame only
             </button>
             <label className="kin-hand">
               Throws
@@ -447,10 +517,13 @@ export function KinematicsCapture({
           </div>
 
           <p className="fineprint">
-            Finding the points downloads a pose model the first time you use it — about 17 MB, kept
-            afterwards so it works offline. It places the points; it does not change the
-            measurement, and every point it places stays visible and can be re-tapped. A landmark it
-            was unsure of is left out rather than guessed.
+            <strong>Analyse the whole delivery</strong> reads the clip end to end and works out the
+            camera view, which arm throws, where the four checkpoints fall and the body points on
+            each — nothing to set first. It downloads a pose model the first time, about 17 MB, kept
+            afterwards so later clips work offline. It does not change the measurement: every point
+            stays visible and can be re-tapped, anything it was unsure of is left out rather than
+            guessed, and a checkpoint the clip does not clearly show is left for you rather than
+            placed on a guess.
           </p>
 
           <p className="kin-prompt" role="status">

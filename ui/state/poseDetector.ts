@@ -1,5 +1,6 @@
 import type { Frame, KinematicView } from "../../src/domain/kinematics";
 import { Handedness, PoseResult, poseToFrame } from "../../src/domain/poseMapping";
+import type { PoseSample } from "../../src/domain/poseSequence";
 
 /**
  * Loading the pose model, on demand and never before.
@@ -44,6 +45,73 @@ export function poseReady(): boolean {
 
 export class PoseUnavailable extends Error {}
 
+/** Frames a clip is sampled at. Fine enough to catch release, cheap enough to run. */
+export const SAMPLE_FPS = 30;
+
+/**
+ * Walk the whole clip, collecting a pose per sampled frame.
+ *
+ * Seeking and waiting per frame is slower than decoding in a stream, and it is
+ * the only approach that works the same way in every browser — `requestVideoFrameCallback`
+ * is still not universal. A delivery is a second or two, so the cost is bounded.
+ */
+export async function samplePoses(
+  video: HTMLVideoElement,
+  onProgress?: (fraction: number) => void
+): Promise<PoseSample[]> {
+  const runner = await runnerFor();
+  const duration = Number.isFinite(video.duration) ? video.duration : 0;
+  if (duration <= 0) return [];
+
+  const wasPlaying = !video.paused;
+  video.pause();
+  const startedAt = video.currentTime;
+
+  const step = 1 / SAMPLE_FPS;
+  const samples: PoseSample[] = [];
+
+  for (let t = 0; t < duration; t += step) {
+    await seek(video, t);
+    const result = runner.detect(video, Math.round(t * 1000));
+    const landmarks = result?.landmarks?.[0];
+    if (Array.isArray(landmarks) && landmarks.length) {
+      samples.push({ timeSeconds: t, landmarks: landmarks as never });
+    }
+    onProgress?.(Math.min(1, t / duration));
+  }
+
+  await seek(video, startedAt);
+  if (wasPlaying) void video.play();
+  return samples;
+}
+
+function seek(video: HTMLVideoElement, to: number): Promise<void> {
+  return new Promise((resolve) => {
+    const done = () => {
+      video.removeEventListener("seeked", done);
+      resolve();
+    };
+    video.addEventListener("seeked", done);
+    video.currentTime = to;
+    // A seek to a time the browser is already at fires nothing.
+    if (Math.abs(video.currentTime - to) < 0.001) done();
+  });
+}
+
+async function runnerFor(): Promise<PoseRunner> {
+  try {
+    loading = loading ?? load();
+    return await loading;
+  } catch (cause) {
+    loading = null;
+    throw new PoseUnavailable(
+      cause instanceof Error && /wasm|WebAssembly/i.test(cause.message)
+        ? "This browser would not start the pose model. Tap the points yourself — everything else works the same."
+        : "The pose model could not be downloaded. Check your connection, or tap the points yourself."
+    );
+  }
+}
+
 /**
  * Find this app's landmarks in the video's current frame.
  *
@@ -56,19 +124,7 @@ export async function detectFrame(
   hand: Handedness,
   existing: Frame
 ): Promise<PoseResult> {
-  let runner: PoseRunner;
-  try {
-    loading = loading ?? load();
-    runner = await loading;
-  } catch (cause) {
-    // A failed load must not poison every later attempt.
-    loading = null;
-    throw new PoseUnavailable(
-      cause instanceof Error && /wasm|WebAssembly/i.test(cause.message)
-        ? "This browser would not start the pose model. Tap the points yourself — everything else works the same."
-        : "The pose model could not be downloaded. Check your connection, or tap the points yourself."
-    );
-  }
+  const runner = await runnerFor();
 
   const result = runner.detect(video, Math.round(video.currentTime * 1000));
   const landmarks = result?.landmarks?.[0];
