@@ -29,14 +29,18 @@ function delivery(frames = 40): PoseSample[] {
     const ankleX = t < 0.6 ? 0.4 + t * 0.25 : 0.55;
     // Throwing wrist accelerates hard between 0.6 and 0.8.
     const wristX = t < 0.6 ? 0.35 : 0.35 + (t - 0.6) * 2.2;
+    // Side-on, so the stride is laid out across the frame and the hips carry
+    // most of the way with it. Torso here is 0.25, so this is 1.2 torso
+    // lengths of travel — what a camera off to the side sees.
+    const hipX = 0.35 + Math.min(t, 0.6) * 0.5;
 
     const mark = (x: number, y: number) => ({ x, y, visibility: 0.95 });
     const l: Record<number, { x: number; y: number; visibility: number }> = {
       // Side-on: the shoulders nearly overlap horizontally.
-      [POSE_INDEX.leftShoulder]: mark(0.5, 0.35),
-      [POSE_INDEX.rightShoulder]: mark(0.52, 0.35),
-      [POSE_INDEX.leftHip]: mark(0.5, 0.6),
-      [POSE_INDEX.rightHip]: mark(0.52, 0.6),
+      [POSE_INDEX.leftShoulder]: mark(hipX, 0.35),
+      [POSE_INDEX.rightShoulder]: mark(hipX + 0.02, 0.35),
+      [POSE_INDEX.leftHip]: mark(hipX, 0.6),
+      [POSE_INDEX.rightHip]: mark(hipX + 0.02, 0.6),
       [POSE_INDEX.leftKnee]: mark(0.45, kneeY),
       [POSE_INDEX.rightKnee]: mark(0.55, 0.75),
       [POSE_INDEX.leftAnkle]: mark(ankleX, ankleY),
@@ -59,13 +63,48 @@ describe("inferView", () => {
   });
 
   it("calls a face-on clip front", () => {
+    // Down the line: the stride comes at the camera, so the hips barely move
+    // sideways however wide the shoulders look.
     const front = delivery().map((s) => {
       const marks = [...s.landmarks];
       marks[POSE_INDEX.leftShoulder] = { x: 0.35, y: 0.35, visibility: 0.95 };
       marks[POSE_INDEX.rightShoulder] = { x: 0.65, y: 0.35, visibility: 0.95 };
+      marks[POSE_INDEX.leftHip] = { x: 0.42, y: 0.6, visibility: 0.95 };
+      marks[POSE_INDEX.rightHip] = { x: 0.5, y: 0.6, visibility: 0.95 };
       return { ...s, landmarks: marks };
     });
     expect(inferView(front)).toBe("front");
+  });
+
+  it("refuses to call a shot that is neither", () => {
+    // Half a torso length of drift is a diagonal camera. Naming it would
+    // decide which angles get measured on the strength of nothing.
+    const diagonal = delivery().map((s, i) => {
+      const t = i / 39;
+      const marks = [...s.landmarks];
+      const x = 0.4 + t * 0.17; // 0.68 torso lengths
+      marks[POSE_INDEX.leftShoulder] = { x, y: 0.35, visibility: 0.95 };
+      marks[POSE_INDEX.rightShoulder] = { x: x + 0.1, y: 0.35, visibility: 0.95 };
+      marks[POSE_INDEX.leftHip] = { x, y: 0.6, visibility: 0.95 };
+      marks[POSE_INDEX.rightHip] = { x: x + 0.1, y: 0.6, visibility: 0.95 };
+      return { ...s, landmarks: marks };
+    });
+    expect(inferView(diagonal)).toBeNull();
+  });
+
+  it("is not fooled by which way the athlete happens to be facing", () => {
+    // Shoulders square to the camera the whole time, but the stride still
+    // crosses the frame: that is a side-on camera and a rotating pitcher.
+    // Reading the body instead of the camera called this one front-on, and
+    // then measured a rotation the camera could not see.
+    const squareButStriding = delivery().map((s) => {
+      const marks = [...s.landmarks];
+      const hip = marks[POSE_INDEX.leftHip]!;
+      marks[POSE_INDEX.leftShoulder] = { x: hip.x - 0.06, y: 0.35, visibility: 0.95 };
+      marks[POSE_INDEX.rightShoulder] = { x: hip.x + 0.06, y: 0.35, visibility: 0.95 };
+      return { ...s, landmarks: marks };
+    });
+    expect(inferView(squareButStriding)).toBe("side");
   });
 
   it("returns nothing when there is no body to read", () => {

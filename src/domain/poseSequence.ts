@@ -147,16 +147,33 @@ function usableSamples(samples: PoseSample[]): PoseSample[] {
 // --- What kind of shot is this -----------------------------------------------
 
 /**
- * Shoulder span, as a fraction of torso height, averaged over the clip.
+ * How far the pitcher travels across the frame, in torso lengths.
  *
- * Above the threshold the camera is looking at the chest or back; below it,
- * side-on. Averaged rather than taken from one frame because a pitcher rotates
- * through the delivery and any single frame can look like either.
+ * This asks where the *camera* is, which is the actual question. An earlier
+ * version measured the pitcher's own shoulder span instead, on the theory that
+ * a wide span means you are looking at his chest. That is a fact about which
+ * way the athlete is facing, not about the camera, and a pitcher rotates
+ * roughly ninety degrees during the delivery — so it mostly reported whichever
+ * way he happened to be standing for the longest. On a real side-on bullpen
+ * clip it averaged 0.995 and confidently returned "front", which is the view
+ * that measures hip–shoulder separation. That angle cannot be seen from the
+ * side at all, so the tool produced a number where there was no measurement.
+ *
+ * Travel does not have that problem. A stride is most of a body length, so a
+ * camera down the line sees it come almost straight towards it and the hips
+ * barely move sideways; a camera off to the side sees the whole stride laid
+ * out across the frame. Normalised by torso length so it does not depend on
+ * how close the phone was.
  */
-export const FRONT_VIEW_RATIO = 0.55;
+export const SIDE_VIEW_TRAVEL = 1;
+export const FRONT_VIEW_TRAVEL = 0.45;
 
-export function inferView(samples: PoseSample[]): KinematicView | null {
-  const ratios: number[] = [];
+/** Hip-centre travel across the frame, in torso lengths, or null if unreadable. */
+export function viewTravel(samples: PoseSample[]): number | null {
+  let lowest = Infinity;
+  let highest = -Infinity;
+  const torsos: number[] = [];
+
   for (const sample of usableSamples(samples)) {
     const ls = at(sample, POSE_INDEX.leftShoulder);
     const rs = at(sample, POSE_INDEX.rightShoulder);
@@ -164,15 +181,36 @@ export function inferView(samples: PoseSample[]): KinematicView | null {
     const rh = at(sample, POSE_INDEX.rightHip);
     if (!ls || !rs || !lh || !rh) continue;
 
-    const span = Math.abs(ls.x - rs.x);
-    const torso = Math.abs((ls.y + rs.y) / 2 - (lh.y + rh.y) / 2);
-    if (torso <= 0.001) continue;
-    ratios.push(span / torso);
-  }
-  if (ratios.length === 0) return null;
+    const hip = (lh.x + rh.x) / 2;
+    lowest = Math.min(lowest, hip);
+    highest = Math.max(highest, hip);
 
-  const mean = ratios.reduce((sum, value) => sum + value, 0) / ratios.length;
-  return mean >= FRONT_VIEW_RATIO ? "front" : "side";
+    const torso = Math.abs((ls.y + rs.y) / 2 - (lh.y + rh.y) / 2);
+    if (torso > 0.001) torsos.push(torso);
+  }
+  if (torsos.length === 0 || !Number.isFinite(lowest)) return null;
+
+  // Median rather than mean: the torso foreshortens hard at release, and one
+  // frame of a folded-over follow-through should not set the scale.
+  const sorted = torsos.slice().sort((a, b) => a - b);
+  const torso = sorted[Math.floor(sorted.length / 2)];
+  return (highest - lowest) / torso;
+}
+
+/**
+ * Which way the camera was pointing, or null if the clip cannot say.
+ *
+ * Null is a real answer here. Between the two thresholds the shot is neither
+ * clearly down the line nor clearly side-on — a diagonal, or a clip that never
+ * shows a stride — and picking one anyway is how you end up reporting a
+ * rotation angle measured from a camera that could not see rotation.
+ */
+export function inferView(samples: PoseSample[]): KinematicView | null {
+  const travel = viewTravel(samples);
+  if (travel === null) return null;
+  if (travel >= SIDE_VIEW_TRAVEL) return "side";
+  if (travel <= FRONT_VIEW_TRAVEL) return "front";
+  return null;
 }
 
 // --- Which arm throws --------------------------------------------------------
@@ -349,9 +387,26 @@ export interface SequenceReading {
   sampled: number;
 }
 
-export function readSequence(samples: PoseSample[]): SequenceReading {
+/**
+ * Read everything the clip can say about the delivery.
+ *
+ * `known` is the athlete's throwing arm from their profile, and it is used in
+ * preference to anything the clip suggests. Which arm someone throws with is a
+ * fact about the person, not about the video, and the app has had it since
+ * onboarding — so inferring it per clip was solving a problem that did not
+ * exist, badly. On a real bullpen clip the wrist-speed test came out at a
+ * ratio of 1.1 to 1.2 between the two arms, well inside the noise: the glove
+ * arm whips down about as fast as the throwing arm, and the throwing wrist is
+ * motion-blurred exactly when it is quickest, so the model loses it. Sampled
+ * one way it answered "right", sampled more finely it answered nothing at all.
+ * Getting it backwards is not a small error — it swaps the lead leg, and the
+ * four checkpoints then land after the ball has already gone.
+ *
+ * The guess survives only for the case where nothing is known.
+ */
+export function readSequence(samples: PoseSample[], known?: Handedness): SequenceReading {
   const view = inferView(samples);
-  const hand = inferHandedness(samples);
+  const hand = known ?? inferHandedness(samples);
   return {
     view,
     hand,
@@ -385,12 +440,20 @@ export function sequenceSummary(reading: SequenceReading): string {
     (key) => reading.checkpoints[key] === null
   );
   const found = 4 - missing.length;
-  const view = reading.view === "front" ? "front-on" : "side-on";
+  // A view the clip could not settle is said out loud, because the view picks
+  // which angles get measured and a wrong one produces a plausible number for
+  // something the camera could not see.
+  const shot =
+    reading.view === "front"
+      ? "a front-on delivery"
+      : reading.view === "side"
+        ? "a side-on delivery"
+        : "a delivery, though not clearly enough to tell front-on from side-on — check the camera view above";
 
   if (missing.length === 0) {
-    return `Read a ${view} delivery from a ${reading.hand}-hander and placed all four checkpoints. Check each one and adjust anything that looks wrong.`;
+    return `Read ${shot} from a ${reading.hand}-hander and placed all four checkpoints. Check each one and adjust anything that looks wrong.`;
   }
-  return `Read a ${view} delivery from a ${reading.hand}-hander and placed ${found} of 4 checkpoints. Could not find ${missing
+  return `Read ${shot} from a ${reading.hand}-hander and placed ${found} of 4 checkpoints. Could not find ${missing
     .map((key) => CHECKPOINT_NAMES[key])
     .join(" or ")} — scrub to those yourself rather than trusting a guess.`;
 }

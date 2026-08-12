@@ -45,6 +45,14 @@ export interface KinematicsCaptureProps {
   onRemove: (id: string) => void;
   /** Uploaded videos, when the athlete is signed in to the cloud. */
   videos?: MechanicsVideo[];
+  /**
+   * Which arm the athlete throws with, from their profile.
+   *
+   * Passed in rather than read from the clip: it decides which leg is the lead
+   * leg, so getting it wrong measures the wrong half of the body, and the
+   * profile has known the answer since onboarding.
+   */
+  throws?: Handedness;
 }
 
 const FRAME_STEP = 1 / 30;
@@ -64,6 +72,7 @@ export function KinematicsCapture({
   onSave,
   onRemove,
   videos,
+  throws = "right",
 }: KinematicsCaptureProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const fileInput = useRef<HTMLInputElement>(null);
@@ -74,8 +83,8 @@ export function KinematicsCapture({
   const [playing, setPlaying] = useState(false);
   const [draft, setDraft] = useState<Capture>(() => fresh(date, "side"));
   const [checkpoint, setCheckpoint] = useState(CHECKPOINTS[0].key);
-  const [hand, setHand] = useState<Handedness>("right");
-  const handRef = useRef<Handedness>("right");
+  const [hand, setHand] = useState<Handedness>(throws);
+  const handRef = useRef<Handedness>(throws);
   handRef.current = hand;
   const [finding, setFinding] = useState(false);
   const [poseNote, setPoseNote] = useState("");
@@ -210,7 +219,7 @@ export function KinematicsCapture({
 
     try {
       const samples = await samplePoses(video, setReadProgress);
-      const reading = readSequence(samples);
+      const reading = readSequence(samples, handRef.current);
       setPoseNote(sequenceSummary(reading));
 
       const view = reading.view ?? draft.view;

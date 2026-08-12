@@ -24,6 +24,8 @@ export interface MechanicsProps {
   captures?: Capture[];
   onSaveCapture?: (capture: Capture) => void;
   onRemoveCapture?: (id: string) => void;
+  /** The athlete's throwing arm, from their profile. */
+  throws?: "right" | "left";
 }
 
 const ANGLES: [MechanicsAngle, string][] = [
@@ -44,6 +46,7 @@ export function Mechanics({
   captures,
   onSaveCapture,
   onRemoveCapture,
+  throws,
 }: MechanicsProps) {
   const [videos, setVideos] = useState<MechanicsVideo[]>([]);
   const [angle, setAngle] = useState<MechanicsAngle>("open_side");
@@ -215,6 +218,7 @@ export function Mechanics({
           onSave={onSaveCapture}
           onRemove={onRemoveCapture}
           videos={videos}
+          throws={throws}
         />
       )}
 

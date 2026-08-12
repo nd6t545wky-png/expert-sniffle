@@ -932,6 +932,11 @@ export function App() {
           date={date}
           hasSyncKey={isValidSyncKey(syncKey)}
           captures={captures}
+          throws={
+            (state.profile as { throwingHand?: string } | undefined)?.throwingHand === "Left"
+              ? "left"
+              : "right"
+          }
           onSaveCapture={(capture) =>
             update((draft) => ({
               ...draft,
