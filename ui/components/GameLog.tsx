@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { IsoDate } from "../../src/domain/state";
 import {
   Game,
@@ -10,6 +10,12 @@ import {
   seasonRates,
   seasonTotals,
 } from "../../src/domain/gameLog";
+import {
+  GAME_SOURCE_LABEL,
+  GameImportResult,
+  namedFields,
+  parseGameCsv,
+} from "../../src/domain/gameImport";
 import { Alert, Card, CardHead, EmptyState, Field } from "./Page";
 import { ConfirmButton } from "./ConfirmButton";
 import { formatIsoDate } from "../state/formatDate";
@@ -102,6 +108,9 @@ export function GameLog({ date, games, onSave, onRemove }: GameLogProps) {
   const [draft, setDraft] = useState<Draft>(() => blank(date));
   const [problems, setProblems] = useState<string[]>([]);
   const [open, setOpen] = useState(false);
+  const [report, setReport] = useState<GameImportResult | null>(null);
+  const [pickPlayer, setPickPlayer] = useState<{ text: string; players: string[] } | null>(null);
+  const fileInput = useRef<HTMLInputElement>(null);
 
   const totals = seasonTotals(games);
   const rates = seasonRates(totals);
@@ -109,6 +118,27 @@ export function GameLog({ date, games, onSave, onRemove }: GameLogProps) {
 
   function set<K extends keyof Draft>(key: K, value: Draft[K]) {
     setDraft((current) => ({ ...current, [key]: value }));
+  }
+
+  function applyImport(result: GameImportResult) {
+    setReport(result);
+    for (const game of result.games) onSave(game);
+  }
+
+  async function chooseFile(file: File) {
+    setPickPlayer(null);
+    const text = await file.text();
+    const first = parseGameCsv(text, date);
+
+    // A team export has a row per pitcher. Importing all of them would file
+    // the whole roster as this athlete's season, so the file waits until it is
+    // told whose rows to take.
+    if (first.players.length > 1) {
+      setReport(null);
+      setPickPlayer({ text, players: first.players });
+      return;
+    }
+    applyImport(first);
   }
 
   function submit(event: React.FormEvent) {
@@ -258,6 +288,25 @@ export function GameLog({ date, games, onSave, onRemove }: GameLogProps) {
             <button className="btn btn-dark" type="button" onClick={() => setOpen(true)}>
               Log a game
             </button>
+            <input
+              ref={fileInput}
+              className="visually-hidden"
+              type="file"
+              accept=".csv,text/csv"
+              aria-label="Game stats CSV"
+              onChange={(event) => {
+                const file = event.target.files?.[0];
+                if (file) void chooseFile(file);
+                event.target.value = "";
+              }}
+            />
+            <button
+              className="btn btn-outline"
+              type="button"
+              onClick={() => fileInput.current?.click()}
+            >
+              Import a CSV
+            </button>
           </div>
         ) : (
           <form className="form-grid" onSubmit={submit}>
@@ -358,6 +407,61 @@ export function GameLog({ date, games, onSave, onRemove }: GameLogProps) {
               </button>
             </div>
           </form>
+        )}
+
+        {pickPlayer && (
+          <Alert tone="warn" role="alert">
+            <strong>Which of these is you?</strong>
+            This file covers a whole team. Importing every row would file the rest of the roster as
+            your season.
+            <span className="backup-actions">
+              {pickPlayer.players.map((player) => (
+                <button
+                  key={player}
+                  className="btn btn-outline btn-small"
+                  type="button"
+                  onClick={() => {
+                    applyImport(parseGameCsv(pickPlayer.text, date, { player }));
+                    setPickPlayer(null);
+                  }}
+                >
+                  {player}
+                </button>
+              ))}
+            </span>
+          </Alert>
+        )}
+
+        {report && (
+          <Alert
+            tone={report.refusedReason ? "warn" : report.games.length ? "info" : "warn"}
+            role="status"
+          >
+            <strong>
+              {report.refusedReason
+                ? "Nothing imported"
+                : report.games.length
+                  ? `Imported ${report.games.length} ${report.games.length === 1 ? "game" : "games"} from ${GAME_SOURCE_LABEL[report.source]}`
+                  : "Nothing imported"}
+            </strong>
+            {report.refusedReason && <span className="backup-issue">{report.refusedReason}</span>}
+            {report.skipped.length > 0 && (
+              <span className="backup-issue">
+                {report.skipped.length} row{report.skipped.length === 1 ? "" : "s"} skipped:{" "}
+                {report.skipped
+                  .slice(0, 3)
+                  .map((row) => `line ${row.line} — ${row.reason}`)
+                  .join("; ")}
+                {report.skipped.length > 3 ? ` and ${report.skipped.length - 3} more.` : ""}
+              </span>
+            )}
+            {report.games.length > 0 && report.missingFields.length > 0 && (
+              <span className="backup-issue">
+                This export did not include {namedFields(report.missingFields)}. Those stay at zero
+                rather than being guessed, so any rate built on them will read low.
+              </span>
+            )}
+          </Alert>
         )}
 
         <p className="fineprint">

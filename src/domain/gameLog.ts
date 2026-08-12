@@ -281,26 +281,44 @@ export function readGames(value: unknown): Game[] {
  * Checked on save rather than silently stored, because a game with more
  * strikes than pitches poisons every rate that touches it and there is no way
  * to notice afterwards.
+ *
+ * Every check needs *both* of its values to be present. An absent field is not
+ * a zero: an export that carries no batters-faced column is an incomplete
+ * line, not an impossible one, and treating the gap as zero rejected perfectly
+ * good files for having "fewer batters faced than innings pitched". The manual
+ * form always supplies numbers, so nothing changes there.
  */
 export function gameProblems(game: Partial<Game>): string[] {
   const problems: string[] = [];
-  const n = (value: unknown) => Number(value) || 0;
+
+  /** The value, or undefined when the caller never had one. */
+  const n = (value: unknown): number | undefined => {
+    if (value === undefined || value === null || value === "") return undefined;
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : undefined;
+  };
+
+  const both = (a: unknown, b: unknown, test: (x: number, y: number) => boolean): boolean => {
+    const x = n(a);
+    const y = n(b);
+    return x !== undefined && y !== undefined && test(x, y);
+  };
 
   if (!game.date) problems.push("Pick the date the game was played.");
   if (!String(game.opponent ?? "").trim()) problems.push("Name the opponent.");
-  if (n(game.strikes) > n(game.pitches)) {
+  if (both(game.strikes, game.pitches, (s, p) => s > p)) {
     problems.push("More strikes than pitches — one of the two is wrong.");
   }
-  if (n(game.firstPitchStrikes) > n(game.battersFaced)) {
+  if (both(game.firstPitchStrikes, game.battersFaced, (f, b) => f > b)) {
     problems.push("More first-pitch strikes than batters faced.");
   }
-  if (n(game.earnedRuns) > n(game.runs)) {
+  if (both(game.earnedRuns, game.runs, (e, r) => e > r)) {
     problems.push("Earned runs cannot be more than total runs.");
   }
-  if (n(game.strikeouts) > n(game.battersFaced)) {
+  if (both(game.strikeouts, game.battersFaced, (k, b) => k > b)) {
     problems.push("More strikeouts than batters faced.");
   }
-  if (n(game.outs) > 0 && n(game.battersFaced) < n(game.outs) / 3) {
+  if (both(game.outs, game.battersFaced, (o, b) => o > 0 && b < o / 3)) {
     problems.push("Fewer batters faced than innings pitched — check both.");
   }
   return problems;
