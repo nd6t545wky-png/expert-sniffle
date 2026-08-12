@@ -23,6 +23,7 @@ import { fuelTargetsFromBaseline } from "../src/domain/fuelling";
 import { Pitch, readPitches, topVelocity } from "../src/domain/pitchLog";
 import { ArmExam, readExams } from "../src/domain/armCare";
 import { readCaptures } from "../src/domain/kinematics";
+import { Game, readGames } from "../src/domain/gameLog";
 import { PitchingOsApi } from "../src/domain/api";
 import { isValidSyncKey } from "../src/domain/sync";
 import { syncNow } from "../src/domain/cloudSync";
@@ -370,6 +371,9 @@ export function App() {
       }),
     [update, date]
   );
+
+  /** Competition outings, newest first. */
+  const games = useMemo(() => readGames(state?.games), [state]);
 
   /** Hand-digitised delivery measurements. */
   const captures = useMemo(() => readCaptures(state?.kinematics), [state]);
@@ -826,6 +830,16 @@ export function App() {
           }
           pitches={pitches}
           priorPitches={priorPitches}
+          games={games}
+          onSaveGame={(game: Game) =>
+            update((draft) => ({ ...draft, games: [...readGames(draft.games), game] }))
+          }
+          onRemoveGame={(id: string) =>
+            update((draft) => ({
+              ...draft,
+              games: readGames(draft.games).filter((game) => game.id !== id),
+            }))
+          }
           onImportPitches={(imported) => setPitches((current) => [...current, ...imported])}
           onAddPitch={(pitch) => setPitches((current) => [...current, pitch])}
           onRemovePitch={(id) => setPitches((current) => current.filter((p) => p.id !== id))}

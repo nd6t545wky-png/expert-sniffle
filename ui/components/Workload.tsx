@@ -2,6 +2,8 @@ import { formatIsoDate } from "../state/formatDate";
 import { Pitch } from "../../src/domain/pitchLog";
 import { PitchData } from "./PitchData";
 import { MovementPlot } from "./MovementPlot";
+import { GameLog } from "./GameLog";
+import { Game } from "../../src/domain/gameLog";
 import { useState } from "react";
 import { IsoDate } from "../../src/domain/state";
 import {
@@ -34,6 +36,10 @@ export interface WorkloadProps {
   pitches?: Pitch[];
   /** Every earlier day's pitches, for the movement comparison. */
   priorPitches?: Pitch[];
+  /** Competition outings — see `src/domain/gameLog`. */
+  games?: Game[];
+  onSaveGame?: (game: Game) => void;
+  onRemoveGame?: (id: string) => void;
   onImportPitches?: (pitches: Pitch[]) => void;
   onAddPitch?: (pitch: Pitch) => void;
   onRemovePitch?: (id: string) => void;
@@ -58,6 +64,9 @@ export function Workload({
   onLog,
   pitches,
   priorPitches,
+  games,
+  onSaveGame,
+  onRemoveGame,
   onImportPitches,
   onAddPitch,
   onRemovePitch,
@@ -160,6 +169,12 @@ export function Workload({
       )}
 
       <MovementPlot pitches={pitches ?? []} priorPitches={priorPitches ?? []} />
+
+      {/* The training exists to serve outings, so the outings belong on the
+          same page as the throwing that builds toward them. */}
+      {onSaveGame && onRemoveGame && (
+        <GameLog date={date} games={games ?? []} onSave={onSaveGame} onRemove={onRemoveGame} />
+      )}
     </>
   );
 }

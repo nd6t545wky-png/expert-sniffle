@@ -15,6 +15,8 @@ import { DataBackup } from "./DataBackup";
 import { ConfirmButton, DISARM_MS } from "./ConfirmButton";
 import { PitchData } from "./PitchData";
 import { WaterTracker } from "./WaterTracker";
+import { GameLog } from "./GameLog";
+import { Game } from "../../src/domain/gameLog";
 import { Pitch } from "../../src/domain/pitchLog";
 import { Dashboard } from "./Dashboard";
 import { SessionRecap } from "./SessionRecap";
@@ -1324,5 +1326,106 @@ describe("destructive actions across the app are guarded", () => {
     expect(changes).toHaveLength(0);
     fireEvent.click(screen.getByRole("button", { name: /Confirm: reset today/ }));
     expect(changes).toEqual(["reset"]);
+  });
+});
+
+describe("Game log — the outings the training exists to serve", () => {
+  const game = (over: Partial<Game> = {}): Game => ({
+    id: "g1",
+    date: "2026-08-07",
+    opponent: "Coomera Cubs",
+    side: "home",
+    outs: 15,
+    battersFaced: 20,
+    pitches: 78,
+    strikes: 50,
+    firstPitchStrikes: 13,
+    hits: 4,
+    runs: 2,
+    earnedRuns: 2,
+    walks: 2,
+    strikeouts: 6,
+    hitBatters: 0,
+    ...over,
+  });
+
+  const show = (
+    games: Game[],
+    onSave: (game: Game) => void = () => {},
+    onRemove: (id: string) => void = () => {}
+  ) => render(<GameLog date="2026-08-12" games={games} onSave={onSave} onRemove={onRemove} />);
+
+  it("writes innings the way a scorebook does", () => {
+    show([game({ outs: 11 })]);
+    expect(screen.getByText("3.2")).toBeDefined();
+  });
+
+  it("adds innings as outs, so a season cannot show an impossible count", () => {
+    // Two outings of 3.2 are 7.1 innings. A decimal store would print 6.4.
+    show([game({ id: "a", outs: 11 }), game({ id: "b", date: "2026-08-01", outs: 11 })]);
+    // Both the card head and the thin-sample note say it; one is enough.
+    expect(screen.getAllByText(/7\.1 innings/).length).toBeGreaterThan(0);
+  });
+
+  it("refuses a line with more strikes than pitches", () => {
+    const saved: Game[] = [];
+    show([], (g) => saved.push(g));
+    fireEvent.click(screen.getByRole("button", { name: "Log a game" }));
+    fireEvent.change(screen.getByLabelText("Opponent"), { target: { value: "Redlands" } });
+    fireEvent.change(screen.getByLabelText("Innings pitched"), { target: { value: "5" } });
+    fireEvent.change(screen.getByLabelText("Pitches"), { target: { value: "40" } });
+    fireEvent.change(screen.getByLabelText("Strikes"), { target: { value: "60" } });
+    fireEvent.change(screen.getByLabelText("Batters faced"), { target: { value: "20" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save game" }));
+    expect(saved).toHaveLength(0);
+    expect(screen.getByText("More strikes than pitches — one of the two is wrong.")).toBeDefined();
+  });
+
+  it("refuses an innings figure that cannot exist", () => {
+    const saved: Game[] = [];
+    show([], (g) => saved.push(g));
+    fireEvent.click(screen.getByRole("button", { name: "Log a game" }));
+    fireEvent.change(screen.getByLabelText("Opponent"), { target: { value: "Redlands" } });
+    // ".3" would be three thirds, which is the next whole inning.
+    fireEvent.change(screen.getByLabelText("Innings pitched"), { target: { value: "3.3" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save game" }));
+    expect(saved).toHaveLength(0);
+    expect(screen.getByText(/Innings must be written as the scorebook does/)).toBeDefined();
+  });
+
+  it("saves a coherent line as outs", () => {
+    const saved: Game[] = [];
+    show([], (g) => saved.push(g));
+    fireEvent.click(screen.getByRole("button", { name: "Log a game" }));
+    fireEvent.change(screen.getByLabelText("Opponent"), { target: { value: "Wynnum" } });
+    fireEvent.change(screen.getByLabelText("Innings pitched"), { target: { value: "3.2" } });
+    fireEvent.change(screen.getByLabelText("Batters faced"), { target: { value: "14" } });
+    fireEvent.change(screen.getByLabelText("Pitches"), { target: { value: "58" } });
+    fireEvent.change(screen.getByLabelText("Strikes"), { target: { value: "37" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save game" }));
+    expect(saved).toHaveLength(1);
+    expect(saved[0].outs).toBe(11);
+    expect(saved[0].opponent).toBe("Wynnum");
+  });
+
+  it("claims nothing from a thin sample", () => {
+    show([game({ outs: 9, pitches: 100, strikes: 20 })]);
+    expect(screen.getByText(/read them as a description of what happened/)).toBeDefined();
+    // The bad strike rate is on screen but not asserted as a finding.
+    expect(screen.queryByText(/under the 62% mark/)).toBeNull();
+  });
+
+  it("dims a rate built on too little rather than hiding it", () => {
+    show([game({ outs: 9 })]);
+    expect(document.querySelectorAll(".rate-grid li.is-thin").length).toBeGreaterThan(0);
+  });
+
+  it("guards removing a game", () => {
+    const removed: string[] = [];
+    show([game()], () => {}, (id) => removed.push(id));
+    fireEvent.click(screen.getByRole("button", { name: /^Remove the game against Coomera Cubs/ }));
+    expect(removed).toHaveLength(0);
+    fireEvent.click(screen.getByRole("button", { name: /Confirm: remove the game against/ }));
+    expect(removed).toEqual(["g1"]);
   });
 });

@@ -1323,3 +1323,49 @@ body {
   gap: 8px;
   white-space: nowrap;
 }
+
+/* --- Season rates -----------------------------------------------------------
+ * A thin sample is dimmed rather than hidden. Hiding it would leave the
+ * athlete wondering where their ERA went; dimming says the number exists and
+ * is not yet worth much, which is the true statement.
+ * ------------------------------------------------------------------------- */
+
+.rate-grid {
+  list-style: none;
+  margin: 0 0 12px;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+}
+
+.rate-grid li {
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.rate-grid li.is-thin { opacity: .62; }
+
+.rate-grid strong {
+  display: block;
+  font-size: 22px;
+  letter-spacing: -.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.rate-grid span {
+  display: block;
+  margin-top: 2px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.rate-grid small {
+  display: block;
+  margin-top: 5px;
+  color: var(--muted);
+  font-size: 10.5px;
+  line-height: 1.5;
+}
