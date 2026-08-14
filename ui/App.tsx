@@ -51,6 +51,22 @@ import { AnnualPlan } from "./components/AnnualPlan";
 import { Account } from "./components/Account";
 import { BaselineTesting } from "./components/BaselineTesting";
 import { ArmCare } from "./components/ArmCare";
+import { RecoveryPlan } from "./components/RecoveryPlan";
+
+/**
+ * The logged intent labels as percentages, so the recovery tier can read them.
+ *
+ * The protocol's thresholds are stated in percent (80% triggers, ≤70% is a
+ * light day, ≥95% is full intent) while the throwing log records a word. These
+ * are the midpoints of what each word means, not measurements — which is why a
+ * "moderate" session lands below the trigger rather than on it.
+ */
+const INTENT_PERCENT: Record<string, number> = {
+  recovery: 40,
+  low: 60,
+  moderate: 75,
+  high: 95,
+};
 import { Integrations } from "./components/Integrations";
 import { Mechanics } from "./components/Mechanics";
 import { Meal, Nutrition, NutritionTargets } from "./components/Nutrition";
@@ -849,6 +865,27 @@ export function App() {
           onImportPitches={(imported) => setPitches((current) => [...current, ...imported])}
           onAddPitch={(pitch) => setPitches((current) => [...current, pitch])}
           onRemovePitch={(id) => setPitches((current) => current.filter((p) => p.id !== id))}
+        />
+      )}
+
+      {/* Recovery sits on the throwing page because it is decided by what was
+          thrown: the tier comes from the day's own log rather than from
+          another form asking the athlete to classify their own session. */}
+      {page === "workload" && (
+        <RecoveryPlan
+          date={date}
+          load={(() => {
+            const entry = throwingEntries.find((item) => item.date === date);
+            const game = games.find((item) => item.date === date);
+            if (!entry && !game) return undefined;
+            return {
+              totalThrows: entry?.throws ?? null,
+              intentPercent: entry ? INTENT_PERCENT[entry.intent] ?? null : null,
+              gamePitches: game?.pitches ?? null,
+              competitiveStart: Boolean(game),
+            };
+          })()}
+          bodyweightKg={knownBodyweight}
         />
       )}
 

@@ -1413,3 +1413,152 @@ body {
   font-size: 11.5px;
   line-height: 1.5;
 }
+
+/* --- Recovery protocol ---------------------------------------------------
+ * The five-day post-throwing curve and the post-gym track. Reasoning sits
+ * behind a disclosure rather than in the flow: the prescription is what you do
+ * today, and the evidence is there when you want to argue with it.
+ */
+
+.recovery-policy {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border-radius: var(--radius);
+  background: var(--team-primary-soft);
+  color: var(--ink);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.recovery-detected {
+  margin: 0 0 10px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.recovery-tiers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.recovery-day {
+  padding: 14px 0;
+  border-top: 1px solid var(--line);
+}
+.recovery-day:first-of-type {
+  border-top: 0;
+}
+
+.recovery-day-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+.recovery-day-head span {
+  color: var(--muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.recovery-day-focus {
+  margin: 2px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+/* Said out loud so an expected dip is not read as a warning. */
+.recovery-annotation {
+  margin: 8px 0 0;
+  padding: 8px 10px;
+  border-left: 2px solid var(--blue);
+  background: var(--surface-secondary);
+  border-radius: 0 var(--radius) var(--radius) 0;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.recovery-blocks {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.recovery-blocks > li {
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.recovery-block-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.recovery-optional {
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--surface-secondary);
+  color: var(--muted);
+  font-size: 11px;
+  text-transform: lowercase;
+}
+
+.recovery-prescription {
+  margin: 4px 0 0;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.recovery-caveat {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.recovery-why {
+  margin-top: 8px;
+  font-size: 12px;
+}
+.recovery-why summary {
+  cursor: pointer;
+  color: var(--blue);
+}
+.recovery-why p {
+  margin: 6px 0 0;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.recovery-citation {
+  padding-top: 6px;
+  border-top: 1px solid var(--line);
+}
+
+.recovery-rules {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.recovery-rules > li {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 13px;
+}
+.recovery-rules span {
+  color: var(--muted);
+  line-height: 1.5;
+}
