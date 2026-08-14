@@ -60,7 +60,9 @@ function json(data: unknown, status = 200): Response {
 }
 
 function redirectToIntegration(origin: string, status: string): Response {
-  return Response.redirect(`${origin}/?page=integrations&oura=${encodeURIComponent(status)}`, 302);
+  // `/next/` rather than `/`: that is the app the athlete lands in now, and a
+  // redirect to `/` would only bounce here anyway.
+  return Response.redirect(`${origin}/next/?page=integrations&oura=${encodeURIComponent(status)}`, 302);
 }
 
 function bearerToken(request: Request): string | null {
@@ -2563,7 +2565,46 @@ async function routeApi(request: Request, env: Env, url: URL): Promise<Response 
  * shell rather than the prototype, which is the same distinction the service
  * worker makes offline.
  */
+/**
+ * Send the front door to the app the athlete is actually meant to use.
+ *
+ * Two applications are served here: the original prototype at `/`, frozen at
+ * v60, and the rebuilt app at `/next/`. Everything built since — recovery
+ * trends, progress charts, the movement plot, micronutrients, the automatic
+ * delivery analysis, game import, Apple Health setup — exists only in the
+ * second one. The prototype contains no link to it whatsoever, and the PWA
+ * manifest pointed `start_url` at `/`.
+ *
+ * So opening the site, or the installed app, gave the old one. Work would be
+ * deployed and verified live and the athlete would still be looking at a build
+ * from before any of it, with nothing to indicate there was anywhere else to
+ * go. It read as the app having reverted, or as a feature never shipping.
+ *
+ * `/` now sends a browser to `/next/`. The prototype is still there and still
+ * served — `/?legacy=1` reaches it, and nothing has been deleted — because it
+ * is the fallback if the rebuilt app ever cannot start, and because the
+ * migration path reads its stored data.
+ *
+ * The query string is carried across rather than dropped: the Oura callback
+ * comes back to the origin with `?oura=connected` on it.
+ */
+function redirectToApp(request: Request, url: URL): Response | null {
+  if (url.pathname !== "/") return null;
+  if (request.method !== "GET" && request.method !== "HEAD") return null;
+  // An explicit request for the prototype is honoured.
+  if (url.searchParams.has("legacy")) return null;
+  // Only a browser asking for a page; never a fetch, a probe or an asset.
+  if (!(request.headers.get("Accept") || "").includes("text/html")) return null;
+
+  const target = new URL("/next/", url.origin);
+  target.search = url.search;
+  return Response.redirect(target.toString(), 302);
+}
+
 async function serveAsset(request: Request, env: Env, url: URL): Promise<Response> {
+  const redirect = redirectToApp(request, url);
+  if (redirect) return redirect;
+
   const direct = await env.ASSETS.fetch(request);
   if (direct.status !== 404) return direct;
 

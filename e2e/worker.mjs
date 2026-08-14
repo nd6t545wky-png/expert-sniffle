@@ -402,6 +402,54 @@ if (!(await waitForReady())) {
   check("one caller hitting the limit does not block another", otherIp.status !== 429, `got ${otherIp.status}`);
 }
 
+// --------------------------------------------------------- the front door
+{
+  const html = { Accept: "text/html,application/xhtml+xml,*/*" };
+
+  // Everything built since the rebuild lives at /next/, and the prototype at /
+  // contains no link to it. Opening the site gave the old app, so deployed and
+  // verified work was invisible — it read as the app having reverted.
+  const root = await fetch(`${BASE}/`, { headers: html, redirect: "manual" });
+  check("opening the site sends you to the rebuilt app", root.status === 302, `got ${root.status}`);
+  check(
+    "and sends you to /next/ specifically",
+    (root.headers.get("location") || "").endsWith("/next/"),
+    root.headers.get("location") || "(no location)"
+  );
+
+  // The Oura callback comes back with its outcome on the query string.
+  const withQuery = await fetch(`${BASE}/?page=integrations&oura=connected`, {
+    headers: html,
+    redirect: "manual",
+  });
+  check(
+    "the query string survives the redirect",
+    (withQuery.headers.get("location") || "").includes("oura=connected"),
+    withQuery.headers.get("location") || "(no location)"
+  );
+
+  // The prototype is not deleted, and stays reachable on purpose.
+  const legacy = await fetch(`${BASE}/?legacy=1`, { headers: html, redirect: "manual" });
+  const legacyBody = legacy.status === 200 ? await legacy.text() : "";
+  check("the prototype is still reachable", legacy.status === 200, `got ${legacy.status}`);
+  check(
+    "and it is the prototype, not the rebuilt app",
+    legacyBody.includes("/app.js") && !/\/next\/assets\/index-/.test(legacyBody),
+    legacyBody.slice(0, 80)
+  );
+
+  // A redirect must not be handed to something that asked for data.
+  const probe = await fetch(`${BASE}/`, { headers: { Accept: "application/json" }, redirect: "manual" });
+  check("a non-browser request for / is not redirected", probe.status === 200, `got ${probe.status}`);
+
+  const manifest = await (await fetch(`${BASE}/manifest.webmanifest`)).json();
+  check(
+    "the installed app opens the rebuilt app too",
+    manifest.start_url === "/next/",
+    String(manifest.start_url)
+  );
+}
+
 // ------------------------------------------------------- assets and 404s
 {
   // The behaviour that hid a total outage. With

@@ -114,6 +114,12 @@ export function App() {
   // new visit should still start at Today.
   const [page, setPage] = useState<Page>(() => {
     try {
+      // An OAuth provider sends the athlete back to a URL, not to a stored
+      // page. The Oura callback returns with ?page=integrations&oura=…, and
+      // before this the app ignored the query entirely and opened on Today —
+      // so a connection that had just succeeded looked like nothing happened.
+      const requested = new URLSearchParams(window.location.search).get("page");
+      if (requested && PAGE_IDS.includes(requested as Page)) return requested as Page;
       const stored = window.sessionStorage.getItem(PAGE_STORAGE);
       return stored && PAGE_IDS.includes(stored as Page) ? (stored as Page) : "dashboard";
     } catch {

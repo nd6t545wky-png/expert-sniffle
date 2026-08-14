@@ -2,7 +2,7 @@
   "name": "Pitching OS",
   "short_name": "Pitching OS",
   "description": "Annual pitching plan, readiness, workload, mechanics, nutrition and performance tracking.",
-  "start_url": "/",
+  "start_url": "/next/",
   "display": "standalone",
   "background_color": "#000000",
   "theme_color": "#000000",
@@ -13,5 +13,6 @@
       "type": "image/svg+xml",
       "purpose": "any maskable"
     }
-  ]
+  ],
+  "scope": "/"
 }

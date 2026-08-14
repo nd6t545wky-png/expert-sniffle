@@ -21,7 +21,14 @@
     // index.html and a 200, so a deploy that dropped a directory served the
     // wrong app instead of failing. The Worker does the fallback itself in
     // `serveAsset`, where a missing *file* can still be a 404.
-    "not_found_handling": "none"
+    "not_found_handling": "none",
+    // The root only. Cloudflare serves asset-shaped requests straight from the
+    // Assets binding without invoking the Worker's fetch handler, so the
+    // redirect that sends the front door to the rebuilt app never ran — `/`
+    // resolved to the prototype's index.html first. Scoped to this one path so
+    // every other asset keeps being served by the asset worker, which is
+    // faster and does not spend a Worker invocation.
+    "run_worker_first": ["/"]
   },
 
   "vars": {

@@ -29,6 +29,21 @@ interface AppleStatus {
   lastUploadAt: string;
 }
 
+/**
+ * What each Oura callback outcome means, in the athlete's words.
+ *
+ * The Worker redirects back with one of these on the query string. Anything
+ * not listed is shown verbatim rather than swallowed — an unknown failure the
+ * athlete can read out is more useful than a silent one.
+ */
+const OURA_CALLBACK_MESSAGES: Record<string, string> = {
+  connected: "Oura connected. Last night's data will appear at the next sync.",
+  denied: "Oura sign-in was cancelled, so nothing was connected.",
+  expired: "That Oura sign-in took too long and expired. Try connecting again.",
+  "invalid-state": "That Oura sign-in could not be verified, so it was refused. Try again.",
+  failed: "Oura could not complete the connection. Try again.",
+};
+
 export function Integrations({ api, hasSyncKey }: IntegrationsProps) {
   const [oura, setOura] = useState<OuraStatus | null>(null);
   const [apple, setApple] = useState<AppleStatus | null>(null);
@@ -36,6 +51,31 @@ export function Integrations({ api, hasSyncKey }: IntegrationsProps) {
   const [endpoint, setEndpoint] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState("");
+
+  // What the Oura callback said, read once from the URL it returned to.
+  //
+  // The provider redirects back with ?oura=connected — or with why it failed.
+  // Nothing read it, so a connection that had just been refused looked
+  // identical to one that had never been attempted. Read once and cleared
+  // from the address bar, so a reload does not keep re-announcing it.
+  const [callback, setCallback] = useState<string>("");
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const outcome = params.get("oura");
+      if (!outcome) return;
+      setCallback(outcome);
+      params.delete("oura");
+      const search = params.toString();
+      window.history.replaceState(
+        {},
+        "",
+        `${window.location.pathname}${search ? `?${search}` : ""}`
+      );
+    } catch {
+      // No History API is not a reason to fail the page.
+    }
+  }, []);
 
   const refresh = useCallback(async () => {
     if (!hasSyncKey) return;
@@ -108,6 +148,9 @@ export function Integrations({ api, hasSyncKey }: IntegrationsProps) {
           </p>
           {oura && !oura.configured && (
             <p className="fineprint">Oura application credentials have not been added to this deployment yet.</p>
+          )}
+          {callback && (
+            <p className="fineprint">{OURA_CALLBACK_MESSAGES[callback] ?? `Oura returned: ${callback}`}</p>
           )}
         </div>
         <div className="integration-actions">
