@@ -58,16 +58,20 @@
   // reports these as real "Rate Limit" bindings instead.
   // simple.period must be either 10 or 60.
   //
-  // UNRESOLVED: even in this documented GA form, enforcement could not be
-  // demonstrated against the live Worker. Tested sequentially and in parallel,
-  // same edge colo, with a constant (non-IP) key, and with a temporary 5-per-10s
-  // limit: 15 sequential requests still returned zero 429s. Fresh namespace_ids
-  // (2001-2003, moved off the ones previously registered under the unsafe form)
-  // did not change it. The call sites are correct and will take effect if/when
-  // the binding enforces, but do NOT treat these limits as active protection
-  // until enforcement is confirmed. Cloudflare documents the limiter as
-  // "permissive, eventually consistent", per-colo, and with no dashboard
-  // visibility, which makes this hard to verify from outside.
+  // These limits ARE now active protection, but not because of this binding:
+  // the count that can be demonstrated lives in D1, in `overLimit` in
+  // src/index.ts. Proven against the deployed Worker — 100 requests fired as a
+  // burst at the 60-per-minute ingest endpoint, 51 refused with 429.
+  //
+  // Whether the binding itself enforces in production remains unproven either
+  // way, and the earlier conclusion that it did not was reached from an
+  // invalid test. Sequential requests through a proxy took about 1.4 seconds
+  // each, so 90 of them spanned more than two 60-second windows and at most
+  // ~42 landed in any one — the limit could not have been reached, whatever
+  // the binding was doing. Anyone retesting this must fire a parallel burst,
+  // not a loop. Cloudflare documents the limiter as permissive, per-colo and
+  // eventually consistent, with no dashboard visibility, so there is nothing
+  // to inspect from outside.
   "ratelimits": [
     {
       "name": "AI_RATE_LIMITER",

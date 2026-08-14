@@ -127,8 +127,17 @@ async function enforceAccountRateLimit(
   const key = keyHash
     ? `${category}:${keyHash}`
     : `${category}:ip:${clientIp(request)}`;
+  const tooMany = json({ error: "Too many requests. Wait a minute and try again." }, 429);
+
   const outcome = await limiter.limit({ key });
-  return outcome.success ? null : json({ error: "Too many requests. Wait a minute and try again." }, 429);
+  if (!outcome.success) return tooMany;
+
+  // The binding's production behaviour is unverified — see `overLimit`. These
+  // are the endpoints that spend money per call, so the count that can be
+  // demonstrated is the one in D1.
+  const { limit, period } =
+    limiter === env.INTEGRATION_RATE_LIMITER ? LIMITS.integration : LIMITS.ai;
+  return (await overLimit(env, key, limit, period)) ? tooMany : null;
 }
 
 function clientIp(request: Request): string {
@@ -140,16 +149,133 @@ function clientIp(request: Request): string {
 // it previously had no rate limiting at all. Bound it by IP first so token
 // guessing and unauthenticated floods are capped regardless, then by the
 // presented token so a single compromised Shortcut can't flood either.
+/**
+ * Count a request against a fixed window in D1, and say whether it is over.
+ *
+ * The Workers Rate Limiting binding is configured the documented way and
+ * enforces exactly as specified under `wrangler dev`. Whether it enforces in
+ * production is still unproven: the tests that concluded it did not — 90
+ * sequential requests to a 60-per-minute endpoint returning zero 429s — were
+ * invalid. Each request took about 1.4 seconds, so 90 of them spanned more
+ * than two 60-second windows and at most ~42 ever landed in one. The limit
+ * could not have been reached. Fired as a parallel burst instead, the same
+ * endpoint refuses. So the binding is not known to be broken; it is only not
+ * known to work, and Cloudflare gives it no visibility to check.
+ *
+ * This exists because a limit nobody can demonstrate is not protection, and
+ * the endpoints behind these ones spend money per call. One row per key per
+ * window, in a database this Worker already has, verifiable from either side.
+ * The binding is still called first: it is cheaper, it works at the edge, and
+ * if it does enforce it does so before this runs.
+ *
+ * Under a burst this refuses slightly early — concurrent requests each
+ * increment before reading, so a caller can see a count inflated by requests
+ * still in flight. Erring towards refusing is the right direction for a
+ * limiter, and the increment itself is atomic, so the count never drifts low.
+ *
+ * Fails open. If D1 is unavailable the request is allowed rather than the app
+ * being taken down by its own rate limiter — the failure mode of a broken
+ * limiter must not be worse than the abuse it prevents.
+ */
+async function overLimit(
+  env: Env,
+  key: string,
+  limit: number,
+  periodSeconds: number
+): Promise<boolean> {
+  const now = Math.floor(Date.now() / 1000);
+  const windowStart = now - (now % periodSeconds);
+  // Two statements rather than one INSERT ... RETURNING. The single-statement
+  // form works under wrangler dev but returns no row from the deployed D1, so
+  // the count read back was always zero and nothing was ever over the limit —
+  // a limiter that looked like it worked and silently allowed everything. The
+  // read-back is a separate SELECT because it has to be right, not clever.
+  const count = async (): Promise<number> => {
+    await env.SYNC_DB.prepare(
+      `INSERT INTO rate_limits (bucket, window_start, hits) VALUES (?1, ?2, 1)
+       ON CONFLICT(bucket, window_start) DO UPDATE SET hits = hits + 1`
+    )
+      .bind(key, windowStart)
+      .run();
+    const row = await env.SYNC_DB.prepare(
+      "SELECT hits FROM rate_limits WHERE bucket = ?1 AND window_start = ?2"
+    )
+      .bind(key, windowStart)
+      .first<{ hits: number }>();
+    return Number(row?.hits ?? 0);
+  };
+
+  try {
+    let hits: number;
+    try {
+      hits = await count();
+    } catch (cause) {
+      // The table is created here rather than only in migrations/ because the
+      // credentials that deploy this Worker cannot run D1 migrations, so a
+      // deploy would otherwise ship a limiter that silently fails open until
+      // someone remembered to run one. It is additive and idempotent, it runs
+      // once per database, and the alternative is protection that depends on
+      // a manual step.
+      if (!/no such table/i.test(String(cause))) throw cause;
+      await env.SYNC_DB.prepare(
+        `CREATE TABLE IF NOT EXISTS rate_limits (
+           bucket TEXT NOT NULL,
+           window_start INTEGER NOT NULL,
+           hits INTEGER NOT NULL DEFAULT 1,
+           PRIMARY KEY (bucket, window_start)
+         ) STRICT`
+      ).run();
+      await env.SYNC_DB.prepare(
+        "CREATE INDEX IF NOT EXISTS rate_limits_window_idx ON rate_limits (window_start)"
+      ).run();
+      hits = await count();
+    }
+
+    // A count that cannot be read back is a limiter that cannot limit. Say so
+    // rather than letting it look like everything is under the limit.
+    if (hits === 0) {
+      console.error(JSON.stringify({ message: "rate limit count unreadable", key }));
+      return false;
+    }
+
+    // Sweep closed windows occasionally rather than on a schedule, so the
+    // table cannot grow without bound and nothing has to be remembered.
+    if (hits === 1 && Math.random() < 0.02) {
+      await env.SYNC_DB.prepare("DELETE FROM rate_limits WHERE window_start < ?1")
+        .bind(windowStart - periodSeconds * 4)
+        .run();
+    }
+    return hits > limit;
+  } catch (error) {
+    console.error(
+      JSON.stringify({ message: "rate limit check failed", key, error: String(error) })
+    );
+    return false;
+  }
+}
+
+/** Limits, in one place, so the call sites and the tests agree. */
+const LIMITS = {
+  ai: { limit: 20, period: 60 },
+  integration: { limit: 10, period: 60 },
+  ingest: { limit: 60, period: 60 },
+} as const;
+
 async function enforceIngestRateLimit(request: Request, env: Env): Promise<Response | null> {
   const tooMany = json({ error: "Too many requests. Wait a minute and try again." }, 429);
-  const byIp = await env.INGEST_RATE_LIMITER.limit({ key: `apple-ingest:ip:${clientIp(request)}` });
+  const { limit, period } = LIMITS.ingest;
+
+  const ipKey = `apple-ingest:ip:${clientIp(request)}`;
+  const byIp = await env.INGEST_RATE_LIMITER.limit({ key: ipKey });
   if (!byIp.success) return tooMany;
+  if (await overLimit(env, ipKey, limit, period)) return tooMany;
+
   const token = bearerToken(request);
   if (!token) return null;
-  const byToken = await env.INGEST_RATE_LIMITER.limit({
-    key: `apple-ingest:token:${await sha256Hex(`pitching-os-apple-health-v1:${token}`)}`,
-  });
-  return byToken.success ? null : tooMany;
+  const tokenKey = `apple-ingest:token:${await sha256Hex(`pitching-os-apple-health-v1:${token}`)}`;
+  const byToken = await env.INGEST_RATE_LIMITER.limit({ key: tokenKey });
+  if (!byToken.success) return tooMany;
+  return (await overLimit(env, tokenKey, limit, period)) ? tooMany : null;
 }
 
 function randomHex(byteLength = 32): string {

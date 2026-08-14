@@ -365,6 +365,43 @@ if (!(await waitForReady())) {
   );
 }
 
+// -------------------------------------------------------- rate limiting
+{
+  // The Workers Rate Limiting binding is configured the documented way and
+  // enforces exactly as specified here, under wrangler dev. Against the
+  // deployed Worker it does not enforce at all — 90 sequential requests to
+  // this 60-per-minute endpoint returned zero 429s — which is why the count
+  // that decides now lives in D1. This checks the endpoint refuses, whichever
+  // layer does the refusing.
+  const ip = `198.51.100.${Math.floor(Math.random() * 200) + 1}`;
+  const hit = () =>
+    fetch(`${BASE}/api/integrations/apple/ingest`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "CF-Connecting-IP": ip },
+      body: JSON.stringify({ day: "2026-08-14", steps: 1 }),
+    });
+
+  const codes = [];
+  for (let i = 0; i < 70; i += 1) codes.push((await hit()).status);
+
+  const refused = codes.filter((code) => code === 429).length;
+  const allowed = codes.filter((code) => code !== 429).length;
+  check("the ingest endpoint refuses once the limit is passed", refused > 0, `${refused} refusals in 70`);
+  check(
+    "it refuses only after the limit, not before",
+    allowed === 60,
+    `${allowed} allowed, expected the configured 60`
+  );
+
+  // A limit that is not scoped to the caller is a denial of service.
+  const otherIp = await fetch(`${BASE}/api/integrations/apple/ingest`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "CF-Connecting-IP": "198.51.100.254" },
+    body: JSON.stringify({ day: "2026-08-14", steps: 1 }),
+  });
+  check("one caller hitting the limit does not block another", otherIp.status !== 429, `got ${otherIp.status}`);
+}
+
 // ------------------------------------------------------- assets and 404s
 {
   // The behaviour that hid a total outage. With
