@@ -1,7 +1,7 @@
 // Copies public/ into dist/, minifying the hand-written client assets.
 // Fixes the audit finding that app.js/styles.css/etc. were served as raw,
 // unminified source in production.
-import { cp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { cp, mkdir, readdir, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { createHash } from "node:crypto";
 import { existsSync } from "node:fs";
 import path from "node:path";
@@ -60,6 +60,62 @@ async function stampServiceWorker(nextIndexPath) {
   await writeFile(swPath, stamped);
 }
 
+/**
+ * A record of exactly what this build contains, written into the build itself.
+ *
+ * Production is a single Worker that anyone with the account can deploy to,
+ * and the last deploy wins silently. When a different codebase overwrote this
+ * one, the only way to establish what was actually running was to read
+ * Cloudflare's deployment history and diff files by hand — the deployed app
+ * could not say which commit it came from, because nothing in it knew.
+ *
+ * This makes the question answerable from outside: fetch /build.json and it
+ * names the commit, whether that commit's tree was clean, and the SHA-256 of
+ * every file shipped. `npm run verify:live` compares it against this build,
+ * so an overwrite is one command to detect instead of an afternoon.
+ */
+async function writeBuildManifest() {
+  const files = {};
+  async function walk(dir, prefix = "") {
+    for (const entry of (await readdir(dir)).sort()) {
+      const full = path.join(dir, entry);
+      const rel = prefix ? `${prefix}/${entry}` : entry;
+      if ((await stat(full)).isDirectory()) await walk(full, rel);
+      // The manifest cannot contain its own hash.
+      else if (rel !== "build.json") {
+        files[rel] = createHash("sha256").update(await readFile(full)).digest("hex").slice(0, 16);
+      }
+    }
+  }
+  await walk(distDir);
+
+  let commit = "unknown";
+  let clean = false;
+  try {
+    commit = execFileSync("git", ["rev-parse", "HEAD"], { cwd: path.join(root, "..") })
+      .toString()
+      .trim();
+    // A dirty tree means the commit alone does not describe what shipped, so
+    // it is recorded rather than implied.
+    clean =
+      execFileSync("git", ["status", "--porcelain"], { cwd: path.join(root, "..") })
+        .toString()
+        .trim() === "";
+  } catch {
+    // Not a git checkout. Say so rather than inventing a commit.
+  }
+
+  const manifest = {
+    commit,
+    cleanTree: clean,
+    builtAt: new Date().toISOString(),
+    fileCount: Object.keys(files).length,
+    files,
+  };
+  await writeFile(path.join(distDir, "build.json"), `${JSON.stringify(manifest, null, 2)}\n`);
+  return manifest;
+}
+
 async function main() {
   if (existsSync(distDir)) await rm(distDir, { recursive: true });
   await mkdir(distDir, { recursive: true });
@@ -91,7 +147,13 @@ async function main() {
 
   await stampServiceWorker(nextIndex);
 
-  console.log(`Built ${distDir} (minified: ${MINIFY.join(", ")}; React app at /next/)`);
+  // Last, so it hashes the finished build including the stamped service worker.
+  const manifest = await writeBuildManifest();
+
+  console.log(
+    `Built ${distDir} (minified: ${MINIFY.join(", ")}; React app at /next/; ` +
+      `${manifest.fileCount} files from ${manifest.commit.slice(0, 8)}${manifest.cleanTree ? "" : "-dirty"})`
+  );
 }
 
 main().catch((error) => {

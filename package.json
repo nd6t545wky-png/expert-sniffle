@@ -6,13 +6,14 @@
   "scripts": {
     "build": "node scripts/build.mjs",
     "dev": "npm run build && wrangler dev",
-    "deploy": "npm run build && wrangler deploy",
+    "deploy": "npm run build && wrangler deploy && node scripts/verify-deploy.mjs",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
     "e2e": "node e2e/workflows.mjs && node e2e/migration.mjs && node e2e/autosave.mjs && node e2e/offline.mjs && node e2e/worker.mjs",
     "e2e:serve": "npm run build && (cd dist && python3 -m http.server 8899 --bind 127.0.0.1)",
-    "db:local": "wrangler d1 migrations apply dylan-pitching-os-sync --local"
+    "db:local": "wrangler d1 migrations apply dylan-pitching-os-sync --local",
+    "verify:live": "node scripts/verify-deploy.mjs"
   },
   "dependencies": {
     "@better-auth/passkey": "1.6.23",
