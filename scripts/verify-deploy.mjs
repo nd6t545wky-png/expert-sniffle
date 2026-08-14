@@ -34,33 +34,84 @@ function fail(message, detail = "") {
 
 const local = JSON.parse(await readFile(path.join(root, "dist", "build.json"), "utf8"));
 
-// A query string the edge has not seen before: a cached copy of the manifest
-// would defeat the entire point of asking.
-const url = `${ORIGIN}/build.json?at=${Date.now()}`;
-let remote;
-try {
+/**
+ * Read the deployed manifest once.
+ *
+ * Returns the parsed manifest, or a reason it could not be read. A 200 that
+ * is not JSON is not a transport error — it is the signature of the failure
+ * this script exists for, an unknown path answered with an app shell.
+ */
+async function readRemote() {
+  // A query string the edge has not seen before: a cached copy of the manifest
+  // would defeat the entire point of asking.
+  const url = `${ORIGIN}/build.json?at=${Date.now()}`;
   const response = await fetch(url, { headers: { "Cache-Control": "no-cache" } });
   if (!response.ok) {
-    console.log(`MISMATCH  ${ORIGIN} has no build manifest (HTTP ${response.status}).`);
-    console.log("          Production is running a build that predates this check, or a different codebase.");
-    process.exit(1);
+    return {
+      problem: `${ORIGIN} has no build manifest (HTTP ${response.status}).`,
+      detail: "Production is running a build that predates this check, or a different codebase.",
+    };
   }
   const text = await response.text();
   try {
-    remote = JSON.parse(text);
+    return { manifest: JSON.parse(text) };
   } catch {
-    // A 200 that is not JSON is the signature of the exact failure this script
-    // exists for: an unknown path being answered with an app shell. That is
-    // not a transport error, it is a different build.
-    console.log(`MISMATCH  ${ORIGIN} answered /build.json with ${response.status} but did not return JSON.`);
-    console.log(`          It served ${text.trim().slice(0, 40).replace(/\s+/g, " ")}…`);
-    console.log("          That is a build with no manifest — a different codebase, or one deployed");
-    console.log("          before this check existed and still using the SPA catch-all.");
-    process.exit(1);
+    return {
+      problem: `${ORIGIN} answered /build.json with ${response.status} but did not return JSON.`,
+      detail:
+        `It served ${text.trim().slice(0, 40).replace(/\s+/g, " ")}… — a build with no manifest, ` +
+        "so a different codebase, or one deployed before this check existed.",
+    };
   }
-} catch (error) {
-  console.log(`ERROR     could not reach ${ORIGIN}: ${error.message}`);
-  process.exit(2);
+}
+
+/**
+ * Wait for the edge to catch up before calling it a mismatch.
+ *
+ * A deploy is not instantaneous and Cloudflare will serve the previous copy
+ * for a few seconds afterwards. Reporting that as "production is running a
+ * different build" would make this check cry wolf on every single deploy,
+ * which is how a guard gets ignored and then removed. So a disagreement is
+ * retried for a minute, and only a *persistent* one is reported. A match is
+ * returned the moment it happens, so the usual case stays quick.
+ */
+const DEADLINE_MS = 60_000;
+const RETRY_MS = 3_000;
+
+let remote = null;
+let lastProblem = null;
+const started = Date.now();
+let waited = false;
+
+while (Date.now() - started < DEADLINE_MS) {
+  let attempt;
+  try {
+    attempt = await readRemote();
+  } catch (error) {
+    attempt = { problem: `could not reach ${ORIGIN}: ${error.message}`, transport: true };
+  }
+
+  if (attempt.manifest && attempt.manifest.commit === local.commit) {
+    remote = attempt.manifest;
+    break;
+  }
+  remote = attempt.manifest ?? remote;
+  lastProblem = attempt.problem ? attempt : lastProblem;
+
+  if (Date.now() - started + RETRY_MS >= DEADLINE_MS) break;
+  if (!waited) {
+    waited = true;
+    process.stdout.write("waiting for the edge to serve the new build");
+  }
+  process.stdout.write(".");
+  await new Promise((resolve) => setTimeout(resolve, RETRY_MS));
+}
+if (waited) process.stdout.write("\n");
+
+if (!remote) {
+  console.log(`MISMATCH  ${lastProblem?.problem ?? "no manifest could be read."}`);
+  if (lastProblem?.detail) console.log(`          ${lastProblem.detail}`);
+  process.exit(lastProblem?.transport ? 2 : 1);
 }
 
 let problems = 0;
