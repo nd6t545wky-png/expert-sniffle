@@ -751,3 +751,131 @@ export const BFR_BLOCK = {
   experimentalNote:
     "Passive BFR as a recovery modality (no exercise) is experimental: one trial returned strength and range faster than sham, but the systematic review found only 11 studies, inconsistent protocols and mixed results. Not part of the default plan.",
 } as const;
+
+// --- Into the daily plan ----------------------------------------------------
+
+/**
+ * Which stage of the day's session each block belongs in.
+ *
+ * The protocol is not a separate programme running alongside the training —
+ * it is part of the day. Compression and feeding are recovery work; the
+ * scapular block and the stretches are arm care; and two of the blocks are
+ * not tasks at all.
+ *
+ * `guidance` is that third case. The day-3 re-load and the day-4 priming
+ * session describe *what the day should be*, and the programme already
+ * prescribes that day's throwing. Adding them as tasks would put a second
+ * bullpen on a day that already has one, so they are surfaced as a note
+ * against the session instead of as work to tick off.
+ */
+export type BlockPlacement = "arm_care" | "recover" | "guidance";
+
+const PLACEMENT: Record<string, BlockPlacement> = {
+  // Day 0
+  walkdown: "recover",
+  "mobility-cooldown": "recover",
+  compression: "recover",
+  percussive: "recover",
+  feed: "recover",
+  sleep: "recover",
+  heat: "recover",
+  // Day 1
+  "scap-strength": "arm_care",
+  mobility: "recover",
+  "aerobic-flush": "recover",
+  // Day 2
+  "sleeper-stretch": "arm_care",
+  "soft-tissue": "recover",
+  "compression-overnight": "recover",
+  // Day 3 and 4 — the day's own shape, not extra work.
+  reload: "guidance",
+  "band-routine": "arm_care",
+  prime: "guidance",
+  "full-mobility": "recover",
+  // Gym track
+  "protein-spread": "recover",
+  "carbs-fluid": "recover",
+  "compression-limbs": "recover",
+  downregulate: "recover",
+  "heat-gym": "recover",
+  "aerobic-flush-gym": "recover",
+  "soft-tissue-gym": "recover",
+  "compression-continue": "recover",
+};
+
+export function placementFor(blockId: string): BlockPlacement {
+  return PLACEMENT[blockId] ?? "recover";
+}
+
+/** One outing the athlete logged, as the plan needs to see it. */
+export interface LoggedOuting {
+  date: IsoDate;
+  load: ThrowingLoad;
+}
+
+export interface RecoveryForDay {
+  tier: ThrowingLoadTier;
+  /** 0 on the day of the outing. */
+  dayOffset: number;
+  outingDate: IsoDate;
+  day: RecoveryDay;
+  /** Blocks that are work to do today. */
+  tasks: RecoveryBlock[];
+  /** Blocks that describe the day rather than add to it. */
+  guidance: RecoveryBlock[];
+}
+
+/**
+ * What today owes to a recent outing, read from the log.
+ *
+ * Looks back only as far as the longest protocol runs, takes the most recent
+ * qualifying outing, and returns nothing at all when today falls outside it.
+ * Nothing is asked of the athlete: if they logged the session, the plan knows.
+ *
+ * The most recent outing wins rather than the heaviest. Throwing again resets
+ * what the arm is recovering from, and a five-day protocol from Saturday
+ * should not keep prescribing day-4 work through Wednesday's bullpen.
+ */
+export function recoveryForDay(
+  date: IsoDate,
+  outings: LoggedOuting[],
+  bodyweightKg: number | null = null
+): RecoveryForDay | null {
+  let best: { outing: LoggedOuting; tier: ThrowingLoadTier; offset: number } | null = null;
+
+  for (const outing of outings) {
+    if (!triggersRecovery(outing.load)) continue;
+    const tier = classifyThrowingLoadTier(outing.load);
+    if (!tier) continue;
+
+    // Offset in whole days, counted forward from the outing.
+    let offset = 0;
+    let cursor = outing.date;
+    const limit = protocolLengthForTier(tier);
+    while (cursor < date && offset < limit) {
+      cursor = addDays(cursor, 1);
+      offset += 1;
+    }
+    if (cursor !== date || offset >= limit) continue;
+
+    if (!best || outing.date > best.outing.date) best = { outing, tier, offset };
+  }
+  if (!best) return null;
+
+  const plan = buildThrowingRecoveryPlan({
+    tier: best.tier,
+    outingDate: best.outing.date,
+    bodyweightKg,
+  });
+  const day = plan.days[best.offset];
+  if (!day) return null;
+
+  return {
+    tier: best.tier,
+    dayOffset: best.offset,
+    outingDate: best.outing.date,
+    day,
+    tasks: day.blocks.filter((block) => placementFor(block.id) !== "guidance"),
+    guidance: day.blocks.filter((block) => placementFor(block.id) === "guidance"),
+  };
+}

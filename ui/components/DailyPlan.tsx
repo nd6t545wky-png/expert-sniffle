@@ -42,6 +42,14 @@ export interface DailyPlanProps {
   sessionTitle?: string;
   sessionDescription?: string;
   sessionDuration?: string;
+  /**
+   * What today owes to a recent outing, when it owes anything.
+   *
+   * Shown beside the session's own blurb rather than as its own panel: the
+   * recovery work is already in the task list below, and this says which day
+   * of which outing it is so the tasks are not a mystery.
+   */
+  recoveryNote?: string | null;
   sessionStress?: string;
   completed: Record<IsoDate, string[] | undefined>;
   skipped: Record<IsoDate, Record<string, SkippedTask> | undefined>;
@@ -82,6 +90,7 @@ export function DailyPlan({
   sessionTitle,
   sessionDescription,
   sessionDuration,
+  recoveryNote,
   sessionStress,
   completed,
   skipped,
@@ -172,6 +181,11 @@ export function DailyPlan({
           ) : undefined
         }
       />
+
+      {/* Where the day sits in a recovery protocol, when it sits in one. The
+          work itself is in the task list below; this only says what it is
+          recovering from, so the extra tasks are not a mystery. */}
+      {recoveryNote && <p className="plan-recovery-note">{recoveryNote}</p>}
 
       {dayTabs && onSelectDay && selectedDay !== undefined && (
         <DayTabs

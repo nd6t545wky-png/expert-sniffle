@@ -1562,3 +1562,16 @@ body {
   color: var(--muted);
   line-height: 1.5;
 }
+
+/* Where today sits in a recovery protocol. The work is in the task list; this
+   is only the sentence that explains why those tasks are there. */
+.plan-recovery-note {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border-left: 2px solid var(--blue);
+  border-radius: 0 var(--radius) var(--radius) 0;
+  background: var(--surface-secondary);
+  color: var(--ink);
+  font-size: 13px;
+  line-height: 1.55;
+}

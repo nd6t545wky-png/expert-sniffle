@@ -51,7 +51,8 @@ import { AnnualPlan } from "./components/AnnualPlan";
 import { Account } from "./components/Account";
 import { BaselineTesting } from "./components/BaselineTesting";
 import { ArmCare } from "./components/ArmCare";
-import { RecoveryPlan } from "./components/RecoveryPlan";
+import { LoggedOuting, recoveryForDay } from "../src/domain/recoveryProtocol";
+import { applyRecoveryProtocol } from "../src/domain/recoveryTasks";
 
 /**
  * The logged intent labels as percentages, so the recovery tier can read them.
@@ -285,8 +286,50 @@ export function App() {
     });
   }, [state]);
 
-  const session = useMemo<Session | null>(() => {
-    if (!state || !selectedWeekPlan) return null;
+
+  /** Competition outings, newest first. */
+  const games = useMemo(() => readGames(state?.games), [state]);
+
+  const knownBodyweight = useMemo(() => {
+    const pre = (state?.pre ?? {}) as Record<string, { bodyweightKg?: unknown } | undefined>;
+    const weighed = Object.keys(pre)
+      .sort()
+      .reverse()
+      .map((day) => Number(pre[day]?.bodyweightKg))
+      .find((value) => Number.isFinite(value) && value > 0);
+    const profileWeight = Number((state?.profile as { weight?: unknown } | undefined)?.weight);
+    return weighed ?? (Number.isFinite(profileWeight) && profileWeight > 0 ? profileWeight : null);
+  }, [state]);
+
+  /**
+   * Every throwing session and game the athlete has logged, as outings.
+   *
+   * The recovery protocol reads this rather than asking anything: the tier and
+   * the day come from what was already recorded.
+   */
+  const loggedOutings = useMemo<LoggedOuting[]>(() => {
+    const fromBullpens = throwingEntries.map((entry) => ({
+      date: entry.date,
+      load: {
+        totalThrows: entry.throws ?? null,
+        intentPercent: INTENT_PERCENT[entry.intent] ?? null,
+      },
+    }));
+    const fromGames = games.map((game) => ({
+      date: game.date,
+      load: { gamePitches: game.pitches ?? null, competitiveStart: true },
+    }));
+    return [...fromBullpens, ...fromGames];
+  }, [throwingEntries, games]);
+
+  /** What the open day owes to a recent outing, or nothing. */
+  const recovery = useMemo(
+    () => recoveryForDay(date, loggedOutings, knownBodyweight),
+    [date, loggedOutings, knownBodyweight]
+  );
+
+  const sessionWithRecovery = useMemo(() => {
+    if (!state || !selectedWeekPlan) return { session: null as Session | null, note: null as string | null };
     try {
       // The programme's own session, then the adjustments driven by the
       // athlete's testing reports. Readiness scaling has already been applied
@@ -295,7 +338,7 @@ export function App() {
         submission?.planLevel === "reduced" || submission?.planLevel === "recovery"
           ? submission.planLevel
           : null;
-      return applyBaselineProgramming(
+      const programmed = applyBaselineProgramming(
         buildSession(selectedWeekPlan, selectedDay, {
           risk: submission?.risk,
           adjustment: submission
@@ -305,10 +348,17 @@ export function App() {
         level,
         selectedDay
       );
+      // Recovery last, so it lands on the day as it will actually be trained
+      // — including any readiness reduction already applied above.
+      const merged = applyRecoveryProtocol(programmed, recovery);
+      return { session: merged.session, note: merged.note };
     } catch {
-      return null;
+      return { session: null as Session | null, note: null as string | null };
     }
-  }, [state, selectedWeekPlan, selectedDay, submission]);
+  }, [state, selectedWeekPlan, selectedDay, submission, recovery]);
+
+  const session = sessionWithRecovery.session;
+  const recoveryNote = sessionWithRecovery.note;
 
   // The plan renders stages, cues and detail panels, so it needs the whole
   // task, not a name/prescription pair.
@@ -394,24 +444,13 @@ export function App() {
     [update, date]
   );
 
-  /** Competition outings, newest first. */
-  const games = useMemo(() => readGames(state?.games), [state]);
 
   /** Hand-digitised delivery measurements. */
   const captures = useMemo(() => readCaptures(state?.kinematics), [state]);
 
   /** Arm screens, and the bodyweight to open a new one with. */
   const armExams = useMemo(() => readExams(state?.armExams), [state]);
-  const knownBodyweight = useMemo(() => {
-    const pre = (state?.pre ?? {}) as Record<string, { bodyweightKg?: unknown } | undefined>;
-    const weighed = Object.keys(pre)
-      .sort()
-      .reverse()
-      .map((day) => Number(pre[day]?.bodyweightKg))
-      .find((value) => Number.isFinite(value) && value > 0);
-    const profileWeight = Number((state?.profile as { weight?: unknown } | undefined)?.weight);
-    return weighed ?? (Number.isFinite(profileWeight) && profileWeight > 0 ? profileWeight : null);
-  }, [state]);
+
 
   /**
    * The training trends: has anything moved since this started?
@@ -770,6 +809,7 @@ export function App() {
           date={date}
           plan={plan}
           submission={submission}
+          recoveryNote={recoveryNote}
           setLog={setLog}
           onLogSets={(task, sets) =>
             update((draft) => {
@@ -865,27 +905,6 @@ export function App() {
           onImportPitches={(imported) => setPitches((current) => [...current, ...imported])}
           onAddPitch={(pitch) => setPitches((current) => [...current, pitch])}
           onRemovePitch={(id) => setPitches((current) => current.filter((p) => p.id !== id))}
-        />
-      )}
-
-      {/* Recovery sits on the throwing page because it is decided by what was
-          thrown: the tier comes from the day's own log rather than from
-          another form asking the athlete to classify their own session. */}
-      {page === "workload" && (
-        <RecoveryPlan
-          date={date}
-          load={(() => {
-            const entry = throwingEntries.find((item) => item.date === date);
-            const game = games.find((item) => item.date === date);
-            if (!entry && !game) return undefined;
-            return {
-              totalThrows: entry?.throws ?? null,
-              intentPercent: entry ? INTENT_PERCENT[entry.intent] ?? null : null,
-              gamePitches: game?.pitches ?? null,
-              competitiveStart: Boolean(game),
-            };
-          })()}
-          bodyweightKg={knownBodyweight}
         />
       )}
 
