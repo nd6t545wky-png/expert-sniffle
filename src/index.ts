@@ -2417,6 +2417,48 @@ async function routeApi(request: Request, env: Env, url: URL): Promise<Response 
   return null;
 }
 
+
+/**
+ * Static assets, with a missing file treated as missing.
+ *
+ * The Assets binding used to be configured with
+ * `not_found_handling: "single-page-application"`, which answers *every*
+ * unknown path with the root index.html and a 200. That is convenient for
+ * client-side routing and dangerous for everything else: a deploy that
+ * dropped the React app served the old shell, with a 200, for
+ * `/next/assets/index-*.js` as well as for `/next/` itself. Nothing failed.
+ * The browser simply ran a different application, and it took reading the
+ * Cloudflare deployment history to work out why.
+ *
+ * So the fallback is done here instead, where the two cases can be told
+ * apart. A path that names a file is a file: if it is not there, that is a
+ * 404, and a broken deploy announces itself. A path with no extension is a
+ * route, and gets the shell that owns it — `/next/` routes get the React
+ * shell rather than the prototype, which is the same distinction the service
+ * worker makes offline.
+ */
+async function serveAsset(request: Request, env: Env, url: URL): Promise<Response> {
+  const direct = await env.ASSETS.fetch(request);
+  if (direct.status !== 404) return direct;
+
+  // Anything with a file extension was asking for a file, not a route.
+  if (/\.[a-z0-9]+$/i.test(url.pathname)) return direct;
+
+  // Only a navigation should be answered with a document.
+  const wantsHtml = (request.headers.get("Accept") || "").includes("text/html");
+  if (!wantsHtml || (request.method !== "GET" && request.method !== "HEAD")) return direct;
+
+  const shell = url.pathname === "/next" || url.pathname.startsWith("/next/")
+    ? "/next/index.html"
+    : "/index.html";
+  const shellResponse = await env.ASSETS.fetch(new URL(shell, url.origin));
+  if (shellResponse.status === 404) return direct;
+  return new Response(shellResponse.body, {
+    status: 200,
+    headers: shellResponse.headers,
+  });
+}
+
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
@@ -2435,7 +2477,7 @@ export default {
       // Assets binding without invoking this fetch handler, so header
       // rewrites attempted here never actually run for those requests —
       // _headers is the mechanism that does.
-      return env.ASSETS.fetch(request);
+      return serveAsset(request, env, url);
     } catch (error) {
       console.error(
         JSON.stringify({

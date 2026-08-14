@@ -17,7 +17,11 @@
   "assets": {
     "directory": "./dist",
     "binding": "ASSETS",
-    "not_found_handling": "single-page-application"
+    // Not "single-page-application": that answers every unknown path with
+    // index.html and a 200, so a deploy that dropped a directory served the
+    // wrong app instead of failing. The Worker does the fallback itself in
+    // `serveAsset`, where a missing *file* can still be a 404.
+    "not_found_handling": "none"
   },
 
   "vars": {

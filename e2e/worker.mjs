@@ -365,6 +365,67 @@ if (!(await waitForReady())) {
   );
 }
 
+// ------------------------------------------------------- assets and 404s
+{
+  // The behaviour that hid a total outage. With
+  // not_found_handling: "single-page-application", every one of these missing
+  // paths answered 200 with the old index.html, so a deploy that dropped the
+  // React app looked exactly like a working deploy.
+  const html = { Accept: "text/html,application/xhtml+xml,*/*" };
+
+  const shell = await fetch(`${BASE}/`, { headers: html });
+  check("the root shell is served", shell.status === 200, `got ${shell.status}`);
+
+  const nextShell = await fetch(`${BASE}/next/`, { headers: html });
+  const nextBody = await nextShell.text();
+  check("the React shell is served at /next/", nextShell.status === 200, `got ${nextShell.status}`);
+  check(
+    "/next/ serves the React shell, not the prototype",
+    /\/next\/assets\/index-[A-Za-z0-9_-]+\.js/.test(nextBody),
+    nextBody.slice(0, 120)
+  );
+
+  const missingScript = await fetch(`${BASE}/domain.js`, { headers: html });
+  check(
+    "a missing script is a 404, not the app shell with a 200",
+    missingScript.status === 404,
+    `got ${missingScript.status}`
+  );
+
+  const missingBundle = await fetch(`${BASE}/next/assets/does-not-exist.js`, { headers: html });
+  check(
+    "a missing bundle is a 404, so a broken deploy announces itself",
+    missingBundle.status === 404,
+    `got ${missingBundle.status}`
+  );
+
+  const missingStyle = await fetch(`${BASE}/styles-that-are-not-here.css`, { headers: html });
+  check("a missing stylesheet is a 404", missingStyle.status === 404, `got ${missingStyle.status}`);
+
+  // A route still has to work, or the fix has broken deep links.
+  const route = await fetch(`${BASE}/some-client-route`, { headers: html });
+  check("an extensionless route still gets a shell", route.status === 200, `got ${route.status}`);
+
+  const nextRoute = await fetch(`${BASE}/next/mechanics`, { headers: html });
+  const nextRouteBody = await nextRoute.text();
+  check(
+    "a /next/ route gets the React shell rather than the prototype",
+    nextRoute.status === 200 && /\/next\/assets\/index-[A-Za-z0-9_-]+\.js/.test(nextRouteBody),
+    `got ${nextRoute.status}`
+  );
+
+  // A fetch() for JSON must never be answered with a page.
+  const apiish = await fetch(`${BASE}/not-an-endpoint`, { headers: { Accept: "application/json" } });
+  check(
+    "a non-navigation request for a missing path is a 404, not HTML",
+    apiish.status === 404,
+    `got ${apiish.status}`
+  );
+
+  const legal = await fetch(`${BASE}/privacy.html`, { headers: html, redirect: "follow" });
+  check("the privacy page still resolves", legal.status === 200, `got ${legal.status}`);
+}
+
 // ------------------------------------------------------------------ output
 console.log(`\n${passed}/${passed + failed} passed`);
 await shutdown(failed === 0 ? 0 : 1);
