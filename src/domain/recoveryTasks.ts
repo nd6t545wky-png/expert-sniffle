@@ -23,6 +23,39 @@ import { RecoveryBlock, RecoveryForDay, placementFor } from "./recoveryProtocol"
 const ARM_CARE_STAGE = { stage: 5, title: "Arm Care" };
 const RECOVER_STAGE = { stage: 6, title: "Recover" };
 
+/**
+ * Programme tasks each recovery block takes over, rather than sitting beside.
+ *
+ * The written programme already ends most days with three tasks that cover
+ * the same ground as the protocol: a post-throw arm-care circuit, a
+ * fuel-and-fluids task, and a "Recovery plan" of down-regulation and sleep.
+ * Adding the protocol's versions alongside them would give the athlete two
+ * protein tasks, two sleep tasks and two cuff circuits on the same day.
+ *
+ * So a block that covers the same work *replaces* that task instead of
+ * joining it. One task per job, and the athlete's completion tracking keeps
+ * working because the task keeps its id.
+ *
+ * One of these is a contradiction rather than a duplicate, and worth naming.
+ * The programme's post-throw circuit is loaded cuff work immediately after
+ * throwing; the protocol deliberately moves that off day 0 — throwing is
+ * already the endurance stimulus — and puts a mobility cool-down there
+ * instead, with the band work returning on day 3. So on day 0 the cool-down
+ * takes that slot, and on day 3 the band routine takes it back.
+ */
+const SUPERSEDES: Record<string, string> = {
+  // Day 0 — the cool-down replaces the loaded circuit at T+0.
+  "mobility-cooldown": "Post-throw arm-care circuit",
+  feed: "Post-session fuel and fluids",
+  walkdown: "Recovery plan",
+  sleep: "Recovery plan",
+  // Day 3 — the band work returns to the slot it belongs in.
+  "band-routine": "Post-throw arm-care circuit",
+  // Gym track.
+  "protein-spread": "Post-session fuel and fluids",
+  downregulate: "Recovery plan",
+};
+
 function taskFor(block: RecoveryBlock, stage: { stage: number; title: string }, prefix: string): SessionTask {
   const optional = block.optional ? " Optional." : "";
   return {
@@ -70,7 +103,34 @@ export function applyRecoveryProtocol(session: Session, recovery: RecoveryForDay
   const tasks = [...session.tasks];
   let added = 0;
 
+  // Blocks that take over a programme task are folded into it first, so the
+  // day never carries the same work twice. Several can land on one task —
+  // "Recovery plan" is down-regulation *and* sleep — in which case their
+  // prescriptions are joined rather than one of them being dropped.
+  const claims = new Map<string, RecoveryBlock[]>();
   for (const block of recovery.tasks) {
+    const target = SUPERSEDES[block.id];
+    if (!target) continue;
+    claims.set(target, [...(claims.get(target) ?? []), block]);
+  }
+
+  for (const [name, blocks] of claims) {
+    const index = tasks.findIndex((task) => task.name === name);
+    if (index === -1) continue;
+    tasks[index] = {
+      ...tasks[index],
+      prescription: blocks.map((block) => block.prescription).join(" · "),
+      cue: blocks.map((block) => block.why).join(" "),
+      ...(blocks.find((block) => block.caveat)
+        ? { stop: blocks.find((block) => block.caveat)!.caveat }
+        : {}),
+    };
+  }
+
+  for (const block of recovery.tasks) {
+    // Already folded into a programme task above.
+    if (SUPERSEDES[block.id] && tasks.some((task) => task.name === SUPERSEDES[block.id])) continue;
+
     const stage = placementFor(block.id) === "arm_care" ? ARM_CARE_STAGE : RECOVER_STAGE;
     const task = taskFor(block, stage, prefix);
     if (tasks.some((existing) => existing.id === task.id)) continue;

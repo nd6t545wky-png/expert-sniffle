@@ -71,11 +71,20 @@ describe("merging into the session", () => {
   const recovery = recoveryForDay("2026-08-14" as never, [heavyOuting("2026-08-14")], 85);
   const merged = applyRecoveryProtocol(session(), recovery);
 
-  it("adds the day's blocks as real tasks", () => {
+  it("adds the blocks the programme has no task for", () => {
     expect(merged.added).toBeGreaterThan(0);
     const names = merged.session.tasks.map((task) => task.name);
     expect(names).toContain("Compression sleeve, throwing arm");
-    expect(names).toContain("Feed inside 60 minutes");
+    expect(names).toContain("Percussive massage, throwing shoulder");
+  });
+
+  it("folds the rest into the programme tasks that already cover them", () => {
+    // Feeding and sleep are not added as new tasks: the day already ends with
+    // "Post-session fuel and fluids" and "Recovery plan", so the protocol
+    // takes those over instead of sitting beside them.
+    const names = merged.session.tasks.map((task) => task.name);
+    expect(names).not.toContain("Feed inside 60 minutes");
+    expect(names).toContain("Post-session fuel and fluids");
   });
 
   it("puts them in the Arm Care and Recover stages, not the middle of the throwing", () => {
@@ -93,16 +102,22 @@ describe("merging into the session", () => {
     // shoulder, so neither is general recovery.
     expect(stageOf("compression")).toBe("Arm Care");
     expect(stageOf("percussive")).toBe("Arm Care");
-    expect(stageOf("mobility-cooldown")).toBe("Arm Care");
+    // The cool-down takes over the programme's own Arm Care circuit rather
+    // than being added, so it is already in the right stage.
+    expect(merged.session.tasks.find((task) => task.name === "Post-throw arm-care circuit")?.stageTitle).toBe(
+      "Arm Care"
+    );
   });
 
   it("leaves the systemic work in Recover", () => {
     const stageOf = (id: string) =>
       merged.session.tasks.find((task) => String(task.id).endsWith(`-recovery-${id}`))?.stageTitle;
-    expect(stageOf("feed")).toBe("Recover");
-    expect(stageOf("sleep")).toBe("Recover");
-    expect(stageOf("walkdown")).toBe("Recover");
     expect(stageOf("heat")).toBe("Recover");
+    // Feeding, sleep and the walk-down fold into the programme's own Recover
+    // tasks, which are already in this stage.
+    for (const name of ["Post-session fuel and fluids", "Recovery plan"]) {
+      expect(merged.session.tasks.find((task) => task.name === name)?.stageTitle).toBe("Recover");
+    }
   });
 
   it("splits day 2 the same way", () => {
@@ -173,8 +188,11 @@ describe("the day the programme already has throwing", () => {
     expect(merged.note).toMatch(/catch-play|touch-and-feel/i);
   });
 
-  it("still adds the band routine, which is real work", () => {
-    expect(merged.session.tasks.map((task) => task.name)).toContain("Full arm-care band routine");
+  it("gives the band work back the programme's own circuit slot", () => {
+    // Day 3 is where the band routine belongs, so it takes over the
+    // programme's arm-care circuit rather than adding a second one.
+    const circuit = merged.session.tasks.find((task) => task.name === "Post-throw arm-care circuit");
+    expect(circuit?.prescription).toMatch(/11-exercise/);
   });
 });
 
@@ -183,5 +201,78 @@ describe("the day-2 dip", () => {
     const recovery = recoveryForDay("2026-08-16" as never, [heavyOuting("2026-08-14")]);
     const merged = applyRecoveryProtocol(session(), recovery);
     expect(merged.note).toMatch(/expected/i);
+  });
+});
+
+describe("no work appears twice", () => {
+  const day0 = recoveryForDay("2026-08-14" as never, [heavyOuting("2026-08-14")], 85);
+  const merged = applyRecoveryProtocol(session(), day0);
+  const names = merged.session.tasks.map((task) => task.name);
+
+  it("leaves no duplicate task names anywhere in the day", () => {
+    expect(new Set(names).size, names.join(" | ")).toBe(names.length);
+  });
+
+  it("does not add a second protein task beside the programme's", () => {
+    expect(names.filter((name) => /fuel and fluids|Feed inside/i.test(name))).toHaveLength(1);
+  });
+
+  it("does not add a second sleep or down-regulation task", () => {
+    expect(names.filter((name) => /Recovery plan|Sleep target|Walk-down/i.test(name))).toHaveLength(1);
+  });
+
+  it("does not add a second cuff circuit", () => {
+    expect(names.filter((name) => /arm-care circuit|band routine|Mobility cool-down/i.test(name))).toHaveLength(1);
+  });
+
+  it("folds the protocol's prescription into the task it took over", () => {
+    const fuel = merged.session.tasks.find((task) => task.name === "Post-session fuel and fluids");
+    expect(fuel?.prescription).toBe("26–34 g protein plus carbohydrate");
+  });
+
+  it("joins two blocks that land on one task rather than dropping either", () => {
+    // "Recovery plan" is down-regulation and sleep; both must survive.
+    const plan = merged.session.tasks.find((task) => task.name === "Recovery plan");
+    expect(plan?.prescription).toMatch(/5 min/);
+    expect(plan?.prescription).toMatch(/9 h in bed/);
+  });
+
+  it("replaces the loaded T+0 circuit with the mobility cool-down", () => {
+    // The protocol moves band work off day 0 deliberately, so the programme's
+    // own circuit must not still be prescribing it there.
+    const circuit = merged.session.tasks.find((task) => task.name === "Post-throw arm-care circuit");
+    expect(circuit?.prescription).toMatch(/shoulder CARs/);
+    expect(circuit?.prescription).not.toMatch(/band row/);
+  });
+
+  it("gives the band work back its slot on day 3", () => {
+    const day3 = recoveryForDay("2026-08-17" as never, [heavyOuting("2026-08-14")]);
+    const three = applyRecoveryProtocol(session(), day3);
+    const circuit = three.session.tasks.find((task) => task.name === "Post-throw arm-care circuit");
+    expect(circuit?.prescription).toMatch(/11-exercise/);
+    const threeNames = three.session.tasks.map((task) => task.name);
+    expect(new Set(threeNames).size).toBe(threeNames.length);
+  });
+
+  it("has no duplicates on any day of any tier", () => {
+    for (const tier of ["light", "moderate", "heavy"] as const) {
+      const load = tier === "heavy" ? { gamePitches: 78, competitiveStart: true }
+        : tier === "moderate" ? { gamePitches: 45 }
+        : { totalThrows: 34, intentPercent: 60 };
+      for (let offset = 0; offset < 5; offset += 1) {
+        const date = ["2026-08-14", "2026-08-15", "2026-08-16", "2026-08-17", "2026-08-18"][offset];
+        const found = recoveryForDay(date as never, [{ date: "2026-08-14" as never, load }]);
+        if (!found) continue;
+        for (let day = 0; day < 7; day += 1) {
+          const out = applyRecoveryProtocol(buildSession(plan, day), found);
+          const taskNames = out.session.tasks.map((task) => task.name);
+          expect(new Set(taskNames).size, `${tier} day ${offset} weekday ${day}: ${taskNames.join(" | ")}`).toBe(
+            taskNames.length
+          );
+          const ids = out.session.tasks.map((task) => task.id);
+          expect(new Set(ids).size).toBe(ids.length);
+        }
+      }
+    }
   });
 });
