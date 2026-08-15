@@ -771,28 +771,36 @@ export const BFR_BLOCK = {
 export type BlockPlacement = "arm_care" | "recover" | "guidance";
 
 const PLACEMENT: Record<string, BlockPlacement> = {
-  // Day 0
+  // --- Day 0. Anything done to the throwing arm is arm care; the systemic
+  // work — breathing, feeding, sleeping — is recovery.
   walkdown: "recover",
-  "mobility-cooldown": "recover",
-  compression: "recover",
-  percussive: "recover",
+  "mobility-cooldown": "arm_care", // shoulder CARs, pull-aparts, "no money"
+  compression: "arm_care", // the sleeve goes on the throwing arm
+  percussive: "arm_care", // the throwing shoulder
   feed: "recover",
   sleep: "recover",
-  heat: "recover",
-  // Day 1
+  heat: "recover", // whole-body immersion or sauna
+
+  // --- Day 1
   "scap-strength": "arm_care",
-  mobility: "recover",
+  mobility: "recover", // general, not shoulder-specific
   "aerobic-flush": "recover",
-  // Day 2
+
+  // --- Day 2
   "sleeper-stretch": "arm_care",
-  "soft-tissue": "recover",
-  "compression-overnight": "recover",
-  // Day 3 and 4 — the day's own shape, not extra work.
+  "soft-tissue": "recover", // general tissue work
+  "compression-overnight": "arm_care", // the same arm sleeve, re-worn
+
+  // --- Days 3 and 4. The re-load and the prime describe the day's own shape
+  // rather than adding to it, so they are notes, not tasks.
   reload: "guidance",
   "band-routine": "arm_care",
   prime: "guidance",
   "full-mobility": "recover",
-  // Gym track
+
+  // --- Gym track. Nothing here is directed at the throwing arm: the
+  // compression goes on whichever limbs were trained, and the rest is
+  // systemic. So the whole track is recovery.
   "protein-spread": "recover",
   "carbs-fluid": "recover",
   "compression-limbs": "recover",

@@ -86,6 +86,35 @@ describe("merging into the session", () => {
     }
   });
 
+  it("puts what is done to the throwing arm in Arm Care", () => {
+    const stageOf = (id: string) =>
+      merged.session.tasks.find((task) => String(task.id).endsWith(`-recovery-${id}`))?.stageTitle;
+    // The sleeve goes on the throwing arm and the massage on the throwing
+    // shoulder, so neither is general recovery.
+    expect(stageOf("compression")).toBe("Arm Care");
+    expect(stageOf("percussive")).toBe("Arm Care");
+    expect(stageOf("mobility-cooldown")).toBe("Arm Care");
+  });
+
+  it("leaves the systemic work in Recover", () => {
+    const stageOf = (id: string) =>
+      merged.session.tasks.find((task) => String(task.id).endsWith(`-recovery-${id}`))?.stageTitle;
+    expect(stageOf("feed")).toBe("Recover");
+    expect(stageOf("sleep")).toBe("Recover");
+    expect(stageOf("walkdown")).toBe("Recover");
+    expect(stageOf("heat")).toBe("Recover");
+  });
+
+  it("splits day 2 the same way", () => {
+    const day2 = recoveryForDay("2026-08-16" as never, [heavyOuting("2026-08-14")]);
+    const two = applyRecoveryProtocol(session(), day2);
+    const stageOf = (id: string) =>
+      two.session.tasks.find((task) => String(task.id).endsWith(`-recovery-${id}`))?.stageTitle;
+    expect(stageOf("sleeper-stretch")).toBe("Arm Care");
+    expect(stageOf("compression-overnight")).toBe("Arm Care");
+    expect(stageOf("soft-tissue")).toBe("Recover");
+  });
+
   it("keeps the session's own tasks and their order", () => {
     const before = session().tasks.map((task) => task.id);
     const after = merged.session.tasks.map((task) => task.id).filter((id) => !String(id).includes("-recovery-"));
