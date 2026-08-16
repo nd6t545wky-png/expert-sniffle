@@ -155,9 +155,17 @@ check("stored under an ISO date key", /^\d{4}-\d{2}-\d{2}$/.test(submittedDate),
 // The heading is now the programme's own session title, not a generic label.
 const sessionHeading = await page.textContent("#root h2");
 check("navigated to the session after submitting", Boolean(sessionHeading), sessionHeading);
+// Every day carries real prescriptions, but not the same ones: hunting for
+// "Plyo Ball" or "deadlift" only works on a training day, and this suite runs
+// on whatever day it is in Brisbane. On a Sunday the session is "Complete
+// Rest" and the check failed for the calendar rather than for the app — the
+// second time this suite has assumed a weekday. Assert the property that
+// holds every day instead: real prescriptions carry a dose.
+const planText = await page.textContent("#root");
 check(
   "session shows the real programme prescriptions, not placeholders",
-  /Plyo Ball|Trap bar|deadlift|catch/i.test(await page.textContent("#root")),
+  /\d+\s*(×|x)\s*\d+|\d+\s*(min|reps?|sets?|g\b|s\b)/i.test(planText) &&
+    !/TODO|placeholder|lorem/i.test(planText),
   sessionHeading
 );
 
@@ -179,13 +187,32 @@ check("duplicate did not add a second record", Object.keys(afterDup.pre).length 
 // ------------------------------------------------------- task completion
 await go("Session");
 // Tick the first task's checkbox, the way the original works.
-const firstCheck = page.locator(".task-stage[open] .task-check").first();
+//
+// The open stage is the first with unresolved work, and on a rest day it may
+// hold no checkbox at all — so fall back to the first checkbox anywhere,
+// opening its stage the way the athlete would.
+let firstCheck = page.locator(".task-stage[open] .task-check").first();
+if (!(await firstCheck.count())) {
+  await page.evaluate(() => {
+    document.querySelector(".task-check")?.closest("details.task-stage")?.setAttribute("open", "");
+  });
+  await page.waitForTimeout(150);
+  firstCheck = page.locator(".task-stage[open] .task-check").first();
+}
+// Hold the element itself, not the selector. Ticking the last open task
+// completes its stage, so the plan closes it and opens the next — and a
+// selector of ".task-stage[open] .task-check" then resolves to a different,
+// unticked checkbox in the newly opened stage.
+const firstCheckElement = await firstCheck.elementHandle();
 await firstCheck.check();
 await page.waitForTimeout(250);
 const afterTask = await storage();
 const tasksDone = afterTask.completedTasks?.[submittedDate] || [];
 check("task completion persisted", tasksDone.length === 1, JSON.stringify(tasksDone));
-check("completed task shows as ticked", await firstCheck.isChecked());
+check(
+  "completed task shows as ticked",
+  await firstCheckElement.evaluate((node) => node.checked)
+);
 
 // ------------------------------------------------------------- task detail
 await page.locator(".task-stage[open] .task-details").first().click();
@@ -223,7 +250,20 @@ check(
 );
 check("skipped task is labelled", (await page.textContent("#root")).includes("Skipped"));
 
-// undo it again so the rest of the run sees a clean plan
+// undo it again so the rest of the run sees a clean plan.
+//
+// The plan keeps exactly one stage open — "the stage you are working
+// through", which is the first with unresolved work. Skipping the last open
+// task in a stage therefore moves that elsewhere and closes the one the
+// skipped task is in, so the athlete reopens it to undo. Do the same rather
+// than assuming the button is on screen.
+await page.evaluate(() => {
+  const undo = [...document.querySelectorAll("button")].find((button) =>
+    button.textContent?.includes("Undo skip")
+  );
+  undo?.closest("details.task-stage")?.setAttribute("open", "");
+});
+await page.waitForTimeout(150);
 await page.locator('button:has-text("Undo skip")').first().click();
 await page.waitForTimeout(250);
 const afterUndo = await storage();

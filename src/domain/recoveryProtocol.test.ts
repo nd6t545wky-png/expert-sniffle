@@ -344,6 +344,63 @@ describe("the BFR block", () => {
   });
 });
 
+describe("every prescription is specific enough to act on", () => {
+  const everyBlock = () => {
+    const blocks = [];
+    for (const tier of ["light", "moderate", "heavy"] as const) {
+      for (const day of buildThrowingRecoveryPlan({ tier, outingDate: OUTING, bodyweightKg: 85 }).days) {
+        blocks.push(...day.blocks);
+      }
+    }
+    for (const sessionType of ["hypertrophy", "max_strength", "conditioning"] as const) {
+      for (const day of buildGymRecoveryPlan({ sessionType, sessionDate: OUTING, bodyweightKg: 85 }).days) {
+        blocks.push(...day.blocks);
+      }
+    }
+    // One entry per block id — the same block repeats across tiers.
+    return [...new Map(blocks.map((block) => [block.id, block])).values()];
+  };
+
+  it("gives a number to every block: reps, sets, minutes, grams or hours", () => {
+    // "6–8 scapular movements, moderate-to-heavy load" is not something an
+    // athlete can walk into a gym and do. Every block has to carry a dose.
+    const dosed = /\d+\s*(×|x)\s*\d+|×\s*\d+|\d+\s*(reps?|sets?|min|s\b|h\b|g\b|ft\b|°)|\d+–\d+/i;
+    for (const block of everyBlock()) {
+      expect(block.prescription, `${block.id}: "${block.prescription}"`).toMatch(dosed);
+    }
+  });
+
+  it("names the exercises in the two loaded blocks rather than counting them", () => {
+    const blocks = new Map(everyBlock().map((block) => [block.id, block]));
+
+    const scap = blocks.get("scap-strength")!.prescription;
+    for (const movement of ["band row", "external rotation", "band W", "prone Y raise", "serratus wall slide"]) {
+      expect(scap, movement).toContain(movement);
+    }
+    expect(scap).toMatch(/2 sets/);
+
+    const bands = blocks.get("band-routine")!.prescription;
+    for (const movement of ["forward arm circles", "horizontal abduction", "deceleration", "acceleration"]) {
+      expect(bands, movement).toContain(movement);
+    }
+    expect(bands).toMatch(/10 reps/);
+  });
+
+  it("says how much throwing the re-load and the prime are", () => {
+    const blocks = new Map(everyBlock().map((block) => [block.id, block]));
+    expect(blocks.get("reload")!.prescription).toMatch(/25–35 throws/);
+    expect(blocks.get("reload")!.prescription).toMatch(/15–20 pitch/);
+    expect(blocks.get("prime")!.prescription).toMatch(/10–15 throws/);
+  });
+
+  it("says where the soft tissue and percussive work goes, not just for how long", () => {
+    const blocks = new Map(everyBlock().map((block) => [block.id, block]));
+    expect(blocks.get("percussive")!.prescription).toMatch(/forearm flexors/);
+    expect(blocks.get("soft-tissue")!.prescription).toMatch(/lats/);
+    expect(blocks.get("soft-tissue-gym")!.prescription).toMatch(/quads/);
+  });
+});
+
 describe("citations", () => {
   it("names a source wherever a claim rests on one", () => {
     const plan = buildThrowingRecoveryPlan({ tier: "heavy", outingDate: OUTING });

@@ -284,7 +284,7 @@ function dayZero(bodyweightKg: number | null): RecoveryBlock[] {
     {
       id: "walkdown",
       name: "Walk-down and breathing",
-      prescription: "5 min. Nasal, extended exhale.",
+      prescription: "5 min easy walk, then 10 breaths: 4 s in through the nose, 8 s out.",
       why: "Brings the system down before anything else is asked of it.",
     },
     {
@@ -305,7 +305,8 @@ function dayZero(bodyweightKg: number | null): RecoveryBlock[] {
     {
       id: "percussive",
       name: "Percussive massage, throwing shoulder",
-      prescription: "10 min.",
+      prescription:
+        "10 min total — forearm flexors 3 min · biceps and triceps 3 min · posterior shoulder and teres 2 min · upper trap and levator 2 min. Sweep, do not press into one spot.",
       why: "Improved joint position sense immediately post-treatment, and massage is the most effective technique for soreness and perceived fatigue across 99 studies.",
       citation: SOURCES.huang,
       caveat:
@@ -328,7 +329,7 @@ function dayZero(bodyweightKg: number | null): RecoveryBlock[] {
     {
       id: "heat",
       name: "Heat — optional, evening",
-      prescription: "Hot-water immersion or sauna, at least 2 h after throwing.",
+      prescription: "15–20 min hot bath or sauna, at least 2 h after throwing.",
       why: "Rated the most effective single modality for restoring muscle function after exercise-induced damage.",
       citation: SOURCES.rousse,
       optional: true,
@@ -342,7 +343,8 @@ function dayOne(): RecoveryBlock[] {
     {
       id: "scap-strength",
       name: "Scapular strengthening",
-      prescription: "6–8 scapular movements, moderate-to-heavy load, low volume.",
+      prescription:
+        "7 movements, 2 sets each, heavy band or dumbbell: band row × 8 · external rotation at 90° × 8/side · band W (lower trap) × 8 · prone Y raise × 8 · serratus wall slide × 8 · side-lying dumbbell external rotation × 8/side · plank protraction hold × 20 s. Last rep of each set should be hard but clean.",
       why: "The counter-intuitive one, and the block most worth having. Against stretching and against throwing, day-1 strengthening gave the best range of motion by day 4. Higher intensity and lower volume matches pitching demand better than light-band endurance work.",
       citation: SOURCES.jensen,
       caveat: "One crossover trial, n = 13. Best direct evidence on the exact question, and thin.",
@@ -350,13 +352,15 @@ function dayOne(): RecoveryBlock[] {
     {
       id: "mobility",
       name: "Dedicated mobility",
-      prescription: "At least 10 min.",
+      prescription:
+        "10–12 min: shoulder CARs × 5/side · thoracic open book × 8/side · side-lying windmill × 8/side · 90/90 hip switch × 8/side · half-kneeling hip flexor stretch 2 × 30 s/side · lat stretch on the rack 2 × 30 s/side.",
       why: "Two days of ≥10 min mobility is the practitioner standard after a start.",
     },
     {
       id: "aerobic-flush",
       name: "Low-intensity aerobic flush",
-      prescription: "15–20 min, easy.",
+      prescription:
+        "15–20 min on the bike, or an easy jog. Nasal breathing throughout — if you cannot hold a conversation, it is too hard.",
       why: "Active recovery reduces soreness and strength loss versus passive rest.",
       citation: SOURCES.fares,
     },
@@ -377,14 +381,15 @@ function dayTwo(): RecoveryBlock[] {
     {
       id: "soft-tissue",
       name: "Soft tissue",
-      prescription: "Massage where available; foam rolling otherwise.",
+      prescription:
+        "10 min, massage or roller: forearm flexors and extensors 2 min/side · lats 2 min/side · posterior shoulder 2 min · upper back 2 min. Slow passes, no pressing into a painful point.",
       why: "Massage is the most effective modality for soreness and perceived fatigue. Foam rolling is weaker but real, and strongest at 24–48 h rather than immediately — which is why the roller belongs here and not at T+0.",
       citation: SOURCES.dupuy,
     },
     {
       id: "compression-overnight",
       name: "Compression, overnight",
-      prescription: "May be re-worn.",
+      prescription: "Sleeve back on the throwing arm for 6–8 h, or overnight.",
       why: "The beyond-24 h benefit is documented at ES 1.03.",
       citation: SOURCES.brown,
     },
@@ -396,14 +401,16 @@ function dayThree(): RecoveryBlock[] {
     {
       id: "reload",
       name: "Light catch-play or touch-and-feel bullpen",
-      prescription: "First re-load. Roughly 72 h post-outing.",
+      prescription:
+        "First re-load, roughly 72 h post-outing. Catch play out to 120 ft, 25–35 throws — or a 15–20 pitch touch-and-feel bullpen at 60–70% intent. Not both.",
       why: "Internal rotation range of motion peaks here, which is what makes this the natural bullpen day on a five-day rotation.",
       citation: SOURCES.pexa,
     },
     {
       id: "band-routine",
       name: "Full arm-care band routine",
-      prescription: "11-exercise cuff and scapular routine, before and after throwing.",
+      prescription:
+        "11-exercise light-band routine, 10 reps each, before and after throwing: forward arm circles · backward arm circles · external rotation at 0°/side · internal rotation at 0°/side · external rotation at 90°/side · internal rotation at 90°/side · horizontal abduction · front raise · band row · deceleration (reverse throw) pattern/side · acceleration (throw) pattern/side.",
       why: "This is where J-Bands belong — driving blood flow around a throw, not as post-outing fatigue work.",
       citation: SOURCES.driveline,
     },
@@ -415,14 +422,16 @@ function dayFour(): RecoveryBlock[] {
     {
       id: "prime",
       name: "Short priming session",
-      prescription: "Low volume, moderate intent. No new stimulus.",
+      prescription:
+        "10–15 throws at 70–80% intent, then stop. No new stimulus — this wakes the arm up, it does not train it.",
       why: "Peak force in both rotations is highest at day 5, so the arm is still climbing through day 4. Prime it; do not tax it.",
       citation: SOURCES.pexa,
     },
     {
       id: "full-mobility",
       name: "Full mobility",
-      prescription: "Complete routine.",
+      prescription:
+        "The full 10–12 min routine: shoulder CARs × 5/side · thoracic open book × 8/side · side-lying windmill × 8/side · 90/90 hip switch × 8/side · half-kneeling hip flexor stretch 2 × 30 s/side · lat stretch 2 × 30 s/side.",
       why: "Keeps the range that came back on day 3.",
     },
   ];
@@ -546,7 +555,8 @@ export function buildGymRecoveryPlan(options: {
     {
       id: "carbs-fluid",
       name: "Carbohydrate and fluid",
-      prescription: "Carbohydrate to session demand; rehydrate to bodyweight change.",
+      prescription:
+        "1–1.2 g/kg carbohydrate across the next 2 h, and 1.5 L of fluid per kg of bodyweight lost in the session.",
       why: "Replaces what the session actually cost, rather than a fixed number.",
     },
     {
@@ -559,13 +569,14 @@ export function buildGymRecoveryPlan(options: {
     {
       id: "downregulate",
       name: "Downregulation breathing",
-      prescription: "5 min.",
+      prescription: "5 min: 4 s in through the nose, 8 s out, lying with the legs up.",
       why: "Ends the session deliberately rather than leaving the system up.",
     },
     {
       id: "heat-gym",
       name: "Heat — permitted, and may help",
-      prescription: "No timing restriction relative to lifts.",
+      prescription:
+        "15–20 min hot bath, shower or sauna. No timing restriction relative to lifts — before, after or between is all fine.",
       why: "Unlike cold, heat upregulates heat-shock proteins and growth-related gene expression, and may enhance the muscle-mass benefit of strength training. This is the whole reason the no-cold build has no gating.",
       citation: SOURCES.mcgorm,
       optional: true,
@@ -576,21 +587,23 @@ export function buildGymRecoveryPlan(options: {
     {
       id: "aerobic-flush-gym",
       name: "Low-intensity aerobic flush or mobility flow",
-      prescription: "20–30 min.",
+      prescription:
+        "20–30 min easy bike, walk or mobility flow. Conversational the whole way — this is circulation, not conditioning.",
       why: "Active recovery beats passive rest for soreness and strength loss.",
       citation: SOURCES.fares,
     },
     {
       id: "soft-tissue-gym",
       name: "Soft tissue",
-      prescription: "Massage where available; foam rolling otherwise.",
+      prescription:
+        "10 min on what was trained, massage or roller: quads 2 min/side · glutes and hips 2 min/side · thoracic spine 2 min. Slow passes.",
       why: "The effect is largest at 24–48 h, which is today rather than yesterday.",
       citation: SOURCES.zhou,
     },
     {
       id: "compression-continue",
       name: "Compression may continue",
-      prescription: "Optional.",
+      prescription: "Garment on the trained limbs for a further 6–8 h, or overnight.",
       why: "The beyond-24 h benefit is documented.",
       citation: SOURCES.brown,
       optional: true,
