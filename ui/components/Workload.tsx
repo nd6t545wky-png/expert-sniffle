@@ -16,6 +16,13 @@ import {
   totalThrowLoad,
 } from "../../src/domain/session";
 import { Alert, Card, Field, Metric, PageHead } from "./Page";
+import {
+  ACWR_BAND,
+  INTENT_PERCENT,
+  LoggedOuting,
+  acwrReading,
+  restProblems,
+} from "../../src/domain/recoveryProtocol";
 
 /**
  * Throwing workload logging.
@@ -79,6 +86,23 @@ export function Workload({
   const last7 = totalThrowLoad(entries.slice(-7));
   const last28 = totalThrowLoad(entries.slice(-28));
   const ratio = acuteChronicRatio(last7, last28);
+  // The protocol asks for the ratio to be banded at 0.8–1.3 and shown, never
+  // gated on: the meta-analysis behind the band warns of heterogeneity and
+  // inconsistent calculation in the same breath as recommending it.
+  const banded = acwrReading(last7, last28 / 4);
+
+  // What the log already shows about rest taken. Retrospective, because the
+  // app has no planned next outing to check against.
+  const rest = restProblems([
+    ...entries.map((entry) => ({
+      date: entry.date,
+      load: { totalThrows: entry.throws, intentPercent: INTENT_PERCENT[entry.intent] ?? null },
+    })),
+    ...(games ?? []).map((game) => ({
+      date: game.date,
+      load: { gamePitches: game.pitches, competitiveStart: true },
+    })),
+  ] as LoggedOuting[]);
 
   function handleLog() {
     setError("");
@@ -146,9 +170,22 @@ export function Workload({
         <Metric
           label="Acute : chronic"
           value={ratio === null ? "—" : ratio}
-          detail={ratio === null ? "Not enough history" : "7-day vs average week — a trend, not a risk score"}
+          detail={
+            ratio === null
+              ? "Not enough history"
+              : `${banded?.inBand ? "In" : "Outside"} the ${ACWR_BAND[0]}–${ACWR_BAND[1]} band · 7-day vs average week — a trend, not a risk score`
+          }
         />
       </section>
+
+      {rest.length > 0 && (
+        <Alert tone="warn">
+          <strong>Rest taken</strong>
+          {rest.map((problem) => (
+            <p key={problem}>{problem}</p>
+          ))}
+        </Alert>
+      )}
 
       <p className="fineprint">
         <strong>On this ratio:</strong> the acute:chronic workload ratio describes how this week

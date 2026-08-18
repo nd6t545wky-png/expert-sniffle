@@ -51,23 +51,18 @@ import { AnnualPlan } from "./components/AnnualPlan";
 import { Account } from "./components/Account";
 import { BaselineTesting } from "./components/BaselineTesting";
 import { ArmCare } from "./components/ArmCare";
-import { LoggedOuting, recoveryForDay } from "../src/domain/recoveryProtocol";
+import { Card, CardHead } from "./components/Page";
+import { addDays, programmeWeekFor } from "../src/domain/calendar";
+import {
+  BFR_BLOCK,
+  INTENT_PERCENT,
+  LoggedOuting,
+  buildGymRecoveryPlan,
+  gymSessionForDay,
+  recoveryForDay,
+} from "../src/domain/recoveryProtocol";
 import { applyRecoveryProtocol } from "../src/domain/recoveryTasks";
 
-/**
- * The logged intent labels as percentages, so the recovery tier can read them.
- *
- * The protocol's thresholds are stated in percent (80% triggers, ≤70% is a
- * light day, ≥95% is full intent) while the throwing log records a word. These
- * are the midpoints of what each word means, not measurements — which is why a
- * "moderate" session lands below the trigger rather than on it.
- */
-const INTENT_PERCENT: Record<string, number> = {
-  recovery: 40,
-  low: 60,
-  moderate: 75,
-  high: 95,
-};
 import { Integrations } from "./components/Integrations";
 import { Mechanics } from "./components/Mechanics";
 import { Meal, Nutrition, NutritionTargets } from "./components/Nutrition";
@@ -328,6 +323,41 @@ export function App() {
     [date, loggedOutings, knownBodyweight]
   );
 
+  /**
+   * The tasks a given date's session holds, and which of them are resolved.
+   *
+   * Used to spot a gym session from the plan rather than asking the athlete to
+   * classify one they have just finished.
+   */
+  const tasksOn = useCallback(
+    (on: IsoDate) => {
+      if (!state) return [];
+      try {
+        const week = programmeWeekFor(on);
+        if (week === null) return [];
+        const plan = weekPlan(week, state.pbs);
+        for (let day = 0; day < 7; day += 1) {
+          if (dateForWeekDay(plan, day) === on) return buildSession(plan, day).tasks;
+        }
+      } catch {
+        return [];
+      }
+      return [];
+    },
+    [state]
+  );
+
+  const resolvedOn = useCallback(
+    (on: IsoDate) => {
+      const done = ((state?.completedTasks ?? {}) as Record<string, string[] | undefined>)[on] ?? [];
+      const skipped = Object.keys(
+        ((state?.skippedTasks ?? {}) as Record<string, Record<string, unknown> | undefined>)[on] ?? {}
+      );
+      return [...done, ...skipped];
+    },
+    [state]
+  );
+
   const sessionWithRecovery = useMemo(() => {
     if (!state || !selectedWeekPlan) return { session: null as Session | null, note: null as string | null };
     try {
@@ -348,14 +378,37 @@ export function App() {
         level,
         selectedDay
       );
+      // The gym track is read from this same plan: which gym stage the day
+      // holds, and whether any of it was actually resolved. A prescribed
+      // session nobody trained is not something to recover from.
+      //
+      // Yesterday is checked too, because the gym protocol runs a second day
+      // — the flush — and that day's own plan says nothing about it.
+      const yesterday = addDays(date, -1);
+      const todaysType = gymSessionForDay(programmed.tasks, resolvedOn(date));
+      const yesterdaysType = todaysType
+        ? null
+        : gymSessionForDay(tasksOn(yesterday), resolvedOn(yesterday));
+      const gymType = todaysType ?? yesterdaysType;
+      const gym = gymType
+        ? {
+            plan: buildGymRecoveryPlan({
+              sessionType: gymType,
+              sessionDate: todaysType ? date : yesterday,
+              bodyweightKg: knownBodyweight,
+            }),
+            dayOffset: todaysType ? 0 : 1,
+          }
+        : null;
+
       // Recovery last, so it lands on the day as it will actually be trained
       // — including any readiness reduction already applied above.
-      const merged = applyRecoveryProtocol(programmed, recovery);
+      const merged = applyRecoveryProtocol(programmed, recovery, { gym });
       return { session: merged.session, note: merged.note };
     } catch {
       return { session: null as Session | null, note: null as string | null };
     }
-  }, [state, selectedWeekPlan, selectedDay, submission, recovery]);
+  }, [state, selectedWeekPlan, selectedDay, submission, recovery, date, knownBodyweight, tasksOn, resolvedOn]);
 
   const session = sessionWithRecovery.session;
   const recoveryNote = sessionWithRecovery.note;
@@ -1020,6 +1073,26 @@ export function App() {
           the shell's "More" sheet, as in the prototype — not through a nav list
           rendered into the page body. */}
       {page === "profile" && <BaselineTesting />}
+
+      {/* The BFR cuff block, beside the arm screen because that is where arm
+          strength work lives. Reference rather than a daily task: it is a
+          twice-weekly programme, and it depends on equipment the athlete may
+          not have — which the guardrail says plainly. */}
+      {page === "profile" && (
+        <Card>
+          <CardHead title={BFR_BLOCK.name} detail="Twice a week, throwing arm only." />
+          <p className="recovery-prescription">{BFR_BLOCK.prescription}</p>
+          <p className="recovery-caveat">{BFR_BLOCK.guardrail}</p>
+          <details className="recovery-why">
+            <summary>Why</summary>
+            <p>{BFR_BLOCK.why}</p>
+            <p className="recovery-citation">
+              <strong>{BFR_BLOCK.citation.key}</strong> — {BFR_BLOCK.citation.detail}
+            </p>
+            <p>{BFR_BLOCK.experimentalNote}</p>
+          </details>
+        </Card>
+      )}
 
       {page === "profile" && (
         <ArmCare

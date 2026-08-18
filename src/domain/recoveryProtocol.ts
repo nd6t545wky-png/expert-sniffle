@@ -184,6 +184,22 @@ export interface ThrowingLoad {
  */
 export const TRIGGER = { intentPercent: 80, totalThrows: 30 } as const;
 
+/**
+ * The throwing log's intent words as percentages.
+ *
+ * The protocol's thresholds are stated in percent — 80% triggers it, ≤70% is a
+ * light day, ≥95% is full intent — while the log records a word. These are the
+ * midpoints of what each word means, not measurements, which is why a
+ * "moderate" session lands below the trigger rather than on it. If they are
+ * wrong for a particular athlete this is the one place to change them.
+ */
+export const INTENT_PERCENT: Record<string, number> = {
+  recovery: 40,
+  low: 60,
+  moderate: 75,
+  high: 95,
+};
+
 const HEAVY_PITCHES = 60;
 const MODERATE_PITCHES = 30;
 const LIGHT_INTENT = 70;
@@ -899,4 +915,127 @@ export function recoveryForDay(
     tasks: day.blocks.filter((block) => placementFor(block.id) !== "guidance"),
     guidance: day.blocks.filter((block) => placementFor(block.id) === "guidance"),
   };
+}
+
+// --- Reading a gym session off the day's own plan ----------------------------
+
+/**
+ * The stages the programme uses for loaded gym work, and what kind each is.
+ *
+ * The gym track needs to know a session happened and roughly what it was, and
+ * the plan already says both. Rather than adding a form asking the athlete to
+ * classify a session they have just finished, this reads the stage the
+ * programme itself prescribed.
+ */
+const GYM_STAGE_TYPE: Record<string, GymSessionType> = {
+  "Whole-Body Force": "max_strength",
+  "Whole-Body Power": "max_strength",
+  "Whole-Body Gym": "hypertrophy",
+  "Whole-Body Rebuild": "hypertrophy",
+  "Whole-Body Primer": "conditioning",
+  Microdose: "conditioning",
+};
+
+/** A task as this module needs to see it — stage title and id, nothing more. */
+export interface PlannedTask {
+  id: string;
+  stageTitle: string;
+}
+
+/**
+ * What kind of gym session the day held, if the athlete actually did it.
+ *
+ * Requires at least one of that stage's tasks to be resolved. A prescribed
+ * session that was not trained is not something to recover from, and
+ * prescribing a recovery block for work nobody did is how an app teaches the
+ * athlete to ignore it.
+ */
+export function gymSessionForDay(
+  tasks: PlannedTask[],
+  resolvedTaskIds: Iterable<string>
+): GymSessionType | null {
+  const resolved = new Set(resolvedTaskIds);
+  for (const task of tasks) {
+    const type = GYM_STAGE_TYPE[task.stageTitle];
+    if (type && resolved.has(task.id)) return type;
+  }
+  return null;
+}
+
+/**
+ * Blocks that cover the same ground across the two tracks.
+ *
+ * When a day holds both a throwing outing and a lift, the protocol's own
+ * conflict rules apply: the protein target is per day rather than per session,
+ * and one compression period covers both. So the gym track's version of a
+ * block is dropped when the throwing track has already prescribed it.
+ */
+const EQUIVALENT_ACROSS_TRACKS: Record<string, string> = {
+  "protein-spread": "feed",
+  "compression-limbs": "compression",
+  downregulate: "walkdown",
+  "heat-gym": "heat",
+  "soft-tissue-gym": "soft-tissue",
+  "aerobic-flush-gym": "aerobic-flush",
+  "compression-continue": "compression-overnight",
+};
+
+/**
+ * The gym blocks that still apply once the throwing track has had its say.
+ *
+ * Returns them in order, minus anything the throwing day already covers.
+ */
+export function gymBlocksAfter(
+  gym: GymRecoveryPlan,
+  dayOffset: number,
+  throwingBlockIds: Iterable<string>
+): RecoveryBlock[] {
+  const already = new Set(throwingBlockIds);
+  const day = gym.days[dayOffset];
+  if (!day) return [];
+  return day.blocks.filter((block) => {
+    const equivalent = EQUIVALENT_ACROSS_TRACKS[block.id];
+    return !(equivalent && already.has(equivalent));
+  });
+}
+
+/**
+ * Rest problems in what has already been thrown.
+ *
+ * `checkPitchSmartRest` answers "is this next outing legal", which needs a
+ * planned date the app does not have. This asks the question it *can* answer
+ * from the log alone: did the rest that was actually taken break the rule?
+ *
+ * Retrospective is still worth saying. Three consecutive days is the one
+ * hard floor in the guideline, and an athlete who has just done it should be
+ * told, even though the app cannot un-throw it.
+ */
+export function restProblems(outings: LoggedOuting[]): string[] {
+  const dates = [...new Set(outings.filter((o) => triggersRecovery(o.load)).map((o) => o.date))].sort();
+  const problems: string[] = [];
+
+  for (let i = 2; i < dates.length; i += 1) {
+    if (dates[i] === addDays(dates[i - 1], 1) && dates[i - 1] === addDays(dates[i - 2], 1)) {
+      problems.push(`Three consecutive days throwing: ${dates[i - 2]} to ${dates[i]}.`);
+    }
+  }
+
+  // A heavy outing followed inside its own protocol by another one.
+  for (let i = 1; i < dates.length; i += 1) {
+    const previous = outings.find((o) => o.date === dates[i - 1]);
+    const tier = previous ? classifyThrowingLoadTier(previous.load) : null;
+    if (tier !== "heavy") continue;
+    const gap = protocolLengthForTier("heavy") - 1;
+    let cursor = dates[i - 1];
+    let days = 0;
+    while (days < gap && cursor < dates[i]) {
+      cursor = addDays(cursor, 1);
+      days += 1;
+    }
+    if (cursor > dates[i] || (cursor === dates[i] && days < gap)) {
+      problems.push(`Threw again on ${dates[i]}, inside the five-day protocol from ${dates[i - 1]}.`);
+    }
+  }
+
+  return [...new Set(problems)];
 }

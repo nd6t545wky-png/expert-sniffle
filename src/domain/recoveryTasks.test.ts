@@ -11,7 +11,7 @@
 import { describe, expect, it } from "vitest";
 import { buildSession, setProgrammeContext, weekPlan } from "./programmeSessions";
 import { applyRecoveryProtocol } from "./recoveryTasks";
-import { LoggedOuting, recoveryForDay } from "./recoveryProtocol";
+import { LoggedOuting, buildGymRecoveryPlan, gymSessionForDay, recoveryForDay } from "./recoveryProtocol";
 
 const PBS = { trainingMaxes: { lifts: { squat: { value: 140, kind: "kg" } } } };
 setProgrammeContext({ pbs: PBS });
@@ -274,5 +274,61 @@ describe("no work appears twice", () => {
         }
       }
     }
+  });
+});
+
+describe("the gym track", () => {
+  const gymDay = (offset: number) => ({
+    plan: buildGymRecoveryPlan({ sessionType: "max_strength", sessionDate: "2026-08-14" as never, bodyweightKg: 85 }),
+    dayOffset: offset,
+  });
+
+  it("is read from the plan the athlete actually did, not asked for", () => {
+    const s = session();
+    const gymTask = s.tasks.find((task) => /Whole-Body|Microdose/.test(task.stageTitle));
+    // Nothing resolved yet: a prescribed session that was not trained is not
+    // something to recover from.
+    expect(gymSessionForDay(s.tasks, [])).toBeNull();
+    if (gymTask) {
+      expect(gymSessionForDay(s.tasks, [gymTask.id])).not.toBeNull();
+    }
+  });
+
+  it("adds its blocks to the day on its own", () => {
+    const merged = applyRecoveryProtocol(session(), null, { gym: gymDay(0) });
+    expect(merged.added).toBeGreaterThan(0);
+    const names = merged.session.tasks.map((task) => task.name);
+    expect(names).toContain("Compression on the trained limbs");
+    expect(merged.note).toMatch(/max strength/i);
+  });
+
+  it("does not double the protein or the compression when both tracks run", () => {
+    const throwing = recoveryForDay("2026-08-14" as never, [heavyOuting("2026-08-14")], 85);
+    const merged = applyRecoveryProtocol(session(), throwing, { gym: gymDay(0) });
+    const names = merged.session.tasks.map((task) => task.name);
+
+    // The protocol's own rules: protein is per day, one garment period covers
+    // both. So the gym's versions are dropped, not added beside the throwing
+    // day's.
+    expect(names.filter((n) => /protein|fuel and fluids/i.test(n))).toHaveLength(1);
+    expect(names.filter((n) => /compression/i.test(n))).toHaveLength(1);
+    expect(new Set(names).size).toBe(names.length);
+  });
+
+  it("says which order to train in when both land on one day", () => {
+    const throwing = recoveryForDay("2026-08-14" as never, [heavyOuting("2026-08-14")], 85);
+    const merged = applyRecoveryProtocol(session(), throwing, { gym: gymDay(0) });
+    expect(merged.note).toMatch(/throw first, lift second/i);
+  });
+
+  it("carries the no-cold rule wherever recovery appears", () => {
+    const merged = applyRecoveryProtocol(session(), null, { gym: gymDay(0) });
+    expect(merged.note).toMatch(/no ice/i);
+  });
+
+  it("changes nothing when neither track applies", () => {
+    const untouched = applyRecoveryProtocol(session(), null, { gym: null });
+    expect(untouched.added).toBe(0);
+    expect(untouched.note).toBeNull();
   });
 });
