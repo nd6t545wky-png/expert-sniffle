@@ -135,6 +135,21 @@ export const SOURCES = {
     key: "MLB / USA Baseball Pitch Smart",
     detail: "Required rest counted in calendar days by age band; no pitcher appears on three consecutive calendar days.",
   },
+  ipc: {
+    key: "IPC meta-analysis 2024, lower-limb sports recovery",
+    detail:
+      "17 studies, 319 athletes. Intermittent pneumatic compression gave a TRIVIAL-to-SMALL benefit for muscle function and a small-to-moderate one for pain and soreness, largest around 48 h. Its immediate pain relief was no greater than massage. Effective protocols clustered at 20–30 min around 80 mmHg.",
+  },
+  cuppingEvidence: {
+    key: "Mohamed 2023, J Back Musculoskelet Rehabil · Bridgett 2017 RCT review",
+    detail:
+      "Low-to-moderate evidence overall; moderate specifically for soft-tissue flexibility. In the athlete-only review of randomised trials, most had unclear or high risk of bias, none reported safety, and the authors made no recommendation for or against. No study has directly investigated cupping for delayed-onset muscle soreness.",
+  },
+  iastm: {
+    key: "IASTM meta-analysis 2024, BMC Musculoskelet Disord",
+    detail:
+      "9 trials, 450 participants. Instrument-assisted soft-tissue mobilisation improved range of motion by 4.94° (95% CI 3.29–6.60) where there was a deficit, and 2.32° (1.30–3.34) where there was not. A second meta-analysis of 20 RCTs (1,420 participants) found pain and range benefits strongest when it was an ADJUNCT to other work rather than done alone.",
+  },
   lambert: {
     key: "Lambert 2023, JSES",
     detail:
@@ -161,6 +176,43 @@ export const COLD_POLICY = {
     "Compression carries the strength-recovery load instead, on 23- and 12-study meta-analyses, and the cold-blunts-hypertrophy literature is far better established than the cold-helps-arms literature.",
   citations: [SOURCES.huang, SOURCES.brown, SOURCES.hill],
 } as const;
+
+// --- Equipment --------------------------------------------------------------
+
+/**
+ * Kit a block needs before it can honestly be prescribed.
+ *
+ * The app has been here before: it once asked for dynamometer readings from an
+ * athlete who does not own a dynamometer, and a prompt for a measurement that
+ * cannot be taken is a standing nag rather than a plan. A block that needs
+ * equipment declares it, and is left out when the equipment is not there.
+ */
+export type RecoveryEquipment =
+  | "compression_sleeve"
+  | "compression_boots"
+  | "percussion_gun"
+  | "cups"
+  | "scraper"
+  | "roller"
+  | "bands"
+  | "heat";
+
+/**
+ * What this athlete actually owns. The one place to change it.
+ *
+ * Not a guess: boots, cups and a scraper were stated directly, and the rest
+ * were already being prescribed and used.
+ */
+export const OWNED_EQUIPMENT: readonly RecoveryEquipment[] = Object.freeze([
+  "compression_sleeve",
+  "compression_boots",
+  "percussion_gun",
+  "cups",
+  "scraper",
+  "roller",
+  "bands",
+  "heat",
+]);
 
 // --- Load tiers -------------------------------------------------------------
 
@@ -277,6 +329,8 @@ export interface RecoveryBlock {
   optional?: boolean;
   /** Said out loud because the honest caveat matters. */
   caveat?: string;
+  /** Kit this needs. Left out of the plan when the athlete has none. */
+  requires?: RecoveryEquipment;
 }
 
 export interface RecoveryDay {
@@ -315,6 +369,7 @@ function dayZero(bodyweightKg: number | null): RecoveryBlock[] {
       id: "compression",
       name: "Compression sleeve, throwing arm",
       prescription: "On within 30 min, worn 2–8 h.",
+      requires: "compression_sleeve",
       why: "The primary replacement for ice and the best-evidenced piece of the no-cold stack. Strength recovery ES 1.14 at 2–8 h post-exercise — the window and the variable that matter for an arm. An ordinary sleeve is enough; pressure below vs above 15 mmHg did not change the result, so no medical-grade garment is needed.",
       citation: SOURCES.brown,
     },
@@ -323,10 +378,21 @@ function dayZero(bodyweightKg: number | null): RecoveryBlock[] {
       name: "Percussive massage, throwing shoulder",
       prescription:
         "10 min total — forearm flexors 3 min · biceps and triceps 3 min · posterior shoulder and teres 2 min · upper trap and levator 2 min. Sweep, do not press into one spot.",
+      requires: "percussion_gun",
       why: "Improved joint position sense immediately post-treatment, and massage is the most effective technique for soreness and perceived fatigue across 99 studies.",
       citation: SOURCES.huang,
       caveat:
         "In the same trial it was worse than ice at 48 h. It is here for the acute proprioceptive effect, not as an ice substitute on the 48 h measure.",
+    },
+    {
+      id: "boots",
+      name: "Compression boots, legs",
+      prescription: "20–30 min at about 80 mmHg, legs up, any time this evening.",
+      why: "The legs take real load from an outing, and this is what the boots are actually good at: how the legs feel. Across 17 studies and 319 athletes the benefit to soreness was small-to-moderate and largest around 48 h — the benefit to muscle function was trivial-to-small. Worth doing, not worth expecting strength back from.",
+      citation: SOURCES.ipc,
+      requires: "compression_boots",
+      caveat:
+        "This does not replace the arm sleeve, and it is not a substitute for the feed or the sleep. Its own evidence says the immediate pain relief is no better than massage.",
     },
     {
       id: "feed",
@@ -373,6 +439,14 @@ function dayOne(): RecoveryBlock[] {
       why: "Two days of ≥10 min mobility is the practitioner standard after a start.",
     },
     {
+      id: "boots-day1",
+      name: "Compression boots, legs",
+      prescription: "20–30 min at about 80 mmHg.",
+      why: "The soreness effect is largest around 48 h, so the day after is the session that matters most, not the night of.",
+      citation: SOURCES.ipc,
+      requires: "compression_boots",
+    },
+    {
       id: "aerobic-flush",
       name: "Low-intensity aerobic flush",
       prescription:
@@ -395,12 +469,25 @@ function dayTwo(): RecoveryBlock[] {
         "Never inside 2 h before throwing — it acutely reduces external rotator strength. Non-throwing or post-throwing slots only.",
     },
     {
+      id: "scraper",
+      name: "Scraper, posterior shoulder and lat",
+      prescription:
+        "2–3 min per area, light to moderate pressure: posterior shoulder · lat · forearm flexors. Straight after the stretch, not instead of it.",
+      why: "Its evidence is range of motion, and only that: 4.94° where there is a deficit, 2.32° where there is not, and strongest when it is an adjunct to other work rather than done alone. Which is why it sits with the stretch — the two are doing the same job, and together they beat either.",
+      citation: SOURCES.iastm,
+      requires: "scraper",
+      caveat:
+        "Light to moderate. Scraping hard enough to bruise is not a bigger dose of the same thing, and nothing in the evidence supports it. Expect a few degrees, not a transformation.",
+    },
+    {
       id: "soft-tissue",
       name: "Soft tissue",
       prescription:
-        "10 min, massage or roller: forearm flexors and extensors 2 min/side · lats 2 min/side · posterior shoulder 2 min · upper back 2 min. Slow passes, no pressing into a painful point.",
-      why: "Massage is the most effective modality for soreness and perceived fatigue. Foam rolling is weaker but real, and strongest at 24–48 h rather than immediately — which is why the roller belongs here and not at T+0.",
+        "10 min on forearm flexors and extensors 2 min/side · lats 2 min/side · posterior shoulder 2 min · upper back 2 min. Massage or roller — or cups on the lats and upper back for part of it. Slow passes, no pressing into a painful point.",
+      why: "Massage is the most effective modality for soreness and perceived fatigue. Foam rolling is weaker but real, and strongest at 24–48 h rather than immediately — which is why the roller belongs here and not at T+0. Cups are an alternative tool for the same ten minutes, not an eleventh: the same tissue worked three ways is not three times the effect.",
       citation: SOURCES.dupuy,
+      caveat:
+        "On the cups: the evidence is low-to-moderate, and moderate only for soft-tissue flexibility — in athletes specifically, most trials carried a high or unclear risk of bias, none reported safety, and no study has looked at cupping for muscle soreness at all. Marks are expected and are not an injury. Not over broken or already-bruised skin.",
     },
     {
       id: "compression-overnight",
@@ -508,8 +595,12 @@ export function buildThrowingRecoveryPlan(options: {
   tier: ThrowingLoadTier;
   outingDate: IsoDate;
   bodyweightKg?: number | null;
+  equipment?: readonly RecoveryEquipment[];
 }): ThrowingRecoveryPlan {
   const bodyweight = finite(options.bodyweightKg);
+  const owned = new Set(options.equipment ?? OWNED_EQUIPMENT);
+  const available = (blocks: RecoveryBlock[]) =>
+    blocks.filter((block) => !block.requires || owned.has(block.requires));
   const builders = [dayZero(bodyweight), dayOne(), dayTwo(), dayThree(), dayFour()];
   const length = protocolLengthForTier(options.tier);
 
@@ -521,7 +612,7 @@ export function buildThrowingRecoveryPlan(options: {
       date: addDays(options.outingDate, offset),
       title: DAY_TITLES[offset].title,
       focus: DAY_TITLES[offset].focus,
-      blocks: builders[offset],
+      blocks: available(builders[offset]),
       ...(annotation ? { annotation } : {}),
     });
   }
@@ -556,8 +647,12 @@ export function buildGymRecoveryPlan(options: {
   sessionType: GymSessionType;
   sessionDate: IsoDate;
   bodyweightKg?: number | null;
+  equipment?: readonly RecoveryEquipment[];
 }): GymRecoveryPlan {
   const bodyweight = finite(options.bodyweightKg);
+  const owned = new Set(options.equipment ?? OWNED_EQUIPMENT);
+  const available = (blocks: RecoveryBlock[]) =>
+    blocks.filter((block) => !block.requires || owned.has(block.requires));
   const perFeed = bodyweight === null ? "30–40 g" : `${Math.round(bodyweight * 0.3)}–${Math.round(bodyweight * 0.4)} g`;
 
   const dayZeroBlocks: RecoveryBlock[] = [
@@ -581,6 +676,14 @@ export function buildGymRecoveryPlan(options: {
       prescription: "2–8 h.",
       why: "Compression's effect was largest after resistance exercise specifically — ES 0.49 overall and ES 1.33 beyond 24 h.",
       citation: SOURCES.brown,
+    },
+    {
+      id: "boots-gym",
+      name: "Compression boots, legs",
+      prescription: "20–30 min at about 80 mmHg, any time after the session.",
+      why: "A lower-body lift is the clearest case for these: the modality is legs, and the measured benefit is how the legs feel over the next two days.",
+      citation: SOURCES.ipc,
+      requires: "compression_boots",
     },
     {
       id: "downregulate",
@@ -636,14 +739,14 @@ export function buildGymRecoveryPlan(options: {
         date: options.sessionDate,
         title: `Day 0 — after the ${GYM_SESSION_LABELS[options.sessionType].toLowerCase()} session`,
         focus: "T+0 to T+60. Feed it, compress it, bring it down.",
-        blocks: dayZeroBlocks,
+        blocks: available(dayZeroBlocks),
       },
       {
         dayOffset: 1,
         date: addDays(options.sessionDate, 1),
         title: "Day 1 — flush",
         focus: "Move it, work the tissue.",
-        blocks: dayAfter,
+        blocks: available(dayAfter),
       },
     ],
   };
@@ -815,7 +918,14 @@ const PLACEMENT: Record<string, BlockPlacement> = {
   mobility: "recover", // general, not shoulder-specific
   "aerobic-flush": "recover",
 
-  // --- Day 2
+  // Boots are a legs modality: systemic recovery, not arm care.
+  boots: "recover",
+  "boots-day1": "recover",
+  "boots-gym": "recover",
+
+  // --- Day 2. The scraper is a range tool for the throwing side, so it sits
+  // with the stretch it is an adjunct to.
+  scraper: "arm_care",
   "sleeper-stretch": "arm_care",
   "soft-tissue": "recover", // general tissue work
   "compression-overnight": "arm_care", // the same arm sleeve, re-worn
@@ -973,6 +1083,8 @@ export function gymSessionForDay(
 const EQUIVALENT_ACROSS_TRACKS: Record<string, string> = {
   "protein-spread": "feed",
   "compression-limbs": "compression",
+  // Both tracks reach for the boots; one 20–30 min session covers the day.
+  "boots-gym": "boots",
   downregulate: "walkdown",
   "heat-gym": "heat",
   "soft-tissue-gym": "soft-tissue",

@@ -311,7 +311,11 @@ describe("the gym track", () => {
     // both. So the gym's versions are dropped, not added beside the throwing
     // day's.
     expect(names.filter((n) => /protein|fuel and fluids/i.test(n))).toHaveLength(1);
-    expect(names.filter((n) => /compression/i.test(n))).toHaveLength(1);
+    // One sleeve for the arm and one boots session for the legs — different
+    // body parts, so two tasks is right and three would not be.
+    expect(names.filter((n) => /compression sleeve/i.test(n))).toHaveLength(1);
+    expect(names.filter((n) => /compression boots/i.test(n))).toHaveLength(1);
+    expect(names.filter((n) => /compression/i.test(n))).toHaveLength(2);
     expect(new Set(names).size).toBe(names.length);
   });
 

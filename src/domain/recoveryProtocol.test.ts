@@ -13,6 +13,7 @@ import { describe, expect, it } from "vitest";
 import {
   ACWR_BAND,
   BFR_BLOCK,
+  OWNED_EQUIPMENT,
   COLD_POLICY,
   CONFLICT_RULES,
   PRE_THROW_STRETCH_BLOCK_HOURS,
@@ -409,6 +410,72 @@ describe("citations", () => {
     for (const block of cited) {
       expect(block.citation!.key.trim().length, block.id).toBeGreaterThan(0);
       expect(block.citation!.detail.trim().length, block.id).toBeGreaterThan(0);
+    }
+  });
+});
+
+describe("equipment the athlete actually owns", () => {
+  const withKit = (equipment: readonly string[]) =>
+    buildThrowingRecoveryPlan({
+      tier: "heavy",
+      outingDate: OUTING,
+      bodyweightKg: 85,
+      equipment: equipment as never,
+    });
+
+  it("prescribes the boots, cups and scraper he owns", () => {
+    const plan = withKit(OWNED_EQUIPMENT);
+    const ids = plan.days.flatMap((day) => day.blocks.map((block) => block.id));
+    expect(ids).toContain("boots");
+    expect(ids).toContain("boots-day1");
+    expect(ids).toContain("scraper");
+    // Cups are a tool inside the soft-tissue block, not an eleventh task on
+    // the same tissue.
+    const softTissue = plan.days[2].blocks.find((block) => block.id === "soft-tissue");
+    expect(softTissue?.prescription).toMatch(/cups/i);
+  });
+
+  it("leaves out what he does not own rather than prescribing it anyway", () => {
+    const plan = withKit(["compression_sleeve", "roller", "bands", "heat"]);
+    const ids = plan.days.flatMap((day) => day.blocks.map((block) => block.id));
+    expect(ids).not.toContain("boots");
+    expect(ids).not.toContain("scraper");
+    expect(ids).not.toContain("percussive");
+    // What needs no equipment is untouched.
+    expect(ids).toContain("feed");
+    expect(ids).toContain("scap-strength");
+  });
+
+  it("keeps the boots honest about what they do", () => {
+    const boots = withKit(OWNED_EQUIPMENT).days[0].blocks.find((block) => block.id === "boots");
+    expect(boots?.prescription).toMatch(/20–30 min/);
+    expect(boots?.prescription).toMatch(/80 mmHg/);
+    // Small-to-moderate for soreness, trivial-to-small for function. The block
+    // must not imply it restores strength.
+    expect(boots?.why).toMatch(/trivial-to-small/i);
+    expect(boots?.caveat).toMatch(/no better than massage/i);
+  });
+
+  it("keeps the scraper's claim to range of motion and nothing else", () => {
+    const scraper = withKit(OWNED_EQUIPMENT).days[2].blocks.find((block) => block.id === "scraper");
+    expect(scraper?.why).toMatch(/4\.94°/);
+    expect(scraper?.why).toMatch(/adjunct/i);
+    expect(scraper?.caveat).toMatch(/bruise/i);
+  });
+
+  it("says plainly how thin the cupping evidence is", () => {
+    const softTissue = withKit(OWNED_EQUIPMENT).days[2].blocks.find((block) => block.id === "soft-tissue");
+    expect(softTissue?.caveat).toMatch(/risk of bias/i);
+    expect(softTissue?.caveat).toMatch(/no study has looked at cupping for muscle soreness/i);
+    expect(softTissue?.caveat).toMatch(/marks are expected/i);
+  });
+
+  it("still gives every equipment block a dose", () => {
+    for (const day of withKit(OWNED_EQUIPMENT).days) {
+      for (const block of day.blocks) {
+        if (!block.requires) continue;
+        expect(block.prescription, block.id).toMatch(/\d/);
+      }
     }
   });
 });
