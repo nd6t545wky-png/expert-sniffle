@@ -168,6 +168,55 @@ export function PhysioView({ api = new PitchingOsApi() }: { api?: PitchingOsApi 
         </Card>
       )}
 
+      {/* First, because it is the reason a physio opens this at all. */}
+      {summary.painReports && summary.painReports.length > 0 && (
+        <Card>
+          <CardHead
+            title="Reported pain and soreness"
+            detail="What the athlete reported, and what the app did about it that day."
+          />
+          <div className="physio-scroll">
+            <table className="physio-table">
+              <thead>
+                <tr>
+                  <th scope="col">Date</th>
+                  <th scope="col">Where</th>
+                  <th scope="col">/10</th>
+                  <th scope="col">Feels like</th>
+                  <th scope="col">When</th>
+                  <th scope="col">Day</th>
+                  <th scope="col">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {summary.painReports.map((entry, index) => (
+                  <tr key={`${entry.date}-${entry.region}-${index}`}>
+                    <td>{dayLabel(entry.date)}</td>
+                    <td>{entry.region}</td>
+                    <td>{entry.severity}</td>
+                    <td>{entry.quality}</td>
+                    <td>{entry.timing}</td>
+                    <td>{entry.daysRunning + 1}</td>
+                    <td>{entry.resolvedOn ? `resolved ${entry.resolvedOn}` : entry.tier}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {summary.painReports.some((entry) => entry.note) && (
+            <ul className="physio-list">
+              {summary.painReports
+                .filter((entry) => entry.note)
+                .map((entry, index) => (
+                  <li key={`note-${entry.date}-${index}`}>
+                    {dayLabel(entry.date)}, {entry.region.toLowerCase()}: “{entry.note}”
+                  </li>
+                ))}
+            </ul>
+          )}
+        </Card>
+      )}
+
       <Card>
         <CardHead title="Arm strength screens" detail="Handheld dynamometry, throwing arm." />
         {summary.armScreens.length === 0 ? (

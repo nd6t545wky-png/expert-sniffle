@@ -66,6 +66,29 @@ export interface PhysioSummary {
   workload?: { ratio: number | null; inBand: boolean | null };
   /** Anything the log says about rest already taken. */
   restProblems: string[];
+  /**
+   * What the athlete reported as sore or painful, and what the app did.
+   *
+   * The part of this summary a physio reads first, so it travels as its own
+   * field rather than being buried in a day row: region, severity, how it
+   * behaves, how long it has been running, and whether training was changed
+   * around it.
+   */
+  painReports?: PhysioPainReport[];
+}
+
+export interface PhysioPainReport {
+  date: IsoDate;
+  region: string;
+  severity: number;
+  quality: string;
+  timing: string;
+  trend: string;
+  /** monitor / modify / hold / refer. */
+  tier: string;
+  daysRunning: number;
+  note?: string;
+  resolvedOn?: IsoDate;
 }
 
 /** How many days of history a share carries. Enough for context, not a life story. */
@@ -142,6 +165,8 @@ export interface PhysioSummaryInput {
   exams?: ArmExam[];
   workload?: { ratio: number | null; inBand: boolean | null };
   restProblems?: string[];
+  /** Pain reports over the window, newest first. */
+  painReports?: PhysioPainReport[];
   /** Override the window, for tests. */
   days?: number;
 }
@@ -269,6 +294,7 @@ export function buildPhysioSummary(input: PhysioSummaryInput): PhysioSummary {
     armScreens,
     ...(input.workload ? { workload: input.workload } : {}),
     restProblems: input.restProblems ?? [],
+    ...(input.painReports?.length ? { painReports: input.painReports } : {}),
   };
 }
 
@@ -293,5 +319,8 @@ export function readPhysioSummary(value: unknown): PhysioSummary | null {
     restProblems: Array.isArray(value.restProblems)
       ? value.restProblems.filter((item): item is string => typeof item === "string")
       : [],
+    ...(Array.isArray(value.painReports)
+      ? { painReports: value.painReports.filter(isRecord) as unknown as PhysioPainReport[] }
+      : {}),
   };
 }

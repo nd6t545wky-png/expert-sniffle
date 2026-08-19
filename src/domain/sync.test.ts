@@ -250,3 +250,69 @@ describe("conflict detection", () => {
     expect(isSyncConflict({ saved: true, revision: 2 })).toBe(false);
   });
 });
+
+/**
+ * Lists of records with ids, which the snapshot merge used to resolve
+ * whole-list — remote replaced local, and anything added on this device since
+ * the last sync was gone. `mergeRecordsById` was written and tested for this
+ * and had never been connected to `mergeCloudSnapshot`.
+ */
+describe("merging id-keyed lists", () => {
+  const local = {
+    version: 1,
+    pre: {},
+    post: {},
+    completedTasks: {},
+    skippedTasks: {},
+    taskCompletionUpdatedAt: {},
+    healthPrefill: {},
+    pulseImports: {},
+    bullpens: {},
+    weeklyReviews: {},
+  } as AppState;
+
+  it("keeps a pain report made on this device when the remote has not seen it", () => {
+    // The failure that matters: the phone logs a sore elbow, the laptop syncs
+    // first, and the app stops knowing about it — putting the throwing back in.
+    const merged = mergeCloudSnapshot(
+      { soreness: [{ id: "old", region: "knee" }] },
+      { ...local, soreness: [{ id: "fresh", region: "elbow_medial" }] }
+    );
+    const ids = (merged.soreness as { id: string }[]).map((entry) => entry.id);
+    expect(new Set(ids)).toEqual(new Set(["old", "fresh"]));
+  });
+
+  it("does the same for games, arm screens and captures", () => {
+    for (const field of ["games", "armExams", "kinematics"] as const) {
+      const merged = mergeCloudSnapshot(
+        { [field]: [{ id: "remote" }] },
+        { ...local, [field]: [{ id: "local" }] }
+      );
+      const ids = (merged[field] as { id: string }[]).map((entry) => entry.id);
+      expect(new Set(ids), field).toEqual(new Set(["remote", "local"]));
+    }
+  });
+
+  it("resolves a genuine conflict on the same id by timestamp", () => {
+    const merged = mergeCloudSnapshot(
+      { soreness: [{ id: "a", severity: 2, createdAt: "2026-08-01T00:00:00.000Z" }] },
+      { ...local, soreness: [{ id: "a", severity: 8, createdAt: "2026-08-19T00:00:00.000Z" }] }
+    );
+    expect((merged.soreness as { severity: number }[])[0].severity).toBe(8);
+  });
+
+  it("leaves a field absent when neither side has it", () => {
+    const merged = mergeCloudSnapshot({}, local);
+    expect("soreness" in merged).toBe(false);
+    expect("games" in merged).toBe(false);
+  });
+
+  it("takes one side's list when the other has none", () => {
+    expect(
+      (mergeCloudSnapshot({ soreness: [{ id: "a" }] }, local).soreness as unknown[]).length
+    ).toBe(1);
+    expect(
+      (mergeCloudSnapshot({}, { ...local, soreness: [{ id: "a" }] }).soreness as unknown[]).length
+    ).toBe(1);
+  });
+});

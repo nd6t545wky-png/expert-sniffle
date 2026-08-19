@@ -1796,3 +1796,160 @@ body {
   font-size: 12px;
   line-height: 1.55;
 }
+
+/* --- Reporting something sore --------------------------------------------
+   Built for a thumb on a phone between the mound and the car: everything is a
+   full-size tap target, nothing is a dropdown, and the whole form fits the
+   flow "where / how bad / what / when". */
+.soreness-form {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.soreness-form fieldset {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.soreness-form legend {
+  padding: 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+.soreness-form legend strong {
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+.soreness-form small {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.soreness-form input[type="range"] {
+  width: 100%;
+}
+
+.soreness-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 8px;
+}
+
+.soreness-chip {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  min-height: 44px;
+  text-align: left;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 13px;
+  cursor: pointer;
+}
+.soreness-chip small {
+  color: var(--muted);
+  font-size: 11px;
+}
+.soreness-chip.selected {
+  border-color: var(--blue);
+  background: var(--team-primary-soft);
+}
+.soreness-chip.selected small {
+  color: var(--ink);
+}
+
+.soreness-live {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.soreness-live > li {
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface-secondary);
+}
+
+.soreness-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* The verdict, coloured by how serious it is — a hold and a monitor must not
+   look alike at a glance. */
+.soreness-tier {
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  background: var(--team-primary-soft);
+  color: var(--ink);
+}
+.soreness-tier.tier-hold {
+  background: color-mix(in srgb, orange 22%, var(--surface));
+}
+.soreness-tier.tier-refer {
+  background: color-mix(in srgb, red 22%, var(--surface));
+}
+
+.soreness-meta {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.soreness-why,
+.soreness-changes {
+  margin-top: 8px;
+  font-size: 12px;
+}
+.soreness-why summary,
+.soreness-changes summary {
+  cursor: pointer;
+  color: var(--blue);
+}
+.soreness-why ul,
+.soreness-changes ul {
+  margin: 8px 0 0;
+  padding-left: 18px;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.soreness-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
+/* What the overlay did, tagged so removals and additions scan differently. */
+.soreness-change {
+  display: inline-block;
+  min-width: 62px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--team-primary-soft);
+  color: var(--ink);
+  font-size: 11px;
+  text-align: center;
+}
+.soreness-change.removed {
+  background: color-mix(in srgb, red 18%, var(--surface));
+}
+.soreness-change.added {
+  background: color-mix(in srgb, green 18%, var(--surface));
+}

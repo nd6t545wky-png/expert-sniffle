@@ -243,8 +243,46 @@ export function mergeCloudSnapshot(remote: Record<string, unknown>, local: AppSt
       local.taskCompletionUpdatedAt as Record<string, string>
     ),
     skippedTasks: mergeRecordMaps(remote.skippedTasks as AnyMap, local.skippedTasks, remoteFallback, localFallback),
+    ...mergeIdArrays(remote, local, remoteFallback, localFallback),
     syncUpdatedAt: new Date(Math.max(remoteFallback, localFallback) || Date.now()).toISOString(),
   } as AppState;
+}
+
+/**
+ * State that is a list of records with ids rather than a map keyed by date.
+ *
+ * These went through the spread above and so were resolved whole-list: the
+ * remote copy replaced the local one, and anything added on this device since
+ * the last sync was gone. `mergeRecordsById` existed and was tested for
+ * precisely this and had never been wired in.
+ *
+ * It matters most for `soreness`. Losing a game or an arm screen costs a row
+ * of history; losing a pain report means the app stops knowing an elbow hurts
+ * and puts the throwing back in.
+ */
+const ID_ARRAY_FIELDS = ["games", "armExams", "kinematics", "soreness"] as const;
+
+function mergeIdArrays(
+  remote: Record<string, unknown>,
+  local: AppState,
+  remoteFallback: number,
+  localFallback: number
+): Record<string, unknown> {
+  const merged: Record<string, unknown> = {};
+  for (const field of ID_ARRAY_FIELDS) {
+    const remoteItems = remote[field];
+    const localItems = local[field];
+    // Absent on both sides stays absent, rather than becoming an empty array
+    // that a later reader cannot tell from "cleared".
+    if (!Array.isArray(remoteItems) && !Array.isArray(localItems)) continue;
+    merged[field] = mergeRecordsById(
+      Array.isArray(remoteItems) ? (remoteItems as { id?: string }[]) : [],
+      Array.isArray(localItems) ? (localItems as { id?: string }[]) : [],
+      remoteFallback,
+      localFallback
+    );
+  }
+  return merged;
 }
 
 // --- Conflict handling -------------------------------------------------------

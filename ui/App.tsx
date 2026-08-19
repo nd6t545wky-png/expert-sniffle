@@ -66,7 +66,20 @@ import {
 } from "../src/domain/recoveryProtocol";
 import { RecoverySettings } from "./components/RecoverySettings";
 import { applyRecoveryProtocol } from "../src/domain/recoveryTasks";
-import { PhysioSummary, buildPhysioSummary } from "../src/domain/physioShare";
+import { PhysioSummary, SHARE_DAYS, buildPhysioSummary } from "../src/domain/physioShare";
+import {
+  BodyRegion,
+  QUALITY_LABELS,
+  REGION_LABELS,
+  SorenessReport,
+  TIMING_LABELS,
+  TREND_LABELS,
+  activeReports,
+  readReports,
+  triageReport,
+} from "../src/domain/soreness";
+import { SorenessChange, applySorenessProtocol } from "../src/domain/sorenessTasks";
+import { SorenessCard } from "./components/SorenessCard";
 import { PhysioShare, publishShare, readStoredShare } from "./components/PhysioShare";
 
 import { Integrations } from "./components/Integrations";
@@ -342,6 +355,16 @@ export function App() {
     return [...fromBullpens, ...fromGames];
   }, [throwingEntries, games, intentPercent]);
 
+  /**
+   * What the athlete has reported as sore, and what today does about it.
+   *
+   * Reports carry forward from the day they were made — pain does not stop
+   * existing because nobody opened the app — so this is read for the open date
+   * rather than only for today.
+   */
+  const sorenessReports = useMemo(() => readReports(state?.soreness), [state]);
+  const soreness = useMemo(() => activeReports(sorenessReports, date), [sorenessReports, date]);
+
   /** What the open day owes to a recent outing, or nothing. */
   const recovery = useMemo(
     () => recoveryForDay(date, loggedOutings, knownBodyweight, recoveryEquipment),
@@ -427,15 +450,33 @@ export function App() {
           }
         : null;
 
-      // Recovery last, so it lands on the day as it will actually be trained
+      // Recovery next, so it lands on the day as it will actually be trained
       // — including any readiness reduction already applied above.
       const merged = applyRecoveryProtocol(programmed, recovery, {
         gym,
         resolvedTaskIds: resolvedOn(date),
       });
-      return { session: merged.session, note: merged.note };
+
+      // Soreness last of all, and deliberately so: it is the only overlay that
+      // removes work, and it has to be able to remove work the other two added.
+      // A protocol that puts loaded cuff work back on day 3 must not override a
+      // shoulder that has been on hold since day 1.
+      const managed = applySorenessProtocol(merged.session, soreness);
+      return {
+        session: managed.session,
+        note: merged.note,
+        sorenessNote: managed.note,
+        changes: managed.changes,
+        referral: managed.referral,
+      };
     } catch {
-      return { session: null as Session | null, note: null as string | null };
+      return {
+        session: null as Session | null,
+        note: null as string | null,
+        sorenessNote: null as string | null,
+        changes: [] as SorenessChange[],
+        referral: null as string | null,
+      };
     }
   }, [
     state,
@@ -446,12 +487,18 @@ export function App() {
     date,
     knownBodyweight,
     recoveryEquipment,
+    soreness,
     tasksOn,
     resolvedOn,
   ]);
 
   const session = sessionWithRecovery.session;
-  const recoveryNote = sessionWithRecovery.note;
+  // Two separate sentences rather than one joined: the recovery note says what
+  // the day is recovering from, the soreness note says what was changed about
+  // it, and running them together reads as one explanation for both.
+  const recoveryNote = [sessionWithRecovery.note, sessionWithRecovery.sorenessNote]
+    .filter(Boolean)
+    .join(" ") || null;
 
   // The plan renders stages, cues and detail panels, so it needs the whole
   // task, not a name/prescription pair.
@@ -591,6 +638,30 @@ export function App() {
       exams: armExams,
       workload: banded ? { ratio: banded.ratio, inBand: banded.inBand } : undefined,
       restProblems: restProblems(loggedOutings),
+      // Every report in the window, resolved ones included: a physio needs to
+      // see the elbow that flared twice and settled as well as the one still
+      // going. Triaged as of the day it was made rather than today, so the
+      // tier shown is the decision that was actually acted on.
+      painReports: sorenessReports
+        .filter((report) => report.date >= addDays(today.openDate, -SHARE_DAYS))
+        .sort((a, b) => b.date.localeCompare(a.date))
+        .map((report) => {
+          const asOf = activeReports(sorenessReports, report.date).find(
+            (entry) => entry.report.id === report.id
+          );
+          return {
+            date: report.date,
+            region: REGION_LABELS[report.region] ?? report.region,
+            severity: report.severity,
+            quality: QUALITY_LABELS[report.quality] ?? report.quality,
+            timing: TIMING_LABELS[report.timing] ?? report.timing,
+            trend: TREND_LABELS[report.trend] ?? report.trend,
+            tier: asOf?.triage.tier ?? triageReport(report).tier,
+            daysRunning: asOf?.daysRunning ?? 0,
+            ...(report.note ? { note: report.note } : {}),
+            ...(report.resolvedOn ? { resolvedOn: report.resolvedOn } : {}),
+          };
+        }),
     });
   }, [
     state,
@@ -602,6 +673,7 @@ export function App() {
     knownBodyweight,
     recoveryEquipment,
     armExams,
+    sorenessReports,
   ]);
 
 
@@ -991,6 +1063,36 @@ export function App() {
           onOpenPlan={() => goToToday(plan.status === "locked" ? "readiness" : "session")}
         />
       )}
+      {/* Above the plan, because on a day something hurts this is the first
+          thing to do and everything below it is downstream of the answer. */}
+      {page === "session" && (
+        <SorenessCard
+          date={date}
+          active={soreness}
+          changes={sessionWithRecovery.changes}
+          referral={sessionWithRecovery.referral}
+          onOpenShare={() => setPage("profile")}
+          onReport={(report) =>
+            update((draft) => ({
+              ...draft,
+              soreness: [...readReports(draft.soreness), report],
+            }))
+          }
+          onResolve={(region, on) =>
+            update((draft) => ({
+              ...draft,
+              // Stamped onto every unresolved report for the region rather than
+              // deleting them: the history is what the physio reads, and an
+              // elbow that flared three times is a different story from one
+              // that flared once.
+              soreness: readReports(draft.soreness).map((report) =>
+                report.region === region && !report.resolvedOn ? { ...report, resolvedOn: on } : report
+              ),
+            }))
+          }
+        />
+      )}
+
       {page === "session" && (
         <DailyPlan
           date={date}
