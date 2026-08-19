@@ -55,14 +55,16 @@ import { Card, CardHead } from "./components/Page";
 import { addDays, programmeWeekFor } from "../src/domain/calendar";
 import {
   BFR_BLOCK,
-  INTENT_PERCENT,
   LoggedOuting,
   acwrReading,
   buildGymRecoveryPlan,
   gymSessionForDay,
+  readEquipment,
+  readIntentPercent,
   recoveryForDay,
   restProblems,
 } from "../src/domain/recoveryProtocol";
+import { RecoverySettings } from "./components/RecoverySettings";
 import { applyRecoveryProtocol } from "../src/domain/recoveryTasks";
 import { PhysioSummary, buildPhysioSummary } from "../src/domain/physioShare";
 import { PhysioShare, publishShare, readStoredShare } from "./components/PhysioShare";
@@ -304,6 +306,22 @@ export function App() {
   }, [state]);
 
   /**
+   * What this athlete owns, and what their intent words mean.
+   *
+   * Both were constants until the athlete's kit and the athlete's reading of
+   * "moderate" turned out to be things that change. Absent from the workspace
+   * means "never set", which keeps the defaults.
+   */
+  const recoveryEquipment = useMemo(
+    () => readEquipment((state?.profile as { recoveryEquipment?: unknown } | undefined)?.recoveryEquipment),
+    [state]
+  );
+  const intentPercent = useMemo(
+    () => readIntentPercent((state?.profile as { intentPercent?: unknown } | undefined)?.intentPercent),
+    [state]
+  );
+
+  /**
    * Every throwing session and game the athlete has logged, as outings.
    *
    * The recovery protocol reads this rather than asking anything: the tier and
@@ -314,7 +332,7 @@ export function App() {
       date: entry.date,
       load: {
         totalThrows: entry.throws ?? null,
-        intentPercent: INTENT_PERCENT[entry.intent] ?? null,
+        intentPercent: intentPercent[entry.intent] ?? null,
       },
     }));
     const fromGames = games.map((game) => ({
@@ -322,12 +340,12 @@ export function App() {
       load: { gamePitches: game.pitches ?? null, competitiveStart: true },
     }));
     return [...fromBullpens, ...fromGames];
-  }, [throwingEntries, games]);
+  }, [throwingEntries, games, intentPercent]);
 
   /** What the open day owes to a recent outing, or nothing. */
   const recovery = useMemo(
-    () => recoveryForDay(date, loggedOutings, knownBodyweight),
-    [date, loggedOutings, knownBodyweight]
+    () => recoveryForDay(date, loggedOutings, knownBodyweight, recoveryEquipment),
+    [date, loggedOutings, knownBodyweight, recoveryEquipment]
   );
 
   /**
@@ -403,6 +421,7 @@ export function App() {
               sessionType: gymType,
               sessionDate: todaysType ? date : yesterday,
               bodyweightKg: knownBodyweight,
+              equipment: recoveryEquipment,
             }),
             dayOffset: todaysType ? 0 : 1,
           }
@@ -418,7 +437,18 @@ export function App() {
     } catch {
       return { session: null as Session | null, note: null as string | null };
     }
-  }, [state, selectedWeekPlan, selectedDay, submission, recovery, date, knownBodyweight, tasksOn, resolvedOn]);
+  }, [
+    state,
+    selectedWeekPlan,
+    selectedDay,
+    submission,
+    recovery,
+    date,
+    knownBodyweight,
+    recoveryEquipment,
+    tasksOn,
+    resolvedOn,
+  ]);
 
   const session = sessionWithRecovery.session;
   const recoveryNote = sessionWithRecovery.note;
@@ -540,14 +570,24 @@ export function App() {
       // The protocol's own words for the day, so the physio reads the same
       // sentence the athlete did rather than a paraphrase of it.
       recoveryLabel: (on) => {
-        const found = recoveryForDay(on, loggedOutings, knownBodyweight);
+        const found = recoveryForDay(on, loggedOutings, knownBodyweight, recoveryEquipment);
         return found ? `${found.tier} protocol, day ${found.dayOffset + 1} — ${found.day.title}` : null;
       },
       exams: armExams,
       workload: banded ? { ratio: banded.ratio, inBand: banded.inBand } : undefined,
       restProblems: restProblems(loggedOutings),
     });
-  }, [state, today.openDate, throwingEntries, games, tasksOn, loggedOutings, knownBodyweight, armExams]);
+  }, [
+    state,
+    today.openDate,
+    throwingEntries,
+    games,
+    tasksOn,
+    loggedOutings,
+    knownBodyweight,
+    recoveryEquipment,
+    armExams,
+  ]);
 
 
   /**
@@ -1019,6 +1059,7 @@ export function App() {
           date={date}
           plan={plan}
           entries={throwingEntries}
+          intentPercent={intentPercent}
           onLog={(entry) =>
             update((draft) => ({ ...draft, bullpens: { ...draft.bullpens, [entry.date]: entry } }))
           }
@@ -1188,6 +1229,25 @@ export function App() {
             update((draft) => ({
               ...draft,
               armExams: readExams(draft.armExams).filter((item) => item.id !== id),
+            }))
+          }
+        />
+      )}
+
+      {page === "profile" && (
+        <RecoverySettings
+          equipment={recoveryEquipment}
+          intentPercent={intentPercent}
+          onEquipment={(next) =>
+            update((draft) => ({
+              ...draft,
+              profile: { ...(draft.profile as object), recoveryEquipment: next },
+            }))
+          }
+          onIntentPercent={(next) =>
+            update((draft) => ({
+              ...draft,
+              profile: { ...(draft.profile as object), intentPercent: next },
             }))
           }
         />

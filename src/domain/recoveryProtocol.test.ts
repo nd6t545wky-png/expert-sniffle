@@ -13,7 +13,13 @@ import { describe, expect, it } from "vitest";
 import {
   ACWR_BAND,
   BFR_BLOCK,
+  EQUIPMENT_LABELS,
+  INTENT_PERCENT,
+  INTENT_PERCENT_RANGE,
   OWNED_EQUIPMENT,
+  readEquipment,
+  readIntentPercent,
+  recoveryForDay,
   COLD_POLICY,
   CONFLICT_RULES,
   PRE_THROW_STRETCH_BLOCK_HOURS,
@@ -477,5 +483,93 @@ describe("equipment the athlete actually owns", () => {
         expect(block.prescription, block.id).toMatch(/\d/);
       }
     }
+  });
+});
+
+/**
+ * Both of these were constants until they turned out to be things that change:
+ * kit gets bought, broken and lent out, and "moderate" means different efforts
+ * to different throwers. Reading them from the workspace introduces a way for
+ * stored rubbish to reach the plan, so the readers are the guard.
+ */
+describe("settings read from the workspace", () => {
+  it("treats an unset kit as the default, not as owning nothing", () => {
+    expect(readEquipment(undefined)).toEqual(OWNED_EQUIPMENT);
+    expect(readEquipment(null)).toEqual(OWNED_EQUIPMENT);
+    expect(readEquipment("cups")).toEqual(OWNED_EQUIPMENT);
+  });
+
+  it("honours an explicitly empty kit, because owning nothing is an answer", () => {
+    expect(readEquipment([])).toEqual([]);
+    const plan = buildThrowingRecoveryPlan({ tier: "heavy", outingDate: "2026-08-10", equipment: [] });
+    for (const day of plan.days) {
+      for (const block of day.blocks) expect(block.requires, block.id).toBeUndefined();
+    }
+    // And what is left is still a plan, not an empty list.
+    expect(plan.days.every((day) => day.blocks.length > 0)).toBe(true);
+  });
+
+  it("drops kit it does not recognise, and de-duplicates", () => {
+    expect(readEquipment(["cups", "cups", "ice_bath", 7, null])).toEqual(["cups"]);
+  });
+
+  it("keeps the blocks for kit that is owned and drops the rest", () => {
+    const plan = buildThrowingRecoveryPlan({
+      tier: "heavy",
+      outingDate: "2026-08-10",
+      equipment: ["compression_sleeve"],
+    });
+    const required = plan.days.flatMap((day) => day.blocks.map((block) => block.requires));
+    expect(required.filter(Boolean)).toEqual(
+      required.filter(Boolean).map(() => "compression_sleeve")
+    );
+    expect(required).toContain("compression_sleeve");
+  });
+
+  it("merges intent percentages over the defaults rather than replacing them", () => {
+    expect(readIntentPercent(undefined)).toEqual(INTENT_PERCENT);
+    expect(readIntentPercent({ moderate: 85 })).toEqual({ ...INTENT_PERCENT, moderate: 85 });
+  });
+
+  it("clamps an edit so the protocol cannot be switched off by typing", () => {
+    const [floor, ceiling] = INTENT_PERCENT_RANGE;
+    expect(readIntentPercent({ high: 0 }).high).toBe(floor);
+    expect(readIntentPercent({ high: 999 }).high).toBe(ceiling);
+    expect(readIntentPercent({ high: "not a number" }).high).toBe(INTENT_PERCENT.high);
+    expect(readIntentPercent({ moderate: 82.4 }).moderate).toBe(82);
+  });
+
+  it("lets a raised 'moderate' start a protocol that the default would not", () => {
+    // Under the throw-count trigger, so the intent reading is what decides it.
+    const short = { totalThrows: 24 };
+    const outings = [
+      { date: "2026-08-10", load: { ...short, intentPercent: INTENT_PERCENT.moderate } },
+    ];
+    expect(recoveryForDay("2026-08-11", outings)).toBeNull();
+
+    const raised = readIntentPercent({ moderate: 85 });
+    const harder = [{ date: "2026-08-10", load: { ...short, intentPercent: raised.moderate } }];
+    expect(recoveryForDay("2026-08-11", harder)).not.toBeNull();
+  });
+
+  it("and a lowered 'high' stops one the default would start", () => {
+    const short = { totalThrows: 24 };
+    const asIs = [{ date: "2026-08-10", load: { ...short, intentPercent: INTENT_PERCENT.high } }];
+    expect(recoveryForDay("2026-08-11", asIs)).not.toBeNull();
+
+    const eased = readIntentPercent({ high: 70 });
+    const softer = [{ date: "2026-08-10", load: { ...short, intentPercent: eased.high } }];
+    expect(recoveryForDay("2026-08-11", softer)).toBeNull();
+  });
+
+  it("names every piece of kit it can require", () => {
+    const named = new Set(Object.keys(EQUIPMENT_LABELS));
+    const plan = buildThrowingRecoveryPlan({ tier: "heavy", outingDate: "2026-08-10" });
+    for (const day of plan.days) {
+      for (const block of day.blocks) {
+        if (block.requires) expect(named.has(block.requires), block.requires).toBe(true);
+      }
+    }
+    for (const label of Object.values(EQUIPMENT_LABELS)) expect(label.trim().length).toBeGreaterThan(0);
   });
 });

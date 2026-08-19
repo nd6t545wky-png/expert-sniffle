@@ -214,6 +214,37 @@ export const OWNED_EQUIPMENT: readonly RecoveryEquipment[] = Object.freeze([
   "heat",
 ]);
 
+/** What each piece is called where the athlete sets it. */
+export const EQUIPMENT_LABELS: Record<RecoveryEquipment, string> = {
+  compression_sleeve: "Compression sleeve",
+  compression_boots: "NormaTec boots",
+  percussion_gun: "Percussive gun",
+  cups: "Cupping set",
+  scraper: "IASTM scraper",
+  roller: "Foam roller / ball",
+  bands: "Resistance bands",
+  heat: "Heat pack",
+};
+
+const EQUIPMENT_IDS = Object.keys(EQUIPMENT_LABELS) as RecoveryEquipment[];
+
+/**
+ * Read the athlete's kit out of stored state.
+ *
+ * Absent means "not set yet", which takes the default list rather than an
+ * empty one — a workspace saved before this existed must not suddenly lose
+ * every block that needs equipment. An explicitly empty list is honoured: an
+ * athlete who owns nothing is a real answer, and the plan then holds only the
+ * work they can actually do.
+ */
+export function readEquipment(value: unknown): readonly RecoveryEquipment[] {
+  if (!Array.isArray(value)) return OWNED_EQUIPMENT;
+  const kept = value.filter((item): item is RecoveryEquipment =>
+    EQUIPMENT_IDS.includes(item as RecoveryEquipment)
+  );
+  return Object.freeze([...new Set(kept)]);
+}
+
 // --- Load tiers -------------------------------------------------------------
 
 export type ThrowingLoadTier = "light" | "moderate" | "heavy";
@@ -251,6 +282,36 @@ export const INTENT_PERCENT: Record<string, number> = {
   moderate: 75,
   high: 95,
 };
+
+/**
+ * The bounds an edited intent percentage has to sit inside.
+ *
+ * Not arbitrary: below 20% is not throwing, above 100% is not a percentage,
+ * and a value outside those turns the trigger into something the athlete can
+ * accidentally switch off entirely — setting "high" to 10 would mean no
+ * session ever starts a recovery protocol.
+ */
+export const INTENT_PERCENT_RANGE: [number, number] = [20, 100];
+
+/**
+ * Read the athlete's own reading of the intent words.
+ *
+ * Merged over the defaults rather than replacing them, so setting one word
+ * cannot leave the others undefined, and each value is clamped — a number
+ * typed into a form is not a measurement and should not be able to disable
+ * the protocol.
+ */
+export function readIntentPercent(value: unknown): Record<string, number> {
+  const merged = { ...INTENT_PERCENT };
+  if (!value || typeof value !== "object" || Array.isArray(value)) return merged;
+  const [low, high] = INTENT_PERCENT_RANGE;
+  for (const word of Object.keys(INTENT_PERCENT)) {
+    const raw = Number((value as Record<string, unknown>)[word]);
+    if (!Number.isFinite(raw)) continue;
+    merged[word] = Math.min(high, Math.max(low, Math.round(raw)));
+  }
+  return merged;
+}
 
 const HEAVY_PITCHES = 60;
 const MODERATE_PITCHES = 30;
@@ -986,7 +1047,8 @@ export interface RecoveryForDay {
 export function recoveryForDay(
   date: IsoDate,
   outings: LoggedOuting[],
-  bodyweightKg: number | null = null
+  bodyweightKg: number | null = null,
+  equipment?: readonly RecoveryEquipment[]
 ): RecoveryForDay | null {
   let best: { outing: LoggedOuting; tier: ThrowingLoadTier; offset: number } | null = null;
 
@@ -1013,6 +1075,7 @@ export function recoveryForDay(
     tier: best.tier,
     outingDate: best.outing.date,
     bodyweightKg,
+    equipment,
   });
   const day = plan.days[best.offset];
   if (!day) return null;

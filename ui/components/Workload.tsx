@@ -53,6 +53,8 @@ export interface WorkloadProps {
   date: IsoDate;
   plan: PlanState;
   entries: ThrowingEntry[];
+  /** The athlete's own reading of the intent words. Defaults to the table. */
+  intentPercent?: Record<string, number>;
   onLog: (entry: ThrowingEntry) => void;
 }
 
@@ -68,6 +70,7 @@ export function Workload({
   date,
   plan,
   entries,
+  intentPercent = INTENT_PERCENT,
   onLog,
   pitches,
   priorPitches,
@@ -96,7 +99,7 @@ export function Workload({
   const rest = restProblems([
     ...entries.map((entry) => ({
       date: entry.date,
-      load: { totalThrows: entry.throws, intentPercent: INTENT_PERCENT[entry.intent] ?? null },
+      load: { totalThrows: entry.throws, intentPercent: intentPercent[entry.intent] ?? null },
     })),
     ...(games ?? []).map((game) => ({
       date: game.date,
