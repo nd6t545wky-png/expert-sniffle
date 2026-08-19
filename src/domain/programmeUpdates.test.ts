@@ -179,7 +179,9 @@ describe("where the additions land", () => {
       session([gym("w5-d0-warm", "Low-volume power primer"), gym("w5-d0-dl", "Trap bar deadlift")])
     );
     const names = order(result);
-    expect(names.indexOf("Romanian deadlift")).toBeGreaterThan(names.indexOf("Trap bar deadlift"));
+    expect(names.findIndex((n) => /^Romanian deadlift/.test(n))).toBeGreaterThan(
+      names.indexOf("Trap bar deadlift")
+    );
   });
 
   it("leads the gym block when there is no primer to follow", () => {
@@ -281,7 +283,7 @@ describe("the week's gym work is spread, not stacked on Monday", () => {
     expect(monday).toContain("Back squat");
     // Bar speed belongs on the power day, not behind Monday's heavy squat.
     expect(monday.some((n) => /Speed squat/.test(n))).toBe(false);
-    expect(monday).not.toContain("Romanian deadlift");
+    expect(monday.some((n: string) => /^Romanian deadlift/.test(n))).toBe(false);
   });
 
   it("puts bar-speed work on Wednesday, the power day", () => {
@@ -293,7 +295,7 @@ describe("the week's gym work is spread, not stacked on Monday", () => {
 
   it("microdoses the hinge on Thursday, which carried no loading at all", () => {
     const thursday = names(3);
-    expect(thursday).toContain("Romanian deadlift");
+    expect(thursday.some((n: string) => /^Romanian deadlift/.test(n))).toBe(true);
     expect(thursday).not.toContain("Back squat");
   });
 
@@ -409,14 +411,14 @@ describe("the hinge is placed for competition, not for the label on the day", ()
   it("sits 48 hours from Saturday, not 24", () => {
     const thursday = applyBaselineProgramming(session([task()]), null, 3).tasks;
     const friday = applyBaselineProgramming(session([task()]), null, 4).tasks;
-    expect(thursday.some((t) => t.name === "Romanian deadlift")).toBe(true);
+    expect(thursday.some((t) => /^Romanian deadlift/.test(t.name))).toBe(true);
     // Friday is 24 hours out, which is where delayed soreness peaks.
-    expect(friday.some((t) => t.name === "Romanian deadlift")).toBe(false);
+    expect(friday.some((t) => /^Romanian deadlift/.test(t.name))).toBe(false);
   });
 
   it("is loaded for a recovery day — RPE 7, not the top of the range", () => {
     const rdl = applyBaselineProgramming(session([task()]), null, 3).tasks.find(
-      (t) => t.name === "Romanian deadlift"
+      (t) => /^Romanian deadlift/.test(t.name)
     );
     expect(rdl?.prescription).toContain("RPE 7 ");
     expect(rdl?.prescription).not.toContain("RPE 7–8");
@@ -911,5 +913,114 @@ describe("sprint drills", () => {
     const once = applyBaselineProgramming(buildSession(weekPlan(6, PBS), 1), null, 1);
     const twice = applyBaselineProgramming(once, null, 1);
     expect(twice.tasks.filter((task) => task.name === DRILLS)).toHaveLength(1);
+  });
+});
+
+/**
+ * Nothing reaches the athlete as a placeholder.
+ *
+ * Thursday shipped a task called "Microdose block" prescribed "One movement,
+ * done well" — scaffolding that existed only to carry a stage title, rendered
+ * with a checkbox and a Skip button, naming no movement, no sets and no reps.
+ * The athlete asked what it was, which is the correct response to it and the
+ * reason it should not have existed.
+ */
+describe("every task names something to do", () => {
+  const PBS = {
+    trainingMaxes: {
+      lifts: {
+        squat: { value: 140, kind: "kg" },
+        bench: { value: 100, kind: "kg" },
+        deadlift: { value: 180, kind: "kg" },
+        press: { value: 60, kind: "kg" },
+      },
+    },
+  };
+
+  setProgrammeContext({ pbs: PBS });
+
+  const EVERY_TASK = (() => {
+    const out: { label: string; task: SessionTask }[] = [];
+    for (let week = 1; week <= PROGRAMME_WEEK_COUNT; week += 1) {
+      const plan = weekPlan(week, PBS);
+      for (let day = 0; day < 7; day += 1) {
+        for (const level of [null, "reduced", "recovery"] as const) {
+          for (const task of applyBaselineProgramming(buildSession(plan, day), level, day).tasks) {
+            out.push({ label: `week ${week} day ${day} ${level ?? "full"}`, task });
+          }
+        }
+      }
+    }
+    return out;
+  })();
+
+  /**
+   * The prescriptions that legitimately carry no number.
+   *
+   * All nine come from the written programme and all nine are honest: the dose
+   * is set by the coach on the day, or the instruction is genuinely
+   * qualitative. Held as an explicit list rather than a pattern so that any
+   * *new* number-free prescription fails this test and has to be justified —
+   * which is exactly what "One movement, done well" would not have survived.
+   */
+  const DOSE_SET_ELSEWHERE = new Set([
+    "Team pitch/inning limits apply",
+    "Team role and pitch limits apply",
+    "No baseball throwing · no gym session",
+    "Review velocity, pitches, soreness, sleep and completion",
+    "One controlled Wednesday intent exposure; team training rhythm Tue/Thu",
+    "Complete assigned baseball work; record session duration and RPE",
+    "Keep conditioning and extra throwing low volume",
+    "Easy catch plus one controlled mound touch",
+    "Short competitive bullpen; no fatigue chase",
+  ]);
+
+  it("carries a dose on every task the overlay produces", () => {
+    for (const { label, task } of EVERY_TASK) {
+      const dosed = /\d/.test(task.prescription) || DOSE_SET_ELSEWHERE.has(task.prescription);
+      expect(dosed, `${label}: "${task.name}" — "${task.prescription}"`).toBe(true);
+    }
+  });
+
+  it("keeps that list honest — every entry still appears in the programme", () => {
+    const live = new Set(EVERY_TASK.map(({ task }) => task.prescription));
+    for (const prescription of DOSE_SET_ELSEWHERE) {
+      expect(live.has(prescription), `stale allowance: "${prescription}"`).toBe(true);
+    }
+  });
+
+  it("never ships the microdose placeholder again", () => {
+    for (const { label, task } of EVERY_TASK) {
+      expect(task.name, label).not.toBe("Microdose block");
+      expect(task.prescription, label).not.toBe("One movement, done well");
+    }
+  });
+
+  it("still gives Thursday its hinge, and says what it is", () => {
+    // Removing the placeholder must not remove the work it was standing in
+    // front of.
+    const thursday = applyBaselineProgramming(buildSession(weekPlan(6, PBS), 3), null, 3).tasks;
+    const hinge = thursday.find((task) => /^Romanian deadlift/.test(task.name))!;
+    expect(hinge).toBeTruthy();
+    expect(hinge.prescription).toBe("3 × 6 @ RPE 7 · hinge to mid-shin");
+    expect(hinge.name).toMatch(/microdose/i);
+    // And it explains itself, because the stage header above it says
+    // "Condition" — the conditioning task sorts first in the same stage.
+    expect(hinge.cue).toMatch(/whole microdose/i);
+    expect(hinge.stageTitle).toBe("Whole-Body Force");
+  });
+
+  it("leaves Thursday's gym stage holding exactly one lift", () => {
+    const thursday = applyBaselineProgramming(buildSession(weekPlan(6, PBS), 3), null, 3).tasks;
+    const gym = thursday.filter((task) => task.stageTitle === "Whole-Body Force");
+    expect(gym.map((task) => task.name)).toEqual(["Romanian deadlift — the day's microdose"]);
+  });
+
+  it("has not disturbed the other days' gym work", () => {
+    const monday = applyBaselineProgramming(buildSession(weekPlan(6, PBS), 0), null, 0).tasks.map((t) => t.name);
+    expect(monday.some((n) => /Depth jump/.test(n))).toBe(true);
+    expect(monday.some((n) => /Back squat/.test(n))).toBe(true);
+    const wednesday = applyBaselineProgramming(buildSession(weekPlan(6, PBS), 2), null, 2).tasks.map((t) => t.name);
+    expect(wednesday.some((n) => /Speed squat/.test(n))).toBe(true);
   });
 });

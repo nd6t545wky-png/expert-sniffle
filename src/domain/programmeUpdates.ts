@@ -153,9 +153,13 @@ function rdlTask(prefix: string, stageTitle: string, stageDescription: string): 
     stage: 4,
     stageTitle,
     stageDescription,
-    name: "Romanian deadlift",
+    name: "Romanian deadlift — the day's microdose",
     prescription: `3 × 6 @ RPE 7 · hinge to mid-shin`,
-    cue: "Push the hips back and keep the bar close. Feel the hamstrings load rather than the lower back.",
+    // The name and this line carry what the stage header used to. Thursday's
+    // stage 4 opens with the conditioning task, so the header reads "Condition
+    // — maintain the aerobic base", and a hinge underneath it needs to explain
+    // itself rather than rely on a title the athlete cannot see.
+    cue: "This one lift is the whole microdose — three working sets, then stop. Push the hips back and keep the bar close; feel the hamstrings load rather than the lower back.",
     setup: `Barbell from a rack at hip height. For reference, the report's strength window on the tested squat max is ${window.low}–${window.high} kg; the RDL is loaded by feel against that, not by the same percentage.`,
     execution:
       "Soft knees, long spine, bar tracking the legs. Drive the floor away to stand. Deliberate tempo down, purposeful up.",
@@ -637,29 +641,30 @@ export function applyBaselineProgramming(
     tasks.splice(flowIndex === -1 ? prepEnd + 1 : flowIndex + 1, 0, ...regional);
   }
 
-  let gymIndex = tasks.findIndex((task) => GYM_STAGE_TITLES.includes(task.stageTitle));
+  const gymIndex = tasks.findIndex((task) => GYM_STAGE_TITLES.includes(task.stageTitle));
 
   // Thursday carries no gym stage at all, which is exactly why it was chosen
-  // for the microdose — but it means there is no stage to insert into. Create
-  // one rather than silently dropping the work.
-  if (gymIndex === -1) {
-    const wantsWork = day === DAY_THURSDAY;
-    if (!wantsWork) return { ...session, tasks };
-    const after = tasks.filter((task) => task.stage <= 4).length;
-    tasks.splice(after, 0, {
-      id: `${String(tasks[0]?.id ?? "day").split("-").slice(0, 2).join("-")}-microdose`,
-      stage: 4,
-      stageTitle: "Whole-Body Force",
-      stageDescription: "Microdose — one hinge, kept cheap so it does not compete with recovery.",
-      name: "Microdose block",
-      prescription: "One movement, done well",
-      cue: "This is a small, deliberate dose on an otherwise unloaded day. Do not turn it into a session.",
-    });
-    gymIndex = after;
-  }
+  // for the microdose — but it means there is no stage to insert into.
+  //
+  // The stage is synthesised as *values*, not as a task. It used to be a real
+  // task called "Microdose block", prescribed "One movement, done well" —
+  // scaffolding that existed only to carry the stage title and the id prefix,
+  // and that reached the athlete as a tickable row naming no movement, no sets
+  // and no reps. There was never a second thing to do: the hinge below is the
+  // microdose, and it now says so itself.
+  const synthesised = gymIndex === -1;
+  if (synthesised && day !== DAY_THURSDAY) return { ...session, tasks };
 
-  const { stageTitle, stageDescription } = tasks[gymIndex];
-  const prefix = String(tasks[gymIndex].id).split("-").slice(0, 2).join("-");
+  const stageTitle = synthesised ? "Whole-Body Force" : tasks[gymIndex].stageTitle;
+  const stageDescription = synthesised
+    ? "Microdose — one hinge, kept cheap so it does not compete with recovery."
+    : tasks[gymIndex].stageDescription;
+  const prefix = String((synthesised ? tasks[0]?.id : tasks[gymIndex].id) ?? "day")
+    .split("-")
+    .slice(0, 2)
+    .join("-");
+  /** Where a synthesised stage begins, or the existing gym stage's head. */
+  const stageAt = synthesised ? tasks.filter((task) => task.stage <= 4).length : gymIndex;
 
   // The primer's broad jump trains the slow SSC the athlete already has.
   // Swap it for the depth jump the report asked for, keeping the med-ball
@@ -697,7 +702,9 @@ export function applyBaselineProgramming(
     (addition) => !tasks.some((task) => task.id === addition.id)
   );
 
-  let lastGym = gymIndex;
+  // On a synthesised stage there is nothing to sit behind, so the hinge opens
+  // it: `stageAt - 1` makes the splice below land exactly on `stageAt`.
+  let lastGym = synthesised ? stageAt - 1 : gymIndex;
   for (let i = tasks.length - 1; i >= 0; i -= 1) {
     if (GYM_STAGE_TITLES.includes(tasks[i].stageTitle)) {
       lastGym = i;
@@ -711,7 +718,7 @@ export function applyBaselineProgramming(
   // session and have to come first, so the speed squat follows them rather
   // than displacing them.
   const anchor = tasks.findIndex((task) => /primer/i.test(task.name) || /broad jump/i.test(task.name));
-  tasks.splice(anchor === -1 ? gymIndex : anchor + 1, 0, ...early);
+  tasks.splice(anchor === -1 ? stageAt : anchor + 1, 0, ...early);
 
   return { ...session, tasks };
 }
