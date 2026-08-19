@@ -285,3 +285,69 @@ describe("score bounds", () => {
   });
 });
 
+
+/**
+ * Every other symptom rule here is a level: 5/10 holds the day, 3/10 reduces
+ * it. None of them can see an arm going 1 → 3 → 4 over three days, because no
+ * single reading crosses a threshold. This is the rule that reads the
+ * direction.
+ */
+describe("soreness that is climbing", () => {
+  const base = {
+    sleepHours: 8,
+    sleepQuality: 5,
+    energy: 5,
+    mood: 5,
+    stress: 1,
+    shoulder: 0,
+    elbow: 0,
+    forearm: 0,
+    lat: 0,
+    lower: 0,
+  };
+
+  it("takes the day down when the shoulder climbs two points", () => {
+    const result = computeReadiness({ ...base, shoulder: 3 }, { previousSoreness: { shoulder: 1 } });
+    expect(result.planLevel).toBe("recovery");
+    expect(result.reasons.join(" ")).toMatch(/Shoulder soreness is up 2 points/);
+  });
+
+  it("reads the elbow the same way", () => {
+    const result = computeReadiness({ ...base, elbow: 4 }, { previousSoreness: { elbow: 0 } });
+    expect(result.planLevel).toBe("recovery");
+    expect(result.reasons.join(" ")).toMatch(/Elbow soreness is up 4 points/);
+  });
+
+  it("leaves a one-point drift alone", () => {
+    const result = computeReadiness({ ...base, shoulder: 1 }, { previousSoreness: { shoulder: 0 } });
+    expect(result.planLevel).toBe("full");
+    expect(result.reasons.join(" ")).not.toMatch(/up \d point/);
+  });
+
+  it("does not fire on soreness that is falling", () => {
+    const result = computeReadiness({ ...base, shoulder: 1 }, { previousSoreness: { shoulder: 4 } });
+    expect(result.reasons.join(" ")).not.toMatch(/up \d point/);
+  });
+
+  it("takes down but does not hold, so the gate stays worth obeying", () => {
+    // A rise is a signal; it is not a medical gate. Holding a whole session
+    // because soreness moved 0 → 2 trains an athlete to ignore the hold.
+    const result = computeReadiness({ ...base, shoulder: 2 }, { previousSoreness: { shoulder: 0 } });
+    expect(result.planLevel).toBe("recovery");
+    expect(result.risk).not.toBe("red");
+    expect(canOverridePlanLevel(result)).toBe(true);
+  });
+
+  it("still holds when the rise lands on the hold threshold", () => {
+    const result = computeReadiness({ ...base, shoulder: 5 }, { previousSoreness: { shoulder: 2 } });
+    expect(result.planLevel).toBe("hold");
+    expect(canOverridePlanLevel(result)).toBe(false);
+  });
+
+  it("does nothing without an earlier check-in to compare against", () => {
+    expect(computeReadiness({ ...base, shoulder: 3 }, {}).reasons.join(" ")).not.toMatch(/up \d point/);
+    expect(
+      computeReadiness({ ...base, shoulder: 3 }, { previousSoreness: {} }).reasons.join(" ")
+    ).not.toMatch(/up \d point/);
+  });
+});

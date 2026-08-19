@@ -365,5 +365,31 @@ export function readinessContextFor(
     energyBaseline: personalCheckInBaseline(pre, date, "energy"),
     moodBaseline: personalCheckInBaseline(pre, date, "mood"),
     stressBaseline: personalCheckInBaseline(pre, date, "stress"),
+    previousSoreness: previousSoreness(pre, date),
   };
+}
+
+/**
+ * Shoulder and elbow as reported at the last check-in before this date.
+ *
+ * The most recent one, not a median: the scorer is looking for a rise, and a
+ * median smooths away exactly the day-to-day movement it is meant to see. A
+ * gap of a week still counts — an arm that was 0 last Tuesday and is 3 today
+ * has climbed, however long the app went unopened in between.
+ */
+export function previousSoreness(
+  pre: Record<string, unknown> | undefined,
+  date: IsoDate
+): { shoulder?: number; elbow?: number } | undefined {
+  for (const [, record] of priorCheckIns(pre, date)) {
+    const inputs = record.inputs;
+    if (!isRecord(inputs)) continue;
+    const shoulder = Number(inputs.shoulder);
+    const elbow = Number(inputs.elbow);
+    const found: { shoulder?: number; elbow?: number } = {};
+    if (Number.isFinite(shoulder)) found.shoulder = shoulder;
+    if (Number.isFinite(elbow)) found.elbow = elbow;
+    if (found.shoulder !== undefined || found.elbow !== undefined) return found;
+  }
+  return undefined;
 }

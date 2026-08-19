@@ -10,6 +10,7 @@ import {
   personalCheckInBaseline,
   personalMetricBaseline,
   readPrefill,
+  previousSoreness,
   readinessContextFor,
   sleepQualityFromScore,
   sourceNames,
@@ -361,5 +362,46 @@ describe("mergeHistory", () => {
   it("skips junk in the response instead of storing it", () => {
     const merged = mergeHistory({}, { "2026-08-01": "nonsense" }, "2026-08-11T00:00:00Z");
     expect(merged).toEqual({});
+  });
+});
+
+describe("the soreness the scorer compares against", () => {
+  const record = { shoulder: 2, elbow: 1 };
+
+  it("takes the most recent earlier check-in", () => {
+    const pre = {
+      "2026-08-16": { inputs: { shoulder: 0, elbow: 0 } },
+      "2026-08-18": { inputs: record },
+      "2026-08-19": { inputs: { shoulder: 9, elbow: 9 } },
+    };
+    expect(previousSoreness(pre, "2026-08-19")).toEqual(record);
+  });
+
+  it("skips a check-in that recorded no soreness at all", () => {
+    const pre = {
+      "2026-08-17": { inputs: record },
+      "2026-08-18": { inputs: { sleepHours: 8 } },
+    };
+    expect(previousSoreness(pre, "2026-08-19")).toEqual(record);
+  });
+
+  it("keeps a zero, which is a reading rather than a gap", () => {
+    expect(previousSoreness({ "2026-08-18": { inputs: { shoulder: 0 } } }, "2026-08-19")).toEqual({
+      shoulder: 0,
+    });
+  });
+
+  it("is absent when there is no history", () => {
+    expect(previousSoreness({}, "2026-08-19")).toBeUndefined();
+    expect(previousSoreness(undefined, "2026-08-19")).toBeUndefined();
+  });
+
+  it("reaches the scorer through the context", () => {
+    const context = readinessContextFor(
+      { "2026-08-18": { inputs: record } },
+      {} as never,
+      "2026-08-19"
+    );
+    expect(context.previousSoreness).toEqual(record);
   });
 });

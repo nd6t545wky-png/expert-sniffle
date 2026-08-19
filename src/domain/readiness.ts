@@ -78,7 +78,22 @@ export interface ReadinessContext {
   hrvSource?: MetricSource;
   restingHeartRateSource?: MetricSource;
   sleepSource?: MetricSource;
+  /**
+   * Shoulder and elbow as reported at the most recent earlier check-in.
+   *
+   * A rise is read as well as a level. Every other symptom rule here is
+   * absolute — 5/10 holds the session, 3/10 reduces it — which cannot see an
+   * arm going 1 → 3 → 4 over three days: each of those readings is under the
+   * gate on its own, and the direction is the part that matters.
+   */
+  previousSoreness?: { shoulder?: number; elbow?: number };
 }
+
+/**
+ * How far shoulder or elbow soreness may climb between check-ins before it is
+ * treated as a symptom in its own right.
+ */
+export const SORENESS_RISE = 2;
 
 export type SignalSeverity = "moderate" | "high";
 
@@ -223,9 +238,26 @@ export function computeReadiness(values: ReadinessInputs, context: ReadinessCont
   const redFlag =
     Number(values.shoulder) >= 5 || Number(values.elbow) >= 5 || values.illness === "yes" || warningSigns;
 
+  // A climbing arm, which no absolute threshold can see. Read as a reason to
+  // take the day down rather than to hold it: soreness moving 0 → 2 is a real
+  // signal and a poor reason to cancel a session, and a gate that fires on
+  // noise is a gate the athlete learns to ignore. Anything that has actually
+  // reached the hold level is already caught above.
+  const rises: string[] = [];
+  for (const joint of ["shoulder", "elbow"] as const) {
+    const now = Number(values[joint]);
+    const before = Number(context.previousSoreness?.[joint]);
+    if (!Number.isFinite(now) || !Number.isFinite(before)) continue;
+    if (now - before < SORENESS_RISE) continue;
+    rises.push(
+      `${joint === "shoulder" ? "Shoulder" : "Elbow"} soreness is up ${now - before} points on the last check-in (${before} to ${now})`
+    );
+  }
+
   const recoveryFlag =
     !redFlag &&
-    (score < 60 ||
+    (rises.length > 0 ||
+      score < 60 ||
       (Number.isFinite(ouraReadiness) && ouraReadiness > 0 && ouraReadiness < 60) ||
       (Number.isFinite(ouraStressMinutes) && ouraStressMinutes >= 300) ||
       ouraRestMode ||
@@ -250,6 +282,7 @@ export function computeReadiness(values: ReadinessInputs, context: ReadinessCont
       signals.length === 1);
 
   const reasons: string[] = [];
+  reasons.push(...rises);
   if (warningSigns) reasons.push("A new or worsening symptom warning sign was reported");
   if (values.illness === "yes") reasons.push("Illness symptoms were reported");
   if (Number(values.shoulder) >= 5) reasons.push(`Shoulder symptoms ${values.shoulder}/10`);

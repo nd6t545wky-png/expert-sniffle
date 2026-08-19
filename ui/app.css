@@ -1750,3 +1750,49 @@ body {
 .intent-grid label {
   text-transform: capitalize;
 }
+
+/* --- The season's fixtures ----------------------------------------------- */
+.fixture-list {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.fixture-list > li {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--line);
+}
+.fixture-list > li:last-child {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+.fixture-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.fixture-when {
+  color: var(--blue);
+  font-size: 12px;
+  white-space: nowrap;
+}
+/* Provenance sits with the date, not in a badge: a game the athlete typed in
+   and a round of the official draw should read as different facts. */
+.fixture-meta {
+  color: var(--muted);
+  font-size: 12px;
+}
+.fixture-note {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.55;
+}
