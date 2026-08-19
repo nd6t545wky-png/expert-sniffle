@@ -82,6 +82,12 @@ function taskFor(block: RecoveryBlock, stage: { stage: number; title: string }, 
     cue: block.why,
     ...(block.caveat ? { stop: block.caveat } : {}),
     ...(optional ? { rest: optional.trim() } : {}),
+    // The source travels with the prescription. Building this from papers was
+    // the whole point; a dose the athlete cannot trace back to a study is just
+    // an assertion, and an assertion is what he can already get anywhere.
+    ...(block.citation
+      ? { evidence: `${block.citation.key} — ${block.citation.detail}` }
+      : {}),
   };
 }
 
@@ -108,7 +114,29 @@ export interface RecoveryOverlay {
 export interface RecoveryInputs {
   /** The gym session the day held, and which day of its own short protocol. */
   gym?: { plan: GymRecoveryPlan; dayOffset: number } | null;
+  /** Tasks already completed or skipped, so pending throwing can be spotted. */
+  resolvedTaskIds?: string[];
 }
+
+/** Stages that mean there is still throwing to come today. */
+const THROWING_STAGES = new Set([
+  "Throw",
+  "High-Intent Prep",
+  "Game Warm-up",
+  "Team Throwing",
+  "Compete",
+  "Speed",
+]);
+
+/**
+ * Blocks held back while throwing is still to come.
+ *
+ * Only the stretch: it is the one with a documented acute strength cost. The
+ * scraper stays, because its literature is range of motion and pain, and
+ * nothing in it reports a strength decrement — but that is a reason to allow
+ * it, not a reason to be silent, so its own caveat says as much.
+ */
+const PRE_THROW_HELD = new Set(["sleeper-stretch"]);
 
 export function applyRecoveryProtocol(
   session: Session,
@@ -125,9 +153,21 @@ export function applyRecoveryProtocol(
   // The two tracks share modalities, so the gym's version of a block is
   // dropped where the throwing day already prescribes it — the protocol's own
   // rules: protein is per day, and one compression period covers both.
+  // The sleeper stretch acutely reduces external rotator strength, so on a day
+  // that still has throwing to come it is held rather than prescribed. The
+  // caveat said this already; saying it is not the same as doing it.
+  //
+  // Stage order does most of the work — Arm Care sits after Throw — but a day
+  // whose throwing has not been resolved yet is a day where the athlete could
+  // reasonably do the stretch first, and the block belongs to the app.
+  const throwingPending = session.tasks.some(
+    (task) => THROWING_STAGES.has(task.stageTitle) && !inputs.resolvedTaskIds?.includes(task.id)
+  );
+  const held = throwingPending ? PRE_THROW_HELD : new Set<string>();
+
   const throwingIds = (recovery?.tasks ?? []).map((block) => block.id);
   const gymBlocks = gym ? gymBlocksAfter(gym.plan, gym.dayOffset, throwingIds) : [];
-  const blocks = [...(recovery?.tasks ?? []), ...gymBlocks];
+  const blocks = [...(recovery?.tasks ?? []), ...gymBlocks].filter((block) => !held.has(block.id));
 
   // Blocks that take over a programme task are folded into it first, so the
   // day never carries the same work twice. Several can land on one task —
@@ -149,6 +189,14 @@ export function applyRecoveryProtocol(
       cue: blocks.map((block) => block.why).join(" "),
       ...(blocks.find((block) => block.caveat)
         ? { stop: blocks.find((block) => block.caveat)!.caveat }
+        : {}),
+      ...(blocks.some((block) => block.citation)
+        ? {
+            evidence: blocks
+              .filter((block) => block.citation)
+              .map((block) => `${block.citation!.key} — ${block.citation!.detail}`)
+              .join(" "),
+          }
         : {}),
     };
   }

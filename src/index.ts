@@ -10,10 +10,13 @@ const MAX_MECHANICS_CONTACT_SHEET_BYTES = 5_000_000;
 const MAX_HISTORY_REQUEST_BYTES = 1_000_000;
 const MAX_HISTORY_EVENT_BYTES = 250_000;
 const MAX_NUTRITION_TEXT_BYTES = 8_000;
+const MAX_SHARE_PAYLOAD_BYTES = 400_000;
+const SHARE_LIFETIME_DAYS = 90;
 
 const SYNC_KEY_PATTERN = /^[a-f0-9]{64}$/i;
 const DAY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const MEDIA_ID_PATTERN = /^[a-zA-Z0-9_-]{12,80}$/;
+const SHARE_ID_PATTERN = /^[a-f0-9]{32}$/;
 
 const HISTORY_EVENT_TYPES = new Set([
   "plan_snapshot",
@@ -587,6 +590,8 @@ async function handleSync(request: Request, env: Env): Promise<Response> {
       env.SYNC_DB.prepare("DELETE FROM training_history_events WHERE key_hash = ?1").bind(keyHash),
       env.SYNC_DB.prepare("DELETE FROM mechanics_videos WHERE key_hash = ?1").bind(keyHash),
       env.SYNC_DB.prepare("DELETE FROM meal_photos WHERE key_hash = ?1").bind(keyHash),
+      // A revoked workspace must not leave a live physio link behind it.
+      env.SYNC_DB.prepare("DELETE FROM physio_shares WHERE key_hash = ?1").bind(keyHash),
     ]);
     return json({ deleted: true });
   }
@@ -2455,6 +2460,17 @@ async function routeApi(request: Request, env: Env, url: URL): Promise<Response 
     return handleSync(request, env);
   }
   if (url.pathname === "/api/history") return handleTrainingHistory(request, env, url);
+  if (url.pathname === "/api/share" || url.pathname.startsWith("/api/share/")) {
+    // A physio opening a link is cross-origin by nature — they are following a
+    // URL, not using the app — so only the writing routes are same-origin
+    // guarded. Reading is guarded by the id itself.
+    const writing = request.method !== "GET";
+    const blocked = writing ? requireSameOrigin(request, url, env) : null;
+    const limited = blocked
+      ? null
+      : await enforceAccountRateLimit(request, env, url, env.INTEGRATION_RATE_LIMITER, "share");
+    return blocked || limited || handleShares(request, env, url);
+  }
   if (url.pathname === "/api/account/status" && request.method === "GET") {
     return accountStatus(request, env, url);
   }
@@ -2565,6 +2581,137 @@ async function routeApi(request: Request, env: Env, url: URL): Promise<Response 
  * shell rather than the prototype, which is the same distinction the service
  * worker makes offline.
  */
+/**
+ * Read-only shares, for a physio.
+ *
+ * The payload is ciphertext this Worker cannot read: it is encrypted in the
+ * athlete's browser under a key that travels only in a URL fragment, so it
+ * never reaches here. All this does is store a blob under a random id and
+ * hand it back to whoever has the id.
+ *
+ * That id is the entire read capability, which is why there is no route that
+ * writes to a workspace through a share. Read-only is a property of what
+ * exists, not a promise.
+ */
+async function ensureShareTable(env: Env): Promise<void> {
+  // Created here for the same reason the rate-limit table is: the credentials
+  // that deploy this Worker cannot run D1 migrations, so a deploy would
+  // otherwise ship a feature that fails until someone remembers a manual step.
+  // Additive, idempotent, once per database. migrations/0007 is the record.
+  await env.SYNC_DB.prepare(
+    `CREATE TABLE IF NOT EXISTS physio_shares (
+       share_id TEXT PRIMARY KEY,
+       key_hash TEXT NOT NULL,
+       payload TEXT NOT NULL CHECK (length(payload) BETWEEN 16 AND 400000),
+       label TEXT NOT NULL DEFAULT '',
+       created_at TEXT NOT NULL,
+       updated_at TEXT NOT NULL,
+       expires_at TEXT NOT NULL
+     ) STRICT`
+  ).run();
+  await env.SYNC_DB.prepare(
+    "CREATE INDEX IF NOT EXISTS physio_shares_owner_idx ON physio_shares (key_hash, created_at DESC)"
+  ).run();
+}
+
+async function handleShares(request: Request, env: Env, url: URL): Promise<Response> {
+  await ensureShareTable(env);
+  const parts = url.pathname.split("/").filter(Boolean); // api, share, [id]
+  const shareId = parts[2] ?? "";
+
+  // --- Reading one. The only unauthenticated route, deliberately: the id is
+  // the capability, and it is 128 bits of randomness.
+  if (request.method === "GET" && shareId) {
+    if (!SHARE_ID_PATTERN.test(shareId)) return json({ error: "Not found" }, 404);
+    const row = await env.SYNC_DB.prepare(
+      "SELECT payload, updated_at, expires_at FROM physio_shares WHERE share_id = ?1"
+    )
+      .bind(shareId)
+      .first<{ payload: string; updated_at: string; expires_at: string }>();
+    if (!row) return json({ error: "This link is no longer active." }, 404);
+    if (Date.parse(row.expires_at) < Date.now()) {
+      return json({ error: "This link has expired. Ask for a new one." }, 410);
+    }
+    return json({ payload: row.payload, updatedAt: row.updated_at });
+  }
+
+  const keyHash = await recoveryKeyHash(request);
+  if (!keyHash) return json({ error: "Cloud autosave recovery key required" }, 401);
+
+  // --- Listing your own, so they can be seen and revoked.
+  if (request.method === "GET") {
+    const rows = await env.SYNC_DB.prepare(
+      "SELECT share_id, label, created_at, updated_at, expires_at FROM physio_shares WHERE key_hash = ?1 ORDER BY created_at DESC LIMIT 20"
+    )
+      .bind(keyHash)
+      .all<{ share_id: string; label: string; created_at: string; updated_at: string; expires_at: string }>();
+    return json({
+      shares: (rows.results ?? []).map((row) => ({
+        id: row.share_id,
+        label: row.label,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at,
+        expiresAt: row.expires_at,
+      })),
+    });
+  }
+
+  // --- Creating or refreshing. Refreshing is what keeps a physio current
+  // without the athlete having to send a new link every week.
+  if (request.method === "PUT") {
+    const contentLength = Number(request.headers.get("Content-Length") || 0);
+    if (contentLength > MAX_SHARE_PAYLOAD_BYTES + 10_000) {
+      return json({ error: "Share payload is too large" }, 413);
+    }
+    const body = (await request.json().catch(() => null)) as
+      | { id?: unknown; payload?: unknown; label?: unknown }
+      | null;
+    const id = String(body?.id ?? "");
+    const payload = String(body?.payload ?? "");
+    if (!SHARE_ID_PATTERN.test(id)) return json({ error: "Invalid share id" }, 400);
+    if (payload.length < 16 || payload.length > MAX_SHARE_PAYLOAD_BYTES) {
+      return json({ error: "Invalid share payload" }, 400);
+    }
+    const label = cleanText(body?.label, 60);
+    const now = new Date();
+    const expires = new Date(now.getTime() + SHARE_LIFETIME_DAYS * 86_400_000);
+
+    // A share belongs to whoever created it: the WHERE clause on update means
+    // one athlete cannot overwrite another's share by guessing an id.
+    await env.SYNC_DB.prepare(
+      `INSERT INTO physio_shares (share_id, key_hash, payload, label, created_at, updated_at, expires_at)
+       VALUES (?1, ?2, ?3, ?4, ?5, ?5, ?6)
+       ON CONFLICT(share_id) DO UPDATE SET
+         payload = excluded.payload,
+         label = excluded.label,
+         updated_at = excluded.updated_at,
+         expires_at = excluded.expires_at
+       WHERE physio_shares.key_hash = ?2`
+    )
+      .bind(id, keyHash, payload, label, now.toISOString(), expires.toISOString())
+      .run();
+
+    const saved = await env.SYNC_DB.prepare(
+      "SELECT share_id FROM physio_shares WHERE share_id = ?1 AND key_hash = ?2"
+    )
+      .bind(id, keyHash)
+      .first<{ share_id: string }>();
+    if (!saved) return json({ error: "That share belongs to another workspace." }, 409);
+
+    return json({ id, expiresAt: expires.toISOString(), updatedAt: now.toISOString() });
+  }
+
+  if (request.method === "DELETE" && shareId) {
+    if (!SHARE_ID_PATTERN.test(shareId)) return json({ error: "Invalid share id" }, 400);
+    await env.SYNC_DB.prepare("DELETE FROM physio_shares WHERE share_id = ?1 AND key_hash = ?2")
+      .bind(shareId, keyHash)
+      .run();
+    return json({ revoked: true });
+  }
+
+  return json({ error: "Method not allowed" }, 405);
+}
+
 /**
  * Send the front door to the app the athlete is actually meant to use.
  *

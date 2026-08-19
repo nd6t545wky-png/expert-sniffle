@@ -1,6 +1,8 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { App } from "./App";
+import { PhysioView } from "./components/PhysioView";
+import { readShareLink } from "../src/domain/physioShare";
 import { ErrorBoundary } from "./ErrorBoundary";
 // Reuses the prototype's stylesheet verbatim so the rebuild keeps the current
 // appearance. Restyling is explicitly out of scope for this phase.
@@ -11,11 +13,19 @@ import "./app.css";
 const container = document.getElementById("root");
 if (!container) throw new Error("Root container missing");
 
+/**
+ * A shared link mounts the viewer instead of the app.
+ *
+ * Chosen here rather than as a page inside the app so that a physio's browser
+ * never runs the athlete's application at all: no stored state is read, no
+ * sync key is looked for, and there is no route from this page to one that
+ * writes. Read-only is enforced by what is mounted.
+ */
+const shared = readShareLink(window.location.search, window.location.hash);
+
 createRoot(container).render(
   <StrictMode>
-    <ErrorBoundary>
-      <App />
-    </ErrorBoundary>
+    <ErrorBoundary>{shared ? <PhysioView /> : <App />}</ErrorBoundary>
   </StrictMode>
 );
 

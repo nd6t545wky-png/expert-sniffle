@@ -122,7 +122,17 @@ describe("merging into the session", () => {
 
   it("splits day 2 the same way", () => {
     const day2 = recoveryForDay("2026-08-16" as never, [heavyOuting("2026-08-14")]);
-    const two = applyRecoveryProtocol(session(), day2);
+    // The stretch is held while throwing is still to come, so resolve the
+    // day's throwing first — otherwise this asserts the hold, not the split.
+    const base = session();
+    const thrown = base.tasks
+      .filter((task) =>
+        ["Throw", "High-Intent Prep", "Game Warm-up", "Team Throwing", "Compete", "Speed"].includes(
+          task.stageTitle
+        )
+      )
+      .map((task) => task.id);
+    const two = applyRecoveryProtocol(base, day2, { resolvedTaskIds: thrown });
     const stageOf = (id: string) =>
       two.session.tasks.find((task) => String(task.id).endsWith(`-recovery-${id}`))?.stageTitle;
     expect(stageOf("sleeper-stretch")).toBe("Arm Care");
@@ -334,5 +344,42 @@ describe("the gym track", () => {
     const untouched = applyRecoveryProtocol(session(), null, { gym: null });
     expect(untouched.added).toBe(0);
     expect(untouched.note).toBeNull();
+  });
+});
+
+describe("holding work that would cost strength before throwing", () => {
+  const day2 = recoveryForDay("2026-08-16" as never, [heavyOuting("2026-08-14")], 85);
+
+  it("holds the sleeper stretch while throwing is still to come", () => {
+    // Nothing resolved: the day's throwing has not happened yet.
+    const merged = applyRecoveryProtocol(session(), day2, { resolvedTaskIds: [] });
+    expect(merged.session.tasks.map((task) => task.name)).not.toContain(
+      "Sleeper and/or cross-body stretch"
+    );
+  });
+
+  it("prescribes it once the throwing is done", () => {
+    const s = session();
+    const throwing = s.tasks
+      .filter((task) => ["Throw", "High-Intent Prep", "Game Warm-up", "Team Throwing", "Compete", "Speed"].includes(task.stageTitle))
+      .map((task) => task.id);
+    const merged = applyRecoveryProtocol(s, day2, { resolvedTaskIds: throwing });
+    expect(merged.session.tasks.map((task) => task.name)).toContain(
+      "Sleeper and/or cross-body stretch"
+    );
+  });
+
+  it("does not hold the scraper, whose evidence shows no strength cost", () => {
+    const merged = applyRecoveryProtocol(session(), day2, { resolvedTaskIds: [] });
+    expect(merged.session.tasks.map((task) => task.name)).toContain(
+      "Scraper, posterior shoulder and lat"
+    );
+  });
+
+  it("carries the evidence onto the task so a dose can be traced", () => {
+    const merged = applyRecoveryProtocol(session(), day2, { resolvedTaskIds: [] });
+    const scraper = merged.session.tasks.find((task) => String(task.id).endsWith("-recovery-scraper"));
+    expect(String(scraper?.evidence)).toMatch(/IASTM meta-analysis/);
+    expect(String(scraper?.evidence)).toMatch(/4\.94°/);
   });
 });

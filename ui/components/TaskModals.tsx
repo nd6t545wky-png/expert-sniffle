@@ -61,6 +61,12 @@ export function TaskDetailsModal({ task, onClose }: { task: SessionTask; onClose
     ["Stop rule", task.stop || FALLBACKS.stop],
   ];
 
+  // Only the recovery protocol carries this, and only where a real paper sits
+  // behind the dose. Shown last: it is what you read when you want to argue
+  // with the prescription rather than do it.
+  const evidence = typeof task.evidence === "string" ? task.evidence : "";
+  if (evidence) blocks.push(["Evidence", evidence]);
+
   return (
     <Backdrop onClose={onClose}>
       <header className="modal-head">

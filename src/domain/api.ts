@@ -18,6 +18,15 @@ export interface ApiOptions {
   baseUrl?: string;
 }
 
+/** One read-only link, as the owner sees it listed. */
+export interface ShareRecord {
+  id: string;
+  label: string;
+  createdAt: string;
+  updatedAt: string;
+  expiresAt: string;
+}
+
 export class ApiError extends Error {
   constructor(
     message: string,
@@ -125,6 +134,33 @@ export class PitchingOsApi {
 
   deleteSync() {
     return this.request<{ deleted: boolean }>("/api/sync", { method: "DELETE" });
+  }
+
+  // --- physio shares ----------------------------------------------------------
+
+  listShares() {
+    return this.request<{ shares: ShareRecord[] }>("/api/share");
+  }
+
+  putShare(id: string, payload: string, label = "") {
+    return this.request<{ id: string; expiresAt: string; updatedAt: string }>("/api/share", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, payload, label }),
+    });
+  }
+
+  deleteShare(id: string) {
+    return this.request<{ revoked: boolean }>(`/api/share/${id}`, { method: "DELETE" });
+  }
+
+  /**
+   * Read a share by its id. No key is sent — the request carries no
+   * Authorization header worth anything here, and the payload comes back
+   * encrypted under a key the server has never seen.
+   */
+  readShare(id: string) {
+    return this.request<{ payload: string; updatedAt: string }>(`/api/share/${id}`);
   }
 
   // --- integrations: Oura ----------------------------------------------------

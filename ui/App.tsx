@@ -57,11 +57,15 @@ import {
   BFR_BLOCK,
   INTENT_PERCENT,
   LoggedOuting,
+  acwrReading,
   buildGymRecoveryPlan,
   gymSessionForDay,
   recoveryForDay,
+  restProblems,
 } from "../src/domain/recoveryProtocol";
 import { applyRecoveryProtocol } from "../src/domain/recoveryTasks";
+import { PhysioSummary, buildPhysioSummary } from "../src/domain/physioShare";
+import { PhysioShare, publishShare, readStoredShare } from "./components/PhysioShare";
 
 import { Integrations } from "./components/Integrations";
 import { Mechanics } from "./components/Mechanics";
@@ -74,6 +78,9 @@ const PAGE_STORAGE = "dylan-pitching-os-page-v1";
 
 /** Quiet period after the last change before autosave uploads. */
 const AUTOSAVE_DELAY_MS = 1500;
+
+/** How often a live physio link re-publishes itself, at most. */
+const SHARE_REFRESH_MS = 15 * 60 * 1000;
 
 /** How stale the ring backfill may get before it is swept again. */
 const HEALTH_HISTORY_INTERVAL_MS = 12 * 60 * 60 * 1000;
@@ -403,7 +410,10 @@ export function App() {
 
       // Recovery last, so it lands on the day as it will actually be trained
       // — including any readiness reduction already applied above.
-      const merged = applyRecoveryProtocol(programmed, recovery, { gym });
+      const merged = applyRecoveryProtocol(programmed, recovery, {
+        gym,
+        resolvedTaskIds: resolvedOn(date),
+      });
       return { session: merged.session, note: merged.note };
     } catch {
       return { session: null as Session | null, note: null as string | null };
@@ -503,6 +513,41 @@ export function App() {
 
   /** Arm screens, and the bodyweight to open a new one with. */
   const armExams = useMemo(() => readExams(state?.armExams), [state]);
+
+  /**
+   * The summary a physio is sent, built fresh whenever a link is made or
+   * refreshed.
+   *
+   * Deliberately a function rather than a memo: it is only ever needed at the
+   * moment of publishing, and building it on every render would walk four weeks
+   * of history for a card that is usually closed.
+   */
+  const buildPhysioSummaryNow = useCallback((): PhysioSummary => {
+    const profile = (state?.profile ?? {}) as { name?: unknown; throwingHand?: unknown };
+    const acute = totalThrowLoad(throwingEntries.slice(-7));
+    const chronic = totalThrowLoad(throwingEntries.slice(-28)) / 4;
+    const banded = acwrReading(acute, chronic);
+    return buildPhysioSummary({
+      today: today.openDate,
+      athlete: typeof profile.name === "string" ? profile.name : undefined,
+      throwingHand: typeof profile.throwingHand === "string" ? profile.throwingHand : undefined,
+      pre: (state?.pre ?? {}) as Record<string, unknown>,
+      bullpens: (state?.bullpens ?? {}) as Record<string, unknown>,
+      games: games.map((game) => ({ date: game.date, pitches: game.pitches })),
+      completedTasks: (state?.completedTasks ?? {}) as Record<string, unknown>,
+      skippedTasks: (state?.skippedTasks ?? {}) as Record<string, unknown>,
+      plannedTaskCount: (on) => tasksOn(on).length,
+      // The protocol's own words for the day, so the physio reads the same
+      // sentence the athlete did rather than a paraphrase of it.
+      recoveryLabel: (on) => {
+        const found = recoveryForDay(on, loggedOutings, knownBodyweight);
+        return found ? `${found.tier} protocol, day ${found.dayOffset + 1} — ${found.day.title}` : null;
+      },
+      exams: armExams,
+      workload: banded ? { ratio: banded.ratio, inBand: banded.inBand } : undefined,
+      restProblems: restProblems(loggedOutings),
+    });
+  }, [state, today.openDate, throwingEntries, games, tasksOn, loggedOutings, knownBodyweight, armExams]);
 
 
   /**
@@ -708,6 +753,40 @@ export function App() {
 
     return () => window.clearTimeout(timer);
   }, [api, state, syncKey, update]);
+
+  // --- Keeping the physio's link current -----------------------------------
+  //
+  // A share the athlete has to remember to refresh is a share that goes stale
+  // in a fortnight, which is the same as not having one. So it re-publishes
+  // itself as the workspace changes — but on a much slower clock than autosave,
+  // because a physio does not need the summary to move while a slider is being
+  // dragged, and each publish is a re-encrypt and an upload of the whole
+  // summary. At most once every quarter of an hour, and only when something has
+  // actually changed since the last one.
+  const lastShared = useRef<string>("");
+  const sharedAt = useRef(0);
+
+  useEffect(() => {
+    if (!state || !isValidSyncKey(syncKey)) return;
+    const share = readStoredShare();
+    if (!share) return;
+    const fingerprint = JSON.stringify(state);
+    if (fingerprint === lastShared.current) return;
+    const wait = Math.max(SHARE_REFRESH_MS - (Date.now() - sharedAt.current), AUTOSAVE_DELAY_MS * 2);
+
+    const timer = window.setTimeout(() => {
+      lastShared.current = fingerprint;
+      sharedAt.current = Date.now();
+      // A failed refresh is not worth telling the athlete about mid-session:
+      // the link still opens, it simply shows the previous snapshot, and the
+      // next change tries again.
+      publishShare(api, share, buildPhysioSummaryNow()).catch(() => {
+        lastShared.current = "";
+      });
+    }, wait);
+
+    return () => window.clearTimeout(timer);
+  }, [api, state, syncKey, buildPhysioSummaryNow]);
 
   if (load?.source === "corrupt") {
     return (
@@ -1112,6 +1191,12 @@ export function App() {
             }))
           }
         />
+      )}
+
+      {/* Placed after the arm screen, because that is most of what the link
+          carries and it explains what the physio will be looking at. */}
+      {page === "profile" && (
+        <PhysioShare api={api} hasSyncKey={isValidSyncKey(syncKey)} buildSummary={buildPhysioSummaryNow} />
       )}
 
       {page === "profile" && (

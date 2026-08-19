@@ -402,6 +402,87 @@ if (!(await waitForReady())) {
   check("one caller hitting the limit does not block another", otherIp.status !== 429, `got ${otherIp.status}`);
 }
 
+// ------------------------------------------------------------ physio shares
+{
+  const key = recoveryKey();
+  const shareId = Array.from({ length: 32 }, () => "0123456789abcdef"[Math.floor(Math.random() * 16)]).join("");
+  const payload = JSON.stringify({ version: 1, iv: "abc", data: "ciphertext-the-server-cannot-read" });
+
+  const created = await api("/api/share", {
+    key,
+    method: "PUT",
+    body: { id: shareId, payload, label: "Physio" },
+    headers: { Origin: ORIGIN },
+  });
+  check("a share can be created", created.status === 200, `got ${created.status}`);
+
+  // The whole point: the physio follows a link, with no key and no account.
+  const read = await fetch(`${BASE}/api/share/${shareId}`);
+  const readBody = await read.json();
+  check("anyone with the link can read it", read.status === 200, `got ${read.status}`);
+  check("and gets back exactly the ciphertext stored", readBody.payload === payload);
+
+  // The server is not supposed to be able to make sense of it.
+  check(
+    "what is stored is opaque to the server",
+    !JSON.stringify(readBody).includes("readiness") && readBody.payload.includes("ciphertext"),
+  );
+
+  const listed = await (await api("/api/share", { key })).json();
+  check("the athlete can list their own shares", listed.shares?.some((s) => s.id === shareId));
+
+  // A share grants reading and nothing else.
+  const write = await fetch(`${BASE}/api/share/${shareId}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ id: shareId, payload }),
+  });
+  check("a share cannot be written to without the recovery key", write.status === 401, `got ${write.status}`);
+
+  const sync = await fetch(`${BASE}/api/sync`, { headers: { Authorization: `Bearer ${shareId}` } });
+  check("a share id is not a workspace credential", sync.status === 401, `got ${sync.status}`);
+
+  // One athlete must not be able to overwrite another's share by guessing.
+  const intruder = recoveryKey();
+  const hijack = await api("/api/share", {
+    key: intruder,
+    method: "PUT",
+    body: { id: shareId, payload: JSON.stringify({ version: 1, iv: "x", data: "someone-elses-data" }) },
+    headers: { Origin: ORIGIN },
+  });
+  check("another workspace cannot overwrite it", hijack.status === 409, `got ${hijack.status}`);
+  const afterHijack = await (await fetch(`${BASE}/api/share/${shareId}`)).json();
+  check("and the original payload is untouched", afterHijack.payload === payload);
+
+  const strangerDelete = await api(`/api/share/${shareId}`, {
+    key: intruder,
+    method: "DELETE",
+    headers: { Origin: ORIGIN },
+  });
+  check("another workspace cannot revoke it", strangerDelete.status === 200);
+  const stillThere = await fetch(`${BASE}/api/share/${shareId}`);
+  check("and it is still there afterwards", stillThere.status === 200, `got ${stillThere.status}`);
+
+  const badId = await fetch(`${BASE}/api/share/not-a-real-id`);
+  check("a malformed share id is a 404, not a lookup", badId.status === 404, `got ${badId.status}`);
+
+  const unknown = await fetch(`${BASE}/api/share/${"f".repeat(32)}`);
+  check("an unknown share id says the link is not active", unknown.status === 404, `got ${unknown.status}`);
+
+  const revoked = await api(`/api/share/${shareId}`, { key, method: "DELETE", headers: { Origin: ORIGIN } });
+  check("the owner can revoke it", revoked.status === 200, `got ${revoked.status}`);
+  const afterRevoke = await fetch(`${BASE}/api/share/${shareId}`);
+  check("a revoked link stops working immediately", afterRevoke.status === 404, `got ${afterRevoke.status}`);
+
+  // Deleting the workspace must not leave a live link behind.
+  const second = Array.from({ length: 32 }, () => "0123456789abcdef"[Math.floor(Math.random() * 16)]).join("");
+  await api("/api/share", { key, method: "PUT", body: { id: second, payload }, headers: { Origin: ORIGIN } });
+  await api("/api/sync", { key, method: "PUT", body: { payload: "a-workspace-to-delete", expectedRevision: 0 } });
+  await api("/api/sync", { key, method: "DELETE", headers: { Origin: ORIGIN } });
+  const orphan = await fetch(`${BASE}/api/share/${second}`);
+  check("deleting the workspace takes its links with it", orphan.status === 404, `got ${orphan.status}`);
+}
+
 // --------------------------------------------------------- the front door
 {
   const html = { Accept: "text/html,application/xhtml+xml,*/*" };

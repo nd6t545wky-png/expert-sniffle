@@ -1575,3 +1575,144 @@ body {
   font-size: 13px;
   line-height: 1.55;
 }
+
+/* --- The physio's read-only view ----------------------------------------
+   Its own page rather than a screen in the app: no shell, no nav, no tabs,
+   because there is nothing here to navigate to. Built from the same tokens so
+   it reads as the same product, and set narrow so a table of screens is
+   legible on the phone a physio will actually open it on. */
+.physio-page {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 24px 16px 48px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.physio-figure {
+  margin: 4px 0 0;
+  font-size: 32px;
+  font-weight: 600;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.physio-list {
+  margin: 8px 0 0;
+  padding-left: 18px;
+  color: var(--ink);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+/* A table is the right shape for repeated screens, and the wrong shape for a
+   360px screen. Scrolling the table rather than the page keeps both. */
+.physio-scroll {
+  overflow-x: auto;
+  margin-top: 8px;
+}
+.physio-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+.physio-table th,
+.physio-table td {
+  padding: 8px 10px;
+  text-align: left;
+  border-bottom: 1px solid var(--line);
+  white-space: nowrap;
+}
+.physio-table th {
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.physio-days {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.physio-days > li {
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--line);
+}
+.physio-days > li:last-child {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+.physio-day-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.physio-tag {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--team-primary-soft);
+  color: var(--ink);
+  font-size: 12px;
+}
+
+.physio-detail {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.physio-foot {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+/* --- Creating and revoking a link, on the athlete's side ----------------- */
+.share-links {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.share-links > li {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface-secondary);
+}
+
+/* The link itself: long, and the one thing on this card that must be
+   selectable in full without the layout widening. */
+.share-link-value {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  color: var(--ink);
+  word-break: break-all;
+  line-height: 1.5;
+}
+
+.share-link-meta {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.share-link-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
