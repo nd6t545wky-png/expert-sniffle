@@ -153,18 +153,68 @@ function rdlTask(prefix: string, stageTitle: string, stageDescription: string): 
     stage: 4,
     stageTitle,
     stageDescription,
-    name: "Romanian deadlift — the day's microdose",
+    name: "Romanian deadlift — microdose",
     prescription: `3 × 6 @ RPE 7 · hinge to mid-shin`,
     // The name and this line carry what the stage header used to. Thursday's
     // stage 4 opens with the conditioning task, so the header reads "Condition
     // — maintain the aerobic base", and a hinge underneath it needs to explain
     // itself rather than rely on a title the athlete cannot see.
-    cue: "This one lift is the whole microdose — three working sets, then stop. Push the hips back and keep the bar close; feel the hamstrings load rather than the lower back.",
+    //
+    // Deliberately not "first of two": a soreness report can remove either
+    // lift, and a cue that counts them is wrong the moment one goes.
+    cue: "Microdose — three working sets, then stop. Push the hips back and keep the bar close; feel the hamstrings load rather than the lower back.",
     setup: `Barbell from a rack at hip height. For reference, the report's strength window on the tested squat max is ${window.low}–${window.high} kg; the RDL is loaded by feel against that, not by the same percentage.`,
     execution:
       "Soft knees, long spine, bar tracking the legs. Drive the floor away to stand. Deliberate tempo down, purposeful up.",
     rest: "2 minutes.",
     stop: "Stop for lower-back pain, loss of spinal position, or hamstring cramping.",
+  };
+}
+
+/**
+ * The soleus dose, for the tissue the testing flagged and the programme never
+ * trained.
+ *
+ * The baseline report names the soleus as this athlete's limiter — carnosine
+ * at Z −1.51, the lowest value on the scan, alongside a drop-jump ground
+ * contact of 0.348 s against a sub-0.25 s target. The response to that so far
+ * has been the daily ankle pogos, which are explicitly priming: `2 × 10 · low
+ * amplitude`, and the comment on them says outright that they are not a jump
+ * session. Across all fifty-two weeks there was no calf or soleus strength
+ * work of any kind. The weakest tissue on the report was being rehearsed and
+ * never loaded.
+ *
+ * Thursday is the right day for it precisely because it is the light one. A
+ * seated raise is close to purely local work — no systemic cost, no neural
+ * cost, nothing that shows up in Friday's legs — which is what belongs in a
+ * microdose the day before a game block. Put it on Monday or Wednesday and it
+ * is the ninth movement of a long session, which is the one that gets skipped.
+ *
+ * **Seated, and that is the whole point.** Gastrocnemius crosses the knee, so
+ * bending it slackens the gastroc and leaves the soleus to do the work. A
+ * standing raise trains the calf the report did not flag.
+ *
+ * The dose is conventional strength programming for a slow-twitch postural
+ * muscle — moderate reps, slow eccentric, loaded stretch at the bottom —
+ * rather than anything lifted from a particular trial, and the note says so.
+ */
+function soleusTask(prefix: string, stageTitle: string, stageDescription: string): SessionTask {
+  return {
+    id: `${prefix}-soleus`,
+    stage: 4,
+    stageTitle,
+    stageDescription,
+    name: "Seated calf raise — microdose",
+    prescription: "3 × 12 @ RPE 7–8 · 3 s lowering · 1 s pause at the bottom",
+    cue: "Microdose — three sets, then stop. Knee bent is the whole point: it takes the gastrocnemius out of it and leaves the soleus, which is the one your testing flagged.",
+    setup:
+      "Seated, knee bent to about 90°, ball of the foot on a plate or step so the heel can drop below it. Load across the thigh just above the knee — a dumbbell, a padded barbell, or the seated calf machine if the gym has one.",
+    execution:
+      "Drive through the ball of the foot to full height and hold the top for a beat. Lower over three seconds until you feel the stretch, then pause a second at the bottom before the next rep. The bottom is where the work is; bouncing out of it is what makes this exercise useless.",
+    rest: "90 seconds.",
+    stop: "Stop for Achilles pain or for calf cramping that does not settle between sets. Calf soreness for a day or two is expected for the first fortnight and is not a reason to drop it.",
+    evidence:
+      "From your own baseline report rather than from a trial: soleus carnosine at Z −1.51, the lowest value on the scan, with drop-jump ground contact at 0.348 s against a sub-0.25 s target. The daily pogos prime that tissue; nothing in the 52-week programme loaded it. The sets and reps are conventional strength programming for a slow-twitch postural muscle — moderate reps, slow eccentric, loaded stretch — not a dose taken from a particular study. Seated rather than standing is anatomy: gastrocnemius crosses the knee, so bending it leaves the soleus to work.",
   };
 }
 
@@ -698,9 +748,13 @@ export function applyBaselineProgramming(
     ...(onMonday ? [backSquatTask(prefix, stageTitle, stageDescription)] : []),
   ].filter((addition) => !tasks.some((task) => task.id === addition.id));
 
-  const late = (onThursday ? [rdlTask(prefix, stageTitle, stageDescription)] : []).filter(
-    (addition) => !tasks.some((task) => task.id === addition.id)
-  );
+  // The hinge, then the calf. Both are microdoses and neither competes with
+  // the other: one is a posterior-chain lift, the other is local ankle work.
+  const late = (
+    onThursday
+      ? [rdlTask(prefix, stageTitle, stageDescription), soleusTask(prefix, stageTitle, stageDescription)]
+      : []
+  ).filter((addition) => !tasks.some((task) => task.id === addition.id));
 
   // On a synthesised stage there is nothing to sit behind, so the hinge opens
   // it: `stageAt - 1` makes the splice below land exactly on `stageAt`.

@@ -558,3 +558,58 @@ describe("sprint drills follow the sprinting", () => {
     }
   });
 });
+
+/**
+ * The calf raise against a sore ankle.
+ *
+ * A loaded raise and a calf isometric are the same tissue at different doses.
+ * A sore ankle should end up with one of them, not both.
+ */
+describe("the soleus microdose and a sore ankle", () => {
+  const CALF = "Seated calf raise — microdose";
+
+  function thursday(report?: { region: BodyRegion; severity: number }) {
+    const plan = weekPlan(6, PBS);
+    const date = dateForWeekDay(plan, 3);
+    const base = applyBaselineProgramming(buildSession(plan, 3), null, 3);
+    if (!report) return { names: names(base), tasks: base.tasks };
+    const overlay = apply(base, date, [reportOn(date, report)]);
+    return { names: names_(overlay), tasks: overlay.session.tasks };
+  }
+
+  it("is there when nothing is reported", () => {
+    expect(thursday().names).toContain(CALF);
+  });
+
+  it("gives way to the isometric when the ankle is sore", () => {
+    for (const severity of [4, 8]) {
+      const { names: after, tasks } = thursday({ region: "ankle_foot", severity });
+      expect(after, `${severity}/10`).not.toContain(CALF);
+      // And the replacement is there, so the tissue still gets loaded.
+      expect(
+        tasks.some((task) => /calf raise isometric/i.test(task.name)),
+        `${severity}/10: isometric`
+      ).toBe(true);
+    }
+  });
+
+  it("never leaves the loaded raise and the isometric on the same day", () => {
+    for (const region of ["ankle_foot", "knee", "low_back", "hip_groin"] as BodyRegion[]) {
+      for (const severity of [4, 9]) {
+        const { tasks } = thursday({ region, severity });
+        const loaded = tasks.filter((task) => /Seated calf raise/i.test(task.name));
+        const isometric = tasks.filter((task) => /calf raise isometric/i.test(task.name));
+        expect(
+          loaded.length && isometric.length,
+          `${region} at ${severity}/10 has both`
+        ).toBeFalsy();
+      }
+    }
+  });
+
+  it("stays put when the problem is somewhere that does not load the calf", () => {
+    for (const region of ["elbow_medial", "shoulder_front", "low_back"] as BodyRegion[]) {
+      expect(thursday({ region, severity: 8 }).names, region).toContain(CALF);
+    }
+  });
+});

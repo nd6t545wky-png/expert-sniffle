@@ -1006,14 +1006,26 @@ describe("every task names something to do", () => {
     expect(hinge.name).toMatch(/microdose/i);
     // And it explains itself, because the stage header above it says
     // "Condition" — the conditioning task sorts first in the same stage.
-    expect(hinge.cue).toMatch(/whole microdose/i);
+    expect(hinge.cue).toMatch(/^Microdose/i);
     expect(hinge.stageTitle).toBe("Whole-Body Force");
   });
 
-  it("leaves Thursday's gym stage holding exactly one lift", () => {
+  it("keeps Thursday's gym stage to the two microdose lifts", () => {
     const thursday = applyBaselineProgramming(buildSession(weekPlan(6, PBS), 3), null, 3).tasks;
     const gym = thursday.filter((task) => task.stageTitle === "Whole-Body Force");
-    expect(gym.map((task) => task.name)).toEqual(["Romanian deadlift — the day's microdose"]);
+    expect(gym.map((task) => task.name)).toEqual([
+      "Romanian deadlift — microdose",
+      "Seated calf raise — microdose",
+    ]);
+  });
+
+  it("does not count the lifts in a cue, because either can be removed", () => {
+    // A sore back takes the hinge; a sore ankle takes the calf raise. A cue
+    // saying "first of two" is wrong the moment one of them goes.
+    const thursday = applyBaselineProgramming(buildSession(weekPlan(6, PBS), 3), null, 3).tasks;
+    for (const task of thursday.filter((t) => /microdose/i.test(t.name))) {
+      expect(String(task.cue), task.name).not.toMatch(/first|second|both|two lifts|other half/i);
+    }
   });
 
   it("has not disturbed the other days' gym work", () => {
@@ -1022,5 +1034,102 @@ describe("every task names something to do", () => {
     expect(monday.some((n) => /Back squat/.test(n))).toBe(true);
     const wednesday = applyBaselineProgramming(buildSession(weekPlan(6, PBS), 2), null, 2).tasks.map((t) => t.name);
     expect(wednesday.some((n) => /Speed squat/.test(n))).toBe(true);
+  });
+});
+
+/**
+ * The soleus dose.
+ *
+ * The baseline report names the soleus as this athlete's limiter, and across
+ * all fifty-two weeks there was no calf or soleus strength work of any kind —
+ * only the daily pogos, which the source itself calls priming rather than a
+ * session. The weakest tissue on the report was being rehearsed and never
+ * loaded.
+ */
+describe("soleus microdose", () => {
+  const PBS = {
+    trainingMaxes: {
+      lifts: {
+        squat: { value: 140, kind: "kg" },
+        bench: { value: 100, kind: "kg" },
+        deadlift: { value: 180, kind: "kg" },
+        press: { value: 60, kind: "kg" },
+      },
+    },
+  };
+
+  setProgrammeContext({ pbs: PBS });
+
+  const thursday = () => applyBaselineProgramming(buildSession(weekPlan(6, PBS), 3), null, 3).tasks;
+  const calf = () => thursday().find((task) => /Seated calf raise/.test(task.name))!;
+
+  it("lands on Thursday, with the hinge, in the gym stage", () => {
+    const task = calf();
+    expect(task).toBeTruthy();
+    expect(task.stage).toBe(4);
+    expect(task.stageTitle).toBe("Whole-Body Force");
+  });
+
+  it("lands on no other day", () => {
+    for (const day of [0, 1, 2, 4, 5, 6]) {
+      const names = applyBaselineProgramming(buildSession(weekPlan(6, PBS), day), null, day).tasks.map(
+        (task) => task.name
+      );
+      expect(names.some((name) => /calf raise/i.test(name)), `day ${day}`).toBe(false);
+    }
+  });
+
+  it("is dosed for a slow-twitch postural muscle, with the stretch loaded", () => {
+    const task = calf();
+    expect(task.prescription).toBe("3 × 12 @ RPE 7–8 · 3 s lowering · 1 s pause at the bottom");
+    expect(task.execution).toMatch(/bottom is where the work is/i);
+    expect(task.stop).toMatch(/achilles/i);
+  });
+
+  it("is seated, and says why — that is the whole point of it", () => {
+    // Standing trains the gastrocnemius, which the report did not flag.
+    const task = calf();
+    expect(task.name).toMatch(/seated/i);
+    expect(task.setup).toMatch(/knee bent to about 90/i);
+    expect(String(task.cue)).toMatch(/knee bent is the whole point/i);
+    expect(task.evidence).toMatch(/gastrocnemius crosses the knee/i);
+  });
+
+  it("attributes the dose honestly — the report, not a trial", () => {
+    const task = calf();
+    expect(task.evidence).toMatch(/Z −1\.51/);
+    expect(task.evidence).toMatch(/0\.348 s/);
+    expect(task.evidence).toMatch(/not a dose taken from a particular study/i);
+  });
+
+  it("fills a gap that really was empty", () => {
+    // Guard against the premise silently becoming false: if calf work is ever
+    // added elsewhere in the programme, this microdose needs revisiting.
+    for (let week = 1; week <= PROGRAMME_WEEK_COUNT; week += 1) {
+      const plan = weekPlan(week, PBS);
+      for (let day = 0; day < 7; day += 1) {
+        for (const task of applyBaselineProgramming(buildSession(plan, day), null, day).tasks) {
+          if (/Seated calf raise/.test(task.name)) continue;
+          expect(
+            /calf|soleus|heel raise|plantarflex/i.test(`${task.name} ${task.prescription}`),
+            `week ${week} day ${day}: "${task.name}" also trains the calf`
+          ).toBe(false);
+        }
+      }
+    }
+  });
+
+  it("does not compete with the hinge it sits beside", () => {
+    // One is a posterior-chain lift, the other is local ankle work. Neither
+    // fatigues the other, which is what lets both sit on a recovery day.
+    const gym = thursday().filter((task) => task.stageTitle === "Whole-Body Force");
+    expect(gym).toHaveLength(2);
+    expect(gym.every((task) => /microdose/i.test(task.name))).toBe(true);
+  });
+
+  it("is idempotent", () => {
+    const once = applyBaselineProgramming(buildSession(weekPlan(6, PBS), 3), null, 3);
+    const twice = applyBaselineProgramming(once, null, 3);
+    expect(twice.tasks.filter((task) => /Seated calf raise/.test(task.name))).toHaveLength(1);
   });
 });

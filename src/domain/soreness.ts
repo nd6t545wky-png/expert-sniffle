@@ -968,6 +968,11 @@ export const REGION_PLAYBOOK: Record<BodyRegion, RegionPlaybook> = {
       /trap bar jump/i,
       /Ankle stiffness pogos/i,
       /Depth jump/i,
+      // Thursday's loaded seated raise. It comes out and the isometric below
+      // takes its place: same tissue, no repetitions through a painful range,
+      // and without this the day would carry both a loaded calf raise and a
+      // calf isometric.
+      /calf raise/i,
     ],
     swaps: [],
     modify: [
