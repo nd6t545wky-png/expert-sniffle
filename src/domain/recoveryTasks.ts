@@ -52,18 +52,67 @@ const RECOVER_STAGE = { stage: 6, title: "Recover" };
  * instead, with the band work returning on day 3. So on day 0 the cool-down
  * takes that slot, and on day 3 the band routine takes it back.
  */
-const SUPERSEDES: Record<string, string> = {
+interface Supersession {
+  /** Programme tasks this block can take over. The first one present wins. */
+  targets: readonly string[];
+  /**
+   * How the block and the programme task combine.
+   *
+   * `replace` — the block *is* the work, and its prescription is the one to
+   * follow. This is right where the protocol deliberately changes what the
+   * programme asked for: on day 0 the cool-down exists precisely because the
+   * loaded circuit should not be done then.
+   *
+   * `annotate` — the programme already prescribes this work, at its own dose,
+   * and the protocol only wants to say why today is a day for it. The
+   * prescription is left exactly as written and the block's reasoning and
+   * citation are attached to it. Used where the two are the same session:
+   * replacing there would silently rewrite the athlete's programme, and would
+   * have cut Thursday's conditioning from 20–25 minutes to 15–20.
+   */
+  mode?: "replace" | "annotate";
+}
+
+const SUPERSEDES: Record<string, Supersession> = {
   // Day 0 — the cool-down replaces the loaded circuit at T+0.
-  "mobility-cooldown": "Post-throw arm-care circuit",
-  feed: "Post-session fuel and fluids",
-  walkdown: "Recovery plan",
-  sleep: "Recovery plan",
+  "mobility-cooldown": { targets: ["Post-throw arm-care circuit"] },
+  feed: { targets: ["Post-session fuel and fluids"] },
+  walkdown: { targets: ["Recovery plan"] },
+  sleep: { targets: ["Recovery plan"] },
+  // Day 1 — the scapular block is the day's arm-care work, not an addition to
+  // it. Left beside the programme's circuit it repeated three of its four
+  // movements: band row, external rotation and the serratus wall slide were
+  // each prescribed twice on the same day, once light and once heavy.
+  "scap-strength": { targets: ["Post-throw arm-care circuit"] },
   // Day 3 — the band work returns to the slot it belongs in.
-  "band-routine": "Post-throw arm-care circuit",
+  "band-routine": { targets: ["Post-throw arm-care circuit"] },
   // Gym track.
-  "protein-spread": "Post-session fuel and fluids",
-  downregulate: "Recovery plan",
+  "protein-spread": { targets: ["Post-session fuel and fluids"] },
+  downregulate: { targets: ["Recovery plan"] },
+
+  // The aerobic flush and the programme's own conditioning are the same
+  // session: easy bike or walk, conversational, fifteen to thirty minutes.
+  // Prescribed separately they gave a Thursday 20–25 minutes of "Low-intensity
+  // aerobic base" *and* 15–20 minutes of "Low-intensity aerobic flush" — 45
+  // minutes of easy cardio on a day whose own description is "move, throw
+  // easily, restore". Annotated rather than replaced, so the programme keeps
+  // its dose and gains the reason.
+  "aerobic-flush": {
+    targets: ["Low-intensity aerobic base", "Low-impact aerobic base", "Optional easy aerobic work", "Walk + mobility"],
+    mode: "annotate",
+  },
+  "aerobic-flush-gym": {
+    targets: ["Low-intensity aerobic base", "Low-impact aerobic base", "Optional easy aerobic work", "Walk + mobility"],
+    mode: "annotate",
+  },
 };
+
+/** The programme task a block takes over on this day, or null if none is here. */
+function supersededName(blockId: string, tasks: SessionTask[]): string | null {
+  const entry = SUPERSEDES[blockId];
+  if (!entry) return null;
+  return entry.targets.find((name) => tasks.some((task) => task.name === name)) ?? null;
+}
 
 function taskFor(block: RecoveryBlock, stage: { stage: number; title: string }, prefix: string): SessionTask {
   const optional = block.optional ? " Optional." : "";
@@ -175,7 +224,7 @@ export function applyRecoveryProtocol(
   // prescriptions are joined rather than one of them being dropped.
   const claims = new Map<string, RecoveryBlock[]>();
   for (const block of blocks) {
-    const target = SUPERSEDES[block.id];
+    const target = supersededName(block.id, tasks);
     if (!target) continue;
     claims.set(target, [...(claims.get(target) ?? []), block]);
   }
@@ -183,17 +232,29 @@ export function applyRecoveryProtocol(
   for (const [name, blocks] of claims) {
     const index = tasks.findIndex((task) => task.name === name);
     if (index === -1) continue;
+    // A task claimed by both kinds of block takes the stricter reading: if any
+    // block means to replace the work, the prescription is the block's.
+    const replacing = blocks.filter((block) => SUPERSEDES[block.id]?.mode !== "annotate");
+    const citing = blocks.filter((block) => block.citation);
     tasks[index] = {
       ...tasks[index],
-      prescription: blocks.map((block) => block.prescription).join(" · "),
-      cue: blocks.map((block) => block.why).join(" "),
+      ...(replacing.length
+        ? { prescription: replacing.map((block) => block.prescription).join(" · ") }
+        : {}),
+      // The reason always comes through, whichever mode applied — it is why
+      // the task is on today's list at all.
+      cue: [
+        ...(replacing.length ? [] : [tasks[index].cue]),
+        ...blocks.map((block) => block.why),
+      ]
+        .filter(Boolean)
+        .join(" "),
       ...(blocks.find((block) => block.caveat)
         ? { stop: blocks.find((block) => block.caveat)!.caveat }
         : {}),
-      ...(blocks.some((block) => block.citation)
+      ...(citing.length
         ? {
-            evidence: blocks
-              .filter((block) => block.citation)
+            evidence: citing
               .map((block) => `${block.citation!.key} — ${block.citation!.detail}`)
               .join(" "),
           }
@@ -203,7 +264,7 @@ export function applyRecoveryProtocol(
 
   for (const block of blocks) {
     // Already folded into a programme task above.
-    if (SUPERSEDES[block.id] && tasks.some((task) => task.name === SUPERSEDES[block.id])) continue;
+    if (supersededName(block.id, tasks)) continue;
 
     const stage = placementFor(block.id) === "arm_care" ? ARM_CARE_STAGE : RECOVER_STAGE;
     const task = taskFor(block, stage, prefix);

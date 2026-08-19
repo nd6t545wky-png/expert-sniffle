@@ -1143,16 +1143,22 @@ export function gymSessionForDay(
  * and one compression period covers both. So the gym track's version of a
  * block is dropped when the throwing track has already prescribed it.
  */
-const EQUIVALENT_ACROSS_TRACKS: Record<string, string> = {
-  "protein-spread": "feed",
-  "compression-limbs": "compression",
+const EQUIVALENT_ACROSS_TRACKS: Record<string, readonly string[]> = {
+  "protein-spread": ["feed"],
+  "compression-limbs": ["compression"],
   // Both tracks reach for the boots; one 20–30 min session covers the day.
-  "boots-gym": "boots",
-  downregulate: "walkdown",
-  "heat-gym": "heat",
-  "soft-tissue-gym": "soft-tissue",
-  "aerobic-flush-gym": "aerobic-flush",
-  "compression-continue": "compression-overnight",
+  //
+  // Two ids, because the throwing track prescribes boots on day 0 and again on
+  // day 1 under a different id. Matching only the day-0 one meant a day that
+  // was day 1 of a throwing protocol *and* day 0 of a gym protocol — a lift the
+  // morning after a bullpen, which is a normal week — listed "Compression
+  // boots, legs" twice.
+  "boots-gym": ["boots", "boots-day1"],
+  downregulate: ["walkdown"],
+  "heat-gym": ["heat"],
+  "soft-tissue-gym": ["soft-tissue"],
+  "aerobic-flush-gym": ["aerobic-flush"],
+  "compression-continue": ["compression-overnight"],
 };
 
 /**
@@ -1169,8 +1175,8 @@ export function gymBlocksAfter(
   const day = gym.days[dayOffset];
   if (!day) return [];
   return day.blocks.filter((block) => {
-    const equivalent = EQUIVALENT_ACROSS_TRACKS[block.id];
-    return !(equivalent && already.has(equivalent));
+    const equivalents = EQUIVALENT_ACROSS_TRACKS[block.id];
+    return !equivalents?.some((id) => already.has(id));
   });
 }
 

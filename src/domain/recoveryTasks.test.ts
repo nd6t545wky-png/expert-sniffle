@@ -9,9 +9,17 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { buildSession, setProgrammeContext, weekPlan } from "./programmeSessions";
+import { buildSession, dateForWeekDay, setProgrammeContext, weekPlan } from "./programmeSessions";
 import { applyRecoveryProtocol } from "./recoveryTasks";
-import { LoggedOuting, buildGymRecoveryPlan, gymSessionForDay, recoveryForDay } from "./recoveryProtocol";
+import {
+  INTENT_PERCENT,
+  LoggedOuting,
+  buildGymRecoveryPlan,
+  gymSessionForDay,
+  recoveryForDay,
+} from "./recoveryProtocol";
+import { applyBaselineProgramming } from "./programmeUpdates";
+import { PROGRAMME_WEEK_COUNT, addDays } from "./calendar";
 
 const PBS = { trainingMaxes: { lifts: { squat: { value: 140, kind: "kg" } } } };
 setProgrammeContext({ pbs: PBS });
@@ -381,5 +389,132 @@ describe("holding work that would cost strength before throwing", () => {
     const scraper = merged.session.tasks.find((task) => String(task.id).endsWith("-recovery-scraper"));
     expect(String(scraper?.evidence)).toMatch(/IASTM meta-analysis/);
     expect(String(scraper?.evidence)).toMatch(/4\.94°/);
+  });
+});
+
+/**
+ * Duplication between the programme and the protocol, swept across the year.
+ *
+ * Both prescribe recovery work, and where they describe the same session the
+ * athlete must be asked for it once. Caught on a Thursday: the programme's
+ * "Low-intensity aerobic base" (20–25 min bike, RPE 2–3) and the protocol's
+ * "Low-intensity aerobic flush" (15–20 min bike, conversational) are the same
+ * ride, and both were on the list — 45 minutes of easy cardio on a day whose
+ * own description is "move, throw easily, restore".
+ *
+ * Swept rather than spot-checked, because the pairing depends on the weekday,
+ * the tier, how many days since the outing and whether a gym track is running.
+ */
+describe("no day asks for the same session twice", () => {
+  const PBS = {
+    trainingMaxes: {
+      lifts: {
+        squat: { value: 140, kind: "kg" },
+        bench: { value: 100, kind: "kg" },
+        deadlift: { value: 180, kind: "kg" },
+        press: { value: 60, kind: "kg" },
+      },
+    },
+  };
+
+  setProgrammeContext({ pbs: PBS });
+
+  /** Every combination of day, outing recency, tier and gym track. */
+  function everyRecoveryDay(): { label: string; tasks: { name: string }[] }[] {
+    const out: { label: string; tasks: { name: string }[] }[] = [];
+    for (let week = 1; week <= PROGRAMME_WEEK_COUNT; week += 1) {
+      const plan = weekPlan(week, PBS);
+      for (let day = 0; day < 7; day += 1) {
+        const date = dateForWeekDay(plan, day);
+        for (const back of [0, 1, 2, 3, 4]) {
+          for (const intent of [INTENT_PERCENT.high, INTENT_PERCENT.moderate]) {
+            const recovery = recoveryForDay(
+              date,
+              [{ date: addDays(date, -back), load: { totalThrows: 60, intentPercent: intent } }],
+              90
+            );
+            for (const sessionType of [null, "hypertrophy", "max_strength", "conditioning"] as const) {
+              for (const dayOffset of [0, 1]) {
+                const gym = sessionType
+                  ? {
+                      plan: buildGymRecoveryPlan({ sessionType, sessionDate: date, bodyweightKg: 90 }),
+                      dayOffset,
+                    }
+                  : null;
+                if (!recovery && !gym) continue;
+                const base = applyBaselineProgramming(buildSession(plan, day), null, day);
+                out.push({
+                  label: `week ${week} day ${day} back=${back} intent=${intent} gym=${sessionType}/${dayOffset}`,
+                  tasks: applyRecoveryProtocol(base, recovery, { gym, resolvedTaskIds: [] }).session.tasks,
+                });
+              }
+            }
+          }
+        }
+      }
+    }
+    return out;
+  }
+
+  const DAYS = everyRecoveryDay();
+
+  it("covers a real spread of recovery days", () => {
+    expect(DAYS.length).toBeGreaterThan(10_000);
+  });
+
+  it("never prescribes two easy aerobic sessions", () => {
+    for (const { label, tasks } of DAYS) {
+      const aerobic = tasks
+        .map((task) => task.name)
+        .filter((name) => /aerobic base|aerobic flush|easy aerobic|Walk \+ mobility/i.test(name));
+      expect(aerobic, label).toHaveLength(aerobic.length ? 1 : 0);
+      expect(aerobic.length, label).toBeLessThan(2);
+    }
+  });
+
+  it("never prescribes two cuff-and-scapular circuits", () => {
+    // The programme's post-throw circuit and the protocol's day-1 scapular
+    // block share band rows, external rotation and the serratus wall slide.
+    for (const { label, tasks } of DAYS) {
+      const circuits = tasks
+        .map((task) => task.name)
+        .filter((name) => /arm-care circuit|Scapular strengthening|Band routine|band routine/i.test(name));
+      expect(circuits.length, `${label}: ${circuits.join(" + ")}`).toBeLessThan(2);
+    }
+  });
+
+  it("never lists the same task name twice on one day", () => {
+    for (const { label, tasks } of DAYS) {
+      const names = tasks.map((task) => task.name);
+      expect(new Set(names).size, label).toBe(names.length);
+    }
+  });
+
+  it("keeps the programme's own dose when it already prescribes the work", () => {
+    // Annotating rather than replacing: the protocol says why today is a day
+    // for the ride, it does not quietly shorten it from 20–25 min to 15–20.
+    const plan = weekPlan(6, PBS);
+    const date = dateForWeekDay(plan, 3);
+    const recovery = recoveryForDay(
+      date,
+      [{ date: addDays(date, -1), load: { totalThrows: 60, intentPercent: INTENT_PERCENT.high } }],
+      90
+    );
+    const base = applyBaselineProgramming(buildSession(plan, 3), null, 3);
+    const merged = applyRecoveryProtocol(base, recovery, { gym: null, resolvedTaskIds: [] });
+    const aerobic = merged.session.tasks.find((task) => /aerobic base/i.test(task.name));
+
+    expect(aerobic?.prescription).toMatch(/20–25 minutes/);
+    // And it carries the protocol's reason and citation.
+    expect(aerobic?.cue).toMatch(/active recovery/i);
+    expect(aerobic?.evidence).toBeTruthy();
+  });
+
+  it("still adds the flush on a day the programme has no aerobic work", () => {
+    // Superseding must not become a way of losing the block entirely.
+    const withFlush = DAYS.filter(({ tasks }) =>
+      tasks.some((task) => /aerobic flush/i.test(task.name))
+    );
+    expect(withFlush.length).toBeGreaterThan(0);
   });
 });
