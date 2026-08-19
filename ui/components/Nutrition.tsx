@@ -54,6 +54,8 @@ export interface NutritionProps {
   onHydration: (litres: number | "reset") => void;
   /** Targets derived from today's session, when a bodyweight is known. */
   fuel?: FuelTargets | null;
+  /** Active energy the ring reported today. Context only — see FuelCard. */
+  activeCalories?: number | null;
   onAdoptFuel?: (targets: FuelTargets) => void;
 }
 
@@ -64,7 +66,15 @@ export interface NutritionProps {
  * scheduled. Carbohydrate moves with the day's demand; protein does not,
  * because recovery is when it is used.
  */
-function FuelCard({ fuel, onAdopt }: { fuel: FuelTargets; onAdopt?: () => void }) {
+function FuelCard({
+  fuel,
+  activeCalories,
+  onAdopt,
+}: {
+  fuel: FuelTargets;
+  activeCalories?: number | null;
+  onAdopt?: () => void;
+}) {
   return (
     <article className="card card-pad fuel">
       <div className="card-head">
@@ -97,6 +107,20 @@ function FuelCard({ fuel, onAdopt }: { fuel: FuelTargets; onAdopt?: () => void }
           </button>
         </div>
       )}
+      {/* The ring reports an active-energy figure every day, the app stores it,
+          and nothing has ever shown it — which reads as data going missing. It
+          is shown here, next to the target it looks like it should change, with
+          the reason it does not. */}
+      {typeof activeCalories === "number" && activeCalories > 0 && (
+        <p className="fineprint">
+          <strong>Your watch says {Math.round(activeCalories)} kcal active today.</strong> That is
+          not added to the target above, and deliberately. The activity factor already covers the
+          day&rsquo;s training, so adding it would count the session twice — and wrist-worn
+          estimates of energy expenditure carry error in the tens of percent, which is far too wide
+          to move a daily intake by. It is here as context: a day far above or below your usual is
+          worth noticing, the absolute number is not worth eating to.
+        </p>
+      )}
       <p className="fineprint">
         {fuel.energyFromMeasuredBmr
           ? "Energy is your measured basal rate from the DEXA scan, times an activity factor for the day. "
@@ -127,6 +151,7 @@ export function Nutrition({
   onRemoveMeal,
   onHydration,
   fuel,
+  activeCalories,
   onAdoptFuel,
 }: NutritionProps) {
   const [description, setDescription] = useState("");
@@ -207,7 +232,13 @@ export function Nutrition({
         className="nutrition-page-head"
       />
 
-      {fuel && <FuelCard fuel={fuel} onAdopt={onAdoptFuel ? () => onAdoptFuel(fuel) : undefined} />}
+      {fuel && (
+        <FuelCard
+          fuel={fuel}
+          activeCalories={activeCalories}
+          onAdopt={onAdoptFuel ? () => onAdoptFuel(fuel) : undefined}
+        />
+      )}
 
       <section className="grid metrics">
         <Metric

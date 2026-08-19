@@ -476,6 +476,21 @@ export function App() {
     return total > 0 ? Math.round(total) : null;
   }, [state, date]);
 
+  /**
+   * Active energy the ring reported for the open day.
+   *
+   * Read from the stored health payload rather than fetched: the field has
+   * been imported and persisted since Apple Health was connected, and until
+   * now nothing displayed it anywhere, which reads as data going missing.
+   * Shown on the fuelling card as context, never added to the target — the
+   * card says why.
+   */
+  const activeCaloriesToday = useMemo(() => {
+    const merged = readPrefill(state?.healthPrefill as Record<string, unknown> | undefined, date).merged;
+    const value = Number(merged?.activeCalories);
+    return Number.isFinite(value) && value > 0 ? value : null;
+  }, [state, date]);
+
   /** What was actually lifted today, and the tonnage that follows from it. */
   const setLog = useMemo(
     () => readDayLog(state?.setLogs as Record<string, unknown> | undefined, date),
@@ -1116,6 +1131,7 @@ export function App() {
           meals={meals}
           hydrationLitres={hydrationLitres}
           targets={targets}
+          activeCalories={activeCaloriesToday}
           onAddMeal={(meal) =>
             updateNutrition((current) => ({
               ...current,

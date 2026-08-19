@@ -1429,3 +1429,51 @@ describe("Game log — the outings the training exists to serve", () => {
     expect(removed).toEqual(["g1"]);
   });
 });
+
+/**
+ * The ring's active-energy figure has been imported and stored since Apple
+ * Health was connected, and displayed nowhere. It is context, not an input to
+ * the target — the failure to avoid is it quietly becoming one.
+ */
+describe("active calories on the fuelling card", () => {
+  const fuel = {
+    demand: "moderate" as const,
+    reason: "Bullpen day",
+    calories: 3400,
+    protein: 180,
+    carbs: 450,
+    fat: 95,
+    fluid: 4.5,
+    proteinFromLeanMass: true,
+    energyFromMeasuredBmr: true,
+  };
+
+  const props = {
+    api: new PitchingOsApi(),
+    date: "2026-08-19",
+    meals: [],
+    hydrationLitres: 0,
+    targets: { calories: 0, protein: 0, carbs: 0, fat: 0, fluid: 0 },
+    onAddMeal: () => {},
+    onRemoveMeal: () => {},
+    onHydration: () => {},
+  };
+
+  it("shows the figure and says it is not in the target", () => {
+    render(<Nutrition {...props} fuel={fuel} activeCalories={812.4} />);
+    expect(screen.getByText(/812 kcal active today/)).toBeTruthy();
+    expect(screen.getByText(/not added to the target above/)).toBeTruthy();
+  });
+
+  it("leaves the calorie target exactly where it was", () => {
+    render(<Nutrition {...props} fuel={fuel} activeCalories={812} />);
+    // The target is the fuelling figure alone — 3400, not 4212.
+    expect(screen.getByText("3400")).toBeTruthy();
+    expect(screen.queryByText("4212")).toBeNull();
+  });
+
+  it("says nothing at all when no ring data came in", () => {
+    render(<Nutrition {...props} fuel={fuel} activeCalories={null} />);
+    expect(screen.queryByText(/active today/)).toBeNull();
+  });
+});
