@@ -551,17 +551,31 @@ export function applyBaselineProgramming(
   const prepEnd = tasks.map((task) => task.stageTitle).lastIndexOf("Prepare");
   if (prepEnd !== -1) {
     const prepPrefix = String(tasks[0].id).split("-").slice(0, 2).join("-");
-    const warmUp = [
-      hipPrepTask(prepPrefix),
-      trunkPrepTask(prepPrefix),
-      ankleStiffnessTask(prepPrefix),
-      forearmPrepTask(prepPrefix),
-    ].filter((addition) => !tasks.some((task) => task.id === addition.id));
-    // Order is general to specific, and it is not cosmetic. Hips and trunk
-    // follow the mobility flow while there is still time to work on range;
-    // the ankle's elastic priming and the forearm's are last, closest to the
-    // first jump and the first throw, where their effect is shortest-lived.
-    tasks.splice(prepEnd + 1, 0, ...warmUp);
+    const absent = (addition: SessionTask) => !tasks.some((task) => task.id === addition.id);
+    const regional = [hipPrepTask(prepPrefix), trunkPrepTask(prepPrefix)].filter(absent);
+    const tail = [ankleStiffnessTask(prepPrefix), forearmPrepTask(prepPrefix)].filter(absent);
+
+    // Order is general to specific, and it is not cosmetic. The stage after
+    // this one is always throwing or sprinting, so what the athlete does last
+    // is what carries into the first throw.
+    //
+    // The two regional blocks go in beside the general mobility flow, *not* at
+    // the end of the stage. Appended, they landed between "Scapular and cuff
+    // activation" and the throwing — putting six minutes of hip and trunk work
+    // between the shoulder being primed and the first ball leaving the hand,
+    // and displacing the most throwing-specific piece of the warm-up into the
+    // middle of it.
+    //
+    // Two inserts rather than one, later index first so the earlier splice
+    // does not shift it:
+    //
+    //   raise → general mobility → hips → trunk → cuff → ankle → forearm
+    tasks.splice(prepEnd + 1, 0, ...tail);
+
+    const flowIndex = tasks.findIndex(
+      (task) => task.stageTitle === "Prepare" && /mobility flow/i.test(task.name)
+    );
+    tasks.splice(flowIndex === -1 ? prepEnd + 1 : flowIndex + 1, 0, ...regional);
   }
 
   let gymIndex = tasks.findIndex((task) => GYM_STAGE_TITLES.includes(task.stageTitle));

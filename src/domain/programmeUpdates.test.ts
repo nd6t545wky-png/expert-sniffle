@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { applyBaselineProgramming, strengthWindowKg, PLYO_EVIDENCE_NOTE } from "./programmeUpdates";
 import { seedBaselinePbs, BASELINE_ANCHORS } from "./baseline";
-import { Session, SessionTask } from "./programmeSessions";
+import { Session, SessionTask, buildSession, setProgrammeContext, weekPlan } from "./programmeSessions";
+import { PROGRAMME_WEEK_COUNT } from "./calendar";
 
 function task(overrides: Partial<SessionTask> = {}): SessionTask {
   return {
@@ -534,20 +535,74 @@ describe("hip and trunk warm-up", () => {
     expect(mobility?.prescription).toBe("p");
   });
 
-  it("goes after the existing flow and before the throwing-specific work", () => {
-    // General to specific: range work while there is time to use it, elastic
-    // and forearm priming last where its effect is shortest-lived.
-    const names = warmUp().map((t) => t.name);
-    expect(names.indexOf("Hip prep — rotation and glutes")).toBeGreaterThan(
-      names.indexOf("Dynamic mobility flow")
-    );
-    expect(names.indexOf("Trunk and spine prep")).toBeGreaterThan(
-      names.indexOf("Hip prep — rotation and glutes")
-    );
-    expect(names.indexOf("Ankle stiffness pogos")).toBeGreaterThan(
-      names.indexOf("Trunk and spine prep")
-    );
-    expect(names.indexOf("Wrist and forearm prep")).toBe(names.length - 1);
+  it("sits with the general mobility, not between the shoulder and the throw", () => {
+    // The stage after this one is always throwing or sprinting, so whatever is
+    // last carries into the first throw. Appended to the end of the stage, the
+    // two new blocks put six minutes of hip and trunk work between the cuff
+    // being primed and the first ball leaving the hand.
+    const full = applyBaselineProgramming(
+      session([
+        prep("Raise tissue temperature", "heat"),
+        prep("Dynamic mobility flow", "mob"),
+        prep("Scapular and cuff activation", "scap"),
+      ]),
+      null,
+      0
+    ).tasks.filter((t) => t.stageTitle === "Prepare").map((t) => t.name);
+
+    expect(full).toEqual([
+      "Raise tissue temperature",
+      "Dynamic mobility flow",
+      "Hip prep — rotation and glutes",
+      "Trunk and spine prep",
+      "Scapular and cuff activation",
+      "Ankle stiffness pogos",
+      "Wrist and forearm prep",
+    ]);
+  });
+
+  it("keeps the shoulder and forearm work closest to the first throw", () => {
+    const names = applyBaselineProgramming(
+      session([
+        prep("Raise tissue temperature", "heat"),
+        prep("Dynamic mobility flow", "mob"),
+        prep("Scapular and cuff activation", "scap"),
+      ]),
+      null,
+      0
+    ).tasks.filter((t) => t.stageTitle === "Prepare").map((t) => t.name);
+
+    for (const regional of ["Hip prep — rotation and glutes", "Trunk and spine prep"]) {
+      expect(names.indexOf(regional), regional).toBeLessThan(
+        names.indexOf("Scapular and cuff activation")
+      );
+    }
+    expect(names[names.length - 1]).toBe("Wrist and forearm prep");
+  });
+
+  it("does not reorder anything that was already there", () => {
+    // The additions slot in; the programme's own warm-up keeps its sequence.
+    const existing = ["Raise tissue temperature", "Dynamic mobility flow", "Scapular and cuff activation"];
+    const names = applyBaselineProgramming(
+      session(existing.map((name, i) => prep(name, `p${i}`))),
+      null,
+      0
+    ).tasks.filter((t) => t.stageTitle === "Prepare").map((t) => t.name);
+
+    expect(names.filter((name) => existing.includes(name))).toEqual(existing);
+  });
+
+  it("still places them sanely when there is no mobility flow to sit beside", () => {
+    const names = applyBaselineProgramming(
+      session([prep("Raise tissue temperature", "heat")]),
+      null,
+      0
+    ).tasks.filter((t) => t.stageTitle === "Prepare").map((t) => t.name);
+
+    expect(names[0]).toBe("Raise tissue temperature");
+    expect(names).toContain("Hip prep — rotation and glutes");
+    expect(names).toContain("Trunk and spine prep");
+    expect(names[names.length - 1]).toBe("Wrist and forearm prep");
   });
 
   it("names every movement and doses every one of them", () => {
@@ -608,6 +663,102 @@ describe("hip and trunk warm-up", () => {
     const twice = applyBaselineProgramming(once, null, 0);
     for (const name of ["Hip prep — rotation and glutes", "Trunk and spine prep"]) {
       expect(twice.tasks.filter((t) => t.name === name), name).toHaveLength(1);
+    }
+  });
+});
+
+/**
+ * The warm-up order on every day the programme can actually produce.
+ *
+ * The tests above build synthetic sessions. This one builds the real ones,
+ * because the ordering is only correct relative to what the programme puts in
+ * the Prepare stage, and an overlay that reorders correctly against a mock and
+ * wrongly against the real thing is the failure that ships.
+ */
+describe("the real warm-up, every day of the year", () => {
+  const PBS = {
+    trainingMaxes: {
+      lifts: {
+        squat: { value: 140, kind: "kg" },
+        bench: { value: 100, kind: "kg" },
+        deadlift: { value: 180, kind: "kg" },
+        press: { value: 60, kind: "kg" },
+      },
+    },
+  };
+
+  setProgrammeContext({ pbs: PBS });
+
+  const WARM_UPS: { label: string; names: string[]; next: string | null }[] = (() => {
+    const out: { label: string; names: string[]; next: string | null }[] = [];
+    for (let week = 1; week <= PROGRAMME_WEEK_COUNT; week += 1) {
+      const plan = weekPlan(week, PBS);
+      for (let day = 0; day < 7; day += 1) {
+        for (const level of [null, "reduced", "recovery"] as const) {
+          const tasks = applyBaselineProgramming(buildSession(plan, day), level, day).tasks;
+          const names = tasks.filter((task) => task.stageTitle === "Prepare").map((task) => task.name);
+          if (!names.length) continue;
+          const end = tasks.map((task) => task.stageTitle).lastIndexOf("Prepare");
+          out.push({
+            label: `week ${week} day ${day} ${level ?? "full"}`,
+            names,
+            next: tasks[end + 1]?.stageTitle ?? null,
+          });
+        }
+      }
+    }
+    return out;
+  })();
+
+  it("covers every week of the year", () => {
+    // 52 weeks × 3 readiness levels, on every day that has a warm-up at all.
+    // Sunday is a complete rest day with no Prepare stage, so the count sits
+    // below the 1,092 a seven-day year would give.
+    expect(WARM_UPS.length).toBeGreaterThan(900);
+    expect(new Set(WARM_UPS.map(({ label }) => label.split(" day ")[0])).size).toBe(
+      PROGRAMME_WEEK_COUNT
+    );
+  });
+
+  it("always runs raise, then general mobility, then the regional work", () => {
+    for (const { label, names } of WARM_UPS) {
+      expect(names[0], label).toBe("Raise tissue temperature");
+      const flow = names.indexOf("Dynamic mobility flow");
+      expect(flow, label).toBeGreaterThan(0);
+      expect(names.indexOf("Hip prep — rotation and glutes"), label).toBe(flow + 1);
+      expect(names.indexOf("Trunk and spine prep"), label).toBe(flow + 2);
+    }
+  });
+
+  it("always finishes with the arm, because the next thing is throwing", () => {
+    for (const { label, names, next } of WARM_UPS) {
+      expect(names[names.length - 1], label).toBe("Wrist and forearm prep");
+      // Whatever follows the warm-up is throwing or running, never more prep.
+      expect(["Plyo Ball Preparation", "Speed", "High-Intent Prep", "Game Warm-up", "Throw", "Compete", null], label)
+        .toContain(next);
+    }
+  });
+
+  it("never leaves the cuff activation stranded in the middle", () => {
+    // It is the most throwing-specific piece in the warm-up. Nothing regional
+    // may sit between it and the first throw.
+    for (const { label, names } of WARM_UPS) {
+      const cuff = names.indexOf("Scapular and cuff activation");
+      if (cuff === -1) continue;
+      for (const regional of ["Hip prep — rotation and glutes", "Trunk and spine prep"]) {
+        expect(names.indexOf(regional), `${label}: ${regional} after the cuff work`).toBeLessThan(cuff);
+      }
+    }
+  });
+
+  it("gives every day the same warm-up order", () => {
+    // One shape, so the athlete learns the sequence rather than reading it.
+    expect(new Set(WARM_UPS.map(({ names }) => names.join(" → "))).size).toBe(1);
+  });
+
+  it("never repeats a warm-up task on a day", () => {
+    for (const { label, names } of WARM_UPS) {
+      expect(new Set(names).size, label).toBe(names.length);
     }
   });
 });
