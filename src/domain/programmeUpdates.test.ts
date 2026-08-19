@@ -730,12 +730,16 @@ describe("the real warm-up, every day of the year", () => {
     }
   });
 
-  it("always finishes with the arm, because the next thing is throwing", () => {
+  it("always finishes with whatever prepares the stage that follows it", () => {
     for (const { label, names, next } of WARM_UPS) {
-      expect(names[names.length - 1], label).toBe("Wrist and forearm prep");
       // Whatever follows the warm-up is throwing or running, never more prep.
       expect(["Plyo Ball Preparation", "Speed", "High-Intent Prep", "Game Warm-up", "Throw", "Compete", null], label)
         .toContain(next);
+      // On the speed day the sprinting comes first, so the drills go last.
+      // Every other day it is the arm, because the next thing is a throw.
+      expect(names[names.length - 1], label).toBe(
+        next === "Speed" ? "Sprint drills — before the build-ups" : "Wrist and forearm prep"
+      );
     }
   });
 
@@ -751,14 +755,161 @@ describe("the real warm-up, every day of the year", () => {
     }
   });
 
-  it("gives every day the same warm-up order", () => {
-    // One shape, so the athlete learns the sequence rather than reading it.
-    expect(new Set(WARM_UPS.map(({ names }) => names.join(" → "))).size).toBe(1);
+  it("gives every day the same warm-up, plus sprint drills on the speed day", () => {
+    // One shape, so the athlete learns the sequence rather than reading it —
+    // and exactly one deviation from it, which is additive rather than a
+    // reshuffle: the speed day is the common warm-up with a ninth item on the
+    // end, not a different order.
+    const shapes = new Set(WARM_UPS.map(({ names }) => names.join(" → ")));
+    expect(shapes.size).toBe(2);
+
+    const [common, speed] = [...shapes].sort((a, b) => a.length - b.length);
+    expect(speed.startsWith(common)).toBe(true);
+    expect(speed.slice(common.length)).toBe(" → Sprint drills — before the build-ups");
   });
 
   it("never repeats a warm-up task on a day", () => {
     for (const { label, names } of WARM_UPS) {
       expect(new Set(names).size, label).toBe(names.length);
     }
+  });
+});
+
+/**
+ * Sprint drills, on the day that sprints without any.
+ *
+ * The programme has three kinds of sprint day and only one of them lacks
+ * preparation. Getting this wrong in the generous direction is what produces
+ * the double-ups: Wednesday already runs A-march, ankling and progressive
+ * starts, and the game days already run a build-up ramp on a day the athlete
+ * may pitch.
+ */
+describe("sprint drills", () => {
+  const PBS = {
+    trainingMaxes: {
+      lifts: {
+        squat: { value: 140, kind: "kg" },
+        bench: { value: 100, kind: "kg" },
+        deadlift: { value: 180, kind: "kg" },
+        press: { value: 60, kind: "kg" },
+      },
+    },
+  };
+
+  setProgrammeContext({ pbs: PBS });
+
+  const DRILLS = "Sprint drills — before the build-ups";
+
+  /** Every day of the year, with the tasks it ends up holding. */
+  const DAYS = (() => {
+    const out: { label: string; names: string[]; stages: string[] }[] = [];
+    for (let week = 1; week <= PROGRAMME_WEEK_COUNT; week += 1) {
+      const plan = weekPlan(week, PBS);
+      for (let day = 0; day < 7; day += 1) {
+        const tasks = applyBaselineProgramming(buildSession(plan, day), null, day).tasks;
+        out.push({
+          label: `week ${week} day ${day}`,
+          names: tasks.map((task) => task.name),
+          stages: tasks.map((task) => String(task.stageTitle)),
+        });
+      }
+    }
+    return out;
+  })();
+
+  it("lands on every day with speed work", () => {
+    const speedDays = DAYS.filter(({ stages }) => stages.includes("Speed"));
+    expect(speedDays.length).toBeGreaterThan(0);
+    for (const { label, names } of speedDays) {
+      expect(names, label).toContain(DRILLS);
+    }
+  });
+
+  it("lands on no day without speed work", () => {
+    for (const { label, names, stages } of DAYS) {
+      if (stages.includes("Speed")) continue;
+      expect(names, label).not.toContain(DRILLS);
+    }
+  });
+
+  it("stays off the day that already runs sprint mechanics", () => {
+    // Wednesday: A-march, ankling, progressive starts. Adding drills there
+    // would be the double-up, not the fix.
+    const withMechanics = DAYS.filter(({ names }) => names.includes("Sprint mechanics"));
+    expect(withMechanics.length).toBeGreaterThan(0);
+    for (const { label, names } of withMechanics) {
+      expect(names, label).not.toContain(DRILLS);
+    }
+  });
+
+  it("stays off game days, where the ramp exists and the legs are needed", () => {
+    const gameDays = DAYS.filter(({ names }) => names.includes("Sprint build-ups"));
+    expect(gameDays.length).toBeGreaterThan(0);
+    for (const { label, names } of gameDays) {
+      expect(names, label).not.toContain(DRILLS);
+    }
+  });
+
+  it("does not add a second build-up ramp", () => {
+    // The speed task already prescribes 2 × 10 m. Repeating it would put
+    // another hundred metres in front of a session followed by 45–55 throws.
+    const day = DAYS.find(({ names }) => names.includes(DRILLS))!;
+    const drills = applyBaselineProgramming(
+      buildSession(weekPlan(6, PBS), 1),
+      null,
+      1
+    ).tasks.find((task) => task.name === DRILLS)!;
+    expect(day.names).toContain("Acceleration quality");
+    expect(drills.prescription).not.toMatch(/build-up/i);
+    expect(drills.prescription).not.toMatch(/\d+\s*m\s*@|%/);
+    // And it says so, so the athlete does not think the ramp was replaced.
+    expect(drills.cue).toMatch(/does not replace/i);
+  });
+
+  it("sits immediately before the sprinting", () => {
+    const tasks = applyBaselineProgramming(buildSession(weekPlan(6, PBS), 1), null, 1).tasks;
+    const drills = tasks.findIndex((task) => task.name === DRILLS);
+    const speed = tasks.findIndex((task) => task.stageTitle === "Speed");
+    expect(drills).toBeGreaterThan(-1);
+    expect(speed).toBe(drills + 1);
+  });
+
+  it("names and doses every movement, and carries a stop rule", () => {
+    const drills = applyBaselineProgramming(
+      buildSession(weekPlan(6, PBS), 1),
+      null,
+      1
+    ).tasks.find((task) => task.name === DRILLS)!;
+    for (const movement of drills.prescription.split("·")) {
+      expect(movement, movement).toMatch(/\d/);
+    }
+    expect(drills.prescription).toMatch(/leg swings/i);
+    expect(drills.prescription).toMatch(/A-skip/i);
+    expect(drills.prescription).toMatch(/ankle dribble/i);
+    expect(drills.stop).toMatch(/hamstring/i);
+  });
+
+  it("points the hamstring evidence at the Nordic, not at itself", () => {
+    // The drills rehearse a pattern. The thing with a real effect size behind
+    // it is the Nordic already in Monday's session, and the note says so —
+    // including that the finding has been challenged.
+    const drills = applyBaselineProgramming(
+      buildSession(weekPlan(6, PBS), 1),
+      null,
+      1
+    ).tasks.find((task) => task.name === DRILLS)!;
+    expect(drills.evidence).toMatch(/van Dyk 2019/);
+    expect(drills.evidence).toMatch(/Nordic/);
+    expect(drills.evidence).toMatch(/not for these drills/i);
+    expect(drills.evidence).toMatch(/challenged/i);
+
+    const monday = DAYS.find(({ names }) => names.includes("Nordic hamstring curl"));
+    expect(monday, "the Nordic the note points at must exist").toBeTruthy();
+  });
+
+  it("is idempotent", () => {
+    const once = applyBaselineProgramming(buildSession(weekPlan(6, PBS), 1), null, 1);
+    const twice = applyBaselineProgramming(once, null, 1);
+    expect(twice.tasks.filter((task) => task.name === DRILLS)).toHaveLength(1);
   });
 });

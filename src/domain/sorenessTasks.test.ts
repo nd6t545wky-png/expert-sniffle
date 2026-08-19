@@ -492,3 +492,69 @@ describe("the hip and trunk warm-up survives what it should", () => {
     }
   });
 });
+
+/**
+ * The sprint drills against the soreness overlay.
+ *
+ * They are preparation for sprinting, so they belong with the sprinting: a
+ * sore knee that takes the running away should take the drills too, and an
+ * elbow that has nothing to do with running should leave both alone.
+ */
+describe("sprint drills follow the sprinting", () => {
+  const DRILLS = "Sprint drills — before the build-ups";
+
+  /** Tuesday, the speed day. */
+  function speedDay(region: BodyRegion, severity: number) {
+    const plan = weekPlan(6, PBS);
+    const date = dateForWeekDay(plan, 1);
+    const base = applyBaselineProgramming(buildSession(plan, 1), null, 1);
+    return { base, overlay: apply(base, date, [reportOn(date, { region, severity })]) };
+  }
+
+  it("is there to begin with", () => {
+    const { base } = speedDay("elbow_medial", 1);
+    expect(names(base)).toContain(DRILLS);
+    expect(names(base)).toContain("Acceleration quality");
+  });
+
+  it("goes when a sore leg takes the sprinting", () => {
+    for (const region of ["knee", "ankle_foot", "hip_groin"] as BodyRegion[]) {
+      const { overlay } = speedDay(region, 8);
+      expect(names_(overlay), `${region}: sprinting`).not.toContain("Acceleration quality");
+      expect(names_(overlay), `${region}: drills`).not.toContain(DRILLS);
+    }
+  });
+
+  it("stays when the problem is the arm, which does not sprint", () => {
+    for (const region of ["elbow_medial", "shoulder_front"] as BodyRegion[]) {
+      const { overlay } = speedDay(region, 8);
+      expect(names_(overlay), `${region}: drills`).toContain(DRILLS);
+      expect(names_(overlay), `${region}: sprinting`).toContain("Acceleration quality");
+    }
+  });
+
+  it("never leaves the drills behind after the sprinting is gone", () => {
+    // Prep for work that is no longer in the day is just a warm-up for
+    // nothing, and it is the sort of leftover that makes a plan look broken.
+    const plan = weekPlan(6, PBS);
+    const date = dateForWeekDay(plan, 1);
+    const base = applyBaselineProgramming(buildSession(plan, 1), null, 1);
+    const regions: BodyRegion[] = [
+      "knee",
+      "ankle_foot",
+      "hip_groin",
+      "low_back",
+      "elbow_medial",
+      "shoulder_front",
+      "forearm",
+    ];
+    for (const region of regions) {
+      for (const severity of [4, 9]) {
+        const after = names_(apply(base, date, [reportOn(date, { region, severity })]));
+        if (after.includes(DRILLS)) {
+          expect(after, `${region} at ${severity}/10`).toContain("Acceleration quality");
+        }
+      }
+    }
+  });
+});

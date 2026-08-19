@@ -533,6 +533,58 @@ function trunkPrepTask(prefix: string): SessionTask {
   };
 }
 
+/**
+ * Sprint drills, on the day that sprints without any.
+ *
+ * Three days in the programme contain sprinting and they are not equivalent:
+ *
+ *   - **Wednesday** — "Sprint mechanics": A-march, ankling and three
+ *     progressive starts. That *is* a sprint warm-up, and a good one.
+ *   - **Friday/Saturday/Sunday** — "Sprint build-ups": 2 × 10 m, 2 × 20 m,
+ *     final rep about 90%. A ramp, on a day the athlete may pitch. Adding
+ *     running in front of a game buys nothing and costs legs.
+ *   - **Tuesday** — "Acceleration quality": 2 × 10 m build-up straight into
+ *     3 × 20 m at 85–90%. The fastest running of the week, off a warm-up with
+ *     no sprint drills in it at all.
+ *
+ * So only Tuesday gets this, and the rule is written as a condition rather
+ * than a weekday: a session with speed work and no drills of its own. If the
+ * speed day ever moves, the preparation moves with it.
+ *
+ * Deliberately **no build-ups**. The speed task already prescribes its own
+ * 10 m ramp; adding a second one would repeat it and put another hundred
+ * metres of running in front of a session that is followed by 45–55 throws.
+ * What is missing is the rehearsal, not the ramp.
+ */
+function sprintPrepTask(prefix: string): SessionTask {
+  return {
+    id: `${prefix}-sprint-prep`,
+    stage: 1,
+    stageTitle: "Prepare",
+    stageDescription: "Raise temperature before mobility or throwing.",
+    name: "Sprint drills — before the build-ups",
+    prescription:
+      "Leg swings forward–back 10/side · leg swings lateral 10/side · A-skip 2 × 15 m · ankle dribble 2 × 15 m",
+    cue: "Rehearse the shapes slowly so the build-ups below are the first fast running, not the first running. The 10 m build-ups in the speed set are still your ramp — this does not replace them.",
+    setup: "About 20 m of flat, even ground. Trainers, not spikes.",
+    execution:
+      "Leg swings: hold something solid and swing through a range you control — no ballistic end-range. A-skip: tall, knee up, foot down underneath the hip, quick off the ground. Ankle dribble: knees almost straight, feet cycling low and fast underneath you — this is the one that teaches the foot to land under the hip rather than out in front, which is where a hamstring gets caught at speed.",
+    rest: "Walk back between reps. None of this should raise your breathing much.",
+    stop: "Any hamstring twinge ends the sprinting for the day, and report it on the plan. That is a warning, not a niggle to run off.",
+    evidence:
+      "van Dyk 2019, BJSM 53:1362–1370 — meta-analysis, 15 studies, 8,459 athletes: injury-prevention programmes including the Nordic hamstring exercise roughly halved hamstring injury rates (RR 0.49, 95% CI 0.32–0.74). That is the evidence for the Nordic already in Monday's session, not for these drills. Warm-up drills rehearse the pattern and raise tissue temperature; the evidence that drills alone prevent anything is thin, and the Nordic finding itself has been challenged on methodological grounds (Impellizzeri 2021).",
+  };
+}
+
+/** Speed work with no drill preparation of its own. */
+function needsSprintDrills(tasks: SessionTask[]): boolean {
+  const hasSpeedWork = tasks.some((task) => task.stageTitle === "Speed");
+  const hasDrills = tasks.some((task) =>
+    /A-march|ankling|sprint mechanics|sprint build-ups|sprint drills/i.test(task.name + task.prescription)
+  );
+  return hasSpeedWork && !hasDrills;
+}
+
 export function applyBaselineProgramming(
   session: Session,
   level: ReducedLevel | null = null,
@@ -553,7 +605,14 @@ export function applyBaselineProgramming(
     const prepPrefix = String(tasks[0].id).split("-").slice(0, 2).join("-");
     const absent = (addition: SessionTask) => !tasks.some((task) => task.id === addition.id);
     const regional = [hipPrepTask(prepPrefix), trunkPrepTask(prepPrefix)].filter(absent);
-    const tail = [ankleStiffnessTask(prepPrefix), forearmPrepTask(prepPrefix)].filter(absent);
+    // The warm-up ends with whatever prepares the stage that follows it. That
+    // is the arm on every day except the speed day, where the sprinting comes
+    // first and the drills belong last instead.
+    const tail = [
+      ankleStiffnessTask(prepPrefix),
+      forearmPrepTask(prepPrefix),
+      ...(needsSprintDrills(tasks) ? [sprintPrepTask(prepPrefix)] : []),
+    ].filter(absent);
 
     // Order is general to specific, and it is not cosmetic. The stage after
     // this one is always throwing or sprinting, so what the athlete does last
