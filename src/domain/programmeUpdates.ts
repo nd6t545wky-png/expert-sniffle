@@ -447,6 +447,92 @@ function forearmPrepTask(prefix: string): SessionTask {
   };
 }
 
+/**
+ * Hip preparation, which the warm-up barely touched.
+ *
+ * The mobility flow already has the ankle rock, the 90/90 switch, the adductor
+ * rock, the World's Greatest Stretch and the open book — a good general flow,
+ * and it stays exactly as it is. What it does not have is anything that asks
+ * the hip to *produce* rotation rather than be moved through it, anything for
+ * hip extension range, and anything for the lateral hip that holds the pelvis
+ * level when the lead leg lands.
+ *
+ * That matters more for a pitcher than for most athletes. In nineteen
+ * professional pitchers measured with fluid goniometry against 3-D motion
+ * capture, the total rotation arc of the *non-dominant* hip — the lead leg —
+ * correlated with ball velocity at r = 0.50, and the pitchers had significantly
+ * less passive range on that side than on the dominant one across every
+ * direction measured (Robb 2010). Nineteen subjects and a correlation is not a
+ * training study, and this is not sold as one: it is a reason to spend three
+ * minutes on the lead hip, not a promise of velocity.
+ *
+ * Deliberately no end-range adductor loading. The flow's adductor rock covers
+ * that gently, and a Cossack squat in a warm-up is where a groin gets pulled.
+ */
+function hipPrepTask(prefix: string): SessionTask {
+  return {
+    id: `${prefix}-hip-prep`,
+    stage: 1,
+    stageTitle: "Prepare",
+    stageDescription: "Raise temperature before mobility or throwing.",
+    name: "Hip prep — rotation and glutes",
+    prescription:
+      "Half-kneeling hip flexor with posterior tilt 2 × 20 s/side · 90/90 internal rotation lift-off 6/side · lateral band walk 10 steps each way · single-leg glute bridge 8/side",
+    cue: "Own the range rather than sink into it. Every rep is your own muscle moving the joint, not gravity. The lift-off uses the same 90/90 position as the switch in the flow above and does the opposite job: that one moves you through the range, this one makes you hold the end of it under your own power.",
+    setup:
+      "A mat or soft surface for the kneeling and bridging work, and a light band above the knees for the walks.",
+    execution:
+      "Half-kneeling hip flexor: back knee down, tuck the tailbone under until you feel the front of the hip, then stay tall — do not arch to get deeper. 90/90 lift-off: sit in the 90/90 position and lift the back shin off the floor without leaning, hold a second, lower under control. Lateral band walk: knees out, feet quiet, small steps. Single-leg glute bridge: drive through the heel, keep the pelvis level, no arch through the lower back.",
+    rest: "Straight through — this is a warm-up, not a set.",
+    stop: "Stop for groin or front-of-hip pinching. Pinching at end of range means less range today, not more effort.",
+    evidence:
+      "Robb 2010, Am J Sports Med — 19 professional pitchers, fluid goniometry with 3-D motion analysis. Total rotation arc of the non-dominant (lead) hip correlated with ball velocity, r = 0.50; the non-dominant hip had less passive range than the dominant one in every direction measured. Correlational, and small.",
+  };
+}
+
+/**
+ * Trunk and spine preparation, and the one drill here with real evidence
+ * behind it.
+ *
+ * The warm-up prepared the shoulder, the forearm and the ankle, and left the
+ * segment between them out. The gap that matters is not spinal mobility — the
+ * open book covers thoracic rotation — but lumbopelvic *control*: whether the
+ * pelvis holds its position when the athlete stands on one leg, which is the
+ * position a pitcher is in for the whole delivery.
+ *
+ * That was measured prospectively in 347 professional pitchers across five
+ * organisations. Pitchers whose pelvis deviated 8° or more during a single-leg
+ * raise were three times more likely to miss thirty days or more to injury
+ * than those under 4°, and among pitchers who did get hurt, the worst-control
+ * group averaged 98.6 days missed against 43.8 (Chaudhari 2014). That is one
+ * of the largest effects in the whole pitching-injury literature, and it is
+ * measured on a test that costs nothing to rehearse.
+ *
+ * So the last drill here is deliberately the test itself, held rather than
+ * scored. Bird dog and the side plank are left out on purpose — they belong to
+ * the soreness protocol's lower-back prescription, and putting them in both
+ * places would give a sore back the same exercise twice on the same day.
+ */
+function trunkPrepTask(prefix: string): SessionTask {
+  return {
+    id: `${prefix}-trunk-prep`,
+    stage: 1,
+    stageTitle: "Prepare",
+    stageDescription: "Raise temperature before mobility or throwing.",
+    name: "Trunk and spine prep",
+    prescription:
+      "Cat-camel 8 slow · dead bug 6/side · single-leg pelvic-control hold 2 × 20 s/side",
+    cue: "The last one is the one that counts. Pelvis dead level, and nothing above the hips moves.",
+    setup: "A mat for the first two. For the hold, stand tall with something at hand's reach to touch if you wobble.",
+    execution:
+      "Cat-camel: move one segment at a time, slowly, through the whole spine — this is motion, not a stretch. Dead bug: press the lower back into the floor and keep it there as the opposite arm and leg reach away; the moment the back lifts, you have found your range. Single-leg pelvic-control hold: come to the single-leg stance you pitch from and hold with the pelvis level — no hip drop, no tilt, no arch. Watch the front of your hips in a mirror or a window if you have one.",
+    rest: "No rest needed. Move on when the last hold is clean.",
+    stop: "Stop for lower-back pain rather than working through it, and report it on the daily plan so tomorrow is adjusted.",
+    evidence:
+      "Chaudhari 2014, Am J Sports Med 42(11):2734–2740 — prospective, 347 professional pitchers across five organisations. Pelvic deviation ≥8° on a single-leg raise carried a 3.0× risk of missing 30+ days versus <4°; among those injured, that group averaged 98.6 days missed against 43.8 in the best-controlled group.",
+  };
+}
+
 export function applyBaselineProgramming(
   session: Session,
   level: ReducedLevel | null = null,
@@ -465,11 +551,16 @@ export function applyBaselineProgramming(
   const prepEnd = tasks.map((task) => task.stageTitle).lastIndexOf("Prepare");
   if (prepEnd !== -1) {
     const prepPrefix = String(tasks[0].id).split("-").slice(0, 2).join("-");
-    const warmUp = [ankleStiffnessTask(prepPrefix), forearmPrepTask(prepPrefix)].filter(
-      (addition) => !tasks.some((task) => task.id === addition.id)
-    );
-    // Ankle work after the mobility flow, forearm prep last so the throwing-
-    // specific preparation is closest to the first throw.
+    const warmUp = [
+      hipPrepTask(prepPrefix),
+      trunkPrepTask(prepPrefix),
+      ankleStiffnessTask(prepPrefix),
+      forearmPrepTask(prepPrefix),
+    ].filter((addition) => !tasks.some((task) => task.id === addition.id));
+    // Order is general to specific, and it is not cosmetic. Hips and trunk
+    // follow the mobility flow while there is still time to work on range;
+    // the ankle's elastic priming and the forearm's are last, closest to the
+    // first jump and the first throw, where their effect is shortest-lived.
     tasks.splice(prepEnd + 1, 0, ...warmUp);
   }
 

@@ -19,6 +19,7 @@ import {
 import { PROGRAMME_WEEK_COUNT } from "./calendar";
 import { ActiveReport, BodyRegion, SorenessReport, activeReports } from "./soreness";
 import { applySorenessProtocol } from "./sorenessTasks";
+import { applyBaselineProgramming } from "./programmeUpdates";
 
 const PBS = {
   trainingMaxes: {
@@ -71,6 +72,8 @@ function apply(session: Session, date: string, reports: SorenessReport[]) {
 }
 
 const names = (session: Session) => session.tasks.map((task) => task.name);
+/** The same, for an overlay result rather than a bare session. */
+const names_ = (overlay: { session: Session }) => names(overlay.session);
 
 /**
  * Stages that are throwing and nothing else.
@@ -421,6 +424,70 @@ describe("across the whole programme", () => {
           throwingTasks(overlay.session).map((task) => task.name),
           `week ${week} day ${day} ${region}`
         ).toEqual([]);
+      }
+    }
+  });
+});
+
+/**
+ * The hip and trunk warm-up against the soreness overlay.
+ *
+ * Mobility and control work is what a sore back or hip should be *keeping*,
+ * not the first thing taken away — and it must not double up with what the
+ * protocol prescribes for the same region.
+ */
+describe("the hip and trunk warm-up survives what it should", () => {
+  const WARM_UPS = ["Hip prep — rotation and glutes", "Trunk and spine prep"];
+
+  function warmedDay(region: BodyRegion, severity: number) {
+    const plan = weekPlan(6, PBS);
+    const date = dateForWeekDay(plan, 3);
+    const base = applyBaselineProgramming(buildSession(plan, 3), null, 3);
+    return apply(base, date, [reportOn(date, { region, severity })]);
+  }
+
+  it("keeps the warm-up whatever is reported, at any severity", () => {
+    const regions: BodyRegion[] = [
+      "low_back",
+      "hip_groin",
+      "knee",
+      "elbow_medial",
+      "shoulder_front",
+      "ankle_foot",
+    ];
+    for (const region of regions) {
+      for (const severity of [4, 9]) {
+        const names = names_(warmedDay(region, severity));
+        for (const warmUp of WARM_UPS) {
+          expect(names, `${region} at ${severity}/10`).toContain(warmUp);
+        }
+      }
+    }
+  });
+
+  it("does not hand a sore back the same drill twice", () => {
+    const day = warmedDay("low_back", 8);
+    const trunk = day.session.tasks.find((task) => task.name === "Trunk and spine prep")!;
+    const added = day.session.tasks.filter((task) => task.id.startsWith("soreness-low_back"));
+    expect(added.length).toBeGreaterThan(0);
+    for (const task of added) {
+      // No prescribed movement may already be in the warm-up's list.
+      for (const movement of ["bird dog", "side plank", "dead bug", "cat-camel"]) {
+        const inWarmUp = new RegExp(movement, "i").test(trunk.prescription);
+        const inAdded = new RegExp(movement, "i").test(`${task.name} ${task.prescription}`);
+        expect(inWarmUp && inAdded, `${movement} appears in both`).toBe(false);
+      }
+    }
+  });
+
+  it("does not hand a sore groin the same drill twice", () => {
+    const day = warmedDay("hip_groin", 8);
+    const hip = day.session.tasks.find((task) => task.name === "Hip prep — rotation and glutes")!;
+    for (const task of day.session.tasks.filter((t) => t.id.startsWith("soreness-hip_groin"))) {
+      for (const movement of ["adductor squeeze", "copenhagen", "lateral band walk", "glute bridge"]) {
+        const inWarmUp = new RegExp(movement, "i").test(hip.prescription);
+        const inAdded = new RegExp(movement, "i").test(`${task.name} ${task.prescription}`);
+        expect(inWarmUp && inAdded, `${movement} appears in both`).toBe(false);
       }
     }
   });

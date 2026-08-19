@@ -486,3 +486,128 @@ describe("warm-up microdoses", () => {
     expect(twice.tasks.filter((t) => t.name === "Ankle stiffness pogos")).toHaveLength(1);
   });
 });
+
+/**
+ * Hip and trunk preparation.
+ *
+ * The warm-up prepared the shoulder, the forearm and the ankle and left the
+ * segment between them out: nothing asked the hip to produce rotation rather
+ * than be moved through it, nothing worked hip extension range, and nothing
+ * trained the pelvic control a pitcher stands on for the whole delivery.
+ */
+describe("hip and trunk warm-up", () => {
+  const prep = (name: string, id = name): SessionTask => ({
+    id: `w5-d0-${id}`, stage: 1, stageTitle: "Prepare",
+    stageDescription: "Raise temperature before mobility or throwing.",
+    name, prescription: "p", cue: "c",
+  });
+
+  const flow = () => [prep("Raise tissue temperature", "heat"), prep("Dynamic mobility flow", "mob")];
+
+  const warmUp = (day: number | null = 0) =>
+    applyBaselineProgramming(session(flow()), null, day).tasks.filter((t) => t.stageTitle === "Prepare");
+
+  it("adds hip and trunk work to every day that has a warm-up", () => {
+    for (const day of [0, 1, 2, 3, 4, 5]) {
+      const names = warmUp(day).map((t) => t.name);
+      expect(names, `day ${day}`).toContain("Hip prep — rotation and glutes");
+      expect(names, `day ${day}`).toContain("Trunk and spine prep");
+    }
+  });
+
+  it("adds nothing on a day with no warm-up at all", () => {
+    const sunday = applyBaselineProgramming(
+      session([{ ...prep("Complete training rest"), stage: 1, stageTitle: "Rest" }]),
+      null,
+      6
+    ).tasks.map((t) => t.name);
+    expect(sunday).not.toContain("Hip prep — rotation and glutes");
+    expect(sunday).not.toContain("Trunk and spine prep");
+  });
+
+  it("leaves the existing flow exactly as it was", () => {
+    // "I like what I have now" — the mobility flow is added to, never edited.
+    const names = warmUp().map((t) => t.name);
+    expect(names).toContain("Dynamic mobility flow");
+    expect(names).toContain("Raise tissue temperature");
+    const mobility = warmUp().find((t) => t.name === "Dynamic mobility flow");
+    expect(mobility?.prescription).toBe("p");
+  });
+
+  it("goes after the existing flow and before the throwing-specific work", () => {
+    // General to specific: range work while there is time to use it, elastic
+    // and forearm priming last where its effect is shortest-lived.
+    const names = warmUp().map((t) => t.name);
+    expect(names.indexOf("Hip prep — rotation and glutes")).toBeGreaterThan(
+      names.indexOf("Dynamic mobility flow")
+    );
+    expect(names.indexOf("Trunk and spine prep")).toBeGreaterThan(
+      names.indexOf("Hip prep — rotation and glutes")
+    );
+    expect(names.indexOf("Ankle stiffness pogos")).toBeGreaterThan(
+      names.indexOf("Trunk and spine prep")
+    );
+    expect(names.indexOf("Wrist and forearm prep")).toBe(names.length - 1);
+  });
+
+  it("names every movement and doses every one of them", () => {
+    // The standing rule: named movements with sets and reps, never "some
+    // mobility work".
+    for (const name of ["Hip prep — rotation and glutes", "Trunk and spine prep"]) {
+      const task = warmUp().find((t) => t.name === name)!;
+      expect(task.prescription, name).toMatch(/\d/);
+      // Every movement in the list carries its own number.
+      for (const movement of task.prescription.split("·")) {
+        expect(movement, `${name}: ${movement}`).toMatch(/\d/);
+      }
+      expect(String(task.cue).length, name).toBeGreaterThan(20);
+      expect(String(task.execution).length, name).toBeGreaterThan(50);
+      expect(task.stop, name).toBeTruthy();
+    }
+  });
+
+  it("covers the four things the flow was missing", () => {
+    const hip = warmUp().find((t) => t.name === "Hip prep — rotation and glutes")!;
+    // Hip extension range, active internal rotation, lateral hip, glute max.
+    expect(hip.prescription).toMatch(/hip flexor/i);
+    expect(hip.prescription).toMatch(/internal rotation/i);
+    expect(hip.prescription).toMatch(/lateral band walk/i);
+    expect(hip.prescription).toMatch(/glute bridge/i);
+  });
+
+  it("trains pelvic control with the test the evidence is built on", () => {
+    const trunk = warmUp().find((t) => t.name === "Trunk and spine prep")!;
+    expect(trunk.prescription).toMatch(/single-leg pelvic-control hold/i);
+    expect(trunk.evidence).toMatch(/Chaudhari 2014/);
+    expect(trunk.evidence).toMatch(/347/);
+  });
+
+  it("cites the hip work honestly, limitations included", () => {
+    const hip = warmUp().find((t) => t.name === "Hip prep — rotation and glutes")!;
+    expect(hip.evidence).toMatch(/Robb 2010/);
+    // A correlation in nineteen subjects is not a training study and the note
+    // has to say so rather than implying a velocity guarantee.
+    expect(hip.evidence).toMatch(/correlational/i);
+  });
+
+  it("does not repeat what the soreness protocol prescribes for a sore back", () => {
+    // Bird dog and the side plank belong to the lower-back prescription. In
+    // both places, a sore back would be given the same exercise twice.
+    const trunk = warmUp().find((t) => t.name === "Trunk and spine prep")!;
+    expect(trunk.prescription).not.toMatch(/bird dog/i);
+    expect(trunk.prescription).not.toMatch(/side plank/i);
+  });
+
+  it("does not load the adductors at end range, where a warm-up pulls a groin", () => {
+    const hip = warmUp().find((t) => t.name === "Hip prep — rotation and glutes")!;
+    expect(hip.prescription).not.toMatch(/cossack/i);
+  });
+
+  it("is idempotent", () => {
+    const once = applyBaselineProgramming(session(flow()), null, 0);
+    const twice = applyBaselineProgramming(once, null, 0);
+    for (const name of ["Hip prep — rotation and glutes", "Trunk and spine prep"]) {
+      expect(twice.tasks.filter((t) => t.name === name), name).toHaveLength(1);
+    }
+  });
+});
