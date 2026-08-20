@@ -2,6 +2,7 @@ import { useState } from "react";
 import { SessionTask } from "../../src/domain/programmeSessions";
 import { SkippedTask, UNSKIPPABLE_STAGE } from "../../src/domain/session";
 import { DaySetLog, LoggedSet, bestOneRepMax, isLoggable, prescribedSets } from "../../src/domain/setLog";
+import { splitPrescription } from "../../src/domain/prescription";
 
 /**
  * The day's work, grouped into collapsible stages — v60's `renderTasks`.
@@ -27,6 +28,33 @@ export interface TaskStagesProps {
   /** What was actually lifted today, keyed by task id. */
   setLog?: DaySetLog;
   onLogSets?: (task: SessionTask, sets: LoggedSet[]) => void;
+}
+
+/**
+ * The prescription, as a paragraph or as a list.
+ *
+ * A task holding several movements — most of the warm-up — arrived as one run
+ * of middot-separated text that wrapped to five lines, which cannot be read
+ * one movement at a time while you are doing it. Where the prescription really
+ * is a list, each movement gets its own row with the dose in a column beside
+ * it. Where it is one movement with parameters, it renders exactly as before:
+ * see `splitPrescription` for how the two are told apart, and why it refuses
+ * whenever it cannot tell.
+ */
+function Prescription({ text }: { text: string }) {
+  const movements = splitPrescription(text);
+  if (!movements) return <div className="task-prescription">{text}</div>;
+
+  return (
+    <ul className="task-movements">
+      {movements.map((movement) => (
+        <li key={`${movement.name}-${movement.dose ?? ""}`}>
+          <span className="movement-name">{movement.name}</span>
+          {movement.dose && <span className="movement-dose">{movement.dose}</span>}
+        </li>
+      ))}
+    </ul>
+  );
 }
 
 /**
@@ -241,7 +269,7 @@ export function TaskStages({
                         {task.name}
                         {skip && <span className="skip-badge">Skipped</span>}
                       </div>
-                      <div className="task-prescription">{task.prescription}</div>
+                      <Prescription text={task.prescription} />
                       <p className="task-cue">{task.cue}</p>
                       {onLogSets && isLoggable(task) && (
                         <SetLogger

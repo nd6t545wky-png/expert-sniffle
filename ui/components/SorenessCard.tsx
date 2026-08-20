@@ -120,6 +120,28 @@ export function SorenessCard({
   const stale = active.filter((entry) => entry.stale);
   const live = active.filter((entry) => !entry.stale);
 
+  /**
+   * The quiet state, which is most days.
+   *
+   * The full card sat above the session heading with the loudest button on the
+   * page, so on every day nothing hurt the athlete scrolled past an injury
+   * form to reach their training. With nothing reported, nothing to re-confirm
+   * and no referral standing, it collapses to a single line that still opens
+   * the form in one tap. Anything at all to say and the card returns in full.
+   */
+  const idle = !open && live.length === 0 && stale.length === 0 && !referral && changes.length === 0;
+
+  if (idle) {
+    return (
+      <div className="soreness-idle">
+        <span>Nothing reported sore.</span>
+        <button className="text-button" type="button" onClick={() => setOpen(true)}>
+          Something sore?
+        </button>
+      </div>
+    );
+  }
+
   return (
     <Card>
       <CardHead

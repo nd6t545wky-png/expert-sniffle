@@ -3,6 +3,7 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import { DailyPlan, DailyPlanProps } from "./DailyPlan";
 import { DayTabs, dayStatus } from "./DayTabs";
 import { TaskRow } from "./Page";
+import { TaskStages } from "./TaskStages";
 import { AnnualPlan } from "./AnnualPlan";
 import { Workload } from "./Workload";
 import { PlanState, ReadinessSubmission } from "../../src/domain/session";
@@ -555,5 +556,74 @@ describe("list rows keep the shape the stylesheet expects", () => {
     for (const row of document.querySelectorAll(".task")) {
       expect(row.children).toHaveLength(THREE);
     }
+  });
+});
+
+/**
+ * Prescriptions that hold several movements.
+ *
+ * They used to arrive as one middot-separated run wrapping to five lines,
+ * which cannot be read a movement at a time while you are doing it. The
+ * splitting rule lives in the domain and is swept there; these check the
+ * rendering — that a list becomes rows, and that a single movement with
+ * parameters is left exactly as it was.
+ */
+describe("TaskStages — multi-movement prescriptions", () => {
+  const task = (overrides: Partial<SessionTask> = {}): SessionTask => ({
+    id: "t1",
+    stage: 1,
+    stageTitle: "Prepare",
+    stageDescription: "Warm up.",
+    name: "Dynamic mobility flow",
+    prescription: "Ankle rock 8/side · 90/90 switch 6/side · open book 5/side",
+    cue: "Controlled range.",
+    ...overrides,
+  });
+
+  const renderStages = (one: SessionTask) =>
+    render(
+      <TaskStages
+        tasks={[one]}
+        completed={[]}
+        skipped={{}}
+        onToggle={() => {}}
+        onDetails={() => {}}
+        onSkip={() => {}}
+        onUndoSkip={() => {}}
+      />
+    );
+
+  it("renders each movement as its own row, with its dose", () => {
+    const { container } = renderStages(task());
+    const rows = [...container.querySelectorAll(".task-movements > li")];
+    expect(rows).toHaveLength(3);
+    expect(rows[1].querySelector(".movement-name")?.textContent).toBe("90/90 switch");
+    expect(rows[1].querySelector(".movement-dose")?.textContent).toBe("6/side");
+    // The paragraph form is gone for this task.
+    expect(container.querySelector(".task-prescription")).toBeNull();
+  });
+
+  it("leaves a single movement with parameters exactly as it was", () => {
+    const { container } = renderStages(
+      task({ name: "Ankle stiffness pogos", prescription: "2 × 10 · low amplitude · minimal ground contact" })
+    );
+    expect(container.querySelector(".task-movements")).toBeNull();
+    expect(container.querySelector(".task-prescription")?.textContent).toBe(
+      "2 × 10 · low amplitude · minimal ground contact"
+    );
+  });
+
+  it("loses no text when it splits", () => {
+    const prescription =
+      "Leg swings forward–back 10/side · leg swings lateral 10/side · A-skip 2 × 15 m · ankle dribble 2 × 15 m";
+    const { container } = renderStages(task({ prescription }));
+    const rebuilt = [...container.querySelectorAll(".task-movements > li")]
+      .map((row) =>
+        [row.querySelector(".movement-name")?.textContent, row.querySelector(".movement-dose")?.textContent]
+          .filter(Boolean)
+          .join(" ")
+      )
+      .join(" · ");
+    expect(rebuilt).toBe(prescription);
   });
 });

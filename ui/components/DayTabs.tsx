@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { IsoDate } from "../../src/domain/state";
 
 /**
@@ -46,8 +47,35 @@ export function DayTabs({
   today: IsoDate;
   onSelectDay: (day: number) => void;
 }) {
+  const strip = useRef<HTMLDivElement>(null);
+
+  /**
+   * Bring the selected day into view.
+   *
+   * The strip scrolls horizontally and always started at Monday, so on a
+   * Thursday the day you were actually looking at sat off-screen and the row
+   * read as the wrong week. Scrolls the element, not the page: `scrollIntoView`
+   * on the button would drag the whole document sideways and, on some browsers,
+   * vertically too.
+   */
+  useEffect(() => {
+    const container = strip.current;
+    const tab = container?.querySelector<HTMLElement>(`[data-day="${selectedDay}"]`);
+    if (!container || !tab) return;
+    const offset = Math.max(0, tab.offsetLeft - (container.clientWidth - tab.offsetWidth) / 2);
+    // `Element.scrollTo` is not everywhere — assigning `scrollLeft` is, and it
+    // still animates because the strip sets `scroll-behavior: smooth`. Falling
+    // back rather than assuming is the difference between a tab that does not
+    // centre and a plan page that does not render.
+    if (typeof container.scrollTo === "function") {
+      container.scrollTo({ left: offset, behavior: "smooth" });
+    } else {
+      container.scrollLeft = offset;
+    }
+  }, [selectedDay, tabs]);
+
   return (
-    <div className="day-tabs">
+    <div className="day-tabs" ref={strip}>
       {tabs.map((tab) => {
         const label = new Intl.DateTimeFormat("en-AU", {
           timeZone: "Australia/Brisbane",
@@ -58,6 +86,7 @@ export function DayTabs({
         return (
           <button
             key={tab.day}
+            data-day={tab.day}
             className={`day-tab ${selectedDay === tab.day ? "active" : ""} ${tab.status === "done" ? "done" : ""}`
               .replace(/\s+/g, " ")
               .trim()}

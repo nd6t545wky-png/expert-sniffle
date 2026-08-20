@@ -36,6 +36,16 @@ function report(overrides: Partial<SorenessReport> = {}): SorenessReport {
   };
 }
 
+/**
+ * Open the report form.
+ *
+ * With nothing sore the card is a single line, so every test that fills the
+ * form opens it first — the same tap the athlete makes.
+ */
+function openForm() {
+  fireEvent.click(screen.getByRole("button", { name: /something sore\?/i }));
+}
+
 function renderCard(props: Partial<React.ComponentProps<typeof SorenessCard>> = {}) {
   const saved: SorenessReport[] = [];
   const resolved: string[] = [];
@@ -54,7 +64,7 @@ function renderCard(props: Partial<React.ComponentProps<typeof SorenessCard>> = 
 describe("making a report", () => {
   it("takes four taps and a slider", () => {
     const { saved } = renderCard();
-    fireEvent.click(screen.getByRole("button", { name: /report something sore/i }));
+    openForm();
 
     fireEvent.click(screen.getByRole("button", { name: new RegExp(REGION_LABELS.elbow_medial, "i") }));
     fireEvent.change(screen.getByLabelText(/severity out of 10/i), { target: { value: "7" } });
@@ -76,14 +86,14 @@ describe("making a report", () => {
 
   it("will not save without a region, because the region is the prescription", () => {
     renderCard();
-    fireEvent.click(screen.getByRole("button", { name: /report something sore/i }));
+    openForm();
     const save = screen.getByRole("button", { name: /pick where it hurts/i });
     expect((save as HTMLButtonElement).disabled).toBe(true);
   });
 
   it("offers the pitcher's regions first and the rest behind one tap", () => {
     renderCard();
-    fireEvent.click(screen.getByRole("button", { name: /report something sore/i }));
+    openForm();
     expect(screen.queryByRole("button", { name: new RegExp(REGION_LABELS.knee, "i") })).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: /somewhere else/i }));
     expect(screen.getByRole("button", { name: new RegExp(REGION_LABELS.knee, "i") })).toBeTruthy();
@@ -91,7 +101,7 @@ describe("making a report", () => {
 
   it("keeps an optional note with the report", () => {
     const { saved } = renderCard();
-    fireEvent.click(screen.getByRole("button", { name: /report something sore/i }));
+    openForm();
     fireEvent.click(screen.getByRole("button", { name: new RegExp(REGION_LABELS.forearm, "i") }));
     fireEvent.change(screen.getByRole("textbox"), { target: { value: "Came on in the fourth" } });
     fireEvent.click(screen.getByRole("button", { name: /^save/i }));
@@ -169,8 +179,66 @@ describe("closing one out", () => {
     expect(resolved).toEqual(["elbow_medial"]);
   });
 
-  it("says plainly that it is not a diagnosis", () => {
+  it("says plainly that it is not a diagnosis, once it is open", () => {
     renderCard();
+    openForm();
     expect(screen.getByText(/does not diagnose anything/i)).toBeTruthy();
+  });
+});
+
+/**
+ * The quiet state.
+ *
+ * The full card sat above the session heading with the loudest button on the
+ * page, so on every day nothing hurt the athlete scrolled past an injury form
+ * to reach their training. It collapses — but only when there is genuinely
+ * nothing to say, which is the part worth pinning down.
+ */
+describe("when nothing is sore", () => {
+  it("collapses to one line that still opens the form", () => {
+    const { saved } = renderCard();
+    expect(screen.getByText(/nothing reported sore/i)).toBeTruthy();
+    // The heavy card is not rendered at all.
+    expect(screen.queryByText(/does not diagnose anything/i)).toBeNull();
+    expect(screen.queryByRole("button", { name: /report something sore/i })).toBeNull();
+
+    openForm();
+    expect(screen.getByText(/where\?/i)).toBeTruthy();
+    expect(saved).toHaveLength(0);
+  });
+
+  it("stays open once the form has been opened", () => {
+    renderCard();
+    openForm();
+    expect(screen.queryByText(/nothing reported sore/i)).toBeNull();
+  });
+
+  it("does not collapse while something is reported", () => {
+    renderCard({ active: activeReports([report()], TODAY) });
+    expect(screen.queryByText(/nothing reported sore/i)).toBeNull();
+    expect(screen.getByText(/rest this area today/i)).toBeTruthy();
+  });
+
+  it("does not collapse while a referral is standing", () => {
+    renderCard({ referral: "Needs examining." });
+    expect(screen.queryByText(/nothing reported sore/i)).toBeNull();
+    expect(screen.getByRole("alert")).toBeTruthy();
+  });
+
+  it("does not collapse while a stale report needs re-confirming", () => {
+    renderCard({ active: activeReports([report({ date: "2026-08-05" })], TODAY) });
+    expect(screen.queryByText(/nothing reported sore/i)).toBeNull();
+    // The prompt, not the button beside it — both say "still sore".
+    expect(screen.getByText(/is your inside of elbow still sore/i)).toBeTruthy();
+  });
+
+  it("does not collapse while the plan is showing changes", () => {
+    // A resolved report can leave changes on the day; hiding the explanation
+    // would leave the plan looking altered for no stated reason.
+    renderCard({
+      changes: [{ kind: "removed", region: "knee", text: "Broad jump is out — it loads the knee." }],
+    });
+    expect(screen.queryByText(/nothing reported sore/i)).toBeNull();
+    expect(screen.getByText(/what changed in today/i)).toBeTruthy();
   });
 });

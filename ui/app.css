@@ -1953,3 +1953,129 @@ body {
 .soreness-change.added {
   background: color-mix(in srgb, green 18%, var(--surface));
 }
+
+/* ===== Plan screen redlines, Aug 2026 =========================================
+   Six changes reviewed and agreed before building. Everything here overrides
+   styles.css from outside it — app.css loads second, so equal specificity wins
+   — and the original file is untouched. */
+
+/* --- 1. Prescriptions in ink, not alarm red -------------------------------
+   The team theme reassigns `--blue: #e52b21`, so every rule written against
+   "blue" turned red — including `.task-prescription`, which is set on all 21
+   tasks of a day. With everything red there was no colour left to mark the one
+   thing that genuinely needs attention. A set and rep count is content: it
+   carries its emphasis with weight, and the accent goes back to meaning
+   something. */
+.task-prescription {
+  /* Not full ink: the title has to stay the loudest line in the task. Red
+     used to do that separating work by being a different hue entirely, so
+     removing it means the hierarchy has to be rebuilt out of weight and a
+     step down in tone — title 700 on ink, prescription 600 a shade lighter,
+     cue 400 muted. */
+  color: color-mix(in srgb, var(--ink) 78%, var(--muted));
+  font-weight: 600;
+}
+
+/* Red still means red where it should: a stop rule, a held or capped task. */
+.task-prescription strong,
+.task .task-flag {
+  color: var(--team-primary);
+}
+
+/* --- 2. One movement per line ---------------------------------------------
+   A task holding several movements used to arrive as one middot-separated run
+   that wrapped to five lines. Only lists split — see `splitPrescription`. */
+.task-movements {
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+.task-movements > li {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+  align-items: baseline;
+  padding: 4px 0;
+  font-size: 12px;
+  line-height: 1.4;
+}
+.task-movements > li + li {
+  border-top: 1px solid var(--line);
+}
+.movement-name {
+  color: color-mix(in srgb, var(--ink) 78%, var(--muted));
+}
+/* Doses in a column, tabular, so the numbers can be scanned down the side
+   rather than hunted for inside a sentence. */
+.movement-dose {
+  color: var(--ink);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.task.completed .task-movements,
+.task.skipped .task-movements {
+  opacity: 0.55;
+}
+
+/* --- 3. The soreness card's quiet state -----------------------------------
+   Collapsed to one line until there is something to report or something has
+   been reported. The full card returns the moment either is true. */
+.soreness-idle {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 12px;
+}
+.soreness-idle .text-button {
+  margin-left: auto;
+  color: var(--team-primary);
+  font-weight: 700;
+}
+
+/* --- 4. Stage descriptions wrap instead of truncating ---------------------
+   `.stage-copy small` was `white-space: nowrap` with an ellipsis, which cut
+   "The arm should feel better at the fi…" to save about twelve pixels. Two
+   lines is the natural length of these sentences. */
+.stage-copy small {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow-wrap: anywhere;
+}
+
+/* --- 5. The dashboard hero gets its title back ----------------------------
+   The last `.hero-session` block in styles.css redefines the rule and drops
+   `color: #fff`, so the heading inherited near-black from `.card` and all but
+   vanished into the gradient. The paragraph and kicker survived only because
+   they set their own colour. */
+.hero-session {
+  color: #fff;
+}
+.hero-session h3 {
+  color: #fff;
+}
+
+/* --- 6. Day tabs ----------------------------------------------------------
+   The strip is scrolled to the selected day on mount; this only makes the
+   scrolling itself behave on a phone. */
+.day-tabs {
+  scroll-behavior: smooth;
+  scroll-padding-inline: 12px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .day-tabs {
+    scroll-behavior: auto;
+  }
+}
