@@ -7,6 +7,8 @@ import { DayTab, DayTabs } from "./DayTabs";
 import { TaskStages } from "./TaskStages";
 import { DaySetLog, LoggedSet } from "../../src/domain/setLog";
 import { SkipTaskModal, TaskDetailsModal } from "./TaskModals";
+import { VelocityBlock } from "./VelocityBlock";
+import { weekFromTasks } from "../../src/domain/velocity";
 import {
   PlanState,
   ReadinessSubmission,
@@ -117,6 +119,7 @@ export function DailyPlan({
   const done = completed[date] ?? [];
   const skips = skipped[date] ?? {};
   const progress = sessionProgress(tasks, done, skips);
+  const planWeek = weekFromTasks(tasks);
   const allResolved = progress.total > 0 && progress.resolved === progress.total;
 
   function handleToggle(task: SessionTask, complete: boolean) {
@@ -356,6 +359,12 @@ export function DailyPlan({
               <span>{sessionStress ? `${sessionStress} stress` : ""}</span>
             </div>
           </Card>
+
+          {/* Which week of which block this is, and what it caps throwing
+              intent at. Read off the tasks rather than passed in, for the same
+              reason the domain does it: a prop threaded through three
+              components is a prop that eventually stops being passed. */}
+          {planWeek !== null && <VelocityBlock week={planWeek} />}
 
           <Card>
             <div className="card-head">

@@ -1006,7 +1006,12 @@ export function App() {
   const profile = (state.profile ?? {}) as { winterTeam?: string; summerTeam?: string };
   const team = winter
     ? { name: profile.winterTeam || "Norths", logo: "/assets/norths-baseball-logo.jpg", alt: "Norths Baseball Club logo", theme: "theme-norths" }
-    : { name: profile.summerTeam || "Coomera Cubs", logo: "/assets/coomera-cubs-logo.png", alt: "Coomera Cubs Baseball Club logo", theme: "theme-cubs" };
+    // `theme-coomera`, not `theme-cubs`. The stylesheet has only ever defined
+    // the former — v60 built the class from the string "coomera" — so the
+    // rename in the rewrite meant that for every summer week, more than half
+    // the year, the shell carried a class nothing matched: no purple, and
+    // every `var(--team-primary)` in the app resolving to nothing at all.
+    : { name: profile.summerTeam || "Coomera Cubs", logo: "/assets/coomera-cubs-logo.png", alt: "Coomera Cubs Baseball Club logo", theme: "theme-coomera" };
 
   return (
     <Shell

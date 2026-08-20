@@ -2079,3 +2079,98 @@ body {
     scroll-behavior: auto;
   }
 }
+
+/* `--team-on-primary` is read by styles.css in two places and defined in
+   none, so text meant to sit on the team colour inherited the page's ink
+   instead — dark on dark red, dark on dark purple. Defined here for both
+   clubs, which fixes those rules as well as the band strip below. Both team
+   colours stay dark in dark mode (only the soft tints are re-themed), so
+   white is correct in both appearances. */
+.app-shell.theme-norths,
+.app-shell.theme-coomera {
+  --team-on-primary: #fff;
+}
+
+/* ===== Velocity block, Aug 2026 ==========================================
+   The week's place in the velocity plan, in the plan sidebar. Four segments,
+   one per Driveline intent band, with everything up to the week's ceiling
+   filled — so the ceiling is legible without reading a word of it. */
+.velocity-bands {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+/* Empty by default. The bands above the ceiling have to read as *not this
+   week*, so they are dashed and unfilled rather than merely a different shade
+   — on the purple summer theme a 13%-alpha tint and a grey surface are close
+   enough in weight that the strip read backwards. */
+.velocity-band {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 4px;
+  border: 1px dashed var(--line);
+  border-radius: calc(var(--radius) / 2);
+  background: transparent;
+  min-width: 0;
+  text-align: center;
+}
+/* "recovery" is the longest label and the sidebar is the narrowest column in
+   the app, so the names are held on one line and clipped rather than allowed
+   to wrap — a band reading "recove / ry" is worse than one reading "recover".
+   In practice nothing clips: 10px fits all four. */
+.velocity-band span,
+.velocity-band small {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.velocity-band span {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.3;
+  color: var(--muted);
+}
+.velocity-band small {
+  font-size: 10px;
+  color: var(--muted);
+}
+.velocity-band.reached {
+  border-style: solid;
+  background: var(--team-primary-soft);
+  border-color: color-mix(in srgb, var(--team-primary) 35%, var(--line));
+}
+.velocity-band.reached span {
+  color: var(--ink);
+}
+.velocity-band.reached small {
+  color: color-mix(in srgb, var(--ink) 70%, var(--muted));
+}
+/* The ceiling itself, which is the one number that matters — solid, so it is
+   found before anything on the card is read. */
+.velocity-band.ceiling {
+  background: var(--team-primary);
+  border-color: var(--team-primary);
+}
+.velocity-band.ceiling span,
+.velocity-band.ceiling small {
+  color: var(--team-on-primary, #fff);
+}
+.velocity-note {
+  margin: 12px 0 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+.velocity-verdict {
+  margin: 8px 0 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: color-mix(in srgb, var(--ink) 80%, var(--muted));
+}

@@ -7,6 +7,7 @@ import {
   prescriptionKind,
   reduceSetsAndReps,
 } from "./reducedVolume";
+import { applyVelocityPolicy, weekFromTasks } from "./velocity";
 
 /**
  * Programme adjustments driven by the athlete's own testing, and by the
@@ -30,6 +31,22 @@ const [BOX_MIN, BOX_MAX] = BASELINE_ANCHORS.depthJumpBoxCm;
 const [PCT_MIN, PCT_MAX] = BASELINE_ANCHORS.strengthPercentRange;
 
 const GYM_STAGE_TITLES = ["Whole-Body Force", "Whole-Body Power"];
+
+/**
+ * Add a sentence to a field, unless it is already there.
+ *
+ * Every annotation in this file appends to text the programme wrote, and this
+ * whole function is applied to whatever session it is handed — including, in
+ * the app, one it has already touched. Appending unconditionally meant a
+ * second pass produced "…time to peak force. …time to peak force." The task
+ * counts were guarded from the start; the prose was not, because nothing
+ * compared it.
+ */
+function appendOnce(existing: unknown, addition: string): string {
+  const text = typeof existing === "string" ? existing : "";
+  if (text.includes(addition)) return text;
+  return `${text} ${addition}`.trim();
+}
 
 function round(value: number, to = 2.5) {
   return Math.round(value / to) * to;
@@ -228,14 +245,31 @@ function soleusTask(prefix: string, stageTitle: string, stageDescription: string
  */
 const BAR_SPEED_LIFTS = ["deadlift", "squat", "bench press", "push press"];
 
+/**
+ * Lifts that match the list above but must not carry the cue.
+ *
+ * The speed squat is already prescribed as maximal intent at a fixed light
+ * load, so the cue would repeat its own prescription. The microdoses are the
+ * opposite case and the more important one: Thursday's RDL is deliberately
+ * sub-maximal, twenty-four hours from a game block, and telling the athlete to
+ * drive the bar maximally there is the wrong instruction on the wrong day.
+ */
+const NO_BAR_SPEED_INTENT = [/speed squat/i, /microdose/i];
+
 function withBarSpeedIntent(task: SessionTask): SessionTask {
   const name = task.name.toLowerCase();
   if (!BAR_SPEED_LIFTS.some((lift) => name.includes(lift))) return task;
-  if (task.name.toLowerCase().includes("speed squat")) return task;
+  if (NO_BAR_SPEED_INTENT.some((pattern) => pattern.test(task.name))) return task;
   return {
     ...task,
-    cue: `${task.cue} Move the bar with maximal intent on every concentric, even at heavy loads — testing flagged a slow 354 ms time to peak force.`,
-    execution: `${task.execution ?? ""} Intent matters as much as the load here: the bar should be driven, not lifted.`.trim(),
+    cue: appendOnce(
+      task.cue,
+      "Move the bar with maximal intent on every concentric, even at heavy loads — testing flagged a slow 354 ms time to peak force."
+    ),
+    execution: appendOnce(
+      task.execution,
+      "Intent matters as much as the load here: the bar should be driven, not lifted."
+    ),
   };
 }
 
@@ -264,7 +298,7 @@ function withPlyoEvidence(task: SessionTask): SessionTask {
   const extra = light
     ? " Light balls produce the highest arm speeds and are where the reported injury risk concentrates."
     : "";
-  return { ...task, stop: `${task.stop ?? ""} ${PLYO_EVIDENCE_NOTE}${extra}`.trim() };
+  return { ...task, stop: appendOnce(task.stop, `${PLYO_EVIDENCE_NOTE}${extra}`) };
 }
 
 /**
@@ -285,6 +319,12 @@ function withPlyoEvidence(task: SessionTask): SessionTask {
 function withExplicitReducedDose(level: ReducedLevel | null) {
   return (task: SessionTask): SessionTask => {
     if (!level || !task.adapted) return task;
+    // A second pass would read its own output back as the "original" — the
+    // note it leaves behind is itself of the form the parser accepts — and
+    // reduce an already-reduced dose again.
+    if (typeof task.adaptationNote === "string" && task.adaptationNote.includes("· Reduced to ")) {
+      return task;
+    }
     const original = originalPrescription(task.adaptationNote);
     if (!original) return task;
 
@@ -434,7 +474,7 @@ function withSupersets(day: number | null) {
       rest:
         position < partners
           ? "No rest — go straight into the next movement in this superset."
-          : `${task.rest ?? ""} Rest here, then return to ${rule.group}1.`.trim(),
+          : appendOnce(task.rest, `Rest here, then return to ${rule.group}1.`),
     };
   };
 }
@@ -703,7 +743,7 @@ export function applyBaselineProgramming(
   // and no reps. There was never a second thing to do: the hinge below is the
   // microdose, and it now says so itself.
   const synthesised = gymIndex === -1;
-  if (synthesised && day !== DAY_THURSDAY) return { ...session, tasks };
+  if (synthesised && day !== DAY_THURSDAY) return withVelocityPolicy(session, tasks, level);
 
   const stageTitle = synthesised ? "Whole-Body Force" : tasks[gymIndex].stageTitle;
   const stageDescription = synthesised
@@ -725,7 +765,10 @@ export function applyBaselineProgramming(
     tasks[primerIndex] = {
       ...primer,
       prescription: primer.prescription.replace(/·?\s*broad jump[^·]*/i, "").replace(/·\s*$/, "").trim(),
-      cue: `${primer.cue} Broad jumps were replaced by depth jumps below: testing flagged fast stretch-shortening, not horizontal power, as the limiter.`,
+      cue: appendOnce(
+        primer.cue,
+        "Broad jumps were replaced by depth jumps below: testing flagged fast stretch-shortening, not horizontal power, as the limiter."
+      ),
     };
   }
 
@@ -746,7 +789,14 @@ export function applyBaselineProgramming(
     // Heavy strength follows the velocity work: light-and-fast first, then
     // load. The reverse order leaves the fast work fatigued.
     ...(onMonday ? [backSquatTask(prefix, stageTitle, stageDescription)] : []),
-  ].filter((addition) => !tasks.some((task) => task.id === addition.id));
+  ]
+    // The report asked for bar-speed intent on the primary strength lifts, and
+    // the back squat is the primary strength lift it asked to add. Annotating
+    // it here rather than leaving it out is also what makes a second pass
+    // agree with the first: on that pass the squat is an ordinary task in the
+    // input and would pick the cue up anyway.
+    .map(withBarSpeedIntent)
+    .filter((addition) => !tasks.some((task) => task.id === addition.id));
 
   // The hinge, then the calf. Both are microdoses and neither competes with
   // the other: one is a posterior-chain lift, the other is local ankle work.
@@ -774,5 +824,26 @@ export function applyBaselineProgramming(
   const anchor = tasks.findIndex((task) => /primer/i.test(task.name) || /broad jump/i.test(task.name));
   tasks.splice(anchor === -1 ? stageAt : anchor + 1, 0, ...early);
 
-  return { ...session, tasks };
+  return withVelocityPolicy(session, tasks, level);
+}
+
+/**
+ * The week's velocity policy, applied last on every exit from this function.
+ *
+ * Last because every intent change it makes is a `min` against what is already
+ * written, so it cannot be undone by a later rewrite and running it twice
+ * changes nothing. And on *every* exit rather than at the call site, because
+ * there are two returns here and a cap that applies on one of them is not a
+ * cap.
+ *
+ * The week comes off the task ids rather than from an argument. There are
+ * eighty-odd call sites for this function across the app and its tests; a
+ * fourth parameter would have been forgotten by most of them, and the failure
+ * would have been silent.
+ */
+function withVelocityPolicy(session: Session, tasks: SessionTask[], level: ReducedLevel | null): Session {
+  return applyVelocityPolicy(
+    { ...session, tasks },
+    { week: weekFromTasks(tasks), reduced: level !== null }
+  );
 }
