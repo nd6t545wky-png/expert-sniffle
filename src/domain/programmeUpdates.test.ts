@@ -237,8 +237,14 @@ describe("the report's strength window is actually used", () => {
       session([task({ id: "w5-d0-warm", name: "Low-volume power primer" })])
     );
     const squat = result.tasks.find((t) => t.name === "Back squat");
-    // 77–87% of the tested 145 kg, rounded to 2.5 kg.
-    expect(squat?.prescription).toBe("4 × 5 @ 112.5–125 kg · 77–87% of tested max");
+    // The dose is now the week's own — these ids are week 5, "Strength-speed
+    // entry" — but the band it lands in is still the report's, which is what
+    // this test has always been about. 80% of the tested 145 kg is 116, to
+    // 115 kg on 2.5 kg plates.
+    expect(squat?.prescription).toBe("3 × 4 @ 115 kg · 80% of tested max");
+    const percent = Number(String(squat?.prescription).match(/(\d+)% of tested/)![1]);
+    expect(percent).toBeGreaterThanOrEqual(77);
+    expect(percent).toBeLessThanOrEqual(87);
   });
 
   it("loads it heavier than the speed squat, which is deliberately light", () => {
@@ -246,7 +252,11 @@ describe("the report's strength window is actually used", () => {
     const speed = result.tasks.find((t) => /Speed squat/.test(t.name));
     const heavy = result.tasks.find((t) => t.name === "Back squat");
     expect(speed?.prescription).toContain("94 kg");
-    expect(heavy?.prescription).toContain("112.5–125 kg");
+    // Compared as numbers rather than as a fixed string: the heavy squat's
+    // load moves week to week now, and it must outweigh the speed squat in
+    // every one of them.
+    const kg = Number(String(heavy?.prescription).match(/@ ([\d.]+) kg/)![1]);
+    expect(kg).toBeGreaterThan(94);
   });
 
   it("puts the heavy squat after the fast work, never before it", () => {

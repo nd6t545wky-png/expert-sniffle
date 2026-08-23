@@ -8,6 +8,8 @@ import {
   reduceSetsAndReps,
 } from "./reducedVolume";
 import { applyVelocityPolicy, weekFromTasks } from "./velocity";
+import { SQUAT_MIN_REPS, WEEK_SPECS, isEasyWeek, squatDose } from "./strengthProgression";
+import { weekPlan } from "./programmeSessions";
 
 /**
  * Programme adjustments driven by the athlete's own testing, and by the
@@ -125,21 +127,63 @@ function velocitySquatTask(prefix: string, stageTitle: string, stageDescription:
  * decision, not one this file should make silently; it is flagged rather than
  * resolved by dropping something on its own initiative.
  */
-function backSquatTask(prefix: string, stageTitle: string, stageDescription: string): SessionTask {
+function backSquatTask(
+  prefix: string,
+  stageTitle: string,
+  stageDescription: string,
+  week: number | null = null,
+  focus: string | null = null
+): SessionTask {
   const window = strengthWindowKg();
+  // The week's own dose, from the programme's fifty-two-week block table. Null
+  // only where the session carries no readable week — then the original fixed
+  // window stands, because a guessed week would be worse than a static one.
+  const dose = squatDose(week);
+  const easy = isEasyWeek(focus);
+
+  if (!dose) {
+    return {
+      id: `${prefix}-back-squat`,
+      stage: 4,
+      stageTitle,
+      stageDescription,
+      name: "Back squat",
+      prescription: `4 × 5 @ ${window.low}–${window.high} kg · ${PCT_MIN}–${PCT_MAX}% of tested max`,
+      cue: "Drive the bar with intent on every rep. Depth consistent, brace before the descent.",
+      setup: `From a rack with safeties. ${window.low}–${window.high} kg is ${PCT_MIN}–${PCT_MAX}% of the tested ${BASELINE_ANCHORS.backSquat1RmKg} kg max — start at the bottom of the window and progress across the block.`,
+      execution:
+        "Controlled down, fast up. Stop the set if bar speed drops sharply or depth changes, rather than grinding a rep out.",
+      rest: "3 minutes between work sets.",
+      stop: "End the set for loss of spinal position or knee pain, or if bar speed collapses.",
+    };
+  }
+
+  const character = easy ? `${dose.character} block · deload week` : `${dose.character} week`;
+
   return {
     id: `${prefix}-back-squat`,
     stage: 4,
     stageTitle,
     stageDescription,
     name: "Back squat",
-    prescription: `4 × 5 @ ${window.low}–${window.high} kg · ${PCT_MIN}–${PCT_MAX}% of tested max`,
-    cue: "Drive the bar with intent on every rep. Depth consistent, brace before the descent.",
-    setup: `From a rack with safeties. ${window.low}–${window.high} kg is ${PCT_MIN}–${PCT_MAX}% of the tested ${BASELINE_ANCHORS.backSquat1RmKg} kg max — start at the bottom of the window and progress across the block.`,
+    prescription: `${dose.sets} × ${dose.reps} @ ${dose.kg} kg · ${dose.percent}% of tested max`,
+    // The bar-speed annotation is appended to every squat cue, so the deload
+    // wording has to agree with it rather than fight it. "Take it easy" beside
+    // "drive the bar maximally" reads as a contradiction; the honest version is
+    // that a deload is where intent matters most, because the load is off.
+    cue: easy
+      ? `${character} — the load is deliberately light. Every rep still moves fast; end the set the moment one does not. A deload is for quality, not for grinding the volume back.`
+      : `${character}. Drive the bar with intent on every rep. Depth consistent, brace before the descent.`,
+    setup: `From a rack with safeties. ${dose.kg} kg is ${dose.percent}% of the tested ${BASELINE_ANCHORS.backSquat1RmKg} kg max. The sets, reps and percentage all change week to week — check them rather than repeating last week's session.`,
     execution:
       "Controlled down, fast up. Stop the set if bar speed drops sharply or depth changes, rather than grinding a rep out.",
-    rest: "3 minutes between work sets.",
+    rest: dose.percent >= 85 ? "3–4 minutes between work sets." : "3 minutes between work sets.",
     stop: "End the set for loss of spinal position or knee pain, or if bar speed collapses.",
+    evidence: `Sets, reps and relative intensity come from the programme's own fifty-two-week block table — week ${week} is ${dose.sets} × ${dose.reps} at ${dose.percent}%. That table was written for the trap bar deadlift, which came off Monday when this squat went in, so its periodisation was going unread and every Monday of the block prescribed identical work.${
+      dose.rebalanced
+        ? ` The table asks for ${WEEK_SPECS[week!][0]} × ${WEEK_SPECS[week!][1]} here; the reps are raised to the ForceDecks report's floor of ${SQUAT_MIN_REPS} for the squat and the sets cut to ${dose.sets} so the week's total reps are unchanged.`
+        : ""
+    } The percentage is carried across as relative intensity — which weeks are heavy and by how much — not as a claim that the two lifts share a max. Across the winter block that lands the squat at 79–86% of tested, inside the report's ${PCT_MIN}–${PCT_MAX}% window.`,
   };
 }
 
@@ -731,6 +775,11 @@ export function applyBaselineProgramming(
     tasks.splice(flowIndex === -1 ? prepEnd + 1 : flowIndex + 1, 0, ...regional);
   }
 
+  // Read off the task ids, like the velocity policy: there are eighty-odd call
+  // sites for this function and a fourth parameter would have been forgotten
+  // by most of them.
+  const week = weekFromTasks(tasks);
+
   const gymIndex = tasks.findIndex((task) => GYM_STAGE_TITLES.includes(task.stageTitle));
 
   // Thursday carries no gym stage at all, which is exactly why it was chosen
@@ -788,7 +837,7 @@ export function applyBaselineProgramming(
     ...(onWednesday ? [velocitySquatTask(prefix, stageTitle, stageDescription)] : []),
     // Heavy strength follows the velocity work: light-and-fast first, then
     // load. The reverse order leaves the fast work fatigued.
-    ...(onMonday ? [backSquatTask(prefix, stageTitle, stageDescription)] : []),
+    ...(onMonday ? [backSquatTask(prefix, stageTitle, stageDescription, week, weekFocus(week))] : []),
   ]
     // The report asked for bar-speed intent on the primary strength lifts, and
     // the back squat is the primary strength lift it asked to add. Annotating
@@ -841,6 +890,22 @@ export function applyBaselineProgramming(
  * fourth parameter would have been forgotten by most of them, and the failure
  * would have been silent.
  */
+/**
+ * What the week's own plan calls this week — "Force peak", "Deload and assess".
+ *
+ * Only the deload/taper/review wording is read from it, and only to change how
+ * the squat is *described*: the numbers come from the block table either way,
+ * so a week plan that cannot be built costs a sentence, not a prescription.
+ */
+function weekFocus(week: number | null): string | null {
+  if (week === null) return null;
+  try {
+    return String(weekPlan(week).focus ?? "") || null;
+  } catch {
+    return null;
+  }
+}
+
 function withVelocityPolicy(session: Session, tasks: SessionTask[], level: ReducedLevel | null): Session {
   return applyVelocityPolicy(
     { ...session, tasks },
