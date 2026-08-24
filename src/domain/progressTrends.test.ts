@@ -10,6 +10,26 @@ import {
 import { dateForWeekDay, weekPlan } from "./programmeSessions";
 
 describe("taskNamesForDates", () => {
+  it("carries an overlay-added lift all the way onto a chart", () => {
+    // The naming fix only matters if it reaches the other end. Three Mondays
+    // of back squat produce a series; before the fix the ids resolved to no
+    // name and `liftProgress` dropped every one of them on the floor.
+    const logs: Record<string, Record<string, { reps: number; kg: number }[]>> = {};
+    for (const week of [5, 6, 7]) {
+      logs[dateForWeekDay(weekPlan(week), 0)] = {
+        [`w${week}-d0-back-squat`]: [{ reps: 5, kg: 110 + week }],
+      };
+      logs[dateForWeekDay(weekPlan(week), 3)] = {
+        [`w${week}-d3-rdl`]: [{ reps: 6, kg: 80 + week }],
+      };
+    }
+    const series = liftProgress(logs, taskNamesForDates(Object.keys(logs)));
+    const names = series.map((entry) => entry.name);
+    expect(names).toContain("Back squat");
+    expect(names.some((name) => /Romanian deadlift/.test(name))).toBe(true);
+    expect(series.find((entry) => entry.name === "Back squat")!.points).toHaveLength(3);
+  });
+
   it("names the lifts the overlay adds, not just the extracted ones", () => {
     // The back squat, the depth jump, the RDL and the calf raise exist only
     // after `applyBaselineProgramming` runs. Naming from the raw session left
