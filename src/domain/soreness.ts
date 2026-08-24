@@ -827,7 +827,6 @@ export const REGION_PLAYBOOK: Record<BodyRegion, RegionPlaybook> = {
     avoid: [
       /Trap bar deadlift/i,
       /Romanian deadlift/i,
-      /Broad jump/i,
       /trap bar jump/i,
       /Push press/i,
       /Back squat/i,
@@ -882,7 +881,6 @@ export const REGION_PLAYBOOK: Record<BodyRegion, RegionPlaybook> = {
       /Sprint/i,
       /Acceleration quality/i,
       /Rotational med-ball/i,
-      /Broad jump/i,
       /Romanian deadlift/i,
       /Depth jump/i,
     ],
@@ -921,7 +919,6 @@ export const REGION_PLAYBOOK: Record<BodyRegion, RegionPlaybook> = {
     avoid: [
       /Pogo/i,
       /vertical jump/i,
-      /Broad jump/i,
       /trap bar jump/i,
       /Sprint/i,
       /Acceleration quality/i,
@@ -962,7 +959,6 @@ export const REGION_PLAYBOOK: Record<BodyRegion, RegionPlaybook> = {
     avoid: [
       /Pogo/i,
       /vertical jump/i,
-      /Broad jump/i,
       /Sprint/i,
       /Acceleration quality/i,
       /trap bar jump/i,

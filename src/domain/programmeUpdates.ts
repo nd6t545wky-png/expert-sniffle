@@ -7,7 +7,7 @@ import {
   prescriptionKind,
   reduceSetsAndReps,
 } from "./reducedVolume";
-import { applyVelocityPolicy, weekFromTasks } from "./velocity";
+import { applyVelocityPolicy, velocityPolicy, weekFromTasks } from "./velocity";
 import { SQUAT_MIN_REPS, WEEK_SPECS, isEasyWeek, squatDose } from "./strengthProgression";
 import { weekPlan } from "./programmeSessions";
 
@@ -32,7 +32,89 @@ import { weekPlan } from "./programmeSessions";
 const [BOX_MIN, BOX_MAX] = BASELINE_ANCHORS.depthJumpBoxCm;
 const [PCT_MIN, PCT_MAX] = BASELINE_ANCHORS.strengthPercentRange;
 
-const GYM_STAGE_TITLES = ["Whole-Body Force", "Whole-Body Power"];
+/**
+ * The stages this file treats as "the lift".
+ *
+ * "Whole-Body Gym" was missing, and it is the summer competition block's only
+ * gym stage — so on all nineteen GBL weeks `gymIndex` came back −1, the
+ * function returned early, and none of the testing-driven work existed at all:
+ * no depth jump, no speed squat, no back squat, and the broad jump the report
+ * asked to replace survived untouched. Over a third of the year silently
+ * opted out. `recoveryProtocol.ts` has always known the name; only this file
+ * did not.
+ */
+const GYM_STAGE_TITLES = ["Whole-Body Force", "Whole-Body Power", "Whole-Body Gym"];
+
+/**
+ * The broad jump comes out wherever it appears.
+ *
+ * The report is specific: drop-jump RSI 0.96 with a 0.348 s ground contact
+ * against a sub-0.25 s target, so the limiter is the *fast* stretch-shortening
+ * cycle. A broad jump is a long-contact horizontal jump — it trains the slow
+ * one, which this athlete is already better at.
+ *
+ * That swap was only ever applied to a task whose name contained "primer",
+ * which is Monday's. The same jump also sits inside Wednesday's "Broad jump +
+ * trap bar jump" and the summer block's "Med-ball shot put + broad jump", and
+ * both went straight through. Matching on the movement rather than on the
+ * task's name is the difference between a rule and a coincidence.
+ *
+ * Returns null where the task was nothing but a broad jump — there is nothing
+ * left to tick.
+ */
+function withoutBroadJump(task: SessionTask): SessionTask | null {
+  if (!/broad jump/i.test(`${task.name} ${task.prescription}`)) return task;
+
+  const prescription = task.prescription
+    .split("·")
+    .map((part) => part.trim())
+    .filter((part) => part && !/broad jump/i.test(part))
+    .join(" · ");
+
+  // Compound names — "Broad jump + trap bar jump" — lose the half that went.
+  const remaining = task.name
+    .split(/\s*\+\s*/)
+    .filter((part) => !/broad jump/i.test(part));
+  const joined = remaining.join(" + ").trim();
+  const name = joined ? joined.charAt(0).toUpperCase() + joined.slice(1) : "";
+
+  if (!prescription || !name) return null;
+
+  return {
+    ...task,
+    name,
+    prescription,
+    cue: appendOnce(
+      task.cue,
+      "Broad jumps were replaced by depth jumps: testing flagged fast stretch-shortening, not horizontal power, as the limiter."
+    ),
+  };
+}
+
+/**
+ * A prescription should not begin by repeating the task's own title.
+ *
+ * The plan renders the name in bold with the dose directly beneath it, so
+ * "Trap bar deadlift / Trap bar deadlift 3 × 5 @ RPE 6" says it twice and
+ * buries the numbers — which are the only part being read mid-session. Two
+ * transition Wednesdays arrived that way from the week plan, whose `mondayLift`
+ * string names the lift because it was written to stand alone.
+ *
+ * Splitting a compound task produces the same shape: drop the broad jump from
+ * "Broad jump 2 × 2 · trap bar jump 3 × 3 @ 30 kg" and the survivor is left
+ * introducing itself in lower case. Same rule, so it runs over everything
+ * rather than living inside the one caller that noticed.
+ */
+function withoutSelfReference(task: SessionTask): SessionTask {
+  const name = String(task.name);
+  const prescription = String(task.prescription);
+  if (!name || !prescription.toLowerCase().startsWith(name.toLowerCase())) return task;
+
+  const trimmed = prescription.slice(name.length).replace(/^[\s·—-]+/, "").trim();
+  // Nothing left means the prescription was only the name, and a task with no
+  // dose is worse than one that says its name twice.
+  return trimmed ? { ...task, prescription: trimmed } : task;
+}
 
 /**
  * Add a sentence to a field, unless it is already there.
@@ -70,14 +152,24 @@ export function strengthWindowKg(oneRepMaxKg: number = BASELINE_ANCHORS.backSqua
  * not the fast one the report flagged. This replaces it and keeps the
  * med-ball throw, so the primer stays a primer.
  */
-function depthJumpTask(prefix: string, stageTitle: string, stageDescription: string): SessionTask {
+function depthJumpTask(
+  prefix: string,
+  stageTitle: string,
+  stageDescription: string,
+  /**
+   * Three sets normally, two in a week with two games in it. The dose is not
+   * the interesting part of a depth jump — the contact time is — so the set
+   * that gets cut in season is the one most likely to be the slow one anyway.
+   */
+  sets = 3
+): SessionTask {
   return {
     id: `${prefix}-depth-jump`,
     stage: 4,
     stageTitle,
     stageDescription,
     name: `Depth jump — ${BOX_MIN}–${BOX_MAX} cm box`,
-    prescription: "3 × 3 · full recovery · contact under 0.25 s",
+    prescription: `${sets} × 3 · full recovery · contact under 0.25 s`,
     cue: "Minimise ground contact. Think stiff and quick off the floor, not high — height without a fast contact is the wrong adaptation.",
     setup: `Use a ${BOX_MIN}–${BOX_MAX} cm box on a non-slip surface with a clear landing area. Low box height is deliberate: the aim is contact time, not drop height.`,
     execution:
@@ -276,6 +368,43 @@ function soleusTask(prefix: string, stageTitle: string, stageDescription: string
     stop: "Stop for Achilles pain or for calf cramping that does not settle between sets. Calf soreness for a day or two is expected for the first fortnight and is not a reason to drop it.",
     evidence:
       "From your own baseline report rather than from a trial: soleus carnosine at Z −1.51, the lowest value on the scan, with drop-jump ground contact at 0.348 s against a sub-0.25 s target. The daily pogos prime that tissue; nothing in the 52-week programme loaded it. The sets and reps are conventional strength programming for a slow-twitch postural muscle — moderate reps, slow eccentric, loaded stretch — not a dose taken from a particular study. Seated rather than standing is anatomy: gastrocnemius crosses the knee, so bending it leaves the soleus to work.",
+  };
+}
+
+/**
+ * The summer block's primary lift, which never said how many reps to do.
+ *
+ * On a GBL Wednesday the trap bar is prescribed `Wednesday full body 2–3 sets
+ * @ RPE 6` — the week plan's whole-session summary, handed to one exercise as
+ * if it were a dose. It names sets and an effort and no rep count, on the only
+ * lift of a two-game week.
+ *
+ * The numbers come from the same fifty-two-week block table that now drives
+ * Monday's squat, so the summer weeks periodise for the first time as well.
+ * The RPE is kept rather than converted to a percentage: the programme means
+ * this to be an in-season maintenance lift and RPE is the right anchor for one.
+ */
+const RPE = /RPE\s*\d+(?:\s*[–-]\s*\d+)?/i;
+
+function withTrapBarDose(week: number | null) {
+  return (task: SessionTask): SessionTask => {
+    if (!/^Trap bar deadlift$/.test(task.name)) return task;
+    // Only where the programme left it unstated. A prescription that already
+    // carries sets and reps is the programme's own and stays.
+    if (/\d+\s*×\s*\d+/.test(task.prescription)) return task;
+    const spec = week === null ? null : WEEK_SPECS[week];
+    if (!spec) return task;
+
+    const effort = task.prescription.match(RPE)?.[0] ?? "RPE 6–7";
+    return {
+      ...task,
+      prescription: `${spec[0]} × ${spec[1]} @ ${effort}`,
+      cue: appendOnce(
+        task.cue,
+        "Sets and reps come from the programme's own block table for this week; the effort cap is the programme's."
+      ),
+      evidence: `The week plan prescribed this as "${task.prescription}" — the summary for the whole Wednesday session, with no rep count on it. Week ${week} of the block table is ${spec[0]} × ${spec[1]} at ${spec[2]}% relative intensity; the sets and reps are taken from there and the ${effort} cap kept, because in season this is a maintenance lift rather than a percentage-driven one.`,
+    };
   };
 }
 
@@ -728,9 +857,18 @@ export function applyBaselineProgramming(
   level: ReducedLevel | null = null,
   day: number | null = null
 ): Session {
+  // Read off the task ids, like the velocity policy: there are eighty-odd call
+  // sites for this function and a fourth parameter would have been forgotten
+  // by most of them.
+  const week = weekFromTasks(session.tasks);
+
   const tasks = session.tasks
     .filter((task) => !isRemovedImplement(task))
     .filter((task) => !isDisplacedByBackSquat(task, day))
+    .map(withoutBroadJump)
+    .filter((task): task is SessionTask => task !== null)
+    .map(withTrapBarDose(week))
+    .map(withoutSelfReference)
     .map(withBarSpeedIntent)
     .map(withPlyoEvidence)
     .map(withSupersets(day))
@@ -775,11 +913,6 @@ export function applyBaselineProgramming(
     tasks.splice(flowIndex === -1 ? prepEnd + 1 : flowIndex + 1, 0, ...regional);
   }
 
-  // Read off the task ids, like the velocity policy: there are eighty-odd call
-  // sites for this function and a fourth parameter would have been forgotten
-  // by most of them.
-  const week = weekFromTasks(tasks);
-
   const gymIndex = tasks.findIndex((task) => GYM_STAGE_TITLES.includes(task.stageTitle));
 
   // Thursday carries no gym stage at all, which is exactly why it was chosen
@@ -794,6 +927,22 @@ export function applyBaselineProgramming(
   const synthesised = gymIndex === -1;
   if (synthesised && day !== DAY_THURSDAY) return withVelocityPolicy(session, tasks, level);
 
+  /**
+   * The stage *number* the additions join, which is not always four.
+   *
+   * Every task builder in this file hardcoded `stage: 4`, and on Monday and
+   * Wednesday the gym is stage 4, so it was right by coincidence. The summer
+   * block's gym is stage 3 — so the depth jump added there arrived carrying a
+   * stage number nothing else on the day had, and the plan rendered it as a
+   * whole extra stage of its own, one item long, sitting below the session it
+   * belonged to.
+   *
+   * Corrected once, here, rather than in five builders: a sixth would have
+   * been added with the same `stage: 4` and the same result.
+   */
+  const stageNumber = synthesised ? 4 : Number(tasks[gymIndex].stage);
+  const intoStage = (task: SessionTask): SessionTask => ({ ...task, stage: stageNumber });
+
   const stageTitle = synthesised ? "Whole-Body Force" : tasks[gymIndex].stageTitle;
   const stageDescription = synthesised
     ? "Microdose — one hinge, kept cheap so it does not compete with recovery."
@@ -804,22 +953,6 @@ export function applyBaselineProgramming(
     .join("-");
   /** Where a synthesised stage begins, or the existing gym stage's head. */
   const stageAt = synthesised ? tasks.filter((task) => task.stage <= 4).length : gymIndex;
-
-  // The primer's broad jump trains the slow SSC the athlete already has.
-  // Swap it for the depth jump the report asked for, keeping the med-ball
-  // throw so the primer remains a primer.
-  const primerIndex = tasks.findIndex((task) => /primer/i.test(task.name));
-  if (primerIndex !== -1) {
-    const primer = tasks[primerIndex];
-    tasks[primerIndex] = {
-      ...primer,
-      prescription: primer.prescription.replace(/·?\s*broad jump[^·]*/i, "").replace(/·\s*$/, "").trim(),
-      cue: appendOnce(
-        primer.cue,
-        "Broad jumps were replaced by depth jumps below: testing flagged fast stretch-shortening, not horizontal power, as the limiter."
-      ),
-    };
-  }
 
   // Placement is not cosmetic here. Reactive and velocity work has to happen
   // while the athlete is fresh: a depth jump after a heavy deadlift trains a
@@ -832,12 +965,43 @@ export function applyBaselineProgramming(
   const onWednesday = day === null || day === DAY_WEDNESDAY;
   const onThursday = day === null || day === DAY_THURSDAY;
 
+  /**
+   * A week with a game on Friday *and* on Sunday.
+   *
+   * The GBL blocks carry one gym session between two games, and the fix for the
+   * summer weeks is a swap, not a pile-on: the broad jump comes out and the
+   * depth jump the report asked for goes in, at two sets rather than three.
+   * The speed squat and the back squat are deliberately held back — with the
+   * trap bar and the split squat already there, adding them would put four
+   * lower-body lifts forty-eight hours before a game, which is precisely the
+   * stacking that took the trap bar off Monday in the first place.
+   */
+  const twoGameWeek = week !== null && velocityPolicy(week).block === "two_game";
+
+  /**
+   * Reactive work goes wherever the week's lift is, not only on Monday.
+   *
+   * Gating it on the weekday meant the summer block — whose only gym day is a
+   * Wednesday — never got the drill for the quality the report called the
+   * primary limiter, while keeping the broad jump that trains the wrong one.
+   * One depth jump per session, and never a second if the session already has
+   * one.
+   */
+  const wantsDepthJump =
+    onMonday || (twoGameWeek && !tasks.some((task) => /depth jump/i.test(task.name)));
+
   const early = [
-    ...(onMonday ? [depthJumpTask(prefix, stageTitle, stageDescription)] : []),
-    ...(onWednesday ? [velocitySquatTask(prefix, stageTitle, stageDescription)] : []),
+    ...(wantsDepthJump
+      ? [depthJumpTask(prefix, stageTitle, stageDescription, twoGameWeek ? 2 : 3)]
+      : []),
+    ...(onWednesday && !twoGameWeek
+      ? [velocitySquatTask(prefix, stageTitle, stageDescription)]
+      : []),
     // Heavy strength follows the velocity work: light-and-fast first, then
     // load. The reverse order leaves the fast work fatigued.
-    ...(onMonday ? [backSquatTask(prefix, stageTitle, stageDescription, week, weekFocus(week))] : []),
+    ...(onMonday && !twoGameWeek
+      ? [backSquatTask(prefix, stageTitle, stageDescription, week, weekFocus(week))]
+      : []),
   ]
     // The report asked for bar-speed intent on the primary strength lifts, and
     // the back squat is the primary strength lift it asked to add. Annotating
@@ -845,6 +1009,7 @@ export function applyBaselineProgramming(
     // agree with the first: on that pass the squat is an ordinary task in the
     // input and would pick the cue up anyway.
     .map(withBarSpeedIntent)
+    .map(intoStage)
     .filter((addition) => !tasks.some((task) => task.id === addition.id));
 
   // The hinge, then the calf. Both are microdoses and neither competes with
@@ -853,7 +1018,9 @@ export function applyBaselineProgramming(
     onThursday
       ? [rdlTask(prefix, stageTitle, stageDescription), soleusTask(prefix, stageTitle, stageDescription)]
       : []
-  ).filter((addition) => !tasks.some((task) => task.id === addition.id));
+  )
+    .map(intoStage)
+    .filter((addition) => !tasks.some((task) => task.id === addition.id));
 
   // On a synthesised stage there is nothing to sit behind, so the hinge opens
   // it: `stageAt - 1` makes the splice below land exactly on `stageAt`.
@@ -870,7 +1037,15 @@ export function applyBaselineProgramming(
   // Wednesday. The jumps are the most neurally demanding thing in that
   // session and have to come first, so the speed squat follows them rather
   // than displacing them.
-  const anchor = tasks.findIndex((task) => /primer/i.test(task.name) || /broad jump/i.test(task.name));
+  // Whatever the session already opens the gym with. On Monday that is the
+  // named primer; on a summer Wednesday it is the med-ball throw, and without
+  // it there the depth jump landed as the very first thing in the session —
+  // stepping off a box before anything had thrown or moved.
+  const anchor = tasks.findIndex(
+    (task) =>
+      GYM_STAGE_TITLES.includes(task.stageTitle) &&
+      /primer|med-ball|medicine ball|shot put/i.test(task.name)
+  );
   tasks.splice(anchor === -1 ? stageAt : anchor + 1, 0, ...early);
 
   return withVelocityPolicy(session, tasks, level);

@@ -400,11 +400,23 @@ describe("one primary bilateral lift on Monday, not two", () => {
 
   it("keeps the trap bar jump on Wednesday, where speed-strength survives", () => {
     const wednesday = applyBaselineProgramming(
-      session([task({ id: "w5-d2-j", name: "Broad jump + trap bar jump" })]),
+      session([
+        task({
+          id: "w5-d2-j",
+          name: "Broad jump + trap bar jump",
+          prescription: "Broad jump 2 × 2 · trap bar jump 3 × 3 @ 30 kg",
+        }),
+      ]),
       null,
       2
-    ).tasks.map((t) => t.name);
-    expect(wednesday).toContain("Broad jump + trap bar jump");
+    ).tasks;
+    // The trap bar jump is the half that stays — the broad jump is the
+    // long-contact horizontal jump the report asked to replace, and it now
+    // comes out wherever it appears rather than only inside Monday's primer.
+    const jump = wednesday.find((t) => /trap bar jump/i.test(t.name));
+    expect(jump?.name).toBe("Trap bar jump");
+    expect(jump?.prescription).toBe("3 × 3 @ 30 kg");
+    expect(wednesday.some((t) => /broad jump/i.test(t.name))).toBe(false);
   });
 
   it("does not remove a trap bar on any other day", () => {
