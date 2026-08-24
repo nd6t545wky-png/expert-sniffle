@@ -15,6 +15,7 @@ import {
   overridePlanLevel,
   planStateForDate,
   sessionProgress,
+  skipStage,
   skipTask,
   submitReadiness,
   submitSessionReport,
@@ -352,6 +353,91 @@ describe("post-session report", () => {
     const outcome = submitSessionReport({}, unlocked, { ...input, date: "5th August" }, NOW);
     expect(outcome.ok).toBe(false);
     if (!outcome.ok) expect(outcome.reason).toBe("invalid-date");
+  });
+});
+
+/**
+ * Skipping a whole section.
+ *
+ * The bar is that it must not become a bulk override: every task still goes
+ * through the same rules, so a health hold stays unskippable and completed
+ * work stays completed rather than being overwritten with a skip.
+ */
+describe("skipping a whole stage", () => {
+  const unlocked: PlanState = { status: "unlocked", planLevel: "full", workloadFactor: 1 };
+  const locked: PlanState = { status: "locked", message: "Locked." };
+  const at = new Date("2026-08-05T09:00:00.000Z");
+  const gym = [
+    { id: "squat", stageTitle: "Whole-Body Force" },
+    { id: "bench", stageTitle: "Whole-Body Force" },
+    { id: "row", stageTitle: "Whole-Body Force" },
+  ];
+
+  it("skips every task in one go, with one reason", () => {
+    const outcome = skipStage({}, {}, unlocked, "2026-08-05", gym, { reason: "Time constraint" }, at);
+    expect(outcome.ok).toBe(true);
+    if (!outcome.ok) return;
+    expect(Object.keys(outcome.skipped).sort()).toEqual(["bench", "row", "squat"]);
+    for (const entry of Object.values(outcome.skipped)) {
+      expect(entry).toEqual({ reason: "Time constraint", skippedAt: "2026-08-05T09:00:00.000Z" });
+    }
+  });
+
+  it("keeps the note against every task it skipped", () => {
+    const outcome = skipStage({}, {}, unlocked, "2026-08-05", gym, { reason: "Illness", notes: "flu" }, at);
+    if (!outcome.ok) throw new Error("expected ok");
+    expect(Object.values(outcome.skipped).every((entry) => entry.notes === "flu")).toBe(true);
+  });
+
+  it("leaves completed work completed rather than overwriting it", () => {
+    const outcome = skipStage(
+      {}, { "2026-08-05": ["squat"] }, unlocked, "2026-08-05", gym, { reason: "Time constraint" }, at
+    );
+    if (!outcome.ok) throw new Error("expected ok");
+    expect(Object.keys(outcome.skipped).sort()).toEqual(["bench", "row"]);
+    expect(outcome.skipped.squat).toBeUndefined();
+    expect(outcome.refused).toBe(1);
+  });
+
+  it("will not skip a health hold, even in bulk", () => {
+    const outcome = skipStage(
+      {}, {}, unlocked, "2026-08-05",
+      [{ id: "review", stageTitle: "Health Hold" }, { id: "call", stageTitle: "Health Hold" }],
+      { reason: "Time constraint" }, at
+    );
+    expect(outcome.ok).toBe(false);
+    if (outcome.ok) return;
+    expect(outcome.reason).toBe("health-hold");
+  });
+
+  it("refuses the whole thing when the plan is locked or the reason is missing", () => {
+    expect(skipStage({}, {}, locked, "2026-08-05", gym, { reason: "Time constraint" }, at).ok).toBe(false);
+    const noReason = skipStage({}, {}, unlocked, "2026-08-05", gym, { reason: "  " }, at);
+    expect(noReason.ok).toBe(false);
+    if (noReason.ok) return;
+    expect(noReason.reason).toBe("no-reason");
+  });
+
+  it("adds to what was already skipped rather than replacing it", () => {
+    const existing = { "2026-08-05": { earlier: { reason: "Illness", skippedAt: "x" } } };
+    const outcome = skipStage(existing, {}, unlocked, "2026-08-05", gym, { reason: "Time constraint" }, at);
+    if (!outcome.ok) throw new Error("expected ok");
+    expect(Object.keys(outcome.skipped).sort()).toEqual(["bench", "earlier", "row", "squat"]);
+    expect(outcome.skipped.earlier.reason).toBe("Illness");
+  });
+
+  it("says there is nothing to do rather than reporting a successful no-op", () => {
+    const outcome = skipStage({}, {}, unlocked, "2026-08-05", [], { reason: "Time constraint" }, at);
+    expect(outcome.ok).toBe(false);
+  });
+
+  it("leaves other days alone", () => {
+    const outcome = skipStage(
+      { "2026-08-04": { other: { reason: "Illness", skippedAt: "x" } } },
+      {}, unlocked, "2026-08-05", gym, { reason: "Time constraint" }, at
+    );
+    if (!outcome.ok) throw new Error("expected ok");
+    expect(outcome.skipped.other).toBeUndefined();
   });
 });
 

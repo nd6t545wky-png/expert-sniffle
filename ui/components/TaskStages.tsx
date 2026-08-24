@@ -3,6 +3,7 @@ import { SessionTask } from "../../src/domain/programmeSessions";
 import { SkippedTask, UNSKIPPABLE_STAGE } from "../../src/domain/session";
 import { DaySetLog, LoggedSet, bestOneRepMax, isLoggable, prescribedSets } from "../../src/domain/setLog";
 import { splitPrescription } from "../../src/domain/prescription";
+import { Advice, VERDICT_LABELS } from "../../src/domain/progression";
 
 /**
  * The day's work, grouped into collapsible stages — v60's `renderTasks`.
@@ -24,10 +25,14 @@ export interface TaskStagesProps {
   onToggle: (task: SessionTask, complete: boolean) => void;
   onDetails: (task: SessionTask) => void;
   onSkip: (task: SessionTask) => void;
+  /** Skip everything unresolved in one stage, behind a single reason. */
+  onSkipStage?: (stageTitle: string, tasks: SessionTask[]) => void;
   onUndoSkip: (task: SessionTask) => void;
   /** What was actually lifted today, keyed by task id. */
   setLog?: DaySetLog;
   onLogSets?: (task: SessionTask, sets: LoggedSet[]) => void;
+  /** Last time each lift was done, and whether to move up. Keyed by task id. */
+  progression?: Record<string, Advice>;
 }
 
 /**
@@ -58,6 +63,50 @@ function Prescription({ text }: { text: string }) {
 }
 
 /**
+ * What happened last time, and what to do about it.
+ *
+ * The sets have been recorded since the logger went in and were never shown
+ * again anywhere a decision gets made. This is that: the previous session's
+ * actual loads, and a verdict — go up, stay, back off, or follow the block —
+ * sitting directly under the prescription while the athlete is at the rack.
+ *
+ * The reasoning is one tap away rather than on the face of it. "Go up to
+ * 62.5 kg" is what gets read between sets; why it says so matters only when
+ * it is being argued with.
+ */
+function LastTime({ advice }: { advice: Advice }) {
+  const [why, setWhy] = useState(false);
+  const last = advice.last;
+
+  return (
+    <div className={`last-time verdict-${advice.verdict}`}>
+      <p className="last-time-head">
+        <span className="verdict-chip">{VERDICT_LABELS[advice.verdict]}</span>
+        <strong>{advice.headline}</strong>
+      </p>
+      {last && (
+        <p className="last-time-sets">
+          Last time ·{" "}
+          <time dateTime={last.date}>
+            {new Intl.DateTimeFormat("en-AU", {
+              timeZone: "Australia/Brisbane",
+              weekday: "short",
+              day: "numeric",
+              month: "short",
+            }).format(new Date(`${last.date}T00:00:00+10:00`))}
+          </time>{" "}
+          · {last.sets.map((set) => `${set.reps}×${set.kg || "bw"}`).join(" · ")}
+        </p>
+      )}
+      <button className="text-button" type="button" aria-expanded={why} onClick={() => setWhy((open) => !open)}>
+        {why ? "Hide why" : "Why?"}
+      </button>
+      {why && <p className="last-time-why">{advice.reason}</p>}
+    </div>
+  );
+}
+
+/**
  * Reps and load, set by set.
  *
  * Opens pre-filled from the prescription, because the difference between
@@ -67,14 +116,31 @@ function Prescription({ text }: { text: string }) {
 function SetLogger({
   task,
   logged,
+  suggestedKg,
   onSave,
 }: {
   task: SessionTask;
   logged: LoggedSet[] | undefined;
+  /** Where the progression says to set the bar, when it has a view. */
+  suggestedKg?: number;
   onSave: (sets: LoggedSet[]) => void;
 }) {
+  /**
+   * Open on the recommendation, not on the prescription.
+   *
+   * The advice above says "go up to 62.5 kg" and the logger used to open on
+   * whatever the programme wrote — so taking the advice meant retyping it into
+   * three rows, and the path of least resistance was to ignore it. Reps still
+   * come from the prescription; only the load is overridden.
+   */
+  const opening = () => {
+    const rows = logged ?? prescribedSets(task);
+    if (logged || suggestedKg === undefined) return rows;
+    return rows.map((row) => ({ ...row, kg: suggestedKg }));
+  };
+
   const [open, setOpen] = useState(false);
-  const [rows, setRows] = useState<LoggedSet[]>(() => logged ?? prescribedSets(task));
+  const [rows, setRows] = useState<LoggedSet[]>(opening);
 
   const best = logged ? bestOneRepMax(logged) : null;
 
@@ -85,7 +151,7 @@ function SetLogger({
           className="text-button"
           type="button"
           onClick={() => {
-            setRows(logged ?? prescribedSets(task));
+            setRows(opening());
             setOpen(true);
           }}
         >
@@ -181,9 +247,11 @@ export function TaskStages({
   onToggle,
   onDetails,
   onSkip,
+  onSkipStage,
   onUndoSkip,
   setLog,
   onLogSets,
+  progression,
 }: TaskStagesProps) {
   const done = new Set(completed);
   const isResolved = (task: SessionTask) => done.has(task.id) || Boolean(skipped[task.id]);
@@ -210,6 +278,9 @@ export function TaskStages({
           : stageComplete
             ? "Complete"
             : "done";
+        const unresolvedSkippable = stageTasks.filter(
+          (task) => !isResolved(task) && task.stageTitle !== UNSKIPPABLE_STAGE
+        );
 
         return (
           <details
@@ -238,11 +309,30 @@ export function TaskStages({
               <span className="stage-chevron" aria-hidden="true" />
             </summary>
 
+            {/* Skip the section, not eight tasks one at a time. A stage is the
+                unit that actually gets abandoned — the lift got missed, not
+                the third exercise in it — and eight separate confirmations is
+                why days were left permanently half-resolved. Hidden once
+                everything here is resolved, and absent entirely on the health
+                hold, which cannot be skipped at all. */}
+            {onSkipStage && unresolvedSkippable.length > 1 && (
+              <div className="stage-bulk">
+                <button
+                  className="text-button"
+                  type="button"
+                  onClick={() => onSkipStage(first.stageTitle, unresolvedSkippable)}
+                >
+                  Skip all {unresolvedSkippable.length} remaining
+                </button>
+              </div>
+            )}
+
             <div className="task-list">
               {stageTasks.map((task) => {
                 const isDone = done.has(task.id);
                 const skip = isDone ? null : skipped[task.id];
                 const canSkip = task.stageTitle !== UNSKIPPABLE_STAGE;
+                const advice = progression?.[task.id];
 
                 return (
                   <article
@@ -271,10 +361,14 @@ export function TaskStages({
                       </div>
                       <Prescription text={task.prescription} />
                       <p className="task-cue">{task.cue}</p>
+                      {/* Above the logger, because it is what decides what
+                          goes into it. */}
+                      {advice && !isDone && !skip && <LastTime advice={advice} />}
                       {onLogSets && isLoggable(task) && (
                         <SetLogger
                           task={task}
                           logged={setLog?.[task.id]}
+                          suggestedKg={advice?.suggestedKg}
                           onSave={(sets) => onLogSets(task, sets)}
                         />
                       )}

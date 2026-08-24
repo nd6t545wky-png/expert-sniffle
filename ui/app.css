@@ -2174,3 +2174,102 @@ body {
   font-weight: 600;
   color: color-mix(in srgb, var(--ink) 80%, var(--muted));
 }
+
+/* ===== Last time, and what to do about it, Aug 2026 =====================
+   Sits between the prescription and the set logger, because it is what
+   decides what goes into the logger. Left-ruled rather than boxed: it is an
+   annotation on the task, not a card competing with it. */
+.last-time {
+  margin: 10px 0 0;
+  padding: 9px 0 9px 11px;
+  border-left: 3px solid var(--line);
+  background: transparent;
+}
+.last-time-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+  margin: 0;
+}
+.last-time-head strong {
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 1.35;
+  color: var(--ink);
+}
+.verdict-chip {
+  flex: none;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: var(--surface-secondary);
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+.last-time-sets {
+  margin: 5px 0 0;
+  font-size: 12px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.last-time-why {
+  margin: 6px 0 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--muted);
+  max-width: 62ch;
+}
+.last-time .text-button {
+  margin-top: 4px;
+  font-size: 12px;
+}
+
+/* The verdict is the one thing read between sets, so it carries the colour —
+   and only three of the five need any. "Follow the plan" and "first time" are
+   statements of fact, not calls to action, and tinting them would make every
+   lift on the page shout. */
+.last-time.verdict-increase {
+  border-left-color: #2e9e5b;
+}
+.last-time.verdict-increase .verdict-chip {
+  background: color-mix(in srgb, #2e9e5b 16%, transparent);
+  color: #237a46;
+}
+.last-time.verdict-back_off {
+  border-left-color: #c9791f;
+}
+.last-time.verdict-back_off .verdict-chip {
+  background: color-mix(in srgb, #c9791f 18%, transparent);
+  color: #9c5c14;
+}
+.last-time.verdict-repeat {
+  border-left-color: color-mix(in srgb, var(--ink) 30%, var(--line));
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .last-time.verdict-increase .verdict-chip {
+    color: #6ede9a;
+  }
+  :root:not([data-theme="light"]) .last-time.verdict-back_off .verdict-chip {
+    color: #f0ad57;
+  }
+}
+:root[data-theme="dark"] .last-time.verdict-increase .verdict-chip {
+  color: #6ede9a;
+}
+:root[data-theme="dark"] .last-time.verdict-back_off .verdict-chip {
+  color: #f0ad57;
+}
+
+/* ===== Skip a whole section ============================================= */
+.stage-bulk {
+  display: flex;
+  justify-content: flex-end;
+  padding: 6px 16px 0;
+}
+.stage-bulk .text-button {
+  font-size: 12px;
+  color: var(--muted);
+}

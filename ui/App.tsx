@@ -11,7 +11,8 @@ import {
 import { MetricSource, ReadinessInputs, computeReadiness } from "../src/domain/readiness";
 import { HealthPrefillRecord, mergeHistory, readPrefill } from "../src/domain/healthPrefill";
 import { DEFAULT_STAT_IDS, MAX_STATS, buildRecap } from "../src/domain/sessionRecap";
-import { LoggedSet, loggedTonnage, readDayLog } from "../src/domain/setLog";
+import { LoggedSet, isLoggable, loggedTonnage, readDayLog } from "../src/domain/setLog";
+import { Advice, liftHistory, progressionFor } from "../src/domain/progression";
 import {
   MIN_POINTS_FOR_TREND,
   bodyweightHistory,
@@ -539,6 +540,31 @@ export function App() {
   }, [state, date]);
 
   /** What was actually lifted today, and the tonnage that follows from it. */
+  /**
+   * What each of today's lifts was loaded with last time, and whether to move.
+   *
+   * Built here rather than in the plan because it needs the whole set-log
+   * history, and because resolving a historical task id to a lift's name means
+   * rebuilding the sessions those logs belong to — `taskNamesForDates` walks
+   * the programme forward to do it. Keyed by *today's* task id so the plan can
+   * look each one up without knowing any of that.
+   *
+   * Recomputed only when the logs, the day or the session change; the walk is
+   * over fifty-two weeks and does not belong in a render.
+   */
+  const progression = useMemo(() => {
+    const logs = state?.setLogs as Record<string, unknown> | undefined;
+    const dates = Object.keys(logs ?? {});
+    const names = taskNamesForDates(dates);
+    const out: Record<string, Advice> = {};
+    for (const task of tasks) {
+      if (!isLoggable(task)) continue;
+      const advice = progressionFor(task, liftHistory(logs, names, task.name, date), date);
+      if (advice) out[task.id] = advice;
+    }
+    return out;
+  }, [state?.setLogs, tasks, date]);
+
   const setLog = useMemo(
     () => readDayLog(state?.setLogs as Record<string, unknown> | undefined, date),
     [state, date]
@@ -1105,6 +1131,7 @@ export function App() {
           submission={submission}
           recoveryNote={recoveryNote}
           setLog={setLog}
+          progression={progression}
           onLogSets={(task, sets) =>
             update((draft) => {
               const logs = (draft.setLogs ?? {}) as Record<string, Record<string, LoggedSet[]>>;

@@ -109,12 +109,24 @@ export const SKIP_REASONS = [
   "Other recorded reason",
 ];
 
-export function SkipTaskModal({
-  task,
+/**
+ * One form, two scopes.
+ *
+ * Skipping a whole section has to record the same thing a single skip does —
+ * the same reason list, the same note, the same wording about what a skip
+ * means — or the history ends up with two grades of skip in it. So the form is
+ * shared and only the heading and the submit label change with the scope.
+ */
+function SkipForm({
+  heading,
+  blurb,
+  submitLabel,
   onClose,
   onSkip,
 }: {
-  task: SessionTask;
+  heading: string;
+  blurb: string;
+  submitLabel: string;
   onClose: () => void;
   onSkip: (input: { reason: string; notes: string }) => void;
 }) {
@@ -126,8 +138,8 @@ export function SkipTaskModal({
       <header className="modal-head">
         <div>
           <p className="eyebrow">Daily plan</p>
-          <h2>Skip {task.name}?</h2>
-          <p>Skipping resolves this task without recording it as completed.</p>
+          <h2>{heading}</h2>
+          <p>{blurb}</p>
         </div>
         <button className="modal-close" type="button" aria-label="Close" onClick={onClose}>
           ×
@@ -179,11 +191,60 @@ export function SkipTaskModal({
               Cancel
             </button>
             <button className="btn btn-dark" type="submit">
-              Skip task
+              {submitLabel}
             </button>
           </div>
         </form>
       </div>
     </Backdrop>
+  );
+}
+
+export function SkipTaskModal({
+  task,
+  onClose,
+  onSkip,
+}: {
+  task: SessionTask;
+  onClose: () => void;
+  onSkip: (input: { reason: string; notes: string }) => void;
+}) {
+  return (
+    <SkipForm
+      heading={`Skip ${task.name}?`}
+      blurb="Skipping resolves this task without recording it as completed."
+      submitLabel="Skip task"
+      onClose={onClose}
+      onSkip={onSkip}
+    />
+  );
+}
+
+/**
+ * Skip everything still open in one section.
+ *
+ * The count is in the heading and on the button because this is the one skip
+ * that is easy to fire by accident, and "Skip 6 tasks" is harder to misread
+ * than "Skip all".
+ */
+export function SkipStageModal({
+  stageTitle,
+  count,
+  onClose,
+  onSkip,
+}: {
+  stageTitle: string;
+  count: number;
+  onClose: () => void;
+  onSkip: (input: { reason: string; notes: string }) => void;
+}) {
+  return (
+    <SkipForm
+      heading={`Skip the rest of ${stageTitle}?`}
+      blurb={`This resolves the ${count} remaining ${count === 1 ? "task" : "tasks"} in this section without recording any of them as completed. Anything already ticked stays ticked.`}
+      submitLabel={`Skip ${count} ${count === 1 ? "task" : "tasks"}`}
+      onClose={onClose}
+      onSkip={onSkip}
+    />
   );
 }

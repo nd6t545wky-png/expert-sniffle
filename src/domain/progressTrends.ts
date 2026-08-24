@@ -19,6 +19,7 @@
  */
 
 import { buildSession, dateForWeekDay, weekPlan } from "./programmeSessions";
+import { applyBaselineProgramming } from "./programmeUpdates";
 import { Pitch, readPitches } from "./pitchLog";
 import { bestOneRepMax, readDayLog } from "./setLog";
 import { IsoDate } from "./state";
@@ -66,7 +67,14 @@ export function taskNamesForDates(dates: Iterable<IsoDate>): Record<string, stri
       const date = dateForWeekDay(plan, day);
       if (!wanted.has(date)) continue;
       wanted.delete(date);
-      for (const task of buildSession(plan, day).tasks) {
+      // Through the overlay, not the raw session. The back squat, the depth
+      // jump, the RDL and the calf raise are added by
+      // `applyBaselineProgramming` and exist in no raw session — so naming
+      // from `buildSession` alone left every one of them permanently
+      // unidentifiable, and a logged back squat could never be matched to the
+      // lift it belonged to. It reported "no history" forever, and it was
+      // missing from the progress charts for the same reason.
+      for (const task of applyBaselineProgramming(buildSession(plan, day), null, day).tasks) {
         names[task.id] = task.name;
       }
     }

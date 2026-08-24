@@ -392,6 +392,66 @@ export function skipTask(
   };
 }
 
+/**
+ * Skip a whole stage at once.
+ *
+ * The plan is nineteen tasks on a Monday and they are skipped one at a time,
+ * each behind its own modal — so a session cut short at the gym meant eight
+ * separate confirmations, and what actually happened was that nobody resolved
+ * any of them and the day stayed permanently half-finished. A stage is the
+ * unit an athlete abandons: the lift got missed, not the third exercise in it.
+ *
+ * Deliberately not a bulk override. Every task still goes through `skipTask`,
+ * so the same reason is recorded against each, the health hold is still
+ * unskippable, and anything already completed is left completed rather than
+ * being overwritten with a skip. Tasks that cannot be skipped are reported
+ * back rather than silently dropped.
+ */
+export function skipStage(
+  skippedByDate: SkipRecords,
+  completedByDate: Record<IsoDate, string[] | undefined>,
+  plan: PlanState,
+  date: IsoDate,
+  tasks: { id: string; stageTitle?: string }[],
+  input: { reason: string; notes?: string },
+  now = new Date()
+): SkipOutcome & { refused?: number } {
+  if (tasks.length === 0) {
+    return { ok: false, reason: "already-complete", message: "There is nothing left to skip here." };
+  }
+
+  let skipped = skippedByDate[date] ?? {};
+  let applied = 0;
+  let refused = 0;
+  let firstRefusal: SkipOutcome | null = null;
+
+  for (const task of tasks) {
+    const outcome = skipTask(
+      { ...skippedByDate, [date]: skipped },
+      completedByDate,
+      plan,
+      date,
+      task,
+      input,
+      now
+    );
+    if (outcome.ok) {
+      skipped = outcome.skipped;
+      applied += 1;
+      continue;
+    }
+    // A locked plan or a missing reason stops the whole thing — neither is
+    // about the individual task, so applying it to some of them would be
+    // arbitrary.
+    if (outcome.reason === "locked" || outcome.reason === "no-reason") return outcome;
+    refused += 1;
+    firstRefusal ??= outcome;
+  }
+
+  if (applied === 0) return firstRefusal ?? { ok: true, skipped, refused };
+  return { ok: true, skipped, ...(refused ? { refused } : {}) };
+}
+
 /** Return a skipped task to the plan. */
 export function undoSkipTask(
   skippedByDate: SkipRecords,

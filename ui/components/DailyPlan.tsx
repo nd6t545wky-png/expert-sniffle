@@ -6,9 +6,10 @@ import { Alert, Card, PageHead } from "./Page";
 import { DayTab, DayTabs } from "./DayTabs";
 import { TaskStages } from "./TaskStages";
 import { DaySetLog, LoggedSet } from "../../src/domain/setLog";
-import { SkipTaskModal, TaskDetailsModal } from "./TaskModals";
+import { SkipStageModal, SkipTaskModal, TaskDetailsModal } from "./TaskModals";
 import { VelocityBlock } from "./VelocityBlock";
 import { weekFromTasks } from "../../src/domain/velocity";
+import { Advice } from "../../src/domain/progression";
 import {
   PlanState,
   ReadinessSubmission,
@@ -18,6 +19,7 @@ import {
   isHighIntentDay,
   overridePlanLevel,
   sessionProgress,
+  skipStage,
   skipTask,
   uncompleteTask,
   undoSkipTask,
@@ -74,6 +76,12 @@ export interface DailyPlanProps {
   onNextWeek?: () => void;
   /** Eyebrow line, e.g. "Week 5 · Monday 10 August". */
   weekLabel?: string;
+  /**
+   * What each lift was loaded with last time and whether to move up, keyed by
+   * task id. Derived in `App` because it needs the whole set-log history, not
+   * just today's.
+   */
+  progression?: Record<string, Advice>;
 }
 
 const GUARDRAILS: [string, string][] = [
@@ -109,11 +117,13 @@ export function DailyPlan({
   onPreviousWeek,
   onNextWeek,
   weekLabel,
+  progression,
 }: DailyPlanProps) {
   const [error, setError] = useState("");
   const [reason, setReason] = useState("");
   const [detailsTask, setDetailsTask] = useState<SessionTask | null>(null);
   const [skipCandidate, setSkipCandidate] = useState<SessionTask | null>(null);
+  const [stageCandidate, setStageCandidate] = useState<{ title: string; tasks: SessionTask[] } | null>(null);
 
   const day = dayNameForDate(date);
   const done = completed[date] ?? [];
@@ -146,6 +156,25 @@ export function DailyPlan({
     }
     onSkipTask(date, outcome.skipped);
     setSkipCandidate(null);
+  }
+
+  function handleSkipStage(input: { reason: string; notes: string }) {
+    setError("");
+    if (!stageCandidate) return;
+    const outcome = skipStage(skipped, completed, plan, date, stageCandidate.tasks, input);
+    setStageCandidate(null);
+    if (!outcome.ok) {
+      setError(outcome.message);
+      return;
+    }
+    onSkipTask(date, outcome.skipped);
+    // A partial result is worth saying out loud: silently skipping five of six
+    // reads as a bug from the outside.
+    if (outcome.refused) {
+      setError(
+        `${outcome.refused} ${outcome.refused === 1 ? "task" : "tasks"} could not be skipped and were left as they are.`
+      );
+    }
   }
 
   function handleOverride() {
@@ -269,7 +298,9 @@ export function DailyPlan({
               onLogSets={onLogSets}
               onDetails={setDetailsTask}
               onSkip={setSkipCandidate}
+              onSkipStage={(title, stageTasks) => setStageCandidate({ title, tasks: stageTasks })}
               onUndoSkip={(task) => onSkipTask(date, undoSkipTask(skipped, date, task.id))}
+              progression={progression}
             />
           </section>
 
@@ -393,6 +424,14 @@ export function DailyPlan({
           task={skipCandidate}
           onClose={() => setSkipCandidate(null)}
           onSkip={(input) => handleSkip(skipCandidate, input)}
+        />
+      )}
+      {stageCandidate && (
+        <SkipStageModal
+          stageTitle={stageCandidate.title}
+          count={stageCandidate.tasks.length}
+          onClose={() => setStageCandidate(null)}
+          onSkip={handleSkipStage}
         />
       )}
     </>
