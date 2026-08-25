@@ -67,9 +67,13 @@ import {
 } from "../src/domain/recoveryProtocol";
 import { RecoverySettings } from "./components/RecoverySettings";
 import { FixtureSettings } from "./components/FixtureSettings";
+import { RetestSheet } from "./components/RetestSheet";
+import { TransferCard } from "./components/TransferCard";
 import { applyRecoveryProtocol } from "../src/domain/recoveryTasks";
 import { applyTeamTraining, readTeamTraining } from "../src/domain/teamTraining";
 import { allFixtures, readAthleteFixtures, scheduleClash } from "../src/domain/fixtures";
+import { readRetests } from "../src/domain/retest";
+import { velocityTransfer } from "../src/domain/velocityTransfer";
 import { PhysioSummary, SHARE_DAYS, buildPhysioSummary } from "../src/domain/physioShare";
 import {
   BodyRegion,
@@ -360,6 +364,18 @@ export function App() {
     [state]
   );
   const fixtures = useMemo(() => allFixtures(athleteFixtures), [athleteFixtures]);
+  const retests = useMemo(
+    () => readRetests((state?.profile as { retests?: unknown } | undefined)?.retests),
+    [state]
+  );
+  /**
+   * Best mound reading against best pulldown — the constraint profile's key
+   * missing diagnostic, read off check-outs the app has always been recording.
+   */
+  const transfer = useMemo(
+    () => velocityTransfer(state?.post as Record<string, { bestVelocity?: unknown; velocityType?: unknown }> | undefined),
+    [state]
+  );
 
   /**
    * Every throwing session and game the athlete has logged, as outings.
@@ -1450,6 +1466,22 @@ export function App() {
           }
         />
       )}
+
+      {page === "profile" && (
+        <RetestSheet
+          entries={retests}
+          today={today.openDate}
+          week={selectedWeek}
+          onChange={(next) =>
+            update((draft) => ({
+              ...draft,
+              profile: { ...(draft.profile ?? {}), retests: next },
+            }))
+          }
+        />
+      )}
+
+      {page === "profile" && <TransferCard transfer={transfer} />}
 
       {page === "profile" && (
         <FixtureSettings

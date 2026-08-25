@@ -142,3 +142,29 @@ describe("oneRepMaxHistory", () => {
     expect(oneRepMaxHistory({ d: { unknown: [{ reps: 5, kg: 100 }] } }, {})).toEqual([]);
   });
 });
+
+describe("what a reps-and-load table is the wrong record for", () => {
+  const gym = (name: string, prescription: string) => ({
+    stageTitle: "Whole-Body Force",
+    name,
+    prescription,
+  });
+
+  it("refuses the jumping drills, which have no load to enter", () => {
+    // These showed a "Log sets" button and, once progression advice arrived,
+    // told the athlete to "pick a load" for a barefoot pogo.
+    for (const [name, rx] of [
+      ["Depth jump — 15–20 cm box", "3 × 3 · full recovery · contact under 0.25 s"],
+      ["Reactive microdose — pogo and low hurdle hops", "Pogo 3 × 10 · low hurdle hops 3 × 4"],
+      ["Pogo + vertical jump", "Pogo 2 × 6 · vertical jump 2 × 2"],
+    ] as [string, string][]) {
+      expect(isLoggable(gym(name, rx)), name).toBe(false);
+    }
+  });
+
+  it("still logs the lifts, including bodyweight ones that progress by reps", () => {
+    expect(isLoggable(gym("Back squat", "3 × 4 @ 120 kg"))).toBe(true);
+    expect(isLoggable(gym("Chin-up", "2 × 5 · bodyweight · 2–3 reps in reserve"))).toBe(true);
+    expect(isLoggable(gym("Trap bar jump", "3 × 3 @ 30 kg"))).toBe(true);
+  });
+});

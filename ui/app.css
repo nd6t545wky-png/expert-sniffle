@@ -2316,3 +2316,124 @@ body {
   letter-spacing: 0.02em;
   text-transform: uppercase;
 }
+
+/* ===== Retest battery, Aug 2026 =========================================
+   A comparison table, so the columns have to line up: April, latest, change,
+   target. Tabular figures throughout — these are read across, not down. */
+.retest-scroll { overflow-x: auto; margin-bottom: 14px; }
+
+.retest-table {
+  width: 100%;
+  min-width: 34rem;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.retest-table th {
+  text-align: left;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--line);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.retest-table td {
+  padding: 9px 10px;
+  border-bottom: 1px solid var(--line);
+  vertical-align: top;
+}
+.retest-table tr:last-child td { border-bottom: 0; }
+.retest-table strong { display: block; font-size: 12px; font-weight: 600; }
+.retest-table small { display: block; margin-top: 2px; font-size: 10px; color: var(--muted); }
+
+.retest-num {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.retest-none { color: var(--muted); }
+
+/* Signed against April, and always oriented so up means better — a falling
+   ground-contact time is an improvement and has to read like one. */
+.retest-delta { font-weight: 700; }
+.retest-delta.up { color: #2e9e5b; }
+.retest-delta.down { color: #c9791f; }
+.retest-hit {
+  font-weight: 700;
+  color: #2e9e5b;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .retest-delta.up,
+  :root:not([data-theme="light"]) .retest-hit { color: #6ede9a; }
+  :root:not([data-theme="light"]) .retest-delta.down { color: #f0ad57; }
+}
+:root[data-theme="dark"] .retest-delta.up,
+:root[data-theme="dark"] .retest-hit { color: #6ede9a; }
+:root[data-theme="dark"] .retest-delta.down { color: #f0ad57; }
+
+.retest-form { margin-top: 6px; }
+
+/* ===== Mound vs pulldown ================================================ */
+.transfer-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 10px;
+  padding: 11px 13px;
+  border-radius: calc(var(--radius) / 2);
+  border: 1px solid var(--line);
+  background: var(--surface-secondary);
+  margin-bottom: 14px;
+}
+.transfer-head strong { font-size: 14px; line-height: 1.4; }
+.transfer-chip {
+  flex: none;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  background: var(--surface);
+  color: var(--muted);
+  border: 1px solid var(--line);
+}
+.transfer-head.tone-engine { border-left: 3px solid #2e9e5b; }
+.transfer-head.tone-transfer { border-left: 3px solid #c9791f; }
+.transfer-head.tone-borderline { border-left: 3px solid var(--muted); }
+.transfer-head.tone-unknown { border-left: 3px dashed var(--line); }
+
+.transfer-pair {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.transfer-pair > div {
+  padding: 9px 11px;
+  border: 1px solid var(--line);
+  border-radius: calc(var(--radius) / 2);
+}
+.transfer-pair dt {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.transfer-pair dd {
+  margin: 3px 0 0;
+  font-size: 18px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+.transfer-pair small { display: block; margin-top: 2px; font-size: 10px; color: var(--muted); }
+
+.transfer-detail {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--muted);
+  max-width: 62ch;
+}

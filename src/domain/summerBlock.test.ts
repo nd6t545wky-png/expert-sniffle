@@ -77,10 +77,13 @@ describe("every gym stage in the year gets looked at", () => {
         tasksFor(week, day).some((task) => GYM_STAGES.includes(task.stageTitle))
       );
       if (!hasGym) continue;
-      const hasDepthJump = DAYS.some((day) =>
-        tasksFor(week, day).some((task) => /depth jump/i.test(task.name))
+      // Reactive work, not specifically a depth jump: on a retest week the
+      // battery stands in for it (and measures the same quality), and Thursday
+      // carries the pogo-and-hurdle dose in every week.
+      const hasReactive = DAYS.some((day) =>
+        tasksFor(week, day).some((task) => /depth jump|reactive microdose|retest battery/i.test(task.name))
       );
-      expect(hasDepthJump, `week ${week} has a gym day and no depth jump`).toBe(true);
+      expect(hasReactive, `week ${week} has a gym day and no reactive work`).toBe(true);
     }
   });
 
@@ -184,8 +187,9 @@ describe("a week with two games in it", () => {
       );
       expect(jump?.prescription, `week ${week}`).toMatch(/^2 × 3/);
     }
-    // The winter Monday keeps its full dose.
-    const winter = tasksFor(7, 0).find((task) => /depth jump/i.test(task.name));
+    // A winter Monday keeps the full dose. Week 8 rather than 7 — week 7 is a
+    // retest week, where the battery stands in for the depth jump.
+    const winter = tasksFor(8, 0).find((task) => /depth jump/i.test(task.name));
     expect(winter?.prescription).toMatch(/^3 × 3/);
   });
 

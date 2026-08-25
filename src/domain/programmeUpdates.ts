@@ -9,6 +9,7 @@ import {
 } from "./reducedVolume";
 import { applyVelocityPolicy, velocityPolicy, weekFromTasks } from "./velocity";
 import { SQUAT_MIN_REPS, WEEK_SPECS, isEasyWeek, squatDose } from "./strengthProgression";
+import { isRetestWeek } from "./retest";
 import { weekPlan } from "./programmeSessions";
 
 /**
@@ -405,6 +406,117 @@ function withTrapBarDose(week: number | null) {
       ),
       evidence: `The week plan prescribed this as "${task.prescription}" — the summary for the whole Wednesday session, with no rep count on it. Week ${week} of the block table is ${spec[0]} × ${spec[1]} at ${spec[2]}% relative intensity; the sets and reps are taken from there and the ${effort} cap kept, because in season this is a maintenance lift rather than a percentage-driven one.`,
     };
+  };
+}
+
+/**
+ * The second reactive exposure of the week.
+ *
+ * Reactive strength is the limiter the testing named first — drop-jump RSI
+ * 0.96, ground contact 0.348 s against a sub-0.25 s target — and it was trained
+ * once a week, on Monday. One exposure is a maintenance dose for the quality
+ * the whole velocity problem is supposed to hinge on.
+ *
+ * Thursday is where another one fits, and the only place it fits cheaply.
+ * The day is 35–40 easy throws, an aerobic block and two microdoses; it sits
+ * 48 hours from Saturday; and this work is local to the ankle and calf rather
+ * than systemic, so it does not arrive in Friday's legs.
+ *
+ * **It replaces Thursday's warm-up pogos rather than joining them.** Those are
+ * `2 × 10 · low amplitude`, explicitly priming, and running a priming set and a
+ * training set of the same movement on one day is the double-up this programme
+ * is supposed to avoid. On Thursday the pogo becomes the dose and moves out of
+ * the warm-up into the training block.
+ *
+ * Hurdles stay deliberately low. The point is the floor contact, not the
+ * clearance, and a hurdle high enough to force a tuck has turned the drill into
+ * a jump-height contest — which is the exact error the report warns against.
+ */
+function reactiveDoseTask(prefix: string, stageTitle: string, stageDescription: string): SessionTask {
+  return {
+    id: `${prefix}-reactive-dose`,
+    stage: 4,
+    stageTitle,
+    stageDescription,
+    name: "Reactive microdose — pogo and low hurdle hops",
+    prescription: "Pogo 3 × 10 · low hurdle hops 3 × 4 · full recovery between sets",
+    cue: "Reactive work, aimed squarely at your slowest number. Short, stiff, fast off the floor. If a contact feels heavy, that set is finished.",
+    setup:
+      "Firm, non-slip surface. Hurdles at ankle to mid-shin — 15–25 cm — and no higher. If you have no hurdles, a line of shoes or a rolled towel does the job; the height is not what makes this work.",
+    execution:
+      "Pogo: bounce from the ankles with the knees almost straight, minimum ground time, full 10 without a pause. Hurdle hops: two feet, over and immediately off again — land and leave, do not settle between hurdles. Rest fully between sets so every contact is a fast one.",
+    rest: "90 seconds between sets. This is a quality exposure and it stops being one the moment it is rushed.",
+    stop:
+      "Stop for Achilles, calf, knee or heel pain, and stop the set when contacts lengthen. Fatigued reactive work trains the opposite of what it is for.",
+    evidence:
+      "From the athlete's own testing rather than a trial: drop-jump RSI 0.96 (poor), ground contact 0.348 s against a sub-0.25 s target, and 354 ms to peak force on the squat jump — the slowest figures on the report. The programme trained that quality once a week; this is the second exposure. Dose and hurdle height follow the constraint profile's own early-option prescription (pogo 3 × 10, low hurdle hops 3 × 4), and the box and hurdle heights are kept deliberately low because contact time, not height, is the target.",
+  };
+}
+
+/**
+ * The measured pulldown.
+ *
+ * The constraint profile calls the best 5 oz pulldown the key missing
+ * diagnostic, and says outright not to overstate the role of mechanics until
+ * it is known: mound 78 with a pulldown of 80 is a different athlete's problem
+ * from mound 78 with a pulldown of 90. One is an engine to build, the other is
+ * velocity being lost between the two.
+ *
+ * Wednesday already throws eight measured pulldowns with a radar on them, and
+ * check-out has recorded a best velocity with a type since the app was written.
+ * Nothing joined the two up, so the number was thrown, read aloud and lost
+ * every week. This adds no throws — it asks for the one that already happened.
+ */
+function withMeasuredPulldown(task: SessionTask): SessionTask {
+  if (!/pulldown/i.test(String(task.name))) return task;
+  return {
+    ...task,
+    cue: appendOnce(
+      task.cue,
+      "Record the best throw of this set at check-out with the type set to Pulldown. It is the one number the testing never got, and it decides whether the next block chases the engine or the mound."
+    ),
+    stop: appendOnce(
+      task.stop,
+      "Log the best reading even on a day the set is cut short — a low number taken honestly is still information."
+    ),
+  };
+}
+
+/**
+ * The retest battery, every third Monday.
+ *
+ * Every force-plate number this programme is built on was taken once, in April.
+ * The squat block, the depth jumps, the speed squat and the calf dose are all
+ * aimed at qualities in that report, and nothing has ever asked whether any of
+ * them moved — which makes the whole thing unfalsifiable.
+ *
+ * It runs in place of the depth jump rather than beside it. The battery
+ * *contains* drop jumps; performing a training dose and then measuring the same
+ * quality on the same day would measure fatigue.
+ *
+ * Monday because readiness is highest and the day is already a force day, and
+ * every third week because that is the practical end of the two-to-four the
+ * constraint profile asks for. Jumps come first while completely fresh — a
+ * squat jump after sprinting is a different test.
+ */
+function retestTask(prefix: string, stageTitle: string, stageDescription: string, week: number): SessionTask {
+  return {
+    id: `${prefix}-retest`,
+    stage: 4,
+    stageTitle,
+    stageDescription,
+    name: "Retest battery — jumps, sprint, bar speed",
+    prescription:
+      "SJ 3 · CMJ 3 · drop jump 3 · 10 m sprint 2 · bar velocity at 94 kg and 116 kg · med-ball scoop 3",
+    cue: "Testing first, then train as normal — this replaces the depth jumps rather than joining them. Full recovery between every effort; a tired rep measures your fatigue, not your ability. The two bar-speed sets at 94 and 116 kg are also your ramp into the squat below, so nothing is done twice. Enter the numbers on the Athlete page.",
+    setup:
+      "Force plate or jump mat, a 15–20 cm box, 10 m marked out, a velocity tracker on the bar and a 3 kg med ball. Same equipment, same surface, same order every time — a retest that changes its own conditions measures the conditions.",
+    execution:
+      "Squat jump: paused half-squat, no dip, hands on hips. Countermovement jump: one continuous movement. Drop jump: step off the box, do not jump off, and chase the contact time rather than the height. Sprint from a two-point start. Bar velocity: mean concentric on the best single rep at each load. Med-ball scoop: dominant side, mark the landing.",
+    rest: "Two to three minutes between every measured effort. There is no such thing as rushing this usefully.",
+    stop:
+      "Stop for pain. A missing number this cycle is better than an injury, and better than a number taken hurt.",
+    evidence: `Week ${week} of the block, on the every-third-week cadence the constraint profile asks for (it says two to four weeks where practical). The metrics are the profile's own monitoring list, and the targets it sets are directional: drop-jump ground contact 0.348 s → under 0.30 s then under 0.25 s, drop-jump RSI 0.96 → above 1.2 then toward 1.5, squat jump 19.8 → 23+ cm, countermovement jump 32.6 → 35+ cm, CMJ contraction time 730 → under 650 ms, squat V0 1.324 → above 1.40 m/s, relative Pmax 6.82 → 7.5–8.0 W/kg.`,
   };
 }
 
@@ -884,8 +996,11 @@ export function applyBaselineProgramming(
     // The warm-up ends with whatever prepares the stage that follows it. That
     // is the arm on every day except the speed day, where the sprinting comes
     // first and the drills belong last instead.
+    // Thursday's pogos are promoted to a real dose in the training block, so
+    // the priming set comes out of the warm-up rather than sitting in front of
+    // it. Every other day keeps the primer.
     const tail = [
-      ankleStiffnessTask(prepPrefix),
+      ...(day === DAY_THURSDAY ? [] : [ankleStiffnessTask(prepPrefix)]),
       forearmPrepTask(prepPrefix),
       ...(needsSprintDrills(tasks) ? [sprintPrepTask(prepPrefix)] : []),
     ].filter(absent);
@@ -990,8 +1105,14 @@ export function applyBaselineProgramming(
   const wantsDepthJump =
     onMonday || (twoGameWeek && !tasks.some((task) => /depth jump/i.test(task.name)));
 
+  // On a retest Monday the battery stands in for the depth jump. It contains
+  // drop jumps of its own, and training the quality before measuring it would
+  // measure the fatigue rather than the quality.
+  const testingToday = onMonday && week !== null && isRetestWeek(week);
+
   const early = [
-    ...(wantsDepthJump
+    ...(testingToday ? [retestTask(prefix, stageTitle, stageDescription, week)] : []),
+    ...(wantsDepthJump && !testingToday
       ? [depthJumpTask(prefix, stageTitle, stageDescription, twoGameWeek ? 2 : 3)]
       : []),
     ...(onWednesday && !twoGameWeek
@@ -1022,6 +1143,18 @@ export function applyBaselineProgramming(
     .map(intoStage)
     .filter((addition) => !tasks.some((task) => task.id === addition.id));
 
+  /**
+   * The reactive dose goes ahead of the conditioning, not after it.
+   *
+   * Thursday's synthesised stage appends everything behind the aerobic block,
+   * which is right for two microdoses and wrong for this: a pogo after
+   * twenty-five minutes on a bike is a slow pogo, and a slow pogo trains the
+   * opposite of what the drop-jump number needs. It goes in first.
+   */
+  const reactive = (onThursday ? [reactiveDoseTask(prefix, stageTitle, stageDescription)] : [])
+    .map(intoStage)
+    .filter((addition) => !tasks.some((task) => task.id === addition.id));
+
   // On a synthesised stage there is nothing to sit behind, so the hinge opens
   // it: `stageAt - 1` makes the splice below land exactly on `stageAt`.
   let lastGym = synthesised ? stageAt - 1 : gymIndex;
@@ -1032,6 +1165,15 @@ export function applyBaselineProgramming(
     }
   }
   tasks.splice(lastGym + 1, 0, ...late);
+
+  if (reactive.length) {
+    // Immediately before the conditioning it shares a stage with, or at the
+    // head of the stage when there is no conditioning to sit in front of.
+    const conditioning = tasks.findIndex(
+      (task) => Number(task.stage) === stageNumber && /condition/i.test(String(task.stageTitle))
+    );
+    tasks.splice(conditioning === -1 ? lastGym + 1 : conditioning, 0, ...reactive);
+  }
 
   // After whatever prepares for it: the named primer on Monday, the jumps on
   // Wednesday. The jumps are the most neurally demanding thing in that
@@ -1082,8 +1224,13 @@ function weekFocus(week: number | null): string | null {
 }
 
 function withVelocityPolicy(session: Session, tasks: SessionTask[], level: ReducedLevel | null): Session {
-  return applyVelocityPolicy(
+  const policed = applyVelocityPolicy(
     { ...session, tasks },
     { week: weekFromTasks(tasks), reduced: level !== null }
   );
+  // After the policy, not before it. On a develop week the policy replaces the
+  // pulldown task's cue outright, so an instruction added ahead of it is
+  // discarded on the first pass and re-added on the second — which is a
+  // function that does not agree with itself.
+  return { ...policed, tasks: policed.tasks.map(withMeasuredPulldown) };
 }

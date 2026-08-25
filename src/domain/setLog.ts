@@ -42,12 +42,27 @@ export type DaySetLog = Record<string, TaskSetLog>;
  */
 export const LOGGABLE_STAGE = /strength|gym|lift|force|power|primer/i;
 
+/**
+ * Movements a reps-and-kilograms table is simply the wrong record for.
+ *
+ * Same reasoning as the sprint stages above, applied to the drills that sit
+ * inside a gym stage rather than beside one. A depth jump is judged on ground
+ * contact and a pogo on stiffness; neither has a load to enter, and offering
+ * the logger against them produced a progression verdict reading "first logged
+ * session — pick a load and log it" on a barefoot jumping drill.
+ *
+ * Chin-ups are deliberately not here. They carry no load either, but reps
+ * against bodyweight are exactly how they progress, and they can be weighted.
+ */
+const NOT_A_LOADED_LIFT = /pogo|hurdle hop|depth jump|vertical jump|broad jump|bound|a-skip|ankling|dribble/i;
+
 const SETS_REPS = /(\d+)\s*×\s*(\d+)/;
 const LOAD_KG = /@\s*(\d+(?:\.\d+)?)\s*(?:[–-]\s*(\d+(?:\.\d+)?)\s*)?kg/i;
 
 /** True when this task is one the athlete should be logging sets against. */
-export function isLoggable(task: Pick<SessionTask, "stageTitle" | "prescription">): boolean {
+export function isLoggable(task: Pick<SessionTask, "stageTitle" | "prescription" | "name">): boolean {
   if (!LOGGABLE_STAGE.test(String(task.stageTitle ?? ""))) return false;
+  if (NOT_A_LOADED_LIFT.test(String(task.name ?? ""))) return false;
   // A prescription with no set×rep shape is a carry, a jump or a hold — real
   // work, but not something a reps-and-load table describes.
   return SETS_REPS.test(String(task.prescription ?? ""));

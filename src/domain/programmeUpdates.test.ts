@@ -481,9 +481,14 @@ describe("warm-up microdoses", () => {
   });
 
   it("runs on every day that has a warm-up, including game day", () => {
-    for (const day of [0, 1, 2, 3, 4, 5]) {
+    // Thursday is the exception, and deliberately: the pogo is promoted to a
+    // real reactive dose in the training block that day, and priming the same
+    // movement in the warm-up as well would be the double-up this programme is
+    // supposed to avoid.
+    for (const day of [0, 1, 2, 4, 5]) {
       expect(warmUp([prep("Raise tissue temperature", "heat")], day)).toContain("Ankle stiffness pogos");
     }
+    expect(warmUp([prep("Raise tissue temperature", "heat")], 3)).not.toContain("Ankle stiffness pogos");
   });
 
   it("adds nothing to a day with no warm-up stage", () => {
@@ -784,12 +789,19 @@ describe("the real warm-up, every day of the year", () => {
     // and exactly one deviation from it, which is additive rather than a
     // reshuffle: the speed day is the common warm-up with a ninth item on the
     // end, not a different order.
+    // Three shapes now, and both deviations from the common one are still
+    // single-item: the speed day adds sprint drills on the end, and Thursday
+    // drops the pogo because it is doing it properly later in the session.
     const shapes = new Set(WARM_UPS.map(({ names }) => names.join(" → ")));
-    expect(shapes.size).toBe(2);
+    expect(shapes.size).toBe(3);
 
-    const [common, speed] = [...shapes].sort((a, b) => a.length - b.length);
+    const [thursday, common, speed] = [...shapes].sort((a, b) => a.length - b.length);
     expect(speed.startsWith(common)).toBe(true);
     expect(speed.slice(common.length)).toBe(" → Sprint drills — before the build-ups");
+    // Thursday is the common shape minus exactly one item.
+    expect(common.split(" → ").filter((name) => !thursday.split(" → ").includes(name))).toEqual([
+      "Ankle stiffness pogos",
+    ]);
   });
 
   it("never repeats a warm-up task on a day", () => {
@@ -1032,10 +1044,12 @@ describe("every task names something to do", () => {
     expect(hinge.stageTitle).toBe("Whole-Body Force");
   });
 
-  it("keeps Thursday's gym stage to the two microdose lifts", () => {
+  it("keeps Thursday's gym stage to the reactive dose and the two microdose lifts", () => {
     const thursday = applyBaselineProgramming(buildSession(weekPlan(6, PBS), 3), null, 3).tasks;
     const gym = thursday.filter((task) => task.stageTitle === "Whole-Body Force");
+    // Reactive first — it is the only thing here that has to be fast.
     expect(gym.map((task) => task.name)).toEqual([
+      "Reactive microdose — pogo and low hurdle hops",
       "Romanian deadlift — microdose",
       "Seated calf raise — microdose",
     ]);
@@ -1145,8 +1159,12 @@ describe("soleus microdose", () => {
     // One is a posterior-chain lift, the other is local ankle work. Neither
     // fatigues the other, which is what lets both sit on a recovery day.
     const gym = thursday().filter((task) => task.stageTitle === "Whole-Body Force");
-    expect(gym).toHaveLength(2);
+    expect(gym).toHaveLength(3);
     expect(gym.every((task) => /microdose/i.test(task.name))).toBe(true);
+    // The reactive work is ankle and calf, the hinge is posterior chain, the
+    // calf raise is local — none of the three fatigues the others, which is
+    // what lets all three sit on a recovery day.
+    expect(gym[0].name).toMatch(/Reactive/);
   });
 
   it("is idempotent", () => {

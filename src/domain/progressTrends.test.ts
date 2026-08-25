@@ -35,10 +35,12 @@ describe("taskNamesForDates", () => {
     // after `applyBaselineProgramming` runs. Naming from the raw session left
     // them unidentifiable, so a logged back squat matched nothing: no history
     // on the plan and no line on the progress chart.
-    const names = taskNamesForDates([dateForWeekDay(weekPlan(7), 0)]);
+    // Week 8 rather than 7: week 7 is a retest week, where the battery stands
+    // in for the depth jump.
+    const names = taskNamesForDates([dateForWeekDay(weekPlan(8), 0)]);
     expect(Object.values(names)).toContain("Back squat");
     expect(Object.values(names).some((name) => /Depth jump/.test(name))).toBe(true);
-    expect(names["w7-d0-back-squat"]).toBe("Back squat");
+    expect(names["w8-d0-back-squat"]).toBe("Back squat");
   });
 
 
