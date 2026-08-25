@@ -10,6 +10,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { RecoverySettings } from "./RecoverySettings";
+import { DEFAULT_TEAM_TRAINING } from "../../src/domain/teamTraining";
 import { EQUIPMENT_LABELS, INTENT_PERCENT, RecoveryEquipment } from "../../src/domain/recoveryProtocol";
 
 afterEach(cleanup);
@@ -21,6 +22,8 @@ describe("recovery settings", () => {
       <RecoverySettings
         equipment={["cups", "scraper", "heat"]}
         intentPercent={INTENT_PERCENT}
+        teamTraining={DEFAULT_TEAM_TRAINING}
+        onTeamTraining={() => {}}
         onEquipment={(next) => changes.push(next)}
         onIntentPercent={() => {}}
       />
@@ -35,6 +38,8 @@ describe("recovery settings", () => {
       <RecoverySettings
         equipment={["cups"]}
         intentPercent={INTENT_PERCENT}
+        teamTraining={DEFAULT_TEAM_TRAINING}
+        onTeamTraining={() => {}}
         onEquipment={(next) => changes.push(next)}
         onIntentPercent={() => {}}
       />
@@ -48,6 +53,8 @@ describe("recovery settings", () => {
       <RecoverySettings
         equipment={["cups"]}
         intentPercent={INTENT_PERCENT}
+        teamTraining={DEFAULT_TEAM_TRAINING}
+        onTeamTraining={() => {}}
         onEquipment={() => {}}
         onIntentPercent={() => {}}
       />
@@ -64,6 +71,8 @@ describe("recovery settings", () => {
       <RecoverySettings
         equipment={[]}
         intentPercent={INTENT_PERCENT}
+        teamTraining={DEFAULT_TEAM_TRAINING}
+        onTeamTraining={() => {}}
         onEquipment={() => {}}
         onIntentPercent={(next) => changes.push(next)}
       />

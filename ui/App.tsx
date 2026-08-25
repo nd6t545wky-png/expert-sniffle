@@ -67,6 +67,7 @@ import {
 } from "../src/domain/recoveryProtocol";
 import { RecoverySettings } from "./components/RecoverySettings";
 import { applyRecoveryProtocol } from "../src/domain/recoveryTasks";
+import { applyTeamTraining, readTeamTraining } from "../src/domain/teamTraining";
 import { PhysioSummary, SHARE_DAYS, buildPhysioSummary } from "../src/domain/physioShare";
 import {
   BodyRegion,
@@ -334,6 +335,17 @@ export function App() {
     () => readIntentPercent((state?.profile as { intentPercent?: unknown } | undefined)?.intentPercent),
     [state]
   );
+  /**
+   * Which nights the athlete is at club training.
+   *
+   * Saved rather than hardcoded: club schedules move, and the plan has to
+   * follow without a deploy. The default is what is true now — Coomera Cubs on
+   * Tuesdays, from the week it started.
+   */
+  const teamTraining = useMemo(
+    () => readTeamTraining((state?.profile as { teamTraining?: unknown } | undefined)?.teamTraining),
+    [state]
+  );
 
   /**
    * Every throwing session and game the athlete has logged, as outings.
@@ -408,7 +420,12 @@ export function App() {
   );
 
   const sessionWithRecovery = useMemo(() => {
-    if (!state || !selectedWeekPlan) return { session: null as Session | null, note: null as string | null };
+    if (!state || !selectedWeekPlan)
+      return {
+        session: null as Session | null,
+        note: null as string | null,
+        teamNote: null as string | null,
+      };
     try {
       // The programme's own session, then the adjustments driven by the
       // athlete's testing reports. Readiness scaling has already been applied
@@ -451,9 +468,18 @@ export function App() {
           }
         : null;
 
+      // Club training goes in before recovery and soreness, so both of those
+      // see the day as it will actually be trained. A Tuesday that now carries
+      // Cubs practice is not the Tuesday the programme costed.
+      const team = applyTeamTraining(programmed, {
+        day: selectedDay,
+        date,
+        settings: teamTraining,
+      });
+
       // Recovery next, so it lands on the day as it will actually be trained
       // — including any readiness reduction already applied above.
-      const merged = applyRecoveryProtocol(programmed, recovery, {
+      const merged = applyRecoveryProtocol(team.session, recovery, {
         gym,
         resolvedTaskIds: resolvedOn(date),
       });
@@ -466,6 +492,7 @@ export function App() {
       return {
         session: managed.session,
         note: merged.note,
+        teamNote: team.note,
         sorenessNote: managed.note,
         changes: managed.changes,
         referral: managed.referral,
@@ -474,6 +501,7 @@ export function App() {
       return {
         session: null as Session | null,
         note: null as string | null,
+        teamNote: null as string | null,
         sorenessNote: null as string | null,
         changes: [] as SorenessChange[],
         referral: null as string | null,
@@ -488,6 +516,7 @@ export function App() {
     date,
     knownBodyweight,
     recoveryEquipment,
+    teamTraining,
     soreness,
     tasksOn,
     resolvedOn,
@@ -497,9 +526,12 @@ export function App() {
   // Two separate sentences rather than one joined: the recovery note says what
   // the day is recovering from, the soreness note says what was changed about
   // it, and running them together reads as one explanation for both.
-  const recoveryNote = [sessionWithRecovery.note, sessionWithRecovery.sorenessNote]
-    .filter(Boolean)
-    .join(" ") || null;
+  // The club note leads: it explains why the day looks different from the
+  // programme, and the other two explain what was then done to it.
+  const recoveryNote =
+    [sessionWithRecovery.teamNote, sessionWithRecovery.note, sessionWithRecovery.sorenessNote]
+      .filter(Boolean)
+      .join(" ") || null;
 
   // The plan renders stages, cues and detail panels, so it needs the whole
   // task, not a name/prescription pair.
@@ -1388,6 +1420,13 @@ export function App() {
         <RecoverySettings
           equipment={recoveryEquipment}
           intentPercent={intentPercent}
+          teamTraining={teamTraining}
+          onTeamTraining={(next) =>
+            update((draft) => ({
+              ...draft,
+              profile: { ...(draft.profile ?? {}), teamTraining: next },
+            }))
+          }
           onEquipment={(next) =>
             update((draft) => ({
               ...draft,

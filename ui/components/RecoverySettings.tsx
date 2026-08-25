@@ -20,6 +20,7 @@ import {
   RecoveryEquipment,
   TRIGGER,
 } from "../../src/domain/recoveryProtocol";
+import { TeamTraining, WEEKDAY_LABELS } from "../../src/domain/teamTraining";
 import { Card, CardHead } from "./Page";
 
 const EQUIPMENT_IDS = Object.keys(EQUIPMENT_LABELS) as RecoveryEquipment[];
@@ -36,21 +37,86 @@ const INTENT_HINT: Record<string, string> = {
 export interface RecoverySettingsProps {
   equipment: readonly RecoveryEquipment[];
   intentPercent: Record<string, number>;
+  teamTraining: TeamTraining;
   onEquipment: (next: RecoveryEquipment[]) => void;
   onIntentPercent: (next: Record<string, number>) => void;
+  onTeamTraining: (next: TeamTraining) => void;
 }
 
 export function RecoverySettings({
   equipment,
   intentPercent,
+  teamTraining,
   onEquipment,
   onIntentPercent,
+  onTeamTraining,
 }: RecoverySettingsProps) {
   const owned = new Set(equipment);
   const [floor, ceiling] = INTENT_PERCENT_RANGE;
 
+  const nights = new Set(teamTraining.days);
+
   return (
     <>
+      {/* Club training is the one thing on this page that changes the session
+          itself rather than how it is interpreted, so it goes first. */}
+      <Card>
+        <CardHead
+          title="Club training nights"
+          detail="On a training night, practice throwing replaces the solo set rather than being added on top of it."
+        />
+        <ul className="kit-list">
+          {WEEKDAY_LABELS.map((label, day) => (
+            <li key={label}>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={nights.has(day)}
+                  onChange={(event) =>
+                    onTeamTraining({
+                      ...teamTraining,
+                      days: event.target.checked
+                        ? [...teamTraining.days, day].sort((a, b) => a - b)
+                        : teamTraining.days.filter((value) => value !== day),
+                    })
+                  }
+                />
+                <span>{label}</span>
+              </label>
+            </li>
+          ))}
+        </ul>
+        <div className="intent-grid">
+          <div className="field">
+            <label htmlFor="team-club">Club</label>
+            <input
+              id="team-club"
+              type="text"
+              maxLength={40}
+              value={teamTraining.club}
+              onChange={(event) => onTeamTraining({ ...teamTraining, club: event.target.value })}
+            />
+            <small>Named on the day, so the plan says whose session it is.</small>
+          </div>
+          <div className="field">
+            <label htmlFor="team-from">Training started</label>
+            <input
+              id="team-from"
+              type="date"
+              value={teamTraining.from}
+              onChange={(event) =>
+                onTeamTraining({ ...teamTraining, from: (event.target.value || teamTraining.from) as TeamTraining["from"] })
+              }
+            />
+            <small>Days before this keep the plan as it was written, so past weeks stay honest.</small>
+          </div>
+        </div>
+        <p className="recovery-caveat">
+          The summer weeks were written around club practice already and are left alone — this only
+          changes days the programme thought you were training on your own.
+        </p>
+      </Card>
+
       <Card>
         <CardHead
           title="Recovery kit"
