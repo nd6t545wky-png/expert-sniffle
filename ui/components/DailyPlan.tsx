@@ -54,6 +54,12 @@ export interface DailyPlanProps {
    * of which outing it is so the tasks are not a mystery.
    */
   recoveryNote?: string | null;
+  /**
+   * A game in a week the programme planned as having none — a finals series,
+   * usually. Loud rather than folded into the note line: this one says the
+   * whole week may be wrong, not that today was adjusted.
+   */
+  scheduleWarning?: string | null;
   sessionStress?: string;
   completed: Record<IsoDate, string[] | undefined>;
   skipped: Record<IsoDate, Record<string, SkippedTask> | undefined>;
@@ -101,6 +107,7 @@ export function DailyPlan({
   sessionDescription,
   sessionDuration,
   recoveryNote,
+  scheduleWarning,
   sessionStress,
   completed,
   skipped,
@@ -217,6 +224,13 @@ export function DailyPlan({
       {/* Where the day sits in a recovery protocol, when it sits in one. The
           work itself is in the task list below; this only says what it is
           recovering from, so the extra tasks are not a mystery. */}
+      {scheduleWarning && (
+        <Alert tone="warn" role="alert">
+          <strong>Check the schedule</strong>
+          <p>{scheduleWarning}</p>
+        </Alert>
+      )}
+
       {recoveryNote && <p className="plan-recovery-note">{recoveryNote}</p>}
 
       {dayTabs && onSelectDay && selectedDay !== undefined && (

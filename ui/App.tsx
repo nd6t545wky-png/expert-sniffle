@@ -66,8 +66,10 @@ import {
   restProblems,
 } from "../src/domain/recoveryProtocol";
 import { RecoverySettings } from "./components/RecoverySettings";
+import { FixtureSettings } from "./components/FixtureSettings";
 import { applyRecoveryProtocol } from "../src/domain/recoveryTasks";
 import { applyTeamTraining, readTeamTraining } from "../src/domain/teamTraining";
+import { allFixtures, readAthleteFixtures, scheduleClash } from "../src/domain/fixtures";
 import { PhysioSummary, SHARE_DAYS, buildPhysioSummary } from "../src/domain/physioShare";
 import {
   BodyRegion,
@@ -346,6 +348,18 @@ export function App() {
     () => readTeamTraining((state?.profile as { teamTraining?: unknown } | undefined)?.teamTraining),
     [state]
   );
+  /**
+   * The season, as far as anyone can actually confirm it.
+   *
+   * The built-in draw stops at Round 19 and neither league publishes anything
+   * this app can read, so anything past that — a finals series especially —
+   * has to come from the athlete.
+   */
+  const athleteFixtures = useMemo(
+    () => readAthleteFixtures((state?.profile as { fixtures?: unknown } | undefined)?.fixtures),
+    [state]
+  );
+  const fixtures = useMemo(() => allFixtures(athleteFixtures), [athleteFixtures]);
 
   /**
    * Every throwing session and game the athlete has logged, as outings.
@@ -526,6 +540,26 @@ export function App() {
   // Two separate sentences rather than one joined: the recovery note says what
   // the day is recovering from, the soreness note says what was changed about
   // it, and running them together reads as one explanation for both.
+  /**
+   * A game in a week the programme planned as having none.
+   *
+   * Surfaced rather than acted on: the phase table is fixed, and moving the
+   * back half of the year because one date was entered is not a call to make
+   * on the athlete's behalf.
+   */
+  const clash = useMemo(() => {
+    if (!selectedWeekPlan) return null;
+    return scheduleClash(
+      {
+        start: dateForWeekDay(selectedWeekPlan, 0),
+        end: dateForWeekDay(selectedWeekPlan, 6),
+        phaseId: String(selectedWeekPlan.phase.id),
+        phaseName: String(selectedWeekPlan.phase.name),
+      },
+      fixtures
+    );
+  }, [selectedWeekPlan, fixtures]);
+
   // The club note leads: it explains why the day looks different from the
   // programme, and the other two explain what was then done to it.
   const recoveryNote =
@@ -1162,6 +1196,7 @@ export function App() {
           plan={plan}
           submission={submission}
           recoveryNote={recoveryNote}
+          scheduleWarning={clash?.message ?? null}
           setLog={setLog}
           progression={progression}
           onLogSets={(task, sets) =>
@@ -1411,6 +1446,19 @@ export function App() {
             update((draft) => ({
               ...draft,
               armExams: readExams(draft.armExams).filter((item) => item.id !== id),
+            }))
+          }
+        />
+      )}
+
+      {page === "profile" && (
+        <FixtureSettings
+          fixtures={athleteFixtures}
+          today={today.openDate}
+          onChange={(next) =>
+            update((draft) => ({
+              ...draft,
+              profile: { ...(draft.profile ?? {}), fixtures: next },
             }))
           }
         />
