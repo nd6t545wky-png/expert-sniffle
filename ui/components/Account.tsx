@@ -145,8 +145,15 @@ export function Account({
           {/* `.cloud-actions` is the prototype's button row — without it these
               sit as two full-width blocks with a stray text node between. */}
           <div className="cloud-actions">
-            <button type="button" className="btn btn-dark" onClick={signInWithGoogle}>
-              Continue with Google
+            {/* Through runAuth like the passkey button: starting sign-in is a
+                request that can fail, and it used to fail silently. */}
+            <button
+              type="button"
+              className="btn btn-dark"
+              disabled={authBusy !== ""}
+              onClick={() => runAuth("google-signin", signInWithGoogle)}
+            >
+              {authBusy === "google-signin" ? "Opening Google…" : "Continue with Google"}
             </button>
             <button
               type="button"

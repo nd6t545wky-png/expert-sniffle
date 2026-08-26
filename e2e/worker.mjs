@@ -109,6 +109,44 @@ if (!(await waitForReady())) {
   check("history refuses a request with no recovery key", history.status === 401, `got ${history.status}`);
 }
 
+// --------------------------------------------------- the sign-in route itself
+//
+// The app's Google button once navigated the page to `/api/auth/sign-in/google`
+// — a route better-auth does not serve. It answered 404 with an empty body, so
+// the button led to a blank page and nothing ever reached Google. Nothing
+// caught it, because every test that touched auth stubbed the route it was
+// asking for. These two checks assert the shape of the real thing: there is no
+// per-provider sign-in route, and the one that does exist is a POST.
+//
+// Google credentials are deliberately not needed here. Whether the provider is
+// configured is a deployment question; whether the route exists is not.
+{
+  const perProvider = await fetch(`${BASE}/api/auth/sign-in/google`);
+  check(
+    "there is no per-provider sign-in route to navigate to",
+    perProvider.status === 404,
+    `got ${perProvider.status} — if this now exists, the client may use it`
+  );
+
+  const social = await fetch(`${BASE}/api/auth/sign-in/social`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Origin: ORIGIN },
+    body: JSON.stringify({ provider: "google", callbackURL: `${ORIGIN}/next/` }),
+  });
+  check(
+    "social sign-in is a POST, and is routed",
+    social.status !== 404,
+    `got 404 — the client posts here, so a 404 is a dead sign-in button`
+  );
+
+  const wrongMethod = await fetch(`${BASE}/api/auth/sign-in/social`);
+  check(
+    "and is not reachable by navigating to it",
+    wrongMethod.status !== 200,
+    `got ${wrongMethod.status}`
+  );
+}
+
 // -------------------------------------------------------- snapshot round trip
 {
   const key = recoveryKey();

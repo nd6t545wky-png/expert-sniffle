@@ -34,9 +34,33 @@ export function passkeysSupported(): boolean {
   return typeof window !== "undefined" && "PublicKeyCredential" in window;
 }
 
-export function signInWithGoogle(): void {
-  // Full-page redirect: the provider will bounce back to the app.
-  window.location.href = `${AUTH_BASE}/sign-in/google`;
+/**
+ * Start Google sign-in.
+ *
+ * better-auth has no per-provider sign-in route: social sign-in is a POST to
+ * `/sign-in/social` naming the provider, which answers with the provider's
+ * authorization URL and sets the state cookie the callback is checked against.
+ * Navigating straight to `/sign-in/google` — which is what this used to do —
+ * simply 404s, so the button took the whole page to a blank error and no
+ * request ever reached Google.
+ *
+ * The redirect has to happen here rather than through `fetch`'s own following:
+ * the response is JSON with a `url`, not a 302, precisely so the caller can
+ * decide when to leave the page.
+ */
+export async function signInWithGoogle(): Promise<void> {
+  const { url } = await authFetch<{ url?: string; redirect?: boolean }>("/sign-in/social", {
+    method: "POST",
+    body: JSON.stringify({
+      provider: "google",
+      // Come back to the page the athlete pressed the button on. The hash is
+      // dropped deliberately — better-auth appends its own query string, and a
+      // fragment left on the end survives the round trip into the callback URL.
+      callbackURL: `${window.location.origin}${window.location.pathname}`,
+    }),
+  });
+  if (!url) throw new Error("Google sign-in did not return a sign-in link. Try again in a moment.");
+  window.location.href = url;
 }
 
 export async function signOut(): Promise<void> {
