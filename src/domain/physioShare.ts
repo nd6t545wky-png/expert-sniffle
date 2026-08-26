@@ -26,11 +26,25 @@
  *
  * What it deliberately leaves out: anything the physio has no business seeing
  * to do their job. This is a clinical summary, not a copy of the workspace.
+ *
+ * Blood results are the one part the athlete opts into per link rather than
+ * getting by default. Everything else here is training data the athlete
+ * generates; pathology is not, and a link already in someone's hands must not
+ * quietly start disclosing more than it did when it was sent.
  */
 
 import { IsoDate } from "./state";
 import { ArmExam, armScore, erIrRatio, limbSymmetry } from "./armCare";
 import { addDays } from "./calendar";
+import {
+  BloodPanel,
+  DrawContext,
+  Flag,
+  describeContext,
+  formatRange,
+  formatValue,
+  readPanel,
+} from "./bloods";
 
 export interface PhysioDay {
   date: IsoDate;
@@ -75,6 +89,45 @@ export interface PhysioSummary {
    * around it.
    */
   painReports?: PhysioPainReport[];
+  /**
+   * Blood work, when the athlete has chosen to include it.
+   *
+   * Off unless asked for, and asked for per link rather than once: everything
+   * else in this summary is training data the athlete generates, and pathology
+   * is not. A link created before the athlete ticked the box keeps carrying
+   * what it carried when it was sent.
+   */
+  bloodPanels?: PhysioBloodPanel[];
+}
+
+/**
+ * One draw, flattened for a reader who has no access to the marker table.
+ *
+ * Everything the viewer needs to render a row travels with the row — label,
+ * unit, the range the value was actually judged against, and which side of it
+ * the value fell. No marker ids, so the viewer never has to look anything up,
+ * and nothing here is an interpretation.
+ */
+export interface PhysioBloodPanel {
+  date: IsoDate;
+  lab?: string;
+  /** The training week around the draw, in the athlete's own summary line. */
+  context?: string;
+  markers: PhysioBloodMarker[];
+}
+
+export interface PhysioBloodMarker {
+  label: string;
+  unit: string;
+  value: number;
+  /** As shown to the athlete, at the marker's own precision. */
+  display: string;
+  range: string;
+  /** True when the range came from the athlete's own report. */
+  ownRange: boolean;
+  flag: Flag;
+  /** The same marker's previous value, where there is one. */
+  previous?: { display: string; date: IsoDate };
 }
 
 export interface PhysioPainReport {
@@ -167,9 +220,29 @@ export interface PhysioSummaryInput {
   restProblems?: string[];
   /** Pain reports over the window, newest first. */
   painReports?: PhysioPainReport[];
+  /**
+   * Blood work, only when the athlete asked for it on this link.
+   *
+   * Absent means absent — there is no "include everything" default here, and
+   * passing an empty list is the same as passing nothing.
+   */
+  bloods?: {
+    panels: readonly BloodPanel[];
+    /** The training week around a draw, for the line beside the results. */
+    context?: (date: IsoDate) => DrawContext;
+  };
   /** Override the window, for tests. */
   days?: number;
 }
+
+/**
+ * How many draws a share carries.
+ *
+ * Panels are months apart, so a date window would usually reduce to one row.
+ * Four is enough to see a ferritin moving without turning the summary into a
+ * medical history.
+ */
+export const SHARE_PANELS = 4;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
@@ -204,6 +277,42 @@ function throwingFrom(entry: unknown): PhysioDay["throwing"] {
   const intent = typeof entry.intent === "string" ? entry.intent : null;
   if (!Number.isFinite(throws) && !intent) return undefined;
   return { throws: Number.isFinite(throws) ? throws : null, intent };
+}
+
+/**
+ * Flatten the athlete's panels for a reader who cannot look anything up.
+ *
+ * Only the values the laboratory actually reported travel — a marker absent
+ * from a panel stays absent rather than arriving as a blank row, because a
+ * column of dashes reads as "tested and normal" to someone skimming.
+ */
+function bloodPanelsFrom(input: PhysioSummaryInput["bloods"]): PhysioBloodPanel[] {
+  const panels = [...(input?.panels ?? [])].sort((a, b) => (a.date < b.date ? 1 : -1));
+  return panels.slice(0, SHARE_PANELS).map((panel) => {
+    const context = input?.context?.(panel.date);
+    return {
+      date: panel.date,
+      ...(panel.lab ? { lab: panel.lab } : {}),
+      ...(context ? { context: describeContext(context) } : {}),
+      markers: readPanel(panel, panels).map((reading) => ({
+        label: reading.marker.label,
+        unit: reading.marker.unit,
+        value: reading.result.value,
+        display: formatValue(reading.marker, reading.result.value),
+        range: formatRange(reading),
+        ownRange: reading.ownRange,
+        flag: reading.flag,
+        ...(reading.previous
+          ? {
+              previous: {
+                display: formatValue(reading.marker, reading.previous.value),
+                date: reading.previous.date,
+              },
+            }
+          : {}),
+      })),
+    };
+  });
 }
 
 /**
@@ -285,6 +394,8 @@ export function buildPhysioSummary(input: PhysioSummaryInput): PhysioSummary {
       limbSymmetryPercent: limbSymmetry(exam)?.value ?? null,
     }));
 
+  const bloodPanels = bloodPanelsFrom(input.bloods);
+
   return {
     version: 1,
     athlete: input.athlete?.trim() || "Athlete",
@@ -295,6 +406,7 @@ export function buildPhysioSummary(input: PhysioSummaryInput): PhysioSummary {
     ...(input.workload ? { workload: input.workload } : {}),
     restProblems: input.restProblems ?? [],
     ...(input.painReports?.length ? { painReports: input.painReports } : {}),
+    ...(bloodPanels.length ? { bloodPanels } : {}),
   };
 }
 
@@ -321,6 +433,18 @@ export function readPhysioSummary(value: unknown): PhysioSummary | null {
       : [],
     ...(Array.isArray(value.painReports)
       ? { painReports: value.painReports.filter(isRecord) as unknown as PhysioPainReport[] }
+      : {}),
+    // A panel with no markers left after validation is dropped rather than
+    // rendered as an empty draw, which would read as "tested, nothing found".
+    ...(Array.isArray(value.bloodPanels)
+      ? {
+          bloodPanels: (value.bloodPanels.filter(isRecord) as unknown as PhysioBloodPanel[])
+            .map((panel) => ({
+              ...panel,
+              markers: Array.isArray(panel.markers) ? panel.markers.filter(isRecord) : [],
+            }))
+            .filter((panel) => typeof panel.date === "string" && panel.markers.length > 0),
+        }
       : {}),
   };
 }

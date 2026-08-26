@@ -765,7 +765,7 @@ export function App() {
    * moment of publishing, and building it on every render would walk four weeks
    * of history for a card that is usually closed.
    */
-  const buildPhysioSummaryNow = useCallback((): PhysioSummary => {
+  const buildPhysioSummaryNow = useCallback((options: { bloods: boolean }): PhysioSummary => {
     const profile = (state?.profile ?? {}) as { name?: unknown; throwingHand?: unknown };
     const acute = totalThrowLoad(throwingEntries.slice(-7));
     const chronic = totalThrowLoad(throwingEntries.slice(-28)) / 4;
@@ -813,6 +813,10 @@ export function App() {
             ...(report.resolvedOn ? { resolvedOn: report.resolvedOn } : {}),
           };
         }),
+      // Only when this link was created — or amended — to carry them.
+      ...(options.bloods && bloodPanels.length
+        ? { bloods: { panels: bloodPanels, context: bloodContext } }
+        : {}),
     });
   }, [
     state,
@@ -825,6 +829,8 @@ export function App() {
     recoveryEquipment,
     armExams,
     sorenessReports,
+    bloodPanels,
+    bloodContext,
   ]);
 
 
@@ -1058,7 +1064,9 @@ export function App() {
       // A failed refresh is not worth telling the athlete about mid-session:
       // the link still opens, it simply shows the previous snapshot, and the
       // next change tries again.
-      publishShare(api, share, buildPhysioSummaryNow()).catch(() => {
+      // The link's own answer about blood results, not the card's: a
+      // background refresh must never widen what an existing link discloses.
+      publishShare(api, share, buildPhysioSummaryNow({ bloods: share.bloods === true })).catch(() => {
         lastShared.current = "";
       });
     }, wait);
@@ -1582,7 +1590,12 @@ export function App() {
       {/* Placed after the arm screen, because that is most of what the link
           carries and it explains what the physio will be looking at. */}
       {page === "profile" && (
-        <PhysioShare api={api} hasSyncKey={isValidSyncKey(syncKey)} buildSummary={buildPhysioSummaryNow} />
+        <PhysioShare
+          api={api}
+          hasSyncKey={isValidSyncKey(syncKey)}
+          buildSummary={buildPhysioSummaryNow}
+          hasBloods={bloodPanels.length > 0}
+        />
       )}
 
       {page === "profile" && (

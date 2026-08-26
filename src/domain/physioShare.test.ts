@@ -14,6 +14,7 @@
 import { describe, expect, it } from "vitest";
 import {
   SHARE_DAYS,
+  SHARE_PANELS,
   buildPhysioSummary,
   newShareId,
   newShareKey,
@@ -230,6 +231,95 @@ describe("the summary", () => {
   });
 });
 
+describe("blood results, which travel only when asked for", () => {
+  const panel = (date: string, results: Record<string, { value: number; low?: number; high?: number }>) => ({
+    date,
+    results,
+  });
+  const panels = [
+    panel("2026-08-14", { ferritin: { value: 24, low: 30, high: 300 }, ck: { value: 1420 } }),
+    panel("2026-02-10", { ferritin: { value: 58, low: 30, high: 300 } }),
+  ];
+
+  it("is absent unless the caller passes any", () => {
+    expect(buildPhysioSummary({ today: TODAY }).bloodPanels).toBeUndefined();
+    expect(buildPhysioSummary({ today: TODAY, bloods: { panels: [] } }).bloodPanels).toBeUndefined();
+  });
+
+  it("flattens a panel so the reader needs no marker table", () => {
+    const [latest] = buildPhysioSummary({ today: TODAY, bloods: { panels } }).bloodPanels!;
+    expect(latest.date).toBe("2026-08-14");
+    const ferritin = latest.markers.find((marker) => marker.label === "Ferritin")!;
+    expect(ferritin).toMatchObject({
+      unit: "µg/L",
+      display: "24 µg/L",
+      range: "30–300",
+      ownRange: true,
+      flag: "below",
+    });
+  });
+
+  it("carries the previous draw, which is what makes one number mean anything", () => {
+    const [latest] = buildPhysioSummary({ today: TODAY, bloods: { panels } }).bloodPanels!;
+    const ferritin = latest.markers.find((marker) => marker.label === "Ferritin")!;
+    expect(ferritin.previous).toEqual({ display: "58 µg/L", date: "2026-02-10" });
+  });
+
+  it("does not call a trained athlete's creatine kinase abnormal", () => {
+    const [latest] = buildPhysioSummary({ today: TODAY, bloods: { panels } }).bloodPanels!;
+    expect(latest.markers.find((marker) => marker.label === "Creatine kinase")!.flag).toBe(
+      "expected-to-vary"
+    );
+  });
+
+  it("says where the range came from, because labs differ", () => {
+    const [latest] = buildPhysioSummary({ today: TODAY, bloods: { panels } }).bloodPanels!;
+    expect(latest.markers.find((marker) => marker.label === "Ferritin")!.ownRange).toBe(true);
+    expect(latest.markers.find((marker) => marker.label === "Creatine kinase")!.ownRange).toBe(false);
+  });
+
+  it("includes the training week around the draw when it can", () => {
+    const summary = buildPhysioSummary({
+      today: TODAY,
+      bloods: {
+        panels,
+        context: () => ({
+          daysSinceHardThrow: 2,
+          hardThrowOn: "2026-08-12",
+          throwsInWeek: 92,
+          throwingDays: 3,
+          meanSleepHours: 7.4,
+          tonnageKg: 5200,
+        }),
+      },
+    });
+    expect(summary.bloodPanels![0].context).toMatch(/2 days after the last high-intent throwing day/);
+  });
+
+  it("leaves the context line off rather than inventing one", () => {
+    const summary = buildPhysioSummary({ today: TODAY, bloods: { panels } });
+    expect(summary.bloodPanels![0].context).toBeUndefined();
+  });
+
+  it("carries newest first, and not a medical history", () => {
+    const many = Array.from({ length: 9 }, (_, index) =>
+      panel(`2026-0${index + 1}-01`, { ferritin: { value: 40 + index } })
+    );
+    const out = buildPhysioSummary({ today: TODAY, bloods: { panels: many } }).bloodPanels!;
+    expect(out).toHaveLength(SHARE_PANELS);
+    expect(out[0].date).toBe("2026-09-01");
+    expect(out.map((entry) => entry.date)).toEqual([...out.map((entry) => entry.date)].sort().reverse());
+  });
+
+  it("carries nothing else out of the workspace with them", () => {
+    const summary = buildPhysioSummary({ today: TODAY, bloods: { panels } });
+    const serialised = JSON.stringify(summary.bloodPanels);
+    // No marker ids, no raw panel objects, nothing the athlete did not enter.
+    expect(serialised).not.toContain("ferritin");
+    expect(serialised).not.toContain("results");
+  });
+});
+
 describe("reading a summary back", () => {
   it("refuses anything that is not one", () => {
     expect(readPhysioSummary(null)).toBeNull();
@@ -242,6 +332,38 @@ describe("reading a summary back", () => {
     const summary = readPhysioSummary({ version: 1, days: [], armScreens: [] });
     expect(summary).toMatchObject({ athlete: "Athlete", restProblems: [] });
     expect(summary?.workload).toBeUndefined();
+  });
+
+  it("drops a blood panel that arrives with nothing in it", () => {
+    // An empty draw would read to a physio as "tested, nothing found".
+    const summary = readPhysioSummary({
+      version: 1,
+      days: [],
+      armScreens: [],
+      bloodPanels: [
+        { date: "2026-08-14", markers: [] },
+        { date: "2026-02-10", markers: [{ label: "Ferritin", value: 58 }] },
+        { markers: [{ label: "Ferritin", value: 12 }] },
+        "not a panel",
+      ],
+    });
+    expect(summary?.bloodPanels?.map((panel) => panel.date)).toEqual(["2026-02-10"]);
+  });
+
+  it("leaves blood results absent when the payload has none", () => {
+    expect(readPhysioSummary({ version: 1, days: [], armScreens: [] })?.bloodPanels).toBeUndefined();
+  });
+
+  it("round-trips blood results through encryption unchanged", async () => {
+    const original = buildPhysioSummary({
+      today: TODAY,
+      bloods: {
+        panels: [{ date: "2026-08-14", lab: "QML", results: { ferritin: { value: 24, low: 30, high: 300 } } }],
+      },
+    });
+    const key = newShareKey();
+    const back = readPhysioSummary(await decryptJsonEnvelope(await encryptJsonEnvelope(original, key), key));
+    expect(back?.bloodPanels).toEqual(original.bloodPanels);
   });
 
   it("round-trips through encryption unchanged", async () => {

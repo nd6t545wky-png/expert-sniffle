@@ -30,6 +30,19 @@ export interface StoredShare {
   id: string;
   key: string;
   label: string;
+  /**
+   * Whether this link carries blood results.
+   *
+   * Stored with the link rather than held in the component, because the app
+   * re-publishes a live share on every sync. If the choice lived only in the
+   * card, a background refresh would decide it, and the answer it picked would
+   * be whatever the default happened to be.
+   *
+   * Absent means no. A link created before this existed was sent on the
+   * understanding it carried training data, and it keeps that promise until
+   * the athlete says otherwise.
+   */
+  bloods?: boolean;
 }
 
 export function readStoredShare(storage: Storage = window.localStorage): StoredShare | null {
@@ -38,7 +51,12 @@ export function readStoredShare(storage: Storage = window.localStorage): StoredS
     if (!raw) return null;
     const parsed = JSON.parse(raw) as Partial<StoredShare>;
     if (typeof parsed?.id !== "string" || typeof parsed?.key !== "string") return null;
-    return { id: parsed.id, key: parsed.key, label: String(parsed.label ?? "") };
+    return {
+      id: parsed.id,
+      key: parsed.key,
+      label: String(parsed.label ?? ""),
+      bloods: parsed.bloods === true,
+    };
   } catch {
     return null;
   }
@@ -73,12 +91,16 @@ export interface PhysioShareProps {
   api: PitchingOsApi;
   hasSyncKey: boolean;
   /** Built on demand, so a link always carries the current state. */
-  buildSummary: () => PhysioSummary;
+  buildSummary: (options: { bloods: boolean }) => PhysioSummary;
+  /** Whether there is any blood work to offer. Hides the choice when there is not. */
+  hasBloods?: boolean;
   origin?: string;
 }
 
-export function PhysioShare({ api, hasSyncKey, buildSummary, origin }: PhysioShareProps) {
+export function PhysioShare({ api, hasSyncKey, buildSummary, hasBloods = false, origin }: PhysioShareProps) {
   const [share, setShare] = useState<StoredShare | null>(() => readStoredShare());
+  /** What a *new* link would carry. An existing link uses its own stored answer. */
+  const [includeBloods, setIncludeBloods] = useState(false);
   const [records, setRecords] = useState<ShareRecord[]>([]);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -98,8 +120,9 @@ export function PhysioShare({ api, hasSyncKey, buildSummary, origin }: PhysioSha
     setBusy(true);
     setMessage(null);
     try {
-      const next: StoredShare = { id: newShareId(), key: newShareKey(), label: "Physio" };
-      await publishShare(api, next, buildSummary());
+      const bloods = hasBloods && includeBloods;
+      const next: StoredShare = { id: newShareId(), key: newShareKey(), label: "Physio", bloods };
+      await publishShare(api, next, buildSummary({ bloods }));
       writeStoredShare(next);
       setShare(next);
       setMessage("Link created. Send the whole link — the part after the # is what opens it.");
@@ -116,8 +139,42 @@ export function PhysioShare({ api, hasSyncKey, buildSummary, origin }: PhysioSha
     setBusy(true);
     setMessage(null);
     try {
-      await publishShare(api, share, buildSummary());
+      await publishShare(api, share, buildSummary({ bloods: share.bloods === true }));
       setMessage("Updated. The link your physio already has now shows today.");
+      refreshList();
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Could not update the link.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  /**
+   * Change what an existing link discloses.
+   *
+   * Republished on the spot rather than left waiting for "Update now": both
+   * directions are the kind of change that should not sit in a half-applied
+   * state — turning it on is a deliberate act of disclosure, and turning it
+   * off is someone wanting the results out of a link that is already sent.
+   */
+  const setBloods = async (next: boolean) => {
+    if (!share) {
+      setIncludeBloods(next);
+      return;
+    }
+    setBusy(true);
+    setMessage(null);
+    const updated: StoredShare = { ...share, bloods: next };
+    try {
+      await publishShare(api, updated, buildSummary({ bloods: next }));
+      writeStoredShare(updated);
+      setShare(updated);
+      setIncludeBloods(next);
+      setMessage(
+        next
+          ? "Blood results added. The link your physio already has now carries them."
+          : "Blood results removed. The link no longer carries them."
+      );
       refreshList();
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Could not update the link.");
@@ -178,6 +235,29 @@ export function PhysioShare({ api, hasSyncKey, buildSummary, origin }: PhysioSha
             key that only lives in the link. The server hosting it cannot read it, and neither can
             anyone the link is not sent to.
           </p>
+
+          {/* Blood work is the one thing here that is not training data the
+              athlete generated, so it is asked for rather than assumed — and
+              asked for per link, because turning it on changes what a link
+              already in someone's hands discloses. */}
+          {hasBloods && (
+            <label className="share-option">
+              <input
+                type="checkbox"
+                checked={share ? share.bloods === true : includeBloods}
+                disabled={busy}
+                onChange={(event) => void setBloods(event.target.checked)}
+              />
+              <span>
+                <strong>Include blood results</strong>
+                <small>
+                  Your last four panels, with the reference range from your own report and the training
+                  week each was drawn in. Off unless you ask for it
+                  {share ? ", and turning it on updates the link you have already sent" : ""}.
+                </small>
+              </span>
+            </label>
+          )}
 
           {link && (
             <ul className="share-links">

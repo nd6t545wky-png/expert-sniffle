@@ -17,6 +17,7 @@ import { PitchingOsApi } from "../../src/domain/api";
 import { decryptJsonEnvelope } from "../../src/domain/sync";
 import {
   PhysioArmScreen,
+  PhysioBloodPanel,
   PhysioDay,
   PhysioSummary,
   readPhysioSummary,
@@ -61,6 +62,84 @@ function throwingLine(throwing: PhysioDay["throwing"]): string | null {
   }
   if (throwing.intent) parts.push(INTENT_LABEL[throwing.intent] ?? throwing.intent);
   return parts.length ? parts.join(" · ") : null;
+}
+
+const FLAG_LABEL: Record<string, string> = {
+  "in-range": "In range",
+  below: "Below range",
+  above: "Above range",
+  "expected-to-vary": "Expected to vary",
+  "no-range": "No range",
+};
+
+/**
+ * One draw.
+ *
+ * Presented the same way it is to the athlete, and for the same reason: this
+ * reports what the laboratory measured against the range printed on the
+ * athlete's own report, and nothing here interprets a result. A physio is a
+ * clinician but is not the doctor who ordered the test.
+ */
+function BloodPanelCard({ panel }: { panel: PhysioBloodPanel }) {
+  const outside = panel.markers.filter(
+    (marker) => marker.flag === "below" || marker.flag === "above"
+  );
+  return (
+    <Card>
+      <CardHead
+        title={`Blood drawn ${dayLabel(panel.date)}`}
+        detail={panel.lab ? `${panel.lab} · ${panel.markers.length} markers` : `${panel.markers.length} markers`}
+      />
+      {panel.context && <p className="physio-detail">{panel.context}</p>}
+      <div className="physio-scroll">
+        <table className="physio-table">
+          <thead>
+            <tr>
+              <th scope="col">Marker</th>
+              <th scope="col">Result</th>
+              <th scope="col">Reference</th>
+              <th scope="col">Previous</th>
+              <th scope="col">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {panel.markers.map((marker) => (
+              <tr key={marker.label}>
+                <td>{marker.label}</td>
+                <td>{marker.display}</td>
+                <td>
+                  {marker.range}
+                  {/* Under the range rather than beside it: inline, the note
+                      pushes the table past the card and clips the status. */}
+                  <small className="physio-source">
+                    {marker.ownRange ? "own report" : "typical range"}
+                  </small>
+                </td>
+                <td>
+                  {marker.previous ? `${marker.previous.display} · ${marker.previous.date}` : "—"}
+                </td>
+                <td>{FLAG_LABEL[marker.flag] ?? marker.flag}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {outside.length > 0 && (
+        <p className="physio-detail">
+          Outside the reference range on the athlete's report:{" "}
+          {outside.map((marker) => marker.label).join(", ")}. Reported as measured — the athlete has
+          been told to take these to the doctor who ordered the test.
+        </p>
+      )}
+      {panel.markers.some((marker) => marker.flag === "expected-to-vary") && (
+        <p className="physio-detail">
+          Markers shown as <em>expected to vary</em> — CK, urea, hs-CRP, creatinine, ALT — routinely
+          sit outside a population range in a trained athlete, so they are not counted as out of range
+          here. The draw's place in the training week is the line above.
+        </p>
+      )}
+    </Card>
+  );
 }
 
 function ArmScreenRow({ screen }: { screen: PhysioArmScreen }) {
@@ -241,6 +320,11 @@ export function PhysioView({ api = new PitchingOsApi() }: { api?: PitchingOsApi 
           </div>
         )}
       </Card>
+
+      {/* After the arm screen, because it is reference material rather than the
+          reason the link gets opened — and because the athlete had to opt in
+          per link for it to be here at all. */}
+      {summary.bloodPanels?.map((panel) => <BloodPanelCard key={panel.date} panel={panel} />)}
 
       <Card>
         <CardHead title="Recent days" detail="Newest first. Days with nothing recorded are left out." />

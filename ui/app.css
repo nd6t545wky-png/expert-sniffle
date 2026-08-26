@@ -1629,6 +1629,13 @@ body {
   color: var(--muted);
   font-weight: 500;
 }
+/* Which range a value was judged against, under the range itself. */
+.physio-source {
+  display: block;
+  margin-top: 2px;
+  font-size: 11px;
+  color: var(--muted);
+}
 
 .physio-days {
   list-style: none;
@@ -1715,6 +1722,31 @@ body {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
+}
+
+/* Opting a link into carrying blood results. Given its own bordered row rather
+   than sitting in the prose, because it is a disclosure decision and it has to
+   be obvious which way it is currently set. */
+.share-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 12px;
+  padding: 11px 13px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface-secondary);
+  cursor: pointer;
+}
+.share-option input { margin-top: 2px; flex: none; }
+.share-option strong { display: block; font-size: 13px; font-weight: 650; }
+.share-option small {
+  display: block;
+  margin-top: 3px;
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--muted);
+  max-width: 62ch;
 }
 
 /* --- What the athlete owns, and what their intent words mean -------------- */
