@@ -21,6 +21,7 @@ export type PageId =
   | "annual"
   | "nutrition"
   | "mechanics"
+  | "bloods"
   | "integrations"
   | "profile";
 
@@ -63,6 +64,12 @@ const ICON_PATHS: Record<PageId, ReactNode> = {
       <circle cx="12" cy="12" r="8" />
       <circle cx="12" cy="12" r="3" />
       <path d="M12 2v3M22 12h-3M12 22v-3M2 12h3" />
+    </>
+  ),
+  // A droplet, for the blood panel.
+  bloods: (
+    <>
+      <path d="M12 3c3 4 5.5 6.6 5.5 9.5a5.5 5.5 0 0 1-11 0C6.5 9.6 9 7 12 3Z" />
     </>
   ),
   profile: (
@@ -131,6 +138,7 @@ export const SIDEBAR_GROUPS: { label: string; items: { id: PageId; label: string
       { id: "tracking", label: "Progress" },
       { id: "nutrition", label: "Nutrition" },
       { id: "mechanics", label: "Biomechanics" },
+      { id: "bloods", label: "Bloods" },
     ],
   },
   {
@@ -147,6 +155,7 @@ const MORE_ITEMS: { id: PageId; label: string }[] = [
   { id: "workload", label: "Throwing" },
   { id: "annual", label: "Year" },
   { id: "mechanics", label: "Biomechanics" },
+  { id: "bloods", label: "Bloods" },
   { id: "profile", label: "Athlete" },
   { id: "integrations", label: "Connections" },
 ];
@@ -196,7 +205,7 @@ export function Shell({
   const activeNav: PageId =
     page === "readiness" || page === "workload"
       ? "session"
-      : page === "annual"
+      : page === "annual" || page === "bloods"
         ? "tracking"
         : page === "mechanics" || page === "integrations"
           ? "profile"

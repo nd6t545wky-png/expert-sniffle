@@ -74,6 +74,8 @@ import { applyTeamTraining, readTeamTraining } from "../src/domain/teamTraining"
 import { allFixtures, readAthleteFixtures, scheduleClash } from "../src/domain/fixtures";
 import { readRetests } from "../src/domain/retest";
 import { velocityTransfer } from "../src/domain/velocityTransfer";
+import { Bloods } from "./components/Bloods";
+import { drawContext, readPanels } from "../src/domain/bloods";
 import { PhysioSummary, SHARE_DAYS, buildPhysioSummary } from "../src/domain/physioShare";
 import {
   BodyRegion,
@@ -126,6 +128,7 @@ const PAGE_TITLES: Record<Page, string> = {
   annual: "Annual plan",
   nutrition: "Nutrition",
   mechanics: "Biomechanics",
+  bloods: "Bloods",
   integrations: "Connections",
   profile: "Athlete",
 };
@@ -139,6 +142,7 @@ const PAGE_IDS: Page[] = [
   "annual",
   "nutrition",
   "mechanics",
+  "bloods",
   "integrations",
   "profile",
 ];
@@ -397,6 +401,45 @@ export function App() {
     }));
     return [...fromBullpens, ...fromGames];
   }, [throwingEntries, games, intentPercent]);
+
+  /** Blood panels the athlete has entered from their own pathology reports. */
+  const bloodPanels = useMemo(
+    () => readPanels((state?.profile as { bloodPanels?: unknown } | undefined)?.bloodPanels),
+    [state]
+  );
+
+  /**
+   * The training fortnight a draw sat in.
+   *
+   * This is the only thing the blood page does that a pathology portal cannot:
+   * a CK drawn thirty-six hours after a start is not the same reading as the
+   * same number on a rest day, and the laboratory has no way of knowing which
+   * it was. Everything here is already recorded — outings, check-in sleep,
+   * logged sets — so the panel costs nothing extra to put in context.
+   */
+  const bloodContext = useCallback(
+    (drawnOn: IsoDate) => {
+      const pre = (state?.pre ?? {}) as Record<string, { sleepHours?: unknown } | undefined>;
+      const sleepByDate: Record<string, number | undefined> = {};
+      for (const [day, entry] of Object.entries(pre)) {
+        const hours = Number(entry?.sleepHours);
+        if (Number.isFinite(hours) && hours > 0) sleepByDate[day] = hours;
+      }
+
+      const logs = (state?.setLogs ?? {}) as Record<string, unknown>;
+      const tonnageByDate: Record<string, number | undefined> = {};
+      for (const day of Object.keys(logs)) {
+        tonnageByDate[day] = loggedTonnage(readDayLog(logs, day as IsoDate));
+      }
+
+      return drawContext(drawnOn, {
+        outings: loggedOutings.map((outing) => ({ date: outing.date, ...outing.load })),
+        sleepByDate,
+        tonnageByDate,
+      });
+    },
+    [state?.pre, state?.setLogs, loggedOutings]
+  );
 
   /**
    * What the athlete has reported as sore, and what today does about it.
@@ -1476,6 +1519,20 @@ export function App() {
             update((draft) => ({
               ...draft,
               profile: { ...(draft.profile ?? {}), retests: next },
+            }))
+          }
+        />
+      )}
+
+      {page === "bloods" && (
+        <Bloods
+          panels={bloodPanels}
+          today={today.openDate}
+          contextFor={bloodContext}
+          onChange={(next) =>
+            update((draft) => ({
+              ...draft,
+              profile: { ...(draft.profile ?? {}), bloodPanels: next },
             }))
           }
         />

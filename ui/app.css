@@ -2437,3 +2437,136 @@ body {
   color: var(--muted);
   max-width: 62ch;
 }
+
+/* --- Bloods ------------------------------------------------------------------
+   A pathology report, laid out so the number, the range it is judged against
+   and the direction it moved are all readable in one pass. The flag colours
+   are deliberately quiet: three markers routinely sit outside a population
+   range in a trained athlete, and a page of red trains the eye to skip red. */
+
+.blood-context {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: calc(var(--radius) / 2);
+  border: 1px solid var(--line);
+  background: var(--surface-secondary);
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--muted);
+  max-width: 70ch;
+}
+
+.blood-list { list-style: none; margin: 0; padding: 0; }
+
+.blood-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr) minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 10px 14px;
+  padding: 11px 0 11px 11px;
+  border-top: 1px solid var(--line);
+  border-left: 3px solid transparent;
+}
+.blood-row:first-child { border-top: 0; }
+.blood-row.flag-below,
+.blood-row.flag-above { border-left-color: #c9791f; }
+.blood-row.flag-expected-to-vary { border-left-color: var(--line); }
+
+.blood-name strong { display: block; font-size: 13px; font-weight: 650; }
+.blood-name small {
+  display: block;
+  margin-top: 3px;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--muted);
+  max-width: 46ch;
+}
+
+.blood-value b {
+  font-size: 17px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+.blood-value small,
+.blood-range small {
+  display: block;
+  margin-top: 3px;
+  font-size: 10px;
+  color: var(--muted);
+}
+.blood-range span { font-size: 13px; font-variant-numeric: tabular-nums; color: var(--ink); }
+
+.blood-flag {
+  flex: none;
+  align-self: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--muted);
+}
+.blood-flag.flag-below,
+.blood-flag.flag-above { border-color: #c9791f; color: #a4611a; }
+
+.blood-history { list-style: none; margin: 0; padding: 0; }
+.blood-history li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 0;
+  border-top: 1px solid var(--line);
+}
+.blood-history li:first-child { border-top: 0; }
+.blood-history strong { display: block; font-size: 13px; font-weight: 650; }
+.blood-history small { display: block; margin-top: 2px; font-size: 11px; color: var(--muted); }
+
+.blood-entry-group { margin-top: 18px; }
+.blood-entry-head {
+  margin: 0 0 8px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.blood-entry {
+  display: grid;
+  grid-template-columns: minmax(0, 1.8fr) repeat(3, minmax(0, 1fr));
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+  border-top: 1px solid var(--line);
+}
+.blood-entry label { font-size: 12px; line-height: 1.4; }
+.blood-entry label span { display: block; font-size: 10px; color: var(--muted); }
+.blood-entry input {
+  width: 100%;
+  min-width: 0;
+  padding: 7px 9px;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  border: 1px solid var(--line);
+  border-radius: calc(var(--radius) / 2);
+  background: var(--surface);
+  color: var(--ink);
+}
+
+@media (max-width: 620px) {
+  .blood-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    row-gap: 4px;
+  }
+  .blood-name { grid-column: 1 / -1; }
+  /* The chip wraps to a row of its own at this width; spanning it keeps it
+     against the right edge of the card rather than stranded mid-row. */
+  .blood-flag { grid-column: 1 / -1; justify-self: end; }
+  .blood-entry { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .blood-entry label { grid-column: 1 / -1; }
+}
