@@ -35,16 +35,6 @@ export interface BaselineSection {
   measures: Measurement[];
 }
 
-export const ATHLETE_BASELINE = {
-  name: "Dylan Sippel",
-  dateOfBirth: "2003-08-04",
-  heightCm: 177,
-  /** DEXA 88.0 kg on the scan header, 89.44 kg in the composition indices;
-   *  ForceDecks recorded 89.83 kg. The spread is real day-to-day variation,
-   *  so the most recent figure is used and the others are shown in context. */
-  bodyMassKg: 89.83,
-} as const;
-
 /**
  * Training anchors the reports established directly. These are the numbers
  * the programme computes loads from.

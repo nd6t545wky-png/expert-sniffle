@@ -323,4 +323,3 @@ export function applySorenessProtocol(session: Session, active: ActiveReport[]):
 }
 
 /** The line the plan shows about training under pain at all. */
-export const PAIN_CEILING_NOTE = `Training under a pain ceiling is not the same as training through pain. ${PAIN_SOURCES.silbernagel.key} is the trial this rests on: continued loading under a monitored ceiling did no worse at twelve months than six weeks of stopping.`;

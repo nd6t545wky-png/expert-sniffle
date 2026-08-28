@@ -31,10 +31,13 @@ function squatOn(week: number) {
   );
 }
 
-describe("the copied block table", () => {
-  it("still matches the programme's own", () => {
-    // `programmeContent.ts` is machine-extracted and does not export this, so
-    // it is copied. Copies drift; this reads the source as text so they cannot.
+describe("the imported block table", () => {
+  it("is the programme's own, and has the shape the types claim", () => {
+    // This table is now imported from `programmeContent.ts` rather than
+    // copied, so drift is no longer possible. What is still worth checking is
+    // the shape: that file is `@ts-nocheck`, its entries type as `number[]`,
+    // and reaching them needs a cast. Reading the source as text is how that
+    // cast gets held to account — 52 weeks, three numbers each.
     const here = dirname(fileURLToPath(import.meta.url));
     const source = readFileSync(join(here, "programmeContent.ts"), "utf8");
     const block = source.match(/const TRAP_BAR_WEEK_SPECS = \{([\s\S]*?)\};/);

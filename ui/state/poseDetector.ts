@@ -38,11 +38,6 @@ async function load(): Promise<PoseRunner> {
   };
 }
 
-/** True once the model is in memory, so the UI can stop saying "downloading". */
-export function poseReady(): boolean {
-  return loading !== null;
-}
-
 export class PoseUnavailable extends Error {}
 
 /** Frames a clip is sampled at. Fine enough to catch release, cheap enough to run. */

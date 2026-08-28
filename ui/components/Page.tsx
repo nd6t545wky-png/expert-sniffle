@@ -99,15 +99,6 @@ export function Field({
   );
 }
 
-export function FormDivider({ title, detail }: { title: string; detail?: string }) {
-  return (
-    <div className="form-divider">
-      <strong>{title}</strong>
-      {detail && <span>{detail}</span>}
-    </div>
-  );
-}
-
 /** Collapsible detail block, matching the prototype's quiet disclosures. */
 export function Disclosure({
   title,

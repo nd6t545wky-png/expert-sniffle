@@ -94,6 +94,7 @@ const footer = `
 
 export {
   LEGACY_PHASE_TABLE,
+  TRAP_BAR_WEEK_SPECS,
   ANNUAL_START,
   getWeekPlan,
   todaySelection,

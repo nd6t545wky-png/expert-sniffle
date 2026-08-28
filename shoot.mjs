@@ -78,6 +78,11 @@ for (const [device, viewport] of [
     deviceScaleFactor: 2,
     isMobile: device === "phone",
     hasTouch: device === "phone",
+    // Without this the same build shot twice differs on half its pages: the
+    // redesign's transitions are still mid-flight when the shutter fires, so
+    // every comparison drowns in motion noise. Freezing motion is what makes
+    // two runs comparable at all.
+    reducedMotion: "reduce",
   });
   await page.goto("http://127.0.0.1:8899/next/", { waitUntil: "domcontentloaded" });
   await page.evaluate((seed) => {
@@ -101,8 +106,15 @@ for (const [device, viewport] of [
     } catch {
       console.log(`  WARN ${device}/${target}: no .content — shooting anyway`);
     }
+    // Fonts settle before layout is final, and a half-loaded face reflows text.
+    await page.evaluate(() => document.fonts.ready);
     await page.waitForTimeout(1400);
-    await page.screenshot({ path: `${dir}/${device}-${target}.png`, fullPage: true });
+    await page.screenshot({
+      path: `${dir}/${device}-${target}.png`,
+      fullPage: true,
+      animations: "disabled",
+      caret: "hide",
+    });
     console.log(`  shot ${device}/${target}`);
   }
 
