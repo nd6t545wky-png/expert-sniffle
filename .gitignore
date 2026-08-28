@@ -3,3 +3,6 @@ dist/
 .wrangler/
 .env
 *.local
+
+# Design review screenshots (npm run design:shots). Regenerated on demand.
+captured/

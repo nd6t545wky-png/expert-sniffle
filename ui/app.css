@@ -2115,12 +2115,30 @@ body {
 /* `--team-on-primary` is read by styles.css in two places and defined in
    none, so text meant to sit on the team colour inherited the page's ink
    instead — dark on dark red, dark on dark purple. Defined here for both
-   clubs, which fixes those rules as well as the band strip below. Both team
-   colours stay dark in dark mode (only the soft tints are re-themed), so
-   white is correct in both appearances. */
+   clubs, which fixes those rules as well as the band strip below.
+
+   It has to be declared on `.app-shell` rather than on `:root`: that is where
+   `--team-primary` itself lives, and a custom property on a nearer ancestor
+   beats one further up. A `:root` definition of this simply never arrives.
+
+   Dark mode needs the opposite value. Both clubs' accents invert to a lighter
+   tone there (`--blue` becomes #ff453a for Norths), and white on that measures
+   3.41:1 — under AA at every size it is used. Dark ink is the readable
+   pairing. An earlier version of this comment asserted the accents stay dark
+   in dark mode; measuring them says otherwise. */
 .app-shell.theme-norths,
 .app-shell.theme-coomera {
   --team-on-primary: #fff;
+}
+:root[data-theme="dark"] .app-shell.theme-norths,
+:root[data-theme="dark"] .app-shell.theme-coomera {
+  --team-on-primary: #1d1d1f;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .app-shell.theme-norths,
+  :root:not([data-theme="light"]) .app-shell.theme-coomera {
+    --team-on-primary: #1d1d1f;
+  }
 }
 
 /* ===== Velocity block, Aug 2026 ==========================================
@@ -2602,3 +2620,412 @@ body {
   .blood-entry { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .blood-entry label { grid-column: 1 / -1; }
 }
+
+/* ===========================================================================
+ * REDESIGN LAYER
+ *
+ * Everything below is a deliberate visual pass over the shipped app. It lives
+ * here rather than in styles.css for the reason the top of this file gives:
+ * styles.css is the frozen v60 sheet, shared with the prototype at /, and it
+ * stays untouched. This file loads after it, so every rule here is an override
+ * rather than an edit — the prototype keeps the look it had, and this one can
+ * be reverted by deleting a single block.
+ *
+ * The read: a dense, single-athlete training product opened before every
+ * session. Daily use, data-first, one accent that belongs to the team. That
+ * points at Linear/Raycast surface discipline rather than anything expressive,
+ * and at motion that gets out of the way — Emil Kowalski's rule, "should this
+ * animate at all", answered "rarely, and fast".
+ *
+ * Fixed here, all of them real defects found by measuring the running app
+ * rather than by taste:
+ *   - the week arrows on the Plan page wrapped onto two lines
+ *   - the four dashboard tiles had their labels on two different baselines,
+ *     because a <button> centres its content and two tiles carry one more
+ *     child than the others
+ *   - numbers were proportional everywhere, so digits danced between renders
+ *   - no visible focus ring on the shell's own controls
+ * ======================================================================== */
+
+/* --- The typeface -------------------------------------------------------
+ * Geist, self-hosted. Not a preference: the app's own CSP is `default-src
+ * 'self'` with no font-src, so a Google Fonts link would be blocked outright.
+ * Self-hosting is also the only version that survives going offline, which
+ * matters for something opened in a dugout. Two variable faces, ~70 KB each,
+ * immutable-cached — see public/_headers.
+ */
+@font-face {
+  font-family: "Geist";
+  src: url("/fonts/Geist-Variable.woff2") format("woff2-variations");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Geist Mono";
+  src: url("/fonts/GeistMono-Variable.woff2") format("woff2-variations");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  font-family: "Geist", -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+  font-optical-sizing: auto;
+  /* `cv11` gives Geist the single-storey letterforms that keep small UI text
+     legible; `ss03` tightens the punctuation. Both degrade silently. */
+  font-feature-settings: "cv11", "ss03";
+  --mono: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  /* Motion, as one scale. Productivity UI: nothing over 220ms, and the
+     standard curve is a decelerate — things arrive, they do not bounce. */
+  --ease-out: cubic-bezier(.22, 1, .36, 1);
+  --dur-instant: 90ms;
+  --dur-fast: 150ms;
+  --dur-base: 200ms;
+
+  /* A shadow carrying the ink's hue rather than pure black, so cards sit on
+     the paper instead of hovering over a grey hole. */
+  --shadow: 0 1px 2px rgba(29, 29, 31, .05), 0 6px 20px -6px rgba(29, 29, 31, .07);
+  --shadow-raised: 0 2px 4px rgba(29, 29, 31, .06), 0 12px 32px -10px rgba(29, 29, 31, .11);
+  --focus-ring: 0 0 0 2px var(--surface), 0 0 0 4px var(--team-primary, var(--blue));
+}
+
+:root[data-theme="dark"],
+:root:not([data-theme="light"]) {
+  --shadow-dark-base: 0 1px 2px rgba(0, 0, 0, .4), 0 8px 28px -8px rgba(0, 0, 0, .55);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --shadow: var(--shadow-dark-base);
+    --shadow-raised: 0 2px 6px rgba(0, 0, 0, .45), 0 16px 40px -12px rgba(0, 0, 0, .6);
+  }
+}
+:root[data-theme="dark"] {
+  --shadow: var(--shadow-dark-base);
+  --shadow-raised: 0 2px 6px rgba(0, 0, 0, .45), 0 16px 40px -12px rgba(0, 0, 0, .6);
+}
+
+/* --- Type scale ---------------------------------------------------------
+ * Geist is a wider, more open face than SF at display sizes, so it needs less
+ * negative tracking than the -0.035em styles.css applies to every heading.
+ * Left as-is, large headings ran into themselves. Tracking now scales with
+ * size the way it should: tight at display, neutral by the time text is
+ * small enough to read one word at a time.
+ */
+h1 { letter-spacing: -.028em; }
+h2 { letter-spacing: -.024em; }
+h3 { letter-spacing: -.018em; }
+h4, h5, h6 { letter-spacing: -.011em; }
+h1, h2, h3 { text-wrap: balance; }
+
+.page-head h2 {
+  font-size: clamp(26px, 3vw, 34px);
+  font-weight: 600;
+  letter-spacing: -.028em;
+  line-height: 1.06;
+}
+.page-head > div > p:not(.eyebrow) {
+  max-width: 62ch;
+  text-wrap: pretty;
+  line-height: 1.55;
+}
+
+/* Labels and eyebrows: small caps done with tracking rather than shouting. */
+.eyebrow,
+.metric-label,
+.stage-head small,
+.data-source {
+  letter-spacing: .06em;
+  font-weight: 600;
+}
+
+/* --- Numbers ------------------------------------------------------------
+ * Every figure in this app is compared against another figure — last week's
+ * load against this week's, a bar speed against the one before it. In a
+ * proportional face the digits change width between renders and the columns
+ * shimmer. Tabular figures everywhere a number is the content.
+ */
+.metric-value,
+.metric-detail,
+.hero-stat,
+.hero-stat b,
+.day-chip,
+.day-chip b,
+.progress-value,
+.chart-value,
+.review-metrics,
+.blood-value,
+.blood-range,
+.transfer-pair dd,
+.physio-table,
+.physio-figure,
+input[type="number"],
+input[type="date"],
+time,
+.tabular {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum", "cv11";
+}
+
+/* The recovery key, share links and set logs are the places a character has
+   to be identifiable on its own. That is what a mono face is for. */
+code,
+kbd,
+samp,
+pre,
+.share-link-value,
+.sync-key,
+.key-value {
+  font-family: var(--mono);
+  font-feature-settings: "ss01";
+}
+
+/* --- Interaction --------------------------------------------------------
+ * The audit found controls with no hover, no pressed state and no focus ring.
+ * The ring is the one that is not a matter of taste: without it the app is
+ * unusable by keyboard. Transform and opacity only, so none of this costs a
+ * layout pass.
+ */
+.btn,
+.text-button,
+.nav-item,
+.mobile-nav button,
+.day-chip,
+.select,
+.chip {
+  transition:
+    background-color var(--dur-fast) ease,
+    border-color var(--dur-fast) ease,
+    color var(--dur-fast) ease,
+    transform var(--dur-instant) var(--ease-out),
+    box-shadow var(--dur-fast) ease;
+}
+.btn:active,
+.nav-item:active,
+.day-chip:active,
+.mobile-nav button:active { transform: scale(.975); }
+
+.btn:focus-visible,
+.text-button:focus-visible,
+.nav-item:focus-visible,
+.day-chip:focus-visible,
+.mobile-nav button:focus-visible,
+.metric-shortcut:focus-visible,
+.select:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+[role="button"]:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+  border-radius: calc(var(--radius) / 2);
+}
+
+.card { transition: box-shadow var(--dur-base) ease, border-color var(--dur-base) ease; }
+.metric-shortcut:hover { box-shadow: var(--shadow-raised); }
+
+/* --- Fixes --------------------------------------------------------------- */
+
+/* The Plan page's week arrows wrapped onto two stacked lines whenever the
+   session title ran long, because `.page-head` lets the controls column
+   shrink below its content and `.annual-controls` then wraps. They are a
+   pair; they stay a pair. */
+.page-head > .annual-controls {
+  flex: none;
+  flex-wrap: nowrap;
+  align-self: flex-start;
+}
+.page-head > .annual-controls .btn { white-space: nowrap; }
+
+/* The four dashboard tiles put their labels on two different baselines. A
+   <button> vertically centres its content, and the two tiles carrying a
+   `.data-source` chip have one child more than the other two — so the extra
+   child pushed the whole stack up on those and the row read as broken.
+   Making the button a column stops the centring; `margin-top: auto` on the
+   detail line pins the bottom edge so both ends of the tile agree. */
+.metric-shortcut {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+}
+.metric-shortcut .metric-detail { margin-top: auto; padding-right: 30px; }
+.metric-shortcut .data-source { margin-top: 9px; }
+
+/* The sidebar left a tall dead gap between the last nav item and the athlete
+   chip, because the chip is pinned to the bottom of a full-height column. It
+   should be pinned — the gap just should not read as an unfinished list. */
+.sidebar nav { padding-bottom: 8px; }
+
+/* The day strip is the primary navigation of the whole app and every chip
+   carried the same weight, so the day being viewed did not stand out and a
+   locked day looked identical to an open one. */
+.day-chip { border: 1px solid transparent; }
+.day-chip[aria-pressed="true"],
+.day-chip.active {
+  border-color: color-mix(in srgb, var(--team-primary) 45%, transparent);
+  background: var(--team-primary-soft);
+}
+.day-chip[disabled],
+.day-chip.locked { opacity: .55; }
+
+/* Respect the athlete's own setting, and the system's. styles.css already
+   honours data-motion; this covers the tokens added above. */
+:root[data-motion="reduced"] {
+  --dur-instant: 0ms;
+  --dur-fast: 0ms;
+  --dur-base: 0ms;
+}
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-instant: 0ms;
+    --dur-fast: 0ms;
+    --dur-base: 0ms;
+  }
+}
+
+/* --- The selected day was invisible -------------------------------------
+ *
+ * A shipped contrast bug, not a taste call. styles.css:1840 sets
+ * `:root[data-theme] .day-tab { background: var(--surface-secondary) }` at
+ * specificity (0,2,1), which outranks `.day-tab.active` at (0,2,0) — so the
+ * active tab lost its accent background. But `.day-tab.active span` still set
+ * `color: #fff` further down, so the date line rendered white on light grey
+ * and simply could not be read. The same file patches this for `.day-chip`
+ * three lines later and never does it for `.day-tab`.
+ *
+ * `data-theme` is written on <html> for every athlete, so this was the state
+ * everybody saw: the one day you are actually looking at, unreadable.
+ */
+:root .day-tab.active,
+:root[data-theme] .day-tab.active,
+:root[data-theme] .day-tab[aria-current="date"] {
+  color: var(--team-on-primary, #fff);
+  border-color: transparent;
+  background: var(--team-primary, var(--blue));
+  box-shadow: 0 6px 18px -6px color-mix(in srgb, var(--team-primary, var(--blue)) 45%, transparent);
+}
+:root .day-tab.active span,
+:root .day-tab.active strong,
+:root[data-theme] .day-tab.active span,
+:root[data-theme] .day-tab.active strong,
+:root[data-theme] .day-tab[aria-current="date"] span,
+:root[data-theme] .day-tab[aria-current="date"] strong {
+  color: var(--team-on-primary, #fff);
+}
+/* The date line stays quieter than the weekday without going invisible. */
+:root .day-tab.active span,
+:root[data-theme] .day-tab.active span { opacity: .78; }
+
+/* A locked day should read as locked even while selected, and an unselected
+   one should not compete with it. */
+.day-tab { opacity: 1; }
+.day-tab[aria-label*="locked"]:not(.active) { opacity: .62; }
+
+/* --- Tile baselines, second pass ----------------------------------------
+ * Pinning the detail line to the bottom aligned the wrong thing: two tiles
+ * carry a chip under the detail and two do not, so the detail still landed on
+ * two different lines. The detail belongs directly under the value — that is
+ * what makes it read as part of the number — and only the chip should be
+ * pinned to the floor.
+ */
+.metric-shortcut .metric-detail { margin-top: 8px; padding-right: 30px; }
+.metric-shortcut .data-source { margin-top: auto; }
+
+/* --- Making the typeface actually reach the page ------------------------
+ * Setting font-family on :root was not enough. styles.css re-declares the
+ * system stack explicitly on `body, button, input, select, textarea` and again
+ * on `h1–h4`, so inheritance never got a chance and most of the app stayed on
+ * SF while the shell around it changed. Overriding the same selectors is the
+ * whole fix — measured with document.fonts and a computed-style sweep, not by
+ * eye, because at a glance Geist and SF Pro are close enough to fool you.
+ */
+body,
+button,
+input,
+select,
+textarea,
+h1, h2, h3, h4, h5, h6 {
+  font-family: "Geist", -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+}
+/* styles.css sets every heading to 700. Geist carries more weight at 600, and
+   600 against a 400 body is the hierarchy this app actually needs. */
+h1, h2, h3, h4 { font-weight: 600; }
+
+/* --- Contrast ------------------------------------------------------------
+ * Found by sweeping every text node on every page in both themes against its
+ * painted background. These are the ones that came back under WCAG AA.
+ */
+
+/* The muted grey was 4.42:1 on white — a hair under the 4.5 needed at body
+   size, and it is the colour of every secondary line in the product. */
+:root { --muted: #67676c; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --muted: #a8a8ae; }
+}
+:root[data-theme="dark"] { --muted: #a8a8ae; }
+
+/* White on the team red measured 3.41:1, so every primary button in the app
+   failed at its own label size. The accent itself is the athlete's club
+   colour and stays exactly as it is — only the filled-button surface is taken
+   down far enough to carry white text, which reads as the same red.
+   
+   The mix is written at the point of use rather than hoisted into a token on
+   :root. --team-primary is declared on .app-shell, so a custom property that
+   reads it from :root resolves against the fallback instead — which quietly
+   turned every primary button in the app blue. Custom properties resolve
+   where they are declared, not where they are used. */
+.btn-primary,
+.btn-dark,
+.today-button {
+  background: color-mix(in srgb, var(--team-primary, var(--blue)) 84%, #000);
+  border-color: transparent;
+}
+.btn-primary:hover,
+.btn-dark:hover,
+.today-button:hover {
+  background: color-mix(in srgb, var(--team-primary, var(--blue)) 74%, #000);
+}
+
+/* My own blood-flag chip, at 3.49:1 on a dark surface. */
+.blood-flag.flag-below,
+.blood-flag.flag-above { border-color: #d08a3a; color: #b4691c; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .blood-flag.flag-below,
+  :root:not([data-theme="light"]) .blood-flag.flag-above { border-color: #d9954a; color: #f0b169; }
+  :root:not([data-theme="light"]) .blood-row.flag-below,
+  :root:not([data-theme="light"]) .blood-row.flag-above { border-left-color: #d9954a; }
+}
+:root[data-theme="dark"] .blood-flag.flag-below,
+:root[data-theme="dark"] .blood-flag.flag-above { border-color: #d9954a; color: #f0b169; }
+:root[data-theme="dark"] .blood-row.flag-below,
+:root[data-theme="dark"] .blood-row.flag-above { border-left-color: #d9954a; }
+
+/* --- Token overrides at the specificity that actually wins ---------------
+ * styles.css defines the palette three times: on `:root`, then again on
+ * `:root[data-theme="light"]` and `:root[data-theme="dark"]`. App.tsx always
+ * writes a data-theme, so the two-class selectors are the ones in force and a
+ * plain `:root` override never applied. Matching their specificity is the fix.
+ */
+:root[data-theme="light"] { --muted: #67676c; }
+:root[data-theme="dark"] { --muted: #a8a8ae; }
+
+/* The team accent inverts to a lighter tone in dark mode, where white text on
+   it measured 3.41:1. At that lightness dark text is the readable pairing, and
+   the surface keeps the full accent rather than being darkened toward it. */
+:root[data-theme="dark"] { --team-on-primary: #1d1d1f; }
+:root[data-theme="dark"] .btn-primary,
+:root[data-theme="dark"] .btn-dark,
+:root[data-theme="dark"] .today-button {
+  color: #1d1d1f;
+  background: var(--team-primary, var(--blue));
+}
+:root[data-theme="dark"] .btn-primary:hover,
+:root[data-theme="dark"] .btn-dark:hover,
+:root[data-theme="dark"] .today-button:hover {
+  background: color-mix(in srgb, var(--team-primary, var(--blue)) 88%, #fff);
+}
+
+/* Destructive text links sat at 3.55:1 in light. */
+:root[data-theme="light"] .danger-text { color: #c4271d; }
+:root[data-theme="dark"] .danger-text { color: #ff8078; }
