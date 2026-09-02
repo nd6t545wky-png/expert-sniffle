@@ -40,6 +40,12 @@
 
 import { IsoDate } from "./state";
 import { addDays } from "./calendar";
+import {
+  describeMobility,
+  describeSession,
+  movementCount,
+  scapSessionFor,
+} from "./treadArmCare";
 
 // --- Evidence ---------------------------------------------------------------
 
@@ -481,16 +487,20 @@ function dayZero(bodyweightKg: number | null): RecoveryBlock[] {
   ];
 }
 
-function dayOne(): RecoveryBlock[] {
+function dayOne(outingDate: IsoDate): RecoveryBlock[] {
+  const session = scapSessionFor(outingDate);
   return [
     {
       id: "scap-strength",
-      name: "Scapular strengthening",
-      prescription:
-        "7 movements, 2 sets each, heavy band or dumbbell: band row × 8 · external rotation at 90° × 8/side · band W (lower trap) × 8 · prone Y raise × 8 · serratus wall slide × 8 · side-lying dumbbell external rotation × 8/side · plank protraction hold × 20 s. Last rep of each set should be hard but clean.",
-      why: "The counter-intuitive one, and the block most worth having. Against stretching and against throwing, day-1 strengthening gave the best range of motion by day 4. Higher intensity and lower volume matches pitching demand better than light-band endurance work.",
+      name: `Scapular strengthening — ${session.title}`,
+      // The session title leads the prescription rather than sitting only in
+      // the block name: on day 1 this block takes over the programme's own
+      // "Post-throw arm-care circuit" task and inherits *its* name, so without
+      // this the athlete cannot tell which of the two sessions they are on.
+      prescription: `${session.title} — ${movementCount(session)} movements${session.minutes ? `, about ${session.minutes} min` : ""}. ${describeSession(session)}`,
+      why: "The counter-intuitive one, and the block most worth having. Against stretching and against throwing, day-1 strengthening gave the best range of motion by day 4. Higher intensity and lower volume matches pitching demand better than light-band endurance work. The movements are the athlete's own programme rather than a generic circuit — a named exercise he has been taught beats a described one he has to interpret.",
       citation: SOURCES.jensen,
-      caveat: "One crossover trial, n = 13. Best direct evidence on the exact question, and thin.",
+      caveat: "One crossover trial, n = 13. Best direct evidence on the exact question, and thin. The two sessions alternate by outing, which is how the source programme runs them.",
     },
     {
       id: "mobility",
@@ -542,9 +552,8 @@ function dayTwo(): RecoveryBlock[] {
     },
     {
       id: "soft-tissue",
-      name: "Soft tissue",
-      prescription:
-        "10 min on forearm flexors and extensors 2 min/side · lats 2 min/side · posterior shoulder 2 min · upper back 2 min. Massage or roller — or cups on the lats and upper back for part of it. Slow passes, no pressing into a painful point.",
+      name: "Recovery and mobility programme",
+      prescription: `${describeMobility()} Slow passes, no pressing into a painful point. Cups may take the place of the roller on the lats and upper back — the same tissue worked three ways is not three times the effect.`,
       why: "Massage is the most effective modality for soreness and perceived fatigue. Foam rolling is weaker but real, and strongest at 24–48 h rather than immediately — which is why the roller belongs here and not at T+0. Cups are an alternative tool for the same ten minutes, not an eleventh: the same tissue worked three ways is not three times the effect.",
       citation: SOURCES.dupuy,
       caveat:
@@ -662,7 +671,13 @@ export function buildThrowingRecoveryPlan(options: {
   const owned = new Set(options.equipment ?? OWNED_EQUIPMENT);
   const available = (blocks: RecoveryBlock[]) =>
     blocks.filter((block) => !block.requires || owned.has(block.requires));
-  const builders = [dayZero(bodyweight), dayOne(), dayTwo(), dayThree(), dayFour()];
+  const builders = [
+    dayZero(bodyweight),
+    dayOne(options.outingDate),
+    dayTwo(),
+    dayThree(),
+    dayFour(),
+  ];
   const length = protocolLengthForTier(options.tier);
 
   const days: RecoveryDay[] = [];
@@ -988,7 +1003,9 @@ const PLACEMENT: Record<string, BlockPlacement> = {
   // with the stretch it is an adjunct to.
   scraper: "arm_care",
   "sleeper-stretch": "arm_care",
-  "soft-tissue": "recover", // general tissue work
+  // Was general tissue work; it is now the coach's own programme, and eight
+  // of its nine items are the throwing shoulder or the girdle around it.
+  "soft-tissue": "arm_care",
   "compression-overnight": "arm_care", // the same arm sleeve, re-worn
 
   // --- Days 3 and 4. The re-load and the prime describe the day's own shape

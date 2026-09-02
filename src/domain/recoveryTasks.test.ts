@@ -145,7 +145,10 @@ describe("merging into the session", () => {
       two.session.tasks.find((task) => String(task.id).endsWith(`-recovery-${id}`))?.stageTitle;
     expect(stageOf("sleeper-stretch")).toBe("Arm Care");
     expect(stageOf("compression-overnight")).toBe("Arm Care");
-    expect(stageOf("soft-tissue")).toBe("Recover");
+    // The day-2 tissue block is the coach's own recovery and mobility
+    // programme now, and eight of its nine items are the throwing shoulder or
+    // the girdle around it — so it moved out of the general Recover stage.
+    expect(stageOf("soft-tissue")).toBe("Arm Care");
   });
 
   it("keeps the session's own tasks and their order", () => {
