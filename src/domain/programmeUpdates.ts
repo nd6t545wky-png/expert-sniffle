@@ -984,10 +984,13 @@ function needsSprintDrills(tasks: SessionTask[]): boolean {
  * next to it is not twice the stimulus, it is one session the athlete gives up
  * on halfway through. The task keeps its id so completion tracking survives.
  */
-function withTreadArmCare(day: number | null) {
+function withTreadArmCare(day: number | null, sessionTasks: readonly SessionTask[]) {
   return (task: SessionTask): SessionTask => {
     if (task.stageTitle !== "Arm Care" || !/arm-care circuit/i.test(String(task.name))) return task;
-    const session = armCareForDay(day);
+    // Read the day's throwing off the session as written, before the overlay
+    // has rewritten anything: the mobility programme's placement depends on
+    // how hard the day throws, and that must not depend on map ordering.
+    const session = armCareForDay(day, sessionTasks);
     if (!session) return task;
 
     const minutes = session.minutes ? `, about ${session.minutes} min` : "";
@@ -997,7 +1000,9 @@ function withTreadArmCare(day: number | null) {
       prescription: `${movementCount(session)} movements${minutes}. ${describeSession(session)}`,
       cue: appendOnce(
         task.cue,
-        "Your own programme, on the day it was written for. Doses are the coach's."
+        session.id === "tread-mobility"
+          ? "Your own programme. The coach's note: a low workload throwing day, before or after throwing — your preference."
+          : "Your own programme, on the day it was written for. Doses are the coach's."
       ),
     };
   };
@@ -1023,7 +1028,7 @@ export function applyBaselineProgramming(
     .map(withBarSpeedIntent)
     .map(withPlyoEvidence)
     .map(withSupersets(day))
-    .map(withTreadArmCare(day))
+    .map(withTreadArmCare(day, session.tasks))
     .map(withExplicitReducedDose(level));
 
   // Warm-up additions run every day that has a warm-up. Sunday has no

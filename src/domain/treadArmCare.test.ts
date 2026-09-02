@@ -16,6 +16,8 @@ import {
   describeSession,
   movementCount,
   armCareForDay,
+  isLowWorkloadThrowingDay,
+  LOW_WORKLOAD_EFFORT,
   MOBILITY_SESSION,
 } from "./treadArmCare";
 import { buildSession, weekPlan } from "./programmeSessions";
@@ -113,28 +115,83 @@ describe("writing it out", () => {
   });
 });
 
+const throwing = (prescription: string, stageTitle = "Throw") => [
+  { stageTitle, name: "Catch", prescription },
+];
+
+describe("what counts as a low workload throwing day", () => {
+  it("reads the top of an effort range, not the bottom", () => {
+    expect(isLowWorkloadThrowingDay(throwing("45–60 total throws · 60–75 ft · 50–60% effort"))).toBe(true);
+    expect(isLowWorkloadThrowingDay(throwing("45–55 total throws · 90–120 ft · 65–75% effort"))).toBe(false);
+  });
+
+  it("takes the ceiling literally", () => {
+    expect(isLowWorkloadThrowingDay(throwing(`about ${LOW_WORKLOAD_EFFORT}%`))).toBe(true);
+    expect(isLowWorkloadThrowingDay(throwing(`about ${LOW_WORKLOAD_EFFORT + 5}%`))).toBe(false);
+  });
+
+  it("rules out a day carrying hard work however gently the catch-play reads", () => {
+    expect(
+      isLowWorkloadThrowingDay([
+        ...throwing("35–50 throws · 50% effort"),
+        { stageTitle: "Throw", name: "High-intent pulldowns", prescription: "8 pulldowns" },
+      ])
+    ).toBe(false);
+  });
+
+  it("does not assume a day is easy just because no percentage is written", () => {
+    // Most of those are games.
+    expect(isLowWorkloadThrowingDay(throwing("Team pitch/inning limits apply"))).toBe(false);
+  });
+
+  it("is false on a day with no throwing at all", () => {
+    expect(isLowWorkloadThrowingDay([])).toBe(false);
+    expect(isLowWorkloadThrowingDay([{ stageTitle: "Rest", name: "Rest", prescription: "Complete rest" }])).toBe(false);
+  });
+});
+
 describe("which day gets which session", () => {
-  it("puts each session on the weekday it was captured on", () => {
-    // 29 Jan 2025 was a Wednesday, 13 Feb a Thursday, 17 Jan a Friday.
-    expect(armCareForDay(2)!.id).toBe("tread-scap-a");
-    expect(armCareForDay(3)!.id).toBe("tread-mobility");
-    expect(armCareForDay(4)!.id).toBe("tread-scap-b");
+  const easy = throwing("35–40 throws · 60 ft · about 50%");
+
+  it("pins the two scapular sessions to the weekday each was captured on", () => {
+    // 29 Jan 2025 was a Wednesday, 17 Jan a Friday.
+    expect(armCareForDay(2, easy)!.id).toBe("tread-scap-a");
+    expect(armCareForDay(4, easy)!.id).toBe("tread-scap-b");
   });
 
   it("agrees with the capture dates rather than restating them", () => {
-    for (const [day, session] of [[2, armCareForDay(2)!], [3, armCareForDay(3)!], [4, armCareForDay(4)!]] as const) {
+    for (const [day, session] of [[2, armCareForDay(2, easy)!], [4, armCareForDay(4, easy)!]] as const) {
       const weekday = new Date(`${session.capturedOn}T00:00:00Z`).getUTCDay();
       // getUTCDay is Sunday-based; the app's day 0 is Monday.
       expect((weekday + 6) % 7, session.id).toBe(day);
     }
   });
 
-  it("leaves the days the coach programmed nothing for alone", () => {
-    for (const day of [0, 1, 5, 6]) expect(armCareForDay(day), `day ${day}`).toBeNull();
+  it("places the mobility programme by the coach's rule, not by its weekday", () => {
+    // His note reads "a low workload throwing day", so any such day gets it —
+    // which is why Monday does as well as the Thursday it was captured on.
+    for (const day of [0, 1, 3, 5, 6]) {
+      expect(armCareForDay(day, easy)!.id, `day ${day}`).toBe("tread-mobility");
+    }
+  });
+
+  it("gives a day that throws hard nothing at all", () => {
+    const hard = throwing("45–55 throws · 65–75% effort");
+    for (const day of [0, 1, 3, 5, 6]) expect(armCareForDay(day, hard), `day ${day}`).toBeNull();
+  });
+
+  it("keeps every session off a game day, whatever the weekday says", () => {
+    // Friday is the primer in winter and a game in summer. The pin must not
+    // drop a wall-angel session onto game day.
+    const game = [
+      ...throwing("Close catch → 60 → 90 → 120 ft · 25–40 throws"),
+      { stageTitle: "Compete", name: "Game appearance", prescription: "Team pitch/inning limits apply" },
+    ];
+    for (let day = 0; day < 7; day += 1) expect(armCareForDay(day, game), `day ${day}`).toBeNull();
   });
 
   it("survives a day it cannot read rather than throwing", () => {
-    for (const day of [null, -1, 9, 1.5]) expect(armCareForDay(day as number)).toBeNull();
+    for (const day of [null, -1, 9, 1.5]) expect(armCareForDay(day as number, easy)).toBeNull();
   });
 });
 
@@ -163,15 +220,22 @@ describe("on the plan", () => {
     expect(String(task.prescription)).toContain("Posterior Wall Angels 20");
   });
 
-  it("leaves Monday, Tuesday and Saturday as the programme wrote them", () => {
-    for (const day of [0, 1, 5]) {
+  it("puts the mobility programme on Monday too — the week's other easy day", () => {
+    const [task] = armCare(7, 0);
+    expect(String(task.name)).toBe("Arm care — Recovery and mobility");
+    expect(String(task.cue)).toMatch(/before or after throwing/);
+  });
+
+  it("leaves the days that throw hard as the programme wrote them", () => {
+    // Tuesday is command work at 65–75%; Saturday is a game.
+    for (const day of [1, 5]) {
       const [task] = armCare(7, day);
       expect(String(task.name), `day ${day}`).toBe("Post-throw arm-care circuit");
     }
   });
 
   it("rewrites the existing task rather than adding a second circuit", () => {
-    for (const day of [2, 3, 4]) {
+    for (const day of [0, 2, 3, 4]) {
       expect(armCare(7, day), `day ${day}`).toHaveLength(1);
     }
   });
@@ -184,7 +248,10 @@ describe("on the plan", () => {
 
   it("does the same in the summer block, where the week has a different shape", () => {
     expect(String(armCare(20, 2)[0].name)).toBe("Arm care — Scapular, serratus and grip");
-    expect(String(armCare(20, 3)[0].name)).toBe("Arm care — Recovery and mobility");
+    // Summer Friday is a game rather than the primer it is in winter, so the
+    // Friday pin correctly does not fire there.
+    expect(String(armCare(20, 4)[0].name)).toBe("Post-throw arm-care circuit");
+    expect(String(armCare(20, 5)[0].name)).toBe("Arm care — Recovery and mobility");
   });
 
   it("never names the same movement twice on one day", () => {

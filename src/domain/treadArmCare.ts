@@ -23,11 +23,13 @@ import { IsoDate } from "./state";
  * Thursday, 17 January a Friday — and each session belongs to a kind of day:
  *
  *   Wednesday   scapular, serratus and grip    the high-intent throwing day
- *   Thursday    recovery and mobility          the coach's own note on this
- *                                              one reads "a low workload
- *                                              throwing day", which is what
- *                                              Thursday already is
  *   Friday      posterior chain and serratus   the primer before Saturday
+ *
+ * The third is placed by rule rather than by weekday, because the coach wrote
+ * a rule for it: "designed to be done on a low workload throwing day". It was
+ * captured on a Thursday, but Thursday is not the instruction — so it goes on
+ * every low-workload throwing day the week has, which in the winter block is
+ * Monday and Thursday, both recovery catch at 50–60%.
  *
  * `programmeUpdates.ts` rewrites that day's existing arm-care task rather than
  * adding beside it. Every day already carries a post-throw arm-care circuit; a
@@ -191,29 +193,101 @@ export function describeMobility(): string {
 }
 
 /**
- * The whole programme, indexed the way the coach wrote it: by day of week.
+ * The two scapular sessions, pinned to the weekday each was captured on.
  *
- * Day 0 is Monday, matching the rest of the app. Monday, Tuesday, Saturday and
- * Sunday are absent on purpose — nothing was captured for them, and inventing
- * a session for a day the coach left alone would be the opposite of the point
- * of transcribing his.
+ * Day 0 is Monday, matching the rest of the app. These two stay pinned because
+ * the day is the point: one was written for the high-intent throwing day and
+ * the other for the primer before a game, and neither belongs anywhere else.
  */
-const BY_WEEKDAY: Readonly<Record<number, TreadSession>> = Object.freeze({
+const SCAP_BY_WEEKDAY: Readonly<Record<number, TreadSession>> = Object.freeze({
   2: SCAP_SESSIONS[0], // Wednesday — captured 29 Jan 2025
-  3: MOBILITY_SESSION, // Thursday — captured 13 Feb 2025
   4: SCAP_SESSIONS[1], // Friday — captured 17 Jan 2025
 });
 
 /**
- * The session for a weekday, or null where the coach programmed none.
+ * Effort written as a percentage — "50–60% effort", "about 50%".
  *
- * Null rather than a fallback: a day with no captured session keeps whatever
- * the app already prescribed, which is the honest answer to "what does the
- * coach want here" when the answer is that nobody knows.
+ * The top of a range is what counts. A day written 50–60% is a 60% day for the
+ * purpose of deciding whether it is easy.
  */
-export function armCareForDay(day: number | null): TreadSession | null {
-  if (day === null || !Number.isInteger(day)) return null;
-  return BY_WEEKDAY[day] ?? null;
+const EFFORT = /(\d{2,3})\s*(?:[–—-]\s*(\d{2,3}))?\s*%/g;
+
+/** The ceiling for "low workload". Above this the day is not an easy one. */
+export const LOW_WORKLOAD_EFFORT = 60;
+
+/** Stages whose prescriptions describe the day's throwing. */
+const THROWING_STAGES = new Set(["Throw", "High-Intent Prep", "Game Warm-up", "Compete", "Team Throwing"]);
+
+/** Work that rules a day out however gently the catch-play is written. */
+const NOT_EASY = /pulldown|game appearance|bullpen|compete|max.?effort|run.?and.?gun/i;
+
+/**
+ * Is this a low-workload throwing day, in the coach's sense?
+ *
+ * His instruction on the mobility programme is "designed to be done on a low
+ * workload throwing day" — so that, and not the weekday it happened to be
+ * screenshotted on, is where it belongs. Read off the session's own throwing
+ * prescriptions: there has to *be* throwing, the hardest of it has to sit at
+ * or under 60% effort, and nothing on the day can be a pulldown set, a bullpen
+ * or a game.
+ *
+ * A day whose throwing carries no percentage at all is not assumed easy. Most
+ * of those are games.
+ */
+export function isLowWorkloadThrowingDay(
+  tasks: readonly { stageTitle?: unknown; name?: unknown; prescription?: unknown }[]
+): boolean {
+  const throwing = tasks.filter((task) => THROWING_STAGES.has(String(task.stageTitle)));
+  if (throwing.length === 0) return false;
+
+  const text = throwing.map((task) => `${String(task.name)} ${String(task.prescription)}`).join(" | ");
+  if (NOT_EASY.test(text)) return false;
+
+  let hardest = 0;
+  for (const match of text.matchAll(EFFORT)) {
+    hardest = Math.max(hardest, Number(match[2] ?? match[1]));
+  }
+  return hardest > 0 && hardest <= LOW_WORKLOAD_EFFORT;
+}
+
+/**
+ * The session this day gets, or null where the coach programmed none.
+ *
+ * The two scapular sessions go by weekday. The mobility programme goes by the
+ * coach's own rule instead — any low-workload throwing day that is not already
+ * carrying a scapular session. That is why Monday gets it as well as Thursday:
+ * both are recovery catch at 50–60%, and the programme note does not say
+ * "Thursday", it says "a low workload throwing day".
+ *
+ * Null rather than a fallback: a day with no session keeps whatever the app
+ * already prescribed, which is the honest answer to "what does the coach want
+ * here" when nobody knows.
+ */
+export function armCareForDay(
+  day: number | null,
+  tasks: readonly { stageTitle?: unknown; name?: unknown; prescription?: unknown }[] = []
+): TreadSession | null {
+  // A day outside the week is not a day. Without the range check a nonsense
+  // index fell past the pins and collected a session from the low-workload
+  // rule, which would have put arm care on a day that does not exist.
+  if (day === null || !Number.isInteger(day) || day < 0 || day > 6) return null;
+
+  // Nothing was captured on a game day, and the weekday pins must not put one
+  // there by accident. In the summer block Friday is a game rather than the
+  // primer it is in winter, and without this the Friday pin dropped a
+  // wall-angel and serratus session onto game day.
+  if (isGameDay(tasks)) return null;
+
+  const scap = SCAP_BY_WEEKDAY[day];
+  if (scap) return scap;
+  return isLowWorkloadThrowingDay(tasks) ? MOBILITY_SESSION : null;
+}
+
+/** A day the athlete competes on, whatever the weekday says. */
+export function isGameDay(
+  tasks: readonly { stageTitle?: unknown }[]
+): boolean {
+  return tasks.some((task) => String(task.stageTitle) === "Compete");
 }
 
 /** Total movements in a session, for a plan that wants to say how big it is. */
