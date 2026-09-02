@@ -45,6 +45,17 @@ const OPENS_WITH_DOSE =
 /** The trailing dose of a movement: the first number-led run to the end. */
 const TRAILING_DOSE = /^(.*?)\s(\d[^·]*)$/;
 
+/**
+ * Doses that are instructions rather than numbers.
+ *
+ * "Max reps" is a real prescription — the coach writes it, and it says
+ * something a number cannot. Without this the movement it belongs to renders
+ * with no dose at all, which reads as an oversight rather than as the
+ * instruction it is. Deliberately a closed list: anything not on it is a name,
+ * not a dose, and guessing wrong turns half an exercise name into a rep count.
+ */
+const TRAILING_NAMED_DOSE = /^(.*?)\s((?:max(?:imum)?(?:\s+reps?)?|amrap|to failure|each side|per side))$/i;
+
 export interface Movement {
   /** What to do — "Half-kneeling hip flexor with posterior tilt". */
   name: string;
@@ -75,7 +86,7 @@ export function splitPrescription(prescription: unknown): Movement[] | null {
   if (segments.some((segment) => OPENS_WITH_DOSE.test(segment))) return null;
 
   return segments.map((segment) => {
-    const match = TRAILING_DOSE.exec(segment);
+    const match = TRAILING_DOSE.exec(segment) ?? TRAILING_NAMED_DOSE.exec(segment);
     if (!match) return { name: segment };
     const [, name, dose] = match;
     // A name that survives only as punctuation is not a name; keep the segment

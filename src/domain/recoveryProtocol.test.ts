@@ -380,18 +380,11 @@ describe("every prescription is specific enough to act on", () => {
   it("names the exercises in the two loaded blocks rather than counting them", () => {
     const blocks = new Map(everyBlock().map((block) => [block.id, block]));
 
-    // The day-1 block is now the athlete's own programme, and it alternates,
-    // so this asserts the property that matters — named movements and a round
-    // count — against whichever session the date resolves to.
     const scap = blocks.get("scap-strength")!.prescription;
-    expect(scap).toMatch(/\d+ rounds:/);
-    expect(scap).toMatch(/Serratus|Scap|Wall Angels/);
-    expect(scap).not.toMatch(/\bmovements?, \d+ sets each\b/);
-
-    const mobility = blocks.get("soft-tissue")!.prescription;
-    for (const movement of ["T-Spine Levered Extension", "Pec Minor Release", "Levator Scap Elongation"]) {
-      expect(mobility, movement).toContain(movement);
+    for (const movement of ["band row", "external rotation", "band W", "prone Y raise", "serratus wall slide"]) {
+      expect(scap, movement).toContain(movement);
     }
+    expect(scap).toMatch(/2 sets/);
 
     const bands = blocks.get("band-routine")!.prescription;
     for (const movement of ["forward arm circles", "horizontal abduction", "deceleration", "acceleration"]) {

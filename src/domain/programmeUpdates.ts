@@ -11,6 +11,7 @@ import { applyVelocityPolicy, velocityPolicy, weekFromTasks } from "./velocity";
 import { SQUAT_MIN_REPS, WEEK_SPECS, isEasyWeek, squatDose } from "./strengthProgression";
 import { isRetestWeek } from "./retest";
 import { weekPlan } from "./programmeSessions";
+import { armCareForDay, describeSession, movementCount } from "./treadArmCare";
 
 /**
  * Programme adjustments driven by the athlete's own testing, and by the
@@ -964,6 +965,44 @@ function needsSprintDrills(tasks: SessionTask[]): boolean {
   return hasSpeedWork && !hasDrills;
 }
 
+/**
+ * The coach's arm-care programme, on the days he programmed it.
+ *
+ * Three sessions were captured from the athlete's Tread Athletics programme,
+ * and the dates on them are the placement: 29 January was a Wednesday, 13
+ * February a Thursday, 17 January a Friday. They are not interchangeable
+ * sessions to rotate through — each one belongs to a kind of day.
+ *
+ *   Wednesday   scapular, serratus and grip   the high-intent throwing day
+ *   Thursday    recovery and mobility          "a low workload throwing day",
+ *                                              which is the coach's own note,
+ *                                              and is exactly what Thursday is
+ *   Friday      posterior chain and serratus   the primer before Saturday
+ *
+ * It rewrites the day's existing arm-care task rather than adding beside it.
+ * Every day already carries a "Post-throw arm-care circuit"; a second circuit
+ * next to it is not twice the stimulus, it is one session the athlete gives up
+ * on halfway through. The task keeps its id so completion tracking survives.
+ */
+function withTreadArmCare(day: number | null) {
+  return (task: SessionTask): SessionTask => {
+    if (task.stageTitle !== "Arm Care" || !/arm-care circuit/i.test(String(task.name))) return task;
+    const session = armCareForDay(day);
+    if (!session) return task;
+
+    const minutes = session.minutes ? `, about ${session.minutes} min` : "";
+    return {
+      ...task,
+      name: `Arm care — ${session.title}`,
+      prescription: `${movementCount(session)} movements${minutes}. ${describeSession(session)}`,
+      cue: appendOnce(
+        task.cue,
+        "Your own programme, on the day it was written for. Doses are the coach's."
+      ),
+    };
+  };
+}
+
 export function applyBaselineProgramming(
   session: Session,
   level: ReducedLevel | null = null,
@@ -984,6 +1023,7 @@ export function applyBaselineProgramming(
     .map(withBarSpeedIntent)
     .map(withPlyoEvidence)
     .map(withSupersets(day))
+    .map(withTreadArmCare(day))
     .map(withExplicitReducedDose(level));
 
   // Warm-up additions run every day that has a warm-up. Sunday has no

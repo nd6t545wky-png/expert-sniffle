@@ -16,15 +16,23 @@ import { IsoDate } from "./state";
  * is a thing he can do. "10 min soft tissue on the posterior shoulder" is a
  * thing he has to interpret, and interpret differently every time.
  *
- * ## What this replaces
+ * ## Where they go
  *
- * These do not sit *alongside* the generic blocks — they take their place. Two
- * scapular circuits on the same day is not twice the stimulus, it is one
- * session the athlete abandons halfway through. The mapping is in
- * `recoveryProtocol.ts`:
+ * On the weekdays the coach wrote them for. The capture dates are the
+ * placement, not trivia — 29 January 2025 was a Wednesday, 13 February a
+ * Thursday, 17 January a Friday — and each session belongs to a kind of day:
  *
- *   - `scap-strength` (day 1)  →  SCAP_SESSIONS, alternating
- *   - `soft-tissue`   (day 2)  →  MOBILITY_PROGRAM
+ *   Wednesday   scapular, serratus and grip    the high-intent throwing day
+ *   Thursday    recovery and mobility          the coach's own note on this
+ *                                              one reads "a low workload
+ *                                              throwing day", which is what
+ *                                              Thursday already is
+ *   Friday      posterior chain and serratus   the primer before Saturday
+ *
+ * `programmeUpdates.ts` rewrites that day's existing arm-care task rather than
+ * adding beside it. Every day already carries a post-throw arm-care circuit; a
+ * second circuit next to it is not twice the stimulus, it is one session the
+ * athlete gives up on halfway through.
  *
  * ## Two honest gaps
  *
@@ -62,9 +70,10 @@ export interface TreadSession {
 /**
  * The scapular and serratus sessions.
  *
- * Two of them, twelve days apart in the source programme, which is what makes
- * them alternating rather than alternatives. Session A is scap-and-grip and
- * runs 27 minutes; session B is posterior-chain and serratus.
+ * Two of them, and the dates they were captured on are the placement rather
+ * than trivia: 29 January 2025 was a Wednesday and 17 January a Friday. They
+ * are not two versions of one session to rotate through — one belongs to the
+ * high-intent day and the other to the primer before a game.
  */
 export const SCAP_SESSIONS: readonly TreadSession[] = Object.freeze([
   {
@@ -130,13 +139,12 @@ export const SCAP_SESSIONS: readonly TreadSession[] = Object.freeze([
  * The recovery and mobility programme.
  *
  * The coach's own instruction: done on a low-workload throwing day, before or
- * after throwing at the athlete's preference. That lands it on day 2 of the
- * protocol, which is already the mobility-and-soft-tissue day, and on day 3,
- * which is the first re-load.
+ * after throwing at the athlete's preference. It was captured on a Thursday,
+ * and Thursday in this programme is "Recovery + Aerobic Restore" — so the
+ * instruction and the calendar agree without anything being forced.
  *
  * Nine items, all soft tissue or range, all of it aimed at the throwing side
- * and the shoulder girdle around it — which is why it moves from the general
- * "Recover" stage into "Arm Care" when it goes onto the plan.
+ * and the shoulder girdle around it.
  */
 export const MOBILITY_PROGRAM: readonly TreadExercise[] = Object.freeze([
   { name: "T-Spine Levered Extension over Foam Roll", dose: "1–2 minutes" },
@@ -149,6 +157,20 @@ export const MOBILITY_PROGRAM: readonly TreadExercise[] = Object.freeze([
   { name: "Levator Scap Elongation", dose: "3 seconds each direction" },
   { name: "Foam Roll Levered 90/90 to Y's", dose: "12 slides" },
 ]);
+
+/**
+ * The mobility programme as a session, so all three days carry one shape.
+ *
+ * It is nine straight items with no supersets, which the superset list being
+ * empty says exactly.
+ */
+export const MOBILITY_SESSION: TreadSession = Object.freeze({
+  id: "tread-mobility",
+  title: "Recovery and mobility",
+  capturedOn: "2025-02-13" as IsoDate,
+  opener: [...MOBILITY_PROGRAM],
+  supersets: [],
+});
 
 /** `Name dose`, joined the way the rest of the protocol writes a prescription. */
 const list = (exercises: readonly TreadExercise[]): string =>
@@ -169,17 +191,29 @@ export function describeMobility(): string {
 }
 
 /**
- * Which scapular session this outing gets.
+ * The whole programme, indexed the way the coach wrote it: by day of week.
  *
- * Alternates, so both halves of the programme actually run. Keyed off the
- * outing date rather than a counter: there is no state to keep, the same
- * outing always resolves to the same session, and re-opening a past day shows
- * what was prescribed then rather than what is next in a queue.
+ * Day 0 is Monday, matching the rest of the app. Monday, Tuesday, Saturday and
+ * Sunday are absent on purpose — nothing was captured for them, and inventing
+ * a session for a day the coach left alone would be the opposite of the point
+ * of transcribing his.
  */
-export function scapSessionFor(outingDate: IsoDate): TreadSession {
-  const days = Math.floor(Date.parse(`${outingDate}T00:00:00Z`) / 86_400_000);
-  const index = Number.isFinite(days) ? Math.abs(days) % SCAP_SESSIONS.length : 0;
-  return SCAP_SESSIONS[index];
+const BY_WEEKDAY: Readonly<Record<number, TreadSession>> = Object.freeze({
+  2: SCAP_SESSIONS[0], // Wednesday — captured 29 Jan 2025
+  3: MOBILITY_SESSION, // Thursday — captured 13 Feb 2025
+  4: SCAP_SESSIONS[1], // Friday — captured 17 Jan 2025
+});
+
+/**
+ * The session for a weekday, or null where the coach programmed none.
+ *
+ * Null rather than a fallback: a day with no captured session keeps whatever
+ * the app already prescribed, which is the honest answer to "what does the
+ * coach want here" when the answer is that nobody knows.
+ */
+export function armCareForDay(day: number | null): TreadSession | null {
+  if (day === null || !Number.isInteger(day)) return null;
+  return BY_WEEKDAY[day] ?? null;
 }
 
 /** Total movements in a session, for a plan that wants to say how big it is. */

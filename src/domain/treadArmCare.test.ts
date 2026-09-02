@@ -15,9 +15,11 @@ import {
   describeMobility,
   describeSession,
   movementCount,
-  scapSessionFor,
+  armCareForDay,
+  MOBILITY_SESSION,
 } from "./treadArmCare";
-import { buildThrowingRecoveryPlan } from "./recoveryProtocol";
+import { buildSession, weekPlan } from "./programmeSessions";
+import { applyBaselineProgramming } from "./programmeUpdates";
 
 describe("the transcription", () => {
   it("keeps both scapular sessions", () => {
@@ -111,64 +113,101 @@ describe("writing it out", () => {
   });
 });
 
-describe("choosing a session", () => {
-  it("alternates, so both halves of the programme run", () => {
-    const picks = ["2026-08-24", "2026-08-25", "2026-08-26", "2026-08-27"].map(
-      (date) => scapSessionFor(date).id
-    );
-    expect(new Set(picks).size).toBe(2);
-    expect(picks[0]).not.toBe(picks[1]);
-    expect(picks[0]).toBe(picks[2]);
+describe("which day gets which session", () => {
+  it("puts each session on the weekday it was captured on", () => {
+    // 29 Jan 2025 was a Wednesday, 13 Feb a Thursday, 17 Jan a Friday.
+    expect(armCareForDay(2)!.id).toBe("tread-scap-a");
+    expect(armCareForDay(3)!.id).toBe("tread-mobility");
+    expect(armCareForDay(4)!.id).toBe("tread-scap-b");
   });
 
-  it("is stable, so re-opening a past day shows what was prescribed then", () => {
-    expect(scapSessionFor("2026-08-24").id).toBe(scapSessionFor("2026-08-24").id);
+  it("agrees with the capture dates rather than restating them", () => {
+    for (const [day, session] of [[2, armCareForDay(2)!], [3, armCareForDay(3)!], [4, armCareForDay(4)!]] as const) {
+      const weekday = new Date(`${session.capturedOn}T00:00:00Z`).getUTCDay();
+      // getUTCDay is Sunday-based; the app's day 0 is Monday.
+      expect((weekday + 6) % 7, session.id).toBe(day);
+    }
   });
 
-  it("survives a date it cannot read rather than throwing", () => {
-    expect(SCAP_SESSIONS.map((s) => s.id)).toContain(scapSessionFor("not-a-date" as never).id);
+  it("leaves the days the coach programmed nothing for alone", () => {
+    for (const day of [0, 1, 5, 6]) expect(armCareForDay(day), `day ${day}`).toBeNull();
+  });
+
+  it("survives a day it cannot read rather than throwing", () => {
+    for (const day of [null, -1, 9, 1.5]) expect(armCareForDay(day as number)).toBeNull();
   });
 });
 
 describe("on the plan", () => {
-  const plan = (outingDate: string) =>
-    buildThrowingRecoveryPlan({ tier: "heavy", outingDate: outingDate as never, bodyweightKg: 85 });
+  const armCare = (week: number, day: number) =>
+    applyBaselineProgramming(buildSession(weekPlan(week), day), null, day).tasks.filter(
+      (task) => task.stageTitle === "Arm Care"
+    );
 
-  it("puts a named scapular session on day 1", () => {
-    const day1 = plan("2026-08-24").days[1];
-    const block = day1.blocks.find((b) => b.id === "scap-strength")!;
-    expect(block.prescription).toMatch(/\d+ rounds:/);
-    expect(block.name).toMatch(/Scapular strengthening — /);
-    // The prescription names the session too, because this block takes over a
-    // programme task on the plan and inherits that task's name.
-    expect(block.prescription).toMatch(/^(Scapular, serratus and grip|Posterior chain and serratus) — /);
+  it("puts the scapular session on Wednesday", () => {
+    const [task] = armCare(7, 2);
+    expect(String(task.name)).toBe("Arm care — Scapular, serratus and grip");
+    expect(String(task.prescription)).toContain("Split Stance Flexion Ball Drops 50–75 reps");
+    expect(String(task.prescription)).toContain("2 rounds:");
   });
 
-  it("puts the coach's mobility programme on day 2", () => {
-    const day2 = plan("2026-08-24").days[2];
-    const block = day2.blocks.find((b) => b.id === "soft-tissue")!;
-    expect(block.name).toBe("Recovery and mobility programme");
-    expect(block.prescription).toContain("Thoracic Spine Windmills 15 reps each direction");
+  it("puts the mobility programme on Thursday", () => {
+    const [task] = armCare(7, 3);
+    expect(String(task.name)).toBe("Arm care — Recovery and mobility");
+    expect(String(task.prescription)).toContain("Levator Scap Elongation 3 seconds each direction");
   });
 
-  it("gives two different outings the two different sessions", () => {
-    const a = plan("2026-08-24").days[1].blocks.find((b) => b.id === "scap-strength")!.prescription;
-    const b = plan("2026-08-25").days[1].blocks.find((b) => b.id === "scap-strength")!.prescription;
-    expect(a).not.toBe(b);
+  it("puts the posterior session on Friday", () => {
+    const [task] = armCare(7, 4);
+    expect(String(task.name)).toBe("Arm care — Posterior chain and serratus");
+    expect(String(task.prescription)).toContain("Posterior Wall Angels 20");
   });
 
-  it("does not put the same movement in two blocks on one day", () => {
-    // The whole reason these replaced the generic blocks rather than joining
-    // them: one scapular circuit per day, not two.
-    for (const date of ["2026-08-24", "2026-08-25"]) {
-      for (const day of plan(date).days) {
-        const named = day.blocks.flatMap((block) =>
-          [...MOBILITY_PROGRAM, ...SCAP_SESSIONS.flatMap((s) => [...s.opener, ...s.supersets.flatMap((ss) => ss.exercises)])]
-            .filter((exercise) => block.prescription.includes(exercise.name))
-            .map((exercise) => exercise.name)
-        );
-        expect(new Set(named).size, `${date} ${day.title}`).toBe(named.length);
+  it("leaves Monday, Tuesday and Saturday as the programme wrote them", () => {
+    for (const day of [0, 1, 5]) {
+      const [task] = armCare(7, day);
+      expect(String(task.name), `day ${day}`).toBe("Post-throw arm-care circuit");
+    }
+  });
+
+  it("rewrites the existing task rather than adding a second circuit", () => {
+    for (const day of [2, 3, 4]) {
+      expect(armCare(7, day), `day ${day}`).toHaveLength(1);
+    }
+  });
+
+  it("keeps the task id, so completion tracking survives the rewrite", () => {
+    const before = buildSession(weekPlan(7), 2).tasks.find((t) => t.stageTitle === "Arm Care")!;
+    const after = armCare(7, 2)[0];
+    expect(after.id).toBe(before.id);
+  });
+
+  it("does the same in the summer block, where the week has a different shape", () => {
+    expect(String(armCare(20, 2)[0].name)).toBe("Arm care — Scapular, serratus and grip");
+    expect(String(armCare(20, 3)[0].name)).toBe("Arm care — Recovery and mobility");
+  });
+
+  it("never names the same movement twice on one day", () => {
+    const every = [
+      ...MOBILITY_PROGRAM,
+      ...SCAP_SESSIONS.flatMap((s) => [...s.opener, ...s.supersets.flatMap((ss) => ss.exercises)]),
+    ];
+    for (let day = 0; day < 7; day += 1) {
+      const text = applyBaselineProgramming(buildSession(weekPlan(7), day), null, day)
+        .tasks.map((task) => `${task.name} ${task.prescription}`)
+        .join(" | ");
+      for (const exercise of every) {
+        const hits = text.split(exercise.name).length - 1;
+        expect(hits, `day ${day}: ${exercise.name}`).toBeLessThanOrEqual(1);
       }
     }
+  });
+});
+
+describe("the mobility session", () => {
+  it("is the nine items, as straight sets", () => {
+    expect(MOBILITY_SESSION.opener).toHaveLength(9);
+    expect(MOBILITY_SESSION.supersets).toHaveLength(0);
+    expect(movementCount(MOBILITY_SESSION)).toBe(9);
   });
 });

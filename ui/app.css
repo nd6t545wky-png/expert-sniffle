@@ -2888,7 +2888,7 @@ h1, h2, h3, h4 { font-weight: 600; }
 
 /* My own blood-flag chip, at 3.49:1 on a dark surface. */
 .blood-flag.flag-below,
-.blood-flag.flag-above { border-color: #d08a3a; color: #b4691c; }
+.blood-flag.flag-above { border-color: #c07f33; color: #9a5814; }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) .blood-flag.flag-below,
   :root:not([data-theme="light"]) .blood-flag.flag-above { border-color: #d9954a; color: #f0b169; }
