@@ -54,6 +54,15 @@ describe("innings", () => {
     expect(inningsPitched(-4)).toBe(0);
   });
 
+  it("shows nothing rather than NaN for a line that carries no outs", () => {
+    // A game restored from a backup, or written before the log stored outs,
+    // has no `outs` field at all. The game log printed "NaN.NaN" in the IP
+    // column for it, and every rate underneath came out NaN too.
+    expect(formatInnings(undefined as unknown as number)).toBe("0.0");
+    expect(formatInnings(Number.NaN)).toBe("0.0");
+    expect(inningsPitched(undefined as unknown as number)).toBe(0);
+  });
+
   it("reads typed innings in either notation", () => {
     expect(outsFromInnings("3.2")).toBe(11);
     expect(outsFromInnings("5")).toBe(15);

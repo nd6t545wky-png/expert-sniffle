@@ -4,7 +4,7 @@ import { useEffect } from "react";
  * Applies appearance and interface preferences to <html>.
  *
  * This is not cosmetic wiring — styles.css keys its entire dark palette off
- * `:root[data-theme="dark"]`, and glass/density/motion off their own data
+ * `:root[data-theme="dark"]`, and density/motion off their own data
  * attributes. Without these the stylesheet stays in its light defaults no
  * matter what the device prefers, which is what made every surface render as
  * a white box.
@@ -18,6 +18,11 @@ export type Appearance = "system" | "light" | "dark";
 
 export interface InterfacePreferences {
   appearance?: string;
+  /**
+   * Retained so a profile written by the prototype still round-trips, and so
+   * nothing is silently dropped from stored state. It no longer drives
+   * anything: the stylesheet has no translucent surfaces left to tune.
+   */
   glassIntensity?: string;
   interfaceDensity?: string;
   motionPreference?: string;
@@ -38,7 +43,6 @@ export function resolveAppearance(preference: string): "light" | "dark" {
 
 export function useAppearance(profile: InterfacePreferences | undefined): void {
   const preference = oneOf(profile?.appearance, ["system", "light", "dark"], "system");
-  const glass = oneOf(profile?.glassIntensity, ["subtle", "balanced", "vivid"], "balanced");
   const density = oneOf(profile?.interfaceDensity, ["comfortable", "compact"], "comfortable");
   const motion = oneOf(profile?.motionPreference, ["system", "full", "reduced"], "system");
   const navigation = oneOf(profile?.navigationBehavior, ["smart", "steady"], "smart");
@@ -52,8 +56,7 @@ export function useAppearance(profile: InterfacePreferences | undefined): void {
       root.style.colorScheme = resolved;
       document
         .querySelector('meta[name="theme-color"]')
-        ?.setAttribute("content", resolved === "dark" ? "#000000" : "#f7f7f9");
-      root.dataset.glass = glass;
+        ?.setAttribute("content", resolved === "dark" ? "#0b0b0c" : "#f7f7f8");
       root.dataset.density = density;
       root.dataset.motion = motion;
       root.dataset.navigation = navigation;
@@ -69,5 +72,5 @@ export function useAppearance(profile: InterfacePreferences | undefined): void {
     };
     media.addEventListener?.("change", onChange);
     return () => media.removeEventListener?.("change", onChange);
-  }, [preference, glass, density, motion, navigation]);
+  }, [preference, density, motion, navigation]);
 }

@@ -67,6 +67,51 @@ scripts/build.mjs   Copies public/ → dist/, minifies the client bundle
 wrangler.jsonc      Worker + bindings config
 ```
 
+## Design system
+
+The interface is deliberately structural. Everything below is enforced by
+`ui/components/designSystem.test.ts`, which reads the stylesheets and fails the
+suite when one of these erodes.
+
+**Colour — three, plus a severity ramp.** Ink, muted slate and paper carry the
+whole of the chrome; one accent sits on top and the club themes re-point that
+accent and nothing else. `--warn` and `--crit` exist for one job — "ease off"
+and "do not throw" — and never appear as decoration. There is no green: a plan
+that is on track is the accent or plain ink, so colour on this dashboard always
+means *pay attention to this*. Every literal colour lives in a custom-property
+declaration; a hex at the point of use is a test failure.
+
+**Structure — lines, not depth.** No blur, no glass, no gradient, no drop
+shadow. Surfaces are opaque and separated by 1px lines. `--radius` is 3px and is
+the only radius in the system; the sole exception is a status dot, which is a
+circle because it is a dot. The rail, the top bar and the phone's tab strip are
+flush against the content rather than floating cards inset from it.
+
+**Type — one scale, capped at 26px.** `--t-xs` (10px) through `--t-3xl` (26px).
+Hierarchy comes from weight, case and position; nothing in the product is a
+hero. Numbers are set in tabular figures wherever a figure is compared against
+another figure.
+
+**Density.** The spacing scale is `--sp-1` (4px) to `--sp-7` (24px), and the
+page gutter is 16–20px rather than the 34–58px it was. Today's view is a split
+panel: the session beside a dense column of shortcut rows, so the day and every
+number qualifying it are read without scrolling.
+
+**Accessibility.** WCAG AA contrast in both themes, every tab stop carrying a
+visible focus indicator, every `<button>` with an explicit `type`, and no target
+under 24px. Two audits check this against a real browser:
+
+```sh
+npm run e2e:serve &      # build and serve dist/ on :8899
+npm run design:audit     # contrast + webfont, every page, light and dark
+npm run a11y:audit       # focus rings, button types, names, target sizes
+npm run design:shots     # screenshots to captured/<label>/ for eyeballing
+```
+
+`public/styles.css` and `ui/styles.css` are the same file — the prototype at
+`/` serves the first, the app at `/next/` bundles the second. Edit one and copy
+it over the other; a test fails if they drift.
+
 ## Setup
 
 ```sh
@@ -94,6 +139,7 @@ deployed bundle, so they're currently placeholders.
 
 ```sh
 npm run typecheck   # tsc --noEmit
+npm run test        # vitest, including the design-system rules
 npm run build       # public/ -> dist/, minified
 npm run deploy       # build + wrangler deploy
 ```

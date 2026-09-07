@@ -661,6 +661,21 @@ describe("Recovery trends — readable without prior knowledge", () => {
   it("does not crash when nothing has ever been imported", () => {
     expect(() => render(<Tracking {...trackingProps} />)).not.toThrow();
   });
+
+  it("renders a stored report that carries no date of its own", () => {
+    // Reports are keyed by date, and records written by earlier builds — or
+    // restored from a backup of the `post` map — have no `date` field inside
+    // them. Sorting read `report.date.localeCompare`, which threw, and the
+    // whole Progress page went behind the error boundary. The key is the
+    // authority on the day, so the row renders.
+    const reports = {
+      "2026-08-09": { perceivedExertion: 6, armFeel: 8, submittedAt: "" },
+    } as never;
+    expect(() =>
+      render(<Tracking {...trackingProps} reports={reports} />)
+    ).not.toThrow();
+    expect(screen.getByText("2026-08-09")).toBeDefined();
+  });
 });
 
 

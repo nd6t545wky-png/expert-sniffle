@@ -157,7 +157,15 @@ export function Tracking({
   const [error, setError] = useState("");
 
   const existing = reports[date];
-  const recent = Object.values(reports).filter(Boolean) as SessionReport[];
+  // Keyed by date, so the key is the authority on which day a report belongs
+  // to. Records written by older builds (and the `post` map restored from a
+  // backup) carry no `date` field of their own, and reading `report.date`
+  // straight off them threw on sort — taking the whole Progress page down
+  // behind the error boundary. The key fills the gap; anything still without a
+  // usable date is dropped rather than sorted against `undefined`.
+  const recent: SessionReport[] = Object.entries(reports)
+    .flatMap(([key, report]) => (report ? [{ ...report, date: report.date ?? key }] : []))
+    .filter((report) => typeof report.date === "string" && report.date.length > 0);
   const trendDays = ouraTrendDays(healthPrefill, submissions);
 
   function handleSubmit(event: React.FormEvent) {

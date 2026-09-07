@@ -310,14 +310,21 @@ describe("AnnualPlan — the year as a calendar", () => {
     expect(document.querySelectorAll(".cal-month-card")).toHaveLength(13);
   });
 
-  it("gives one tab per training cycle, coloured from the phase table", () => {
+  it("gives one tab per training cycle, coloured on the season tokens", () => {
     render(<AnnualPlan selectedWeek={1} onSelectWeek={vi.fn()} />);
     const cycles = document.querySelectorAll(".cal-cycle");
     expect(cycles).toHaveLength(8);
     expect(screen.getByText("FNCBA Winter · In Season")).toBeDefined();
     expect(screen.getByText("GBL Preseason")).toBeDefined();
-    // Colour comes from the data, not from a class name written here.
-    expect((cycles[0] as HTMLElement).style.getPropertyValue("--cycle")).toBe("#e52b21");
+    // A token, not the hex the frozen phase table carries: the calendar says
+    // which club's season a week belongs to, in that club's own accent, and
+    // the accent is defined once in the stylesheet for both themes.
+    const cycle = (index: number) =>
+      (cycles[index] as HTMLElement).style.getPropertyValue("--cycle");
+    expect(cycle(0)).toBe("var(--season-winter)");
+    expect(cycle(2)).toBe("var(--season-summer)");
+    // A block belonging to no season is slate rather than a fourth hue.
+    expect(cycle(1)).toBe("var(--muted)");
   });
 
   it("marks the cycle the selected week belongs to", () => {

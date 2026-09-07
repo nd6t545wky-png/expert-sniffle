@@ -22,11 +22,39 @@ import { Card, CardHead, PageHead } from "./Page";
  * view for detail, and one colour per cycle so the shape of the season is
  * visible at a glance rather than needing to be read.
  *
- * Colour comes from the phase table itself, so the legend, the year view and
- * the month view cannot drift apart — and adding a phase needs no change here.
+ * Colour comes from `CYCLE_COLOUR` below, so the legend, the year view and the
+ * month view cannot drift apart.
  */
 
 const WEEKDAYS = ["M", "T", "W", "T", "F", "S", "S"];
+
+/**
+ * What colour a cycle wears on the calendar.
+ *
+ * `LEGACY_PHASES` carries hex values lifted verbatim out of the prototype, and
+ * they were the last colours in the product that were not on the palette: a
+ * red, a purple and a teal for the gaps between seasons. The red and the purple
+ * are already tokens — they are the two club themes — so the calendar reads
+ * them from there rather than restating them, and a block belonging to no
+ * season is drawn in slate instead of being given a fourth hue of its own.
+ *
+ * The year then reads as "Norths season / Cubs season / neither", which is what
+ * the colour was always trying to say. Keyed by phase id, and the phase table
+ * is frozen; an id this does not know falls through to slate rather than to
+ * nothing.
+ */
+const CYCLE_COLOUR: Record<string, string> = {
+  winter: "var(--season-winter)",
+  winter_next: "var(--season-winter)",
+  preseason: "var(--season-summer)",
+  summer_first: "var(--season-summer)",
+  summer_second: "var(--season-summer)",
+  transition: "var(--muted)",
+  transition_summer: "var(--muted)",
+  summer_break: "var(--muted)",
+};
+
+const cycleColour = (id: string): string => CYCLE_COLOUR[id] ?? "var(--muted)";
 
 export interface AnnualPlanProps {
   selectedWeek: number;
@@ -97,7 +125,7 @@ export function AnnualPlan({ selectedWeek, onSelectWeek, today }: AnnualPlanProp
               role="tab"
               aria-selected={active}
               className={`cal-cycle${active ? " active" : ""}`}
-              style={{ ["--cycle" as string]: item.color }}
+              style={{ ["--cycle" as string]: cycleColour(item.id) }}
               onClick={() => {
                 onSelectWeek(item.startWeek);
                 setMonthKey(monthContaining(weekStart(item.startWeek)).key);
@@ -251,7 +279,7 @@ function MonthGrid({
             key={cell.date}
             type="button"
             className={`cal-day${selected ? " selected" : ""}${isToday ? " today" : ""}${outside ? " outside" : ""}`}
-            style={cell.phase ? { ["--cycle" as string]: cell.phase.color } : undefined}
+            style={cell.phase ? { ["--cycle" as string]: cycleColour(cell.phase.id) } : undefined}
             disabled={outside}
             aria-current={isToday ? "date" : undefined}
             aria-label={
