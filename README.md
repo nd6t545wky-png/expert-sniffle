@@ -69,33 +69,36 @@ wrangler.jsonc      Worker + bindings config
 
 ## Design system
 
-The interface is deliberately structural. Everything below is enforced by
-`ui/components/designSystem.test.ts`, which reads the stylesheets and fails the
-suite when one of these erodes.
+The interface follows the iOS 26/27 material model. Everything below is
+enforced by `ui/components/designSystem.test.ts`, which reads the stylesheets
+and fails the suite when one of these erodes.
 
-**Colour — three, plus a severity ramp.** Ink, muted slate and paper carry the
-whole of the chrome; one accent sits on top and the club themes re-point that
-accent and nothing else. `--warn` and `--crit` exist for one job — "ease off"
-and "do not throw" — and never appear as decoration. There is no green: a plan
-that is on track is the accent or plain ink, so colour on this dashboard always
-means *pay attention to this*. Every literal colour lives in a custom-property
-declaration; a hex at the point of use is a test failure.
+**Materials — chrome floats, content does not.** The rail, the top bar, the
+phone's tab strip, sheets and toasts are translucent, blurred and inset from
+the window edges. Content underneath them is opaque: a card is a solid surface
+on a three-step elevation scale (`--shadow`, `--shadow-raised`,
+`--shadow-overlay`), because text read through a blurred backdrop is the part
+of this language that does not survive a data-dense screen.
+`prefers-reduced-transparency` turns the chrome opaque and drops the filter.
 
-**Structure — lines, not depth.** No blur, no glass, no gradient, no drop
-shadow. Surfaces are opaque and separated by 1px lines. `--radius` is 3px and is
-the only radius in the system; the sole exception is a status dot, which is a
-circle because it is a dot. The rail, the top bar and the phone's tab strip are
-flush against the content rather than floating cards inset from it.
+**Corners — one scale.** `--radius-sm` (8px), `--radius-md` (13px), `--radius`
+(20px), `--radius-lg` (26px) and `--radius-pill` for controls. No literal
+corner anywhere; circles stay circles.
 
-**Type — one scale, capped at 26px.** `--t-xs` (10px) through `--t-3xl` (26px).
-Hierarchy comes from weight, case and position; nothing in the product is a
-hero. Numbers are set in tabular figures wherever a figure is compared against
+**Type — the iOS ladder.** `--t-xs` (11px) through `--t-3xl` (34px), with 15px
+body and 17px emphasis. Sizes above 17px are display type and come from a
+token. Numbers are set in tabular figures wherever a figure is compared against
 another figure.
 
-**Density.** The spacing scale is `--sp-1` (4px) to `--sp-7` (24px), and the
-page gutter is 16–20px rather than the 34–58px it was. Today's view is a split
-panel: the session beside a dense column of shortcut rows, so the day and every
-number qualifying it are read without scrolling.
+**Colour — three, plus a severity ramp.** Ink, muted slate and paper carry the
+whole of the chrome; one accent sits on top, and the club themes re-point *only*
+that accent — a theme block that starts setting its own surfaces or lines fails
+the test. `--warn` and `--crit` mean "ease off" and "do not throw" and never
+appear as decoration; a neutral notice is a grey grouped panel, not a tinted
+one, so an information box on the Norths theme does not read as an alarm. There
+is no green: a plan that is on track is the accent or plain ink, so colour
+always means *pay attention to this*. Every literal colour lives in a
+custom-property declaration; a hex at the point of use is a test failure.
 
 **Accessibility.** WCAG AA contrast in both themes, every tab stop carrying a
 visible focus indicator, every `<button>` with an explicit `type`, and no target
