@@ -30,6 +30,12 @@ import { SessionTask } from "./programmeSessions";
  * Conflating the two would either freeze the accessories or quietly dismantle
  * the squat block, so the verdicts are kept separate.
  *
+ * ## And one whole family that takes no advice at all
+ *
+ * See `NOT_PROGRESSED`. A gym stage holds more than lifting: throws, jumps,
+ * anti-rotation work and isometrics all carry a `sets × reps` shape, and all of
+ * them were getting a verdict whose only vocabulary is "put more on the bar".
+ *
  * ## The rule for the self-selected lifts
  *
  * Double progression, which is the ordinary answer: hold the load until every
@@ -171,6 +177,52 @@ function incrementFor(task: Pick<SessionTask, "name" | "prescription">): { kg: n
   return INCREMENTS.find((rule) => rule.match.test(text)) ?? { kg: 2.5, unit: "" };
 }
 
+/**
+ * Movements the double-progression rule has no business advising on.
+ *
+ * Everything in a gym stage carrying a `sets × reps` shape was getting a
+ * verdict, and for a third of them the verdict was nonsense. The rule's entire
+ * output is "hold the load, or add the smallest useful increment" — and there
+ * is no increment to add to a broad jump, no load to raise on an anti-rotation
+ * press, and adding 2.5 kg to a 2 kg medicine ball is a 125% jump on an
+ * implement that only comes in whole kilos.
+ *
+ * Three families, excluded for one underlying reason: none of them is trying to
+ * get heavier.
+ *
+ *  - **Throws and jumps.** Judged on output speed, not load. The med-ball shot
+ *    put is prescribed at 2–3 kg *precisely so it can be thrown fast*; making
+ *    it heavier makes it a different exercise.
+ *  - **Anti-rotation and trunk work.** A Pallof press is a bracing drill. It is
+ *    prescribed to be resisted, not won.
+ *  - **Isometrics.** Held for seconds. The set×rep shape written beside them
+ *    belongs to whatever they are paired with, not to the hold.
+ *
+ * Carries are deliberately *not* here: a farmer carry is loaded grip and trunk
+ * work that progresses by getting heavier, which is what the rule is for. It
+ * appears in the increment table above and nowhere in this one.
+ *
+ * The one uncomfortable case is `Pallof press + farmer carry`, which is a
+ * single task holding one of each. It is excluded, because the `2 × 8/side`
+ * this rule would read off it is the *Pallof press's* — the carry beside it is
+ * `2 × 20 m` and has no reps to progress through. Advising on that task would
+ * be advising on the press. Splitting the two would need a change to
+ * `programmeContent.ts`, which is a verbatim copy of the athlete's programme
+ * and is not edited here.
+ */
+const NOT_PROGRESSED =
+  /med-?\s?ball|shot put|scoop|toss|throw|\bjumps?\b|pogo|\bhops?\b|hurdle hop|\bbounds?\b|pallof|chop|dead ?bug|bird ?dog|plank|isometric|\biso\b/i;
+
+/**
+ * True when "should this be heavier" is a question worth asking of this task.
+ *
+ * Exported because the plan needs the same answer to decide whether to leave
+ * room for a verdict beside the prescription.
+ */
+export function progressesByLoad(task: Pick<SessionTask, "name" | "prescription">): boolean {
+  return !NOT_PROGRESSED.test(`${task.name ?? ""} ${task.prescription ?? ""}`);
+}
+
 function round(value: number, to: number): number {
   return Math.round(value / to) * to;
 }
@@ -202,6 +254,8 @@ export function progressionFor(
   history: Performance[],
   today: IsoDate
 ): Advice | null {
+  if (!progressesByLoad(task)) return null;
+
   const shape = prescribedShape(String(task.prescription));
   if (!shape) return null;
 

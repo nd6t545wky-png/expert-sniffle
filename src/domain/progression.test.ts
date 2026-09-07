@@ -13,6 +13,7 @@ import {
   daysBetween,
   liftHistory,
   prescribedShape,
+  progressesByLoad,
   progressionFor,
   workingLoad,
   worstReps,
@@ -232,12 +233,12 @@ describe("the first time", () => {
 });
 
 describe("against the real programme", () => {
-  it("gives advice for every loggable task in the year, and never crashes", () => {
+  it("gives advice for every progressing task in the year, and never crashes", () => {
     for (let week = 1; week <= 52; week += 1) {
       const plan = weekPlan(week);
       for (let day = 0; day < 7; day += 1) {
         for (const task of applyBaselineProgramming(buildSession(plan, day), null, day).tasks) {
-          if (!isLoggable(task)) continue;
+          if (!isLoggable(task) || !progressesByLoad(task)) continue;
           const advice = progressionFor(task, [], "2026-08-24" as never);
           expect(advice, `${task.id}: ${task.prescription}`).toBeTruthy();
           expect(advice!.headline.trim()).not.toBe("");
@@ -253,7 +254,7 @@ describe("against the real programme", () => {
       const plan = weekPlan(week);
       for (let day = 0; day < 7; day += 1) {
         for (const task of applyBaselineProgramming(buildSession(plan, day), null, day).tasks) {
-          if (!isLoggable(task)) continue;
+          if (!isLoggable(task) || !progressesByLoad(task)) continue;
           const shape = prescribedShape(String(task.prescription));
           if (!shape?.fixedLoad) continue;
           const advice = progressionFor(task, history, "2026-08-24" as never)!;
@@ -267,7 +268,10 @@ describe("against the real programme", () => {
   it("does offer progression on the accessories, or the feature is pointless", () => {
     const tasks = applyBaselineProgramming(buildSession(weekPlan(7), 0), null, 0).tasks;
     const selfSelected = tasks.filter(
-      (task) => isLoggable(task) && prescribedShape(String(task.prescription))?.fixedLoad === false
+      (task) =>
+        isLoggable(task) &&
+        progressesByLoad(task) &&
+        prescribedShape(String(task.prescription))?.fixedLoad === false
     );
     expect(selfSelected.length).toBeGreaterThan(0);
     for (const task of selfSelected) {
@@ -275,6 +279,77 @@ describe("against the real programme", () => {
       const cleared = Array.from({ length: shape.sets }, () => [shape.reps, 40] as [number, number]);
       const advice = progressionFor(task, [perf("2026-08-17", cleared)], TODAY)!;
       expect(["increase"], `${task.name}: ${advice.verdict}`).toContain(advice.verdict);
+    }
+  });
+});
+
+describe("lifts that are not trying to get heavier", () => {
+  /**
+   * The rule's whole vocabulary is "hold the load or add to it", and a third of
+   * the loggable gym tasks are movements where that sentence is wrong. The
+   * medicine ball is the clearest: it is prescribed at 2–3 kg so it can be
+   * thrown fast, and "add 2.5 kg" is a 125% jump that turns a throw into a
+   * carry.
+   */
+  const task = (name: string, prescription: string) => ({ name, prescription });
+  const cleared = [perf("2026-08-17", [[3, 3], [3, 3]])];
+
+  it("says nothing about a throw", () => {
+    for (const name of ["Rotational med-ball shot put", "Med-ball scoop toss"]) {
+      expect(progressesByLoad(task(name, "2 × 3/side · 2–3 kg")), name).toBe(false);
+      expect(progressionFor(task(name, "2 × 3/side · 2–3 kg"), cleared, TODAY), name).toBeNull();
+    }
+  });
+
+  it("says nothing about a jump", () => {
+    expect(progressionFor(task("Trap bar jump", "3 × 3 @ 30 kg"), cleared, TODAY)).toBeNull();
+    expect(progressesByLoad(task("Broad jump + trap bar jump", "Broad jump 2 × 2"))).toBe(false);
+  });
+
+  it("says nothing about anti-rotation or trunk work", () => {
+    expect(progressionFor(task("Pallof press", "2 × 8/side"), cleared, TODAY)).toBeNull();
+    expect(progressesByLoad(task("Half-kneeling cable chop", "2 × 6/side · controlled"))).toBe(false);
+  });
+
+  it("says nothing about an isometric", () => {
+    expect(
+      progressesByLoad(
+        task("Split-squat isometric + band row", "Split-squat iso 1 × 15 sec/side · band row 2 × 6 fast")
+      )
+    ).toBe(false);
+  });
+
+  it("does progress a carry, which is loaded work like any other", () => {
+    // The named exception. A farmer carry gets heavier; that is the whole point
+    // of it, and it is why `carry` is in the increment table and not in the
+    // exclusion list.
+    expect(progressesByLoad(task("Farmer carry", "3 × 20 m @ RPE 7 · 32 kg per hand"))).toBe(true);
+  });
+
+  it("skips the one task holding a press and a carry, and says why", () => {
+    // `Pallof press + farmer carry` is a single task. The `2 × 8/side` this
+    // rule would read off it belongs to the press — the carry beside it is
+    // `2 × 20 m` and has no reps to progress through — so advising on the task
+    // would be advising on the press.
+    const bundled = task(
+      "Pallof press + farmer carry",
+      "Pallof press 2 × 8/side · farmer carry 2 × 20 m (no straps)"
+    );
+    expect(progressesByLoad(bundled)).toBe(false);
+    expect(prescribedShape(bundled.prescription)).toMatchObject({ sets: 2, reps: 8 });
+  });
+
+  it("still progresses the lifts the gym session is actually built on", () => {
+    for (const [name, prescription] of [
+      ["Back squat", "3 × 4 @ 120 kg · 83% of tested max"],
+      ["Bench press", "3 × 5 @ RPE 7 · suggested start 50–52.5 kg"],
+      ["Trap bar deadlift", "3 × 3 @ RPE 6–7"],
+      ["Rear-foot-elevated split squat", "3 × 5/leg @ RPE 7 · 24–28 kg dumbbells as tolerated"],
+      ["Chin-up", "2 × 5 · bodyweight · 2–3 reps in reserve"],
+      ["Nordic hamstring curl", "2 × 4 · 3–4 second eccentric"],
+    ] as const) {
+      expect(progressesByLoad(task(name, prescription)), name).toBe(true);
+      expect(progressionFor(task(name, prescription), [], TODAY), name).toBeTruthy();
     }
   });
 });
