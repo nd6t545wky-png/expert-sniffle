@@ -230,3 +230,53 @@ describe("skipping a whole section", () => {
     expect(Object.keys(next)).not.toContain("w7-d0-cond");
   });
 });
+
+describe("a carry, whose sets are metres", () => {
+  /**
+   * Monday's farmer carry is logged and progressed like any other loaded lift,
+   * but its `2 × 20 m` is a distance. Labelling that column "Reps" asks the
+   * athlete to enter one thing under the name of another, and an e1RM computed
+   * from twenty metres is a number about nothing.
+   */
+  const carry = () =>
+    plan({
+      tasks: [
+        task({ id: "w7-d0-carry", name: "Farmer carry", prescription: "2 × 20 m (no straps)" }),
+      ] as never,
+      progression: {},
+    });
+
+  it("labels the column metres, not reps", () => {
+    carry();
+    fireEvent.click(screen.getByRole("button", { name: "Log sets" }));
+    expect(screen.getAllByText("Metres").length).toBe(2);
+    expect(screen.queryByText("Reps")).toBeNull();
+  });
+
+  it("opens pre-filled from the prescribed distance", () => {
+    carry();
+    fireEvent.click(screen.getByRole("button", { name: "Log sets" }));
+    const inputs = document.querySelectorAll<HTMLInputElement>(".setlog-row input[type=number]");
+    expect(inputs).toHaveLength(4);
+    expect(inputs[0].value).toBe("20");
+  });
+
+  it("reads the log back in metres and offers no one-rep max", () => {
+    plan({
+      tasks: [
+        task({ id: "w7-d0-carry", name: "Farmer carry", prescription: "2 × 20 m (no straps)" }),
+      ] as never,
+      progression: {},
+      setLog: { "w7-d0-carry": [{ reps: 20, kg: 32 }, { reps: 20, kg: 32 }] },
+    });
+    expect(screen.getByText(/20 m×32 · 20 m×32/)).toBeTruthy();
+    expect(screen.queryByText(/e1RM/)).toBeNull();
+  });
+
+  it("still labels an ordinary lift's column reps", () => {
+    plan();
+    fireEvent.click(screen.getByRole("button", { name: "Log sets" }));
+    expect(screen.getAllByText("Reps").length).toBe(3);
+    expect(screen.queryByText("Metres")).toBeNull();
+  });
+});

@@ -335,10 +335,10 @@ describe("supersets are marked, and only where they belong", () => {
   it("pairs the hamstring and anti-rotation work too", () => {
     const marked = supersetOf(0, [
       task({ id: "a", name: "Nordic hamstring curl" }),
-      task({ id: "b", name: "Pallof press + farmer carry" }),
+      task({ id: "b", name: "Pallof press" }),
     ]);
     expect(marked["Nordic hamstring curl"]).toBe("B1");
-    expect(marked["Pallof press + farmer carry"]).toBe("B2");
+    expect(marked["Pallof press"]).toBe("B2");
   });
 
   it("never pairs anything that has to be fresh", () => {

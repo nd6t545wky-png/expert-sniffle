@@ -173,6 +173,20 @@ describe("swapping rather than removing", () => {
     expect(pressing.some((name) => /^Bench press$/i.test(name))).toBe(false);
   });
 
+  it("takes the carry out and leaves the press, without a swap to do it", () => {
+    // There used to be a bespoke swap here, rewriting Monday's
+    // `Pallof press + farmer carry` down to just the press. The programme ships
+    // them as two tasks now, so the ordinary grip-work rule does the same job:
+    // the carry is removed for loading the forearm, and the anti-rotation work
+    // — which is the half worth keeping — is simply not matched.
+    const { session, date } = dayWith(/^Farmer carry$/);
+    expect(names(session)).toContain("Pallof press");
+    const overlay = apply(session, date, [reportOn(date, { region: "elbow_medial", severity: 7 })]);
+    expect(names(overlay.session)).toContain("Pallof press");
+    expect(names(overlay.session)).not.toContain("Farmer carry");
+    expect(overlay.changes.some((change) => /Farmer carry is out/i.test(change.text))).toBe(true);
+  });
+
   it("removes rather than swaps when a second region objects to the swap too", () => {
     // A sore elbow wants the deadlift with straps; a sore back wants it gone.
     // The stricter answer has to win whichever order they are processed in.

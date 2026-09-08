@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { SessionTask } from "../../src/domain/programmeSessions";
 import { SkippedTask, UNSKIPPABLE_STAGE } from "../../src/domain/session";
-import { DaySetLog, LoggedSet, bestOneRepMax, isLoggable, prescribedSets } from "../../src/domain/setLog";
+import { DaySetLog, LoggedSet, bestOneRepMax, isLoggable, prescribedSets, setUnit } from "../../src/domain/setLog";
 import { splitPrescription } from "../../src/domain/prescription";
 import { Advice, VERDICT_LABELS } from "../../src/domain/progression";
 
@@ -142,7 +142,14 @@ function SetLogger({
   const [open, setOpen] = useState(false);
   const [rows, setRows] = useState<LoggedSet[]>(opening);
 
-  const best = logged ? bestOneRepMax(logged) : null;
+  // A farmer carry's sets are metres, not repetitions. Labelling the column
+  // "Reps" against "2 × 20 m" asks the athlete to enter one thing under the
+  // name of another, and an e1RM estimated from 20 metres is not a number about
+  // anything — Epley already declines above ten reps, but a shorter carry would
+  // slip through and be reported as a one-rep max.
+  const unit = setUnit(task);
+  const countLabel = unit === "m" ? "Metres" : "Reps";
+  const best = logged && unit === "reps" ? bestOneRepMax(logged) : null;
 
   if (!open) {
     return (
@@ -159,7 +166,9 @@ function SetLogger({
         </button>
         {logged && (
           <span>
-            {logged.map((set) => `${set.reps}×${set.kg || "bw"}`).join(" · ")}
+            {logged
+              .map((set) => `${set.reps}${unit === "m" ? " m" : ""}×${set.kg || "bw"}`)
+              .join(" · ")}
             {best ? ` · e1RM ${best} kg` : ""}
           </span>
         )}
@@ -185,11 +194,11 @@ function SetLogger({
           <div className="setlog-row" key={index}>
             <span className="setlog-index">{index + 1}</span>
             <label>
-              <span>Reps</span>
+              <span>{countLabel}</span>
               <input
                 type="number"
                 min={0}
-                max={100}
+                max={unit === "m" ? 400 : 100}
                 inputMode="numeric"
                 value={row.reps}
                 onChange={(event) => update(index, "reps", Number(event.target.value))}

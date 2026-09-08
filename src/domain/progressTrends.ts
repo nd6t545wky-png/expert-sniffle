@@ -21,7 +21,7 @@
 import { buildSession, dateForWeekDay, weekPlan } from "./programmeSessions";
 import { applyBaselineProgramming } from "./programmeUpdates";
 import { Pitch, readPitches } from "./pitchLog";
-import { bestOneRepMax, readDayLog } from "./setLog";
+import { SetUnit, bestOneRepMax, readDayLog, setUnit } from "./setLog";
 import { IsoDate } from "./state";
 
 export interface TrendPoint {
@@ -43,8 +43,23 @@ export const MIN_POINTS_FOR_TREND = 2;
 const PROGRAMME_WEEKS = 52;
 const DAYS_PER_WEEK = 7;
 
+/** What the programme says about the tasks a set of dates was logged against. */
+export interface TaskIndex {
+  /** Task id to the lift's name. */
+  names: Record<string, string>;
+  /**
+   * Task id to what its sets are counted in.
+   *
+   * Needed wherever logged sets are read without the session that produced
+   * them — a day's tonnage, most of all, which sums `reps × kg` and would
+   * otherwise fold a farmer carry's metres into a total of kilograms.
+   */
+  units: Record<string, SetUnit>;
+}
+
 /**
- * Task ids mapped to the lift's name, for the dates that were actually logged.
+ * Task ids mapped to what the programme says about them, for the dates that
+ * were actually logged.
  *
  * Logged sets are keyed by task id, and a task id carries its week and day —
  * the same back squat is `w3-d0-squat` one week and `w4-d0-squat` the next. So
@@ -55,11 +70,15 @@ const DAYS_PER_WEEK = 7;
  * Deliberately forward-only. Deriving `(week, day)` back out of a date would
  * be a second implementation of a mapping the app already has exactly one of,
  * and the two would eventually disagree about a Sunday.
+ *
+ * Names and units come out of one walk, because it is the walk that is
+ * expensive: fifty-two weeks of sessions built to answer a question about a
+ * handful of dates. Callers wanting only the names have `taskNamesForDates`.
  */
-export function taskNamesForDates(dates: Iterable<IsoDate>): Record<string, string> {
+export function taskIndexForDates(dates: Iterable<IsoDate>): TaskIndex {
   const wanted = new Set(dates);
-  const names: Record<string, string> = {};
-  if (wanted.size === 0) return names;
+  const index: TaskIndex = { names: {}, units: {} };
+  if (wanted.size === 0) return index;
 
   for (let week = 1; week <= PROGRAMME_WEEKS && wanted.size > 0; week += 1) {
     const plan = weekPlan(week);
@@ -75,11 +94,17 @@ export function taskNamesForDates(dates: Iterable<IsoDate>): Record<string, stri
       // lift it belonged to. It reported "no history" forever, and it was
       // missing from the progress charts for the same reason.
       for (const task of applyBaselineProgramming(buildSession(plan, day), null, day).tasks) {
-        names[task.id] = task.name;
+        index.names[task.id] = task.name;
+        index.units[task.id] = setUnit(task);
       }
     }
   }
-  return names;
+  return index;
+}
+
+/** Task ids mapped to the lift's name, for the dates that were actually logged. */
+export function taskNamesForDates(dates: Iterable<IsoDate>): Record<string, string> {
+  return taskIndexForDates(dates).names;
 }
 
 // --- The series --------------------------------------------------------------

@@ -326,17 +326,38 @@ describe("lifts that are not trying to get heavier", () => {
     expect(progressesByLoad(task("Farmer carry", "3 × 20 m @ RPE 7 · 32 kg per hand"))).toBe(true);
   });
 
-  it("skips the one task holding a press and a carry, and says why", () => {
-    // `Pallof press + farmer carry` is a single task. The `2 × 8/side` this
-    // rule would read off it belongs to the press — the carry beside it is
-    // `2 × 20 m` and has no reps to progress through — so advising on the task
-    // would be advising on the press.
-    const bundled = task(
-      "Pallof press + farmer carry",
-      "Pallof press 2 × 8/side · farmer carry 2 × 20 m (no straps)"
-    );
-    expect(progressesByLoad(bundled)).toBe(false);
-    expect(prescribedShape(bundled.prescription)).toMatchObject({ sets: 2, reps: 8 });
+  it("advises the split-out carry and declines the split-out press", () => {
+    // Monday's trunk slot used to be one task holding both, and the whole task
+    // had to be skipped: the `2 × 8/side` this rule read off it belonged to the
+    // press. The athlete asked for them apart, so each now gets its own answer.
+    const press = task("Pallof press", "2 × 8/side");
+    const carry = task("Farmer carry", "2 × 20 m (no straps)");
+    expect(progressesByLoad(press)).toBe(false);
+    expect(progressesByLoad(carry)).toBe(true);
+    expect(prescribedShape(carry.prescription)).toMatchObject({ sets: 2, reps: 20, unit: "m" });
+    expect(prescribedShape(press.prescription)).toMatchObject({ sets: 2, reps: 8, unit: "reps" });
+  });
+
+  it("talks to a carry in metres, because that is what it did", () => {
+    // Double progression works identically on a carry — hold the distance until
+    // every set reaches it, then add load. Only the words change, and they have
+    // to: "every set at 20 reps or better" describes an exercise nobody did.
+    const carry = task("Farmer carry", "2 × 20 m (no straps)");
+    const done = [perf("2026-08-17", [[20, 32], [20, 32]])];
+    const advice = progressionFor(carry, done, TODAY);
+    expect(advice?.verdict).toBe("increase");
+    expect(advice?.reason).toMatch(/every set at 20 m or better/);
+    expect(advice?.reason).not.toMatch(/reps/);
+    expect(advice?.suggestedKg).toBe(35);
+  });
+
+  it("holds the load on a carry that came up short of the distance", () => {
+    const carry = task("Farmer carry", "2 × 20 m (no straps)");
+    const short = [perf("2026-08-17", [[20, 32], [16, 32]])];
+    const advice = progressionFor(carry, short, TODAY);
+    expect(advice?.verdict).toBe("repeat");
+    expect(advice?.reason).toMatch(/short of 20 m/);
+    expect(advice?.reason).toMatch(/20 m×32/);
   });
 
   it("still progresses the lifts the gym session is actually built on", () => {

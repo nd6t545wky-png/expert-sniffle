@@ -7,12 +7,12 @@
  * recovering before the archive went.
  *
  * They are a *provenance-labelled* list, not a truth. Eight of them were
- * marked in that build as the official FNCBA Division 1 draw; one was marked
- * as supplied by the athlete. Both labels travel with the fixture and are
- * shown, because a draw can be rescheduled and a date read out of a bundle is
- * a copy of a copy. Nothing in the programme is driven off these — they are
- * shown against the plan so the athlete can see a clash, not used to move a
- * session on their own.
+ * marked in that build as the official FNCBA Division 1 draw; the rest — the
+ * Cubs opener and the two semi-finals — came from the athlete. Both labels
+ * travel with the fixture and are shown, because a draw can be rescheduled and
+ * a date read out of a bundle is a copy of a copy. Nothing in the programme is
+ * driven off these — they are shown against the plan so the athlete can see a
+ * clash, not used to move a session on their own.
  */
 
 import { IsoDate } from "./state";
@@ -40,6 +40,24 @@ const FNCBA_ROUNDS: Array<[round: number, date: IsoDate]> = [
   [19, "2026-09-05"],
 ];
 
+/**
+ * The semi-finals, as the athlete gave them.
+ *
+ * The recovered draw stops at Round 19 on Saturday 5 September; these are the
+ * two games the weekend after it, against the Redbirds. They are here rather
+ * than in the entered list because they came from the athlete directly, and
+ * they carry the athlete-provided label for the same reason the Cubs opener
+ * does — a date said out loud is not the published draw.
+ *
+ * They land in a week the phase table has as an unload, which is not an error
+ * on either side: the programme was built assuming the season ended at Round
+ * 19. `scheduleClash` will say so, which is the whole point of it.
+ */
+const FNCBA_SEMIS: Array<[game: number, date: IsoDate]> = [
+  [1, "2026-09-11"],
+  [2, "2026-09-12"],
+];
+
 export const FIXTURES: readonly Fixture[] = Object.freeze([
   ...FNCBA_ROUNDS.map(([round, date]) => ({
     id: `fncba-2026-r${round}`,
@@ -47,6 +65,13 @@ export const FIXTURES: readonly Fixture[] = Object.freeze([
     team: "Norths",
     label: `FNCBA Division 1 Round ${round}`,
     source: "official" as const,
+  })),
+  ...FNCBA_SEMIS.map(([game, date]) => ({
+    id: `fncba-2026-semi-${game}`,
+    date,
+    team: "Norths",
+    label: `FNCBA Division 1 semi-final ${game} vs Redbirds`,
+    source: "athlete-provided" as const,
   })),
   {
     id: "coomera-cubs-2026-10-02",
@@ -62,12 +87,16 @@ export const FIXTURES: readonly Fixture[] = Object.freeze([
 /**
  * Fixtures the athlete enters, merged over the built-in list.
  *
- * The built-in list is eight rounds recovered from an old build, and it stops
- * at Round 19. Two things it cannot know: a finals series, and any draw
- * published after that build was made. Neither league publishes anything this
- * app can read — the FNCBA draw lives in a TeamApp calendar and the Cubs'
- * 2026/27 fixtures are not out — so the only honest source for the rest of the
- * season is the athlete.
+ * The recovered rounds stop at Round 19, and the two things beyond it — a
+ * finals series, and any draw published after that build was made — are things
+ * only the athlete can supply. Neither league publishes anything this app can
+ * read: the FNCBA draw lives in a TeamApp calendar and the Cubs' 2026/27
+ * fixtures are not out.
+ *
+ * Some of what the athlete has said is already in the built-in list above,
+ * because they said it to whoever was editing this file rather than typing it
+ * into the app. This is the path for everything after that, and for correcting
+ * any of it — an entry here with the same id replaces the built-in one.
  *
  * They are merged, not replaced: the recovered rounds keep their "official"
  * label, an entered game says plainly that it came from the athlete, and both
@@ -147,11 +176,11 @@ export function daysUntil(today: IsoDate, fixture: Fixture): number {
  * volume 45–55%, removes pulldowns and caps plyo intent at the recovery band.
  * That is right if the season ended, and badly wrong if it did not.
  *
- * A finals series is exactly the case it gets wrong: the built-in draw stops
+ * A finals series is exactly the case it gets wrong: the recovered draw stops
  * at Round 19, so the week a semi-final is played is a week the app has
- * planned as rest. It cannot detect that on its own — there is nothing to
- * detect until someone enters the game — but once the fixture is in, saying so
- * is the least it can do.
+ * planned as rest. The 2026 semi-finals are now in the fixture list, so this
+ * fires on them — a week planned as an unload with two games in it, said out
+ * loud rather than trained through by accident.
  *
  * Deliberately a warning rather than a re-phasing. Moving the whole back half
  * of the year because one date was typed in is not a decision this should make

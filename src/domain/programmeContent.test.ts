@@ -223,3 +223,56 @@ describe("the phase table", () => {
     }
   });
 });
+
+describe("the trunk slot the athlete asked to split", () => {
+  /**
+   * Monday's `Pallof press + farmer carry` was one task holding two exercises,
+   * and everything downstream had to guess which of them it was looking at:
+   * the progression rule read the press's reps and skipped the whole task, the
+   * soreness playbook carried a bespoke swap to strip the carry out of it, and
+   * a log against it was a log against neither.
+   *
+   * These check the split is actually in the sessions the athlete sees — not
+   * just in the source — and that each half kept the words that were already
+   * its own. `scripts/extract-programme.mjs` re-applies the split, so a
+   * regeneration cannot quietly put them back together, and this is what would
+   * fail if it did.
+   */
+  const trunkSlot = (week: number) =>
+    buildSession(weekPlan(week, PBS), 0).tasks.filter((task) =>
+      /Pallof|carry/i.test(String(task.name))
+    );
+
+  it("ships them as two tasks, not one", () => {
+    const tasks = trunkSlot(1);
+    expect(tasks.map((task) => task.name)).toEqual(["Pallof press", "Farmer carry"]);
+    expect(new Set(tasks.map((task) => task.id)).size).toBe(2);
+  });
+
+  it("keeps every prescription intact on both halves", () => {
+    const [press, carry] = trunkSlot(1);
+    expect(press.prescription).toBe("2 × 8/side");
+    expect(carry.prescription).toBe("2 × 20 m (no straps)");
+    for (const task of [press, carry]) {
+      for (const field of ["setup", "execution", "rest", "stop"] as const) {
+        expect(String(task[field] ?? "").trim().length, `${task.name} ${field}`).toBeGreaterThan(0);
+      }
+    }
+  });
+
+  it("leaves the carry's stop criterion on the carry", () => {
+    const [, carry] = trunkSlot(1);
+    expect(carry.stop).toMatch(/grip fails/);
+  });
+
+  it("holds for every week the standard session is built for", () => {
+    for (const week of WEEKS) {
+      const tasks = trunkSlot(week);
+      // Not every week runs a Whole-Body Force day, so an empty slot is fine;
+      // a slot with a task named for both exercises is not.
+      for (const task of tasks) {
+        expect(String(task.name), `week ${week}`).not.toMatch(/Pallof press \+ farmer carry/i);
+      }
+    }
+  });
+});

@@ -11,13 +11,13 @@ import {
 import { MetricSource, ReadinessInputs, computeReadiness } from "../src/domain/readiness";
 import { HealthPrefillRecord, mergeHistory, readPrefill } from "../src/domain/healthPrefill";
 import { DEFAULT_STAT_IDS, MAX_STATS, buildRecap } from "../src/domain/sessionRecap";
-import { LoggedSet, isLoggable, loggedTonnage, readDayLog } from "../src/domain/setLog";
+import { LoggedSet, isLoggable, loggedTonnage, readDayLog, setUnit } from "../src/domain/setLog";
 import { Advice, liftHistory, progressionFor } from "../src/domain/progression";
 import {
   MIN_POINTS_FOR_TREND,
   bodyweightHistory,
   liftProgress,
-  taskNamesForDates,
+  taskIndexForDates,
   velocityHistory,
 } from "../src/domain/progressTrends";
 import { fuelTargetsFromBaseline } from "../src/domain/fuelling";
@@ -417,6 +417,19 @@ export function App() {
    * it was. Everything here is already recorded — outings, check-in sleep,
    * logged sets — so the panel costs nothing extra to put in context.
    */
+  /**
+   * What the programme says about every task the athlete has ever logged
+   * against: the lift's name, and whether its sets are reps or metres.
+   *
+   * Shared by everything below that reads logged sets without the session that
+   * produced them, because getting it means walking fifty-two weeks of the
+   * programme forward — once here, rather than once per consumer.
+   */
+  const loggedTasks = useMemo(
+    () => taskIndexForDates(Object.keys((state?.setLogs as Record<string, unknown> | undefined) ?? {})),
+    [state?.setLogs]
+  );
+
   const bloodContext = useCallback(
     (drawnOn: IsoDate) => {
       const pre = (state?.pre ?? {}) as Record<string, { sleepHours?: unknown } | undefined>;
@@ -429,7 +442,8 @@ export function App() {
       const logs = (state?.setLogs ?? {}) as Record<string, unknown>;
       const tonnageByDate: Record<string, number | undefined> = {};
       for (const day of Object.keys(logs)) {
-        tonnageByDate[day] = loggedTonnage(readDayLog(logs, day as IsoDate));
+        // Units, so a farmer carry's metres do not arrive here as kilograms.
+        tonnageByDate[day] = loggedTonnage(readDayLog(logs, day as IsoDate), loggedTasks.units);
       }
 
       return drawContext(drawnOn, {
@@ -438,7 +452,7 @@ export function App() {
         tonnageByDate,
       });
     },
-    [state?.pre, state?.setLogs, loggedOutings]
+    [state?.pre, state?.setLogs, loggedOutings, loggedTasks]
   );
 
   /**
@@ -679,16 +693,14 @@ export function App() {
    */
   const progression = useMemo(() => {
     const logs = state?.setLogs as Record<string, unknown> | undefined;
-    const dates = Object.keys(logs ?? {});
-    const names = taskNamesForDates(dates);
     const out: Record<string, Advice> = {};
     for (const task of tasks) {
       if (!isLoggable(task)) continue;
-      const advice = progressionFor(task, liftHistory(logs, names, task.name, date), date);
+      const advice = progressionFor(task, liftHistory(logs, loggedTasks.names, task.name, date), date);
       if (advice) out[task.id] = advice;
     }
     return out;
-  }, [state?.setLogs, tasks, date]);
+  }, [state?.setLogs, loggedTasks, tasks, date]);
 
   const setLog = useMemo(
     () => readDayLog(state?.setLogs as Record<string, unknown> | undefined, date),
@@ -844,7 +856,7 @@ export function App() {
    */
   const progress = useMemo<ProgressSpec[]>(() => {
     const logs = state?.setLogs as Record<string, unknown> | undefined;
-    const names = taskNamesForDates(Object.keys(logs ?? {}));
+    const names = loggedTasks.names;
 
     const velocity = velocityHistory(
       state?.pitches as Record<string, unknown> | undefined,
@@ -897,7 +909,7 @@ export function App() {
     }
 
     return specs;
-  }, [state]);
+  }, [state, loggedTasks]);
 
   const recapStats = useMemo(
     () => (Array.isArray(state?.recapStats) ? (state.recapStats as string[]) : [...DEFAULT_STAT_IDS]),
@@ -926,7 +938,10 @@ export function App() {
         submission: submission ?? null,
         throwing: (state?.bullpens as Record<string, ThrowingEntry | undefined>)?.[date] ?? null,
         calories: dayCalories,
-        tonnageKg: loggedTonnage(setLog),
+        tonnageKg: loggedTonnage(
+          setLog,
+          Object.fromEntries(tasks.map((task) => [task.id, setUnit(task)]))
+        ),
         pbs: state?.pbs,
         chosen: recapStats,
       }),

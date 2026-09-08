@@ -47,9 +47,13 @@ describe("prescriptions that are a list of movements", () => {
   });
 
   it("splits a two-movement pairing", () => {
-    expect(splitPrescription("Pallof press 2 × 8/side · farmer carry 2 × 20 m (no straps)")).toEqual([
-      { name: "Pallof press", dose: "2 × 8/side" },
-      { name: "farmer carry", dose: "2 × 20 m (no straps)" },
+    // Friday's primer. The Monday pairing this used to check —
+    // `Pallof press 2 × 8/side · farmer carry 2 × 20 m` — is two tasks now, at
+    // the athlete's request, so the example moved to one the programme still
+    // writes this way.
+    expect(splitPrescription("Split-squat iso 1 × 15 sec/side · band row 2 × 6 fast")).toEqual([
+      { name: "Split-squat iso", dose: "1 × 15 sec/side" },
+      { name: "band row", dose: "2 × 6 fast" },
     ]);
   });
 

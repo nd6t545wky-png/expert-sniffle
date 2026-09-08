@@ -19,7 +19,13 @@
 import { SessionTask } from "./programmeSessions";
 
 export interface LoggedSet {
-  /** Repetitions completed in this set. */
+  /**
+   * What was completed in this set, in the task's own unit — repetitions for
+   * everything that has them, metres for a carry. `setUnit` says which, read
+   * off the prescription; the field is one number because the athlete enters
+   * one number, and a second nullable column in every stored set to serve the
+   * one movement that is measured in metres would be paid for by all of them.
+   */
   reps: number;
   /** Load in kilograms. Zero is legitimate — bodyweight work. */
   kg: number;
@@ -59,12 +65,40 @@ const NOT_A_LOADED_LIFT = /pogo|hurdle hop|depth jump|vertical jump|broad jump|b
 const SETS_REPS = /(\d+)\s*×\s*(\d+)/;
 const LOAD_KG = /@\s*(\d+(?:\.\d+)?)\s*(?:[–-]\s*(\d+(?:\.\d+)?)\s*)?kg/i;
 
+/**
+ * A `sets × distance` prescription — "2 × 20 m (no straps)".
+ *
+ * The unit has to be read off the prescription, because a carry and a squat
+ * write the same shape and mean different things by the second number. Anchored
+ * to the same match `SETS_REPS` makes so the two can never disagree about which
+ * pair of numbers they are talking about.
+ */
+const SETS_METRES = /(\d+)\s*×\s*(\d+)\s*m\b/i;
+
+/** What the second number in a set means: repetitions, or metres carried. */
+export type SetUnit = "reps" | "m";
+
+/**
+ * Whether this task's sets are counted in reps or in metres.
+ *
+ * Only the farmer carry is metres today. It matters anyway: the logger's column
+ * heading, the progression verdict's wording and the day's tonnage each say
+ * something false if they read 20 metres as 20 repetitions — and the last of
+ * those adds metre-kilograms into a total measured in kilograms.
+ */
+export function setUnit(task: Pick<SessionTask, "prescription">): SetUnit {
+  return SETS_METRES.test(String(task.prescription ?? "")) ? "m" : "reps";
+}
+
 /** True when this task is one the athlete should be logging sets against. */
 export function isLoggable(task: Pick<SessionTask, "stageTitle" | "prescription" | "name">): boolean {
   if (!LOGGABLE_STAGE.test(String(task.stageTitle ?? ""))) return false;
   if (NOT_A_LOADED_LIFT.test(String(task.name ?? ""))) return false;
-  // A prescription with no set×rep shape is a carry, a jump or a hold — real
-  // work, but not something a reps-and-load table describes.
+  // A prescription with no `sets × number` shape at all is a hold or an
+  // untimed piece of work — real, but not something this table describes.
+  // "2 × 20 m" does have the shape, and a farmer carry is logged and progressed
+  // like any other loaded lift; `setUnit` is what keeps its second number
+  // labelled metres rather than reps.
   return SETS_REPS.test(String(task.prescription ?? ""));
 }
 
@@ -110,10 +144,18 @@ export function readDayLog(map: Record<string, unknown> | undefined, date: strin
  *
  * Logged sets only. Falling back to the prescription here is what produced a
  * card claiming a load that was never lifted.
+ *
+ * Distance work is left out rather than converted. A 20 m carry at 32 kg is 640
+ * metre-kilograms and there is no exchange rate to kilograms lifted; adding it
+ * in would have put roughly a tenth of a Monday's reported tonnage into a
+ * number that had never been lifted at all. Pass `units` — task id to unit — to
+ * exclude it. Without the map every task counts as reps, which is what every
+ * caller meant before carries had their own task.
  */
-export function loggedTonnage(log: DaySetLog): number {
+export function loggedTonnage(log: DaySetLog, units?: Record<string, SetUnit>): number {
   let total = 0;
-  for (const sets of Object.values(log)) {
+  for (const [taskId, sets] of Object.entries(log)) {
+    if (units?.[taskId] === "m") continue;
     for (const set of sets) total += set.reps * set.kg;
   }
   return Math.round(total);
