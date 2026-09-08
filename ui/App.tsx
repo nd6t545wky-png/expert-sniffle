@@ -518,6 +518,7 @@ export function App() {
           if (dateForWeekDay(plan, day) === on) {
             return buildSession(plan, day, {
               game: gameOn(on),
+              gameTomorrow: gameOn(addDays(on, 1)),
               weekGames: gamesInWeekOf(plan),
             }).tasks;
           }
@@ -563,9 +564,10 @@ export function App() {
             ? { planLevel: submission.planLevel, workloadFactor: submission.workloadFactor }
             : null,
           // A fixture the athlete entered outranks the calendar's guess about
-          // which days hold a game, and about whether the week is competition
-          // or an off-season unload.
+          // which days hold a game, about which day is the one before a game,
+          // and about whether the week is competition or an off-season unload.
           game: gameOn(date),
+          gameTomorrow: gameOn(addDays(date, 1)),
           weekGames: gamesInWeekOf(selectedWeekPlan),
         }),
         level,

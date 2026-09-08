@@ -83,6 +83,19 @@ high-intent throwing is unblocked for that day too. It only ever *adds* a game:
 a day already planned as one is untouched, and an empty fixture list means
 nobody has told the app about that week yet, not that the week is empty.
 
+**The day before a game gets the pre-game primer.** The programme prepares for
+a game on the day before it — that is what Friday's "Primer + Whole-Body
+Microdose" is, and its own description says "before Saturday competition". It
+knew which day that was only for the games its calendar assumed. On a finals
+weekend the game is Friday, so the day before is Thursday, which the phase table
+had planned as a post-season recovery day carrying a Romanian deadlift at RPE 7,
+a calf raise at RPE 7–8 and three sets of pogos — on a day whose own description
+reads *"no step-behinds, underload velocity throws, lifting or sprinting"*. The
+primer moves onto it, ids re-keyed, and those microdoses drop: they are placed
+on Thursday, in `soleusTask`'s own words, "precisely because it is the light one
+... the day before a game block", and that position is exactly what a Friday
+game removes.
+
 **The week around it re-phases too.** Weeks 9 and 10 are an unload, and the
 block table says what they assume: *"Deliberate unload after the final
 published FNCBA round."* A final is a game after that round, so the assumption

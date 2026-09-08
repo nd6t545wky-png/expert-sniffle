@@ -161,6 +161,42 @@ function gameDayFor(week: WeekPlan, day: number): unknown {
   };
 }
 
+/** True when this session is already the programme's pre-game preparation day. */
+export function sessionIsPrimer(session: Pick<Session, "tasks">): boolean {
+  return session.tasks.some((task) => task.stageTitle === "Whole-Body Primer");
+}
+
+/**
+ * The programme's pre-game day, moved onto the day before the game.
+ *
+ * The programme writes exactly one of these — Friday's "Primer + Whole-Body
+ * Microdose", whose own description says it is what happens "before Saturday
+ * competition" and whose focus line is "Finish fresher than you started". It
+ * is a session about the day *after* it, and nothing in it is Friday-specific.
+ *
+ * On a finals weekend that day is Thursday, and what the phase table had
+ * planned there is a post-season recovery day carrying the overlay's
+ * microdoses: a Romanian deadlift at RPE 7, a calf raise at RPE 7–8, three
+ * sets of pogos and twenty-five minutes of aerobic work — on a day whose own
+ * description reads "no step-behinds, underload velocity throws, lifting or
+ * sprinting". Fine in a week that ends in nothing. Not what belongs eighteen
+ * hours before a semi-final.
+ *
+ * Ids are re-keyed for the same reason `gameDayFor` re-keys them: every task
+ * id carries its day, and a Thursday full of `-d4-` ids would file Thursday's
+ * ticks and set logs against the Friday game beside it.
+ */
+function primerFor(week: WeekPlan, day: number): unknown {
+  const friday = standardSession(week, 4) as Session;
+  const rekey = (id: string) => id.replace(/(^|-)d4-/, `$1d${day}-`);
+  return {
+    ...friday,
+    title: `${DAY_NAMES[day] ?? "Primer"} · Primer + Whole-Body Microdose`,
+    description: `${friday.description} This is the day before a game, so it is the programme's own pre-game primer rather than what the calendar had planned here.`,
+    tasks: friday.tasks.map((task) => ({ ...task, id: rekey(String(task.id)) })),
+  };
+}
+
 const DAY_NAMES = [
   "Monday",
   "Tuesday",
@@ -186,10 +222,16 @@ const DAY_NAMES = [
  * the athlete has entered is not an assumption, so where the two disagree the
  * fixture wins and the day is built as a game day.
  *
- * It only ever adds a game. A day the programme already planned as one is left
- * exactly as it was, and a day with no fixture is untouched — nothing here
- * takes a game *away*, because the absence of an entry means nobody has told
- * the app about that week yet, not that the week is empty.
+ * `options.gameTomorrow` is the same idea one day earlier. The programme
+ * prepares for a game on the day before it — that is what Friday's primer is —
+ * and it knew which day that was only for the games its calendar assumed. A
+ * game the athlete entered gets the same preparation in front of it.
+ *
+ * Both only ever add. A day the programme already planned as a game, or
+ * already primes, is left exactly as it was, and a day with no fixture beside
+ * it is untouched — nothing here takes a game *away*, because the absence of an
+ * entry means nobody has told the app about that week yet, not that the week is
+ * empty.
  */
 export function buildSession(
   week: WeekPlan,
@@ -198,6 +240,14 @@ export function buildSession(
     risk?: string;
     adjustment?: PlanAdjustment | null;
     game?: boolean;
+    /**
+     * Whether a fixture is scheduled for the *next* day.
+     *
+     * The programme prepares for a game on the day before it, and it knew which
+     * day that was only for the games its calendar assumed. Passing this lets
+     * the same preparation land in front of a game the athlete entered.
+     */
+    gameTomorrow?: boolean;
     /** Fixtures in this whole week, for the week-level intensity policy. */
     weekGames?: number;
   } = {}
@@ -223,6 +273,15 @@ export function buildSession(
 
   if (options.game && !sessionHasGame(session as Session)) {
     session = gameDayFor(week, day);
+  } else if (
+    options.gameTomorrow &&
+    !sessionHasGame(session as Session) &&
+    !sessionIsPrimer(session as Session)
+  ) {
+    // A game day is never demoted to a primer: on a finals weekend Friday is
+    // both a game and the day before one, and it stays a game day. Nor is a day
+    // the programme already primes primed twice.
+    session = primerFor(week, day);
   }
 
   return stamp(

@@ -458,3 +458,115 @@ describe("a week's fixtures reaching the intensity policy", () => {
     }
   });
 });
+
+describe("the day before a game the athlete entered", () => {
+  /**
+   * The programme prepares for a game on the day before it — that is what
+   * Friday's "Primer + Whole-Body Microdose" is, and its own description says
+   * so: "before Saturday competition". It knew which day that was only for the
+   * games its calendar assumed.
+   *
+   * On the semi-final weekend the game is Friday, so the day before it is
+   * Thursday — which the phase table had planned as a post-season recovery day
+   * carrying a Romanian deadlift at RPE 7, a calf raise at RPE 7–8 and three
+   * sets of pogos, on a day whose own description reads "no ... lifting".
+   */
+  const noGameWeek = (() => {
+    for (let week = 1; week <= 52; week += 1) {
+      const plan = weekPlan(week);
+      if (["transition", "transition_summer", "preseason", "summer_break"].includes(String(plan.phase.id))) {
+        return week;
+      }
+    }
+    throw new Error("no off-season week in the phase table");
+  })();
+
+  const isPrimer = (session: { tasks: { stageTitle: string }[] }) =>
+    session.tasks.some((task) => task.stageTitle === "Whole-Body Primer");
+
+  it("puts the programme's primer on the day before", () => {
+    const plan = weekPlan(noGameWeek);
+    expect(isPrimer(buildSession(plan, 3))).toBe(false);
+    const eve = buildSession(plan, 3, { gameTomorrow: true });
+    expect(isPrimer(eve)).toBe(true);
+    expect(eve.title).toBe("Thursday · Primer + Whole-Body Microdose");
+    expect(eve.description).toMatch(/day before a game/);
+  });
+
+  it("re-keys the ids, so the eve is not filed against the game", () => {
+    const plan = weekPlan(noGameWeek);
+    const eve = buildSession(plan, 3, { gameTomorrow: true });
+    const game = buildSession(plan, 4, { game: true });
+    expect(eve.tasks.every((task) => !/-d4-/.test(task.id))).toBe(true);
+    expect(eve.tasks.some((task) => /-d3-/.test(task.id))).toBe(true);
+    expect(eve.tasks.filter((task) => game.tasks.some((other) => other.id === task.id))).toEqual([]);
+  });
+
+  it("never demotes a game day to a primer", () => {
+    // On a finals weekend Friday is both a game and the day before one.
+    const plan = weekPlan(noGameWeek);
+    const friday = buildSession(plan, 4, { game: true, gameTomorrow: true });
+    expect(friday.tasks.some((task) => task.stageTitle === "Compete")).toBe(true);
+    expect(friday.title).toMatch(/Game Day/);
+  });
+
+  it("leaves a day the programme already primes exactly as it was", () => {
+    for (let week = 1; week <= 52; week += 1) {
+      const plan = weekPlan(week);
+      for (let day = 0; day < 7; day += 1) {
+        const planned = buildSession(plan, day);
+        if (!isPrimer(planned) && !planned.tasks.some((task) => task.stageTitle === "Compete")) continue;
+        expect(buildSession(plan, day, { gameTomorrow: true }), `week ${week} day ${day}`).toEqual(planned);
+      }
+    }
+  });
+
+  it("changes nothing when no game is on the next day", () => {
+    for (let week = 1; week <= 52; week += 1) {
+      const plan = weekPlan(week);
+      for (let day = 0; day < 7; day += 1) {
+        expect(buildSession(plan, day, { gameTomorrow: false }), `week ${week} day ${day}`).toEqual(
+          buildSession(plan, day)
+        );
+      }
+    }
+  });
+
+  it("drops the Thursday microdoses that only made sense before a primer", () => {
+    // `soleusTask` places them on Thursday "precisely because it is the light
+    // one ... the day before a game block". When Thursday *is* the day before
+    // the game, that position is gone — and what would land is a hinge at RPE
+    // 7 and a calf raise at RPE 7–8, eighteen hours out.
+    const plan = weekPlan(noGameWeek);
+    const planned = applyBaselineProgramming(buildSession(plan, 3), null, 3).tasks;
+    const eve = applyBaselineProgramming(buildSession(plan, 3, { gameTomorrow: true }), null, 3).tasks;
+
+    const names = (tasks: typeof eve) => tasks.map((task) => String(task.name));
+    expect(names(planned).some((name) => /Romanian deadlift — microdose/.test(name))).toBe(true);
+    expect(names(planned).some((name) => /Seated calf raise — microdose/.test(name))).toBe(true);
+
+    expect(names(eve).some((name) => /microdose/i.test(name))).toBe(false);
+    expect(names(eve).some((name) => /Reactive microdose/.test(name))).toBe(false);
+  });
+
+  it("keeps the daily ankle priming on that day", () => {
+    // The warm-up drops its ankle pogos on a Thursday because the reactive
+    // dose supplies them. With that dose gone, dropping them too would leave
+    // the pre-game day with no ankle priming at all.
+    const plan = weekPlan(noGameWeek);
+    const eve = applyBaselineProgramming(buildSession(plan, 3, { gameTomorrow: true }), null, 3).tasks;
+    const pogos = eve.filter((task) => /Ankle stiffness pogos/.test(String(task.name)));
+    expect(pogos).toHaveLength(1);
+    expect(pogos[0].stageTitle).toBe("Prepare");
+  });
+
+  it("leaves the Thursday microdoses alone on an ordinary Thursday", () => {
+    for (const week of [3, 15, 26]) {
+      const tasks = applyBaselineProgramming(buildSession(weekPlan(week), 3), null, 3).tasks;
+      expect(
+        tasks.some((task) => /microdose/i.test(String(task.name))),
+        `week ${week}`
+      ).toBe(true);
+    }
+  });
+});

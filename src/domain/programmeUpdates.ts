@@ -773,6 +773,8 @@ function isDisplacedByBackSquat(task: SessionTask, day: number | null): boolean 
 const DAY_MONDAY = 0;
 const DAY_WEDNESDAY = 2;
 const DAY_THURSDAY = 3;
+/** The stage that marks a session as the programme's pre-game preparation. */
+const PRIMER_STAGE = "Whole-Body Primer";
 
 // --- Supersets --------------------------------------------------------------
 
@@ -1119,9 +1121,13 @@ export function applyBaselineProgramming(
     // first and the drills belong last instead.
     // Thursday's pogos are promoted to a real dose in the training block, so
     // the priming set comes out of the warm-up rather than sitting in front of
-    // it. Every other day keeps the primer.
+    // it. Every other day keeps the primer — and so does a Thursday that has
+    // become the day before a game, because there the reactive dose is not
+    // added either and dropping this would leave the day with no ankle priming
+    // at all. See `primerToday` below.
+    const primerDay = tasks.some((task) => task.stageTitle === PRIMER_STAGE);
     const tail = [
-      ...(day === DAY_THURSDAY ? [] : [ankleStiffnessTask(prepPrefix)]),
+      ...(day === DAY_THURSDAY && !primerDay ? [] : [ankleStiffnessTask(prepPrefix)]),
       forearmPrepTask(prepPrefix),
       ...(needsSprintDrills(tasks) ? [sprintPrepTask(prepPrefix)] : []),
     ].filter(absent);
@@ -1199,7 +1205,23 @@ export function applyBaselineProgramming(
   // caller that has not said. It gets everything, as before.
   const onMonday = day === null || day === DAY_MONDAY;
   const onWednesday = day === null || day === DAY_WEDNESDAY;
-  const onThursday = day === null || day === DAY_THURSDAY;
+  /**
+   * Thursday's microdoses, unless Thursday has become the day before a game.
+   *
+   * The placement argument for them is explicit in `soleusTask` above:
+   * Thursday is the right day "precisely because it is the light one ... which
+   * is what belongs in a microdose the day before a game block". That is an
+   * argument about the day's position, not about its name. On a finals weekend
+   * the game moves to Friday, `buildSession` puts the programme's pre-game
+   * primer on Thursday, and the position the argument depends on is gone —
+   * this is now the day before the game itself.
+   *
+   * What would otherwise land there is a hinge at RPE 7, a calf raise at RPE
+   * 7–8 and three sets of pogos, on top of a session the programme wrote to
+   * finish fresher than it started, and duplicating the pogos already in it.
+   */
+  const primerToday = tasks.some((task) => task.stageTitle === PRIMER_STAGE);
+  const onThursday = (day === null || day === DAY_THURSDAY) && !primerToday;
 
   /**
    * A week with a game on Friday *and* on Sunday.
