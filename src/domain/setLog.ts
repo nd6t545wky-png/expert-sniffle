@@ -45,8 +45,15 @@ export type DaySetLog = Record<string, TaskSetLog>;
  * one session the athlete asked to keep was the one that could not be logged.
  * Sprint stages are deliberately absent: "3 × 20 m @ 85–90%" has a set×rep
  * shape but no load, and a reps-and-kilograms table is the wrong record for it.
+ *
+ * "Rebuild" was missing, and it was the whole of a session. Every gym stage in
+ * the programme is named "Whole-Body <something>" — Force, Gym, Power, Primer,
+ * Rebuild — and this pattern caught four of the five. So a transition
+ * Wednesday's trap bar deadlift and split squat could not be logged, got no
+ * progression advice, and carried no load: three separate silences on the same
+ * three lifts, each of which looked like a different feature not applying.
  */
-export const LOGGABLE_STAGE = /strength|gym|lift|force|power|primer/i;
+export const LOGGABLE_STAGE = /strength|gym|lift|force|power|primer|rebuild/i;
 
 /**
  * Movements a reps-and-kilograms table is simply the wrong record for.
@@ -63,7 +70,20 @@ export const LOGGABLE_STAGE = /strength|gym|lift|force|power|primer/i;
 const NOT_A_LOADED_LIFT = /pogo|hurdle hop|depth jump|vertical jump|broad jump|bound|a-skip|ankling|dribble/i;
 
 const SETS_REPS = /(\d+)\s*×\s*(\d+)/;
-const LOAD_KG = /@\s*(\d+(?:\.\d+)?)\s*(?:[–-]\s*(\d+(?:\.\d+)?)\s*)?kg/i;
+/**
+ * The load, in either shape the programme writes it.
+ *
+ * The `@` used to be required, which read "3 × 5 @ 130 kg" and missed
+ * "3 × 5 @ 65% · 97.5 kg" — where the `@` introduces the percentage and the
+ * kilograms follow it. That is the shape every percentage-driven lift in the
+ * programme uses, so the logger opened at zero on exactly the lifts whose load
+ * the programme had already worked out. `progression.ts` reads the same figure
+ * with the `@` optional; this now matches it rather than disagreeing with it.
+ *
+ * First match wins, which is what keeps "97.5 kg (from 150 kg estimated
+ * training max)" opening at 97.5 rather than at the max it was derived from.
+ */
+const LOAD_KG = /(?:@\s*)?(\d+(?:\.\d+)?)\s*(?:[–-]\s*(\d+(?:\.\d+)?)\s*)?kg/i;
 
 /**
  * A `sets × distance` prescription — "2 × 20 m (no straps)".

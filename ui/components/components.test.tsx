@@ -7,6 +7,7 @@ import { TaskStages } from "./TaskStages";
 import { AnnualPlan } from "./AnnualPlan";
 import { Workload } from "./Workload";
 import { Tracking } from "./Tracking";
+import { TrainingMaxes } from "./TrainingMaxes";
 import { PlanState, ReadinessSubmission } from "../../src/domain/session";
 import { SessionTask } from "../../src/domain/programmeSessions";
 
@@ -677,5 +678,57 @@ describe("the check-out's game pitch count", () => {
     const { rerender } = render(<Tracking {...props} loggedGamePitches={62} />);
     rerender(<Tracking {...props} loggedGamePitches={68} />);
     expect((screen.getByLabelText("Game pitches") as HTMLInputElement).value).toBe("68");
+  });
+});
+
+describe("the training maxes screen", () => {
+  /**
+   * The trap bar spent the whole year with a periodised percentage table and
+   * no max behind it, and nothing said so. An empty box here is the reason a
+   * session reads "@ RPE 6" instead of a weight, so the screen has to make
+   * that legible and correctable.
+   */
+  const maxes = {
+    backSquat: { value: 145, kind: "tested" as const, source: "VALD ForceDecks load-velocity profile" },
+    trapBarDeadlift: { value: 150, kind: "derived" as const },
+  };
+
+  it("shows each max with where it came from", () => {
+    render(<TrainingMaxes maxes={maxes} onChange={vi.fn()} />);
+    expect(screen.getByText(/145 kg · Tested/)).toBeTruthy();
+    expect(screen.getByText(/150 kg · Derived/)).toBeTruthy();
+  });
+
+  it("says plainly when a lift has no max", () => {
+    render(<TrainingMaxes maxes={maxes} onChange={vi.fn()} />);
+    expect(screen.getAllByText(/running on the written fallback/).length).toBe(2);
+  });
+
+  it("records a corrected max", () => {
+    const onChange = vi.fn();
+    render(<TrainingMaxes maxes={maxes} onChange={onChange} />);
+    const input = screen.getByLabelText("kg", { selector: "#max-trapBarDeadlift" });
+    fireEvent.change(input, { target: { value: "165" } });
+    fireEvent.blur(input);
+    expect(onChange).toHaveBeenCalledWith("trapBarDeadlift", 165);
+  });
+
+  it("clears a max rather than storing a blank", () => {
+    const onChange = vi.fn();
+    render(<TrainingMaxes maxes={maxes} onChange={onChange} />);
+    const input = screen.getByLabelText("kg", { selector: "#max-trapBarDeadlift" });
+    fireEvent.change(input, { target: { value: "" } });
+    fireEvent.blur(input);
+    expect(onChange).toHaveBeenCalledWith("trapBarDeadlift", null);
+  });
+
+  it("refuses a typo instead of writing it behind every load in the year", () => {
+    const onChange = vi.fn();
+    render(<TrainingMaxes maxes={maxes} onChange={onChange} />);
+    const input = screen.getByLabelText("kg", { selector: "#max-backSquat" });
+    fireEvent.change(input, { target: { value: "1450" } });
+    fireEvent.blur(input);
+    expect(onChange).not.toHaveBeenCalled();
+    expect(screen.getByRole("alert").textContent).toMatch(/nothing was changed/);
   });
 });

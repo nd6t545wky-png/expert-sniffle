@@ -114,6 +114,29 @@ throwing, which already sits inside the band the tapering meta-analysis reports
 as optimal, so whether to change it for a finals series is a judgement about
 this athlete rather than something to derive from a date. The plan says so.
 
+**The trap bar deadlift has a load at all.** The programme carries the trap bar
+twice: a fifty-two-week table of `sets × reps @ percent`, and the winter
+block's written loads — "4 × 5 @ 120 kg", "5 × 3 @ 127.5 kg", and so on. One is
+a percentage of a max the app was never told; the other is that max already
+multiplied out, so the max is solvable. At **150 kg** the two tables agree on
+every week where they also agree on the set and rep count, and no neighbouring
+candidate agrees on a single row. Seeded as `derived`, shown as an estimate, and
+every trap bar session in the year now carries a real weight instead of falling
+back to "@ RPE 6" — which read as a deliberate RPE prescription rather than as a
+number nothing could compute.
+
+**Training maxes are editable**, on the profile page, with their provenance:
+tested, derived, or entered. A typed value outranks a derived one; clearing a
+box puts that lift back on the programme's written fallback and says so. Without
+this the derived 150 would have been unchallengeable, which is not a thing to do
+to somebody's training.
+
+**Whole-Body Rebuild sessions can be logged.** Every gym stage in the programme
+is named `Whole-Body <something>` and the loggable-stage pattern caught four of
+the five, so a transition Wednesday's lifts could not be logged, got no
+progression advice, and carried no load — three silences on the same three
+lifts, each looking like a different feature not applying.
+
 **The trap bar jump's load follows a retest.** It was a flat 30 kg in all
 fifty-two weeks while every other loaded lift in the programme is a percentage
 of a tested number. It is now written as 20% of the tested squat max — which

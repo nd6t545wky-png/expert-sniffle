@@ -52,6 +52,27 @@ export const BASELINE_ANCHORS = {
   /** Report's reactive-development box height. */
   depthJumpBoxCm: [15, 20] as const,
   /**
+   * Trap bar deadlift training max, back-derived from the programme itself.
+   *
+   * Not from a test — from arithmetic on the athlete's own plan. The programme
+   * carries a fifty-two-week trap bar table of `sets × reps @ percent`
+   * (`TRAP_BAR_WEEK_SPECS`) *and*, separately, the winter block's written
+   * loads: "4 × 5 @ 120 kg", "5 × 3 @ 127.5 kg", "6 × 2 @ 125 kg" and so on.
+   * One is a percentage of a max the app was never told; the other is that
+   * same max already multiplied out. So the max is solvable.
+   *
+   * At 150 kg the two tables agree on nine of their twelve weeks — every week
+   * where they also agree on the set and rep count — and no other candidate
+   * agrees on even one. The three that miss are the three where the shapes
+   * disagree as well (the specs say 3 × 5, the literals say 4 × 2), so those
+   * rows describe different weeks rather than a different max.
+   *
+   * Marked `derived` rather than `tested`, which is what `trapBarDose` reads
+   * to write "estimated training max" beside the load. Retest it and the
+   * athlete's own number replaces this one, as it should.
+   */
+  trapBarDeadlift1RmKg: 150,
+  /**
    * External load on the trap bar jump, as a share of the tested squat max.
    *
    * Back-derived, not prescribed by a study: the programme writes the trap bar
@@ -211,22 +232,47 @@ export const BASELINE_RECOMMENDATIONS = [
 ];
 
 /**
- * Seed the tested back-squat max into the athlete's personal bests.
+ * Seed the known training maxes into the athlete's personal bests.
  *
- * The programme computes lift loads from `pbs.trainingMaxes.lifts`, so a
- * measured 1RM is only useful once it lives there. Two rules:
+ * The programme computes lift loads from `pbs.trainingMaxes.lifts`, so a max
+ * is only useful once it lives there. Two rules:
  *
  *  - never overwrite an existing entry. A number the athlete or their coach
  *    has since updated is newer than a report from April, and silently
  *    replacing it would undo real work.
- *  - mark it `tested`, because it was — confirmed by 5-set velocity-based
- *    testing rather than estimated from a rep-max formula.
+ *  - say where each one came from. The back squat is `tested` — confirmed by
+ *    5-set velocity-based testing rather than estimated from a rep-max
+ *    formula. The trap bar is `derived`: solved out of the programme's own
+ *    two tables, and shown as an estimate wherever it is used.
+ *
+ * Seeded lift by lift, not all-or-nothing. The original guard returned early
+ * if a back squat already existed, which was right when the back squat was the
+ * only entry and wrong the moment a second one was added: every athlete who
+ * had already used the app had a back squat, so the trap bar max would never
+ * have reached any of them, and the fifty-two-week trap bar table would have
+ * gone on multiplying a number that was not there.
  */
 export function seedBaselinePbs<T extends Record<string, unknown>>(state: T): T {
   const pbs = (state.pbs ?? {}) as Record<string, unknown>;
   const trainingMaxes = (pbs.trainingMaxes ?? {}) as Record<string, unknown>;
   const lifts = (trainingMaxes.lifts ?? {}) as Record<string, unknown>;
-  if (lifts.backSquat) return state;
+
+  const seeds: Record<string, unknown> = {
+    backSquat: {
+      value: BASELINE_ANCHORS.backSquat1RmKg,
+      kind: "tested",
+      source: "VALD ForceDecks load-velocity profile",
+      recordedAt: "2026-04-27",
+    },
+    trapBarDeadlift: {
+      value: BASELINE_ANCHORS.trapBarDeadlift1RmKg,
+      kind: "derived",
+      source: "Solved from the programme's own week table: the only max at which its percentages reproduce its written loads",
+    },
+  };
+
+  const missing = Object.entries(seeds).filter(([lift]) => !lifts[lift]);
+  if (missing.length === 0) return state;
 
   return {
     ...state,
@@ -236,12 +282,7 @@ export function seedBaselinePbs<T extends Record<string, unknown>>(state: T): T 
         ...trainingMaxes,
         lifts: {
           ...lifts,
-          backSquat: {
-            value: BASELINE_ANCHORS.backSquat1RmKg,
-            kind: "tested",
-            source: "VALD ForceDecks load-velocity profile",
-            recordedAt: "2026-04-27",
-          },
+          ...Object.fromEntries(missing),
         },
       },
     },

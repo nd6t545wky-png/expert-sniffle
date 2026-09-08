@@ -40,6 +40,8 @@ import {
 } from "../src/domain/programmeSessions";
 import { applyBaselineProgramming } from "../src/domain/programmeUpdates";
 import { seedBaselinePbs } from "../src/domain/baseline";
+import { readTrainingMaxes, setTrainingMax } from "../src/domain/trainingMaxes";
+import { TrainingMaxes } from "./components/TrainingMaxes";
 import { useAppState } from "./state/useAppState";
 import { useAppearance } from "./state/useAppearance";
 import { Dashboard } from "./components/Dashboard";
@@ -1701,6 +1703,15 @@ export function App() {
               ...draft,
               profile: { ...(draft.profile ?? {}), bloodPanels: next },
             }))
+          }
+        />
+      )}
+
+      {page === "profile" && (
+        <TrainingMaxes
+          maxes={readTrainingMaxes(state?.pbs)}
+          onChange={(key, value) =>
+            update((draft) => ({ ...draft, pbs: setTrainingMax(draft.pbs, key, value) as never }))
           }
         />
       )}
