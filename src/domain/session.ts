@@ -218,20 +218,32 @@ export type ThrowingCheck =
  * High-intent throwing is permitted only on Wednesday and Saturday, and only
  * when the day's plan is actually unlocked at full level. A reduced or
  * recovery plan caps intent below high regardless of the weekday.
+ *
+ * `options.gameDay` is the one exemption, and it is narrow on purpose. The
+ * weekday rule exists to keep the programme's own high-intent work spaced —
+ * one such day either side of the Saturday game — and it was written when the
+ * app assumed the only game was on a Saturday. A finals series puts one on a
+ * Friday, and refusing to record what was thrown in it does not make the
+ * throwing not have happened; it just loses the number the workload ratio is
+ * built from. So a *scheduled game* on the day lifts the weekday rule and
+ * nothing else: the health hold, the readiness lock and the reduced-plan cap
+ * all still apply, because those are about whether the arm is fit today rather
+ * than about how the week is laid out.
  */
 export function checkHighIntentAllowed(
   date: IsoDate,
   intent: ThrowIntent,
-  plan: PlanState
+  plan: PlanState,
+  options: { gameDay?: boolean } = {}
 ): ThrowingCheck {
   if (intent !== "high") return { allowed: true };
 
   const day = dayNameForDate(date);
-  if (!day || !isHighIntentDay(day)) {
+  if (!options.gameDay && (!day || !isHighIntentDay(day))) {
     return {
       allowed: false,
       reason: "day-not-permitted",
-      message: `High-intent throwing is limited to ${HIGH_INTENT_DAYS.join(" and ")}${day ? `; ${date} is a ${day}` : ""}.`,
+      message: `High-intent throwing is limited to ${HIGH_INTENT_DAYS.join(" and ")}${day ? `; ${date} is a ${day}` : ""}. A game entered in the season fixtures lifts this for that day.`,
     };
   }
   if (plan.status === "held") {

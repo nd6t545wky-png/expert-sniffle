@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { IsoDate } from "../src/domain/state";
+import { AppState, IsoDate } from "../src/domain/state";
 import {
   DAY_NAMES,
   ReadinessSubmission,
@@ -12,6 +12,7 @@ import { MetricSource, ReadinessInputs, computeReadiness } from "../src/domain/r
 import { HealthPrefillRecord, mergeHistory, readPrefill } from "../src/domain/healthPrefill";
 import { DEFAULT_STAT_IDS, MAX_STATS, buildRecap } from "../src/domain/sessionRecap";
 import { LoggedSet, isLoggable, loggedTonnage, readDayLog, setUnit } from "../src/domain/setLog";
+import { ThrowingRecord, adoptTally, tallyThrows } from "../src/domain/throwCount";
 import { Advice, liftHistory, progressionFor } from "../src/domain/progression";
 import {
   MIN_POINTS_FOR_TREND,
@@ -71,7 +72,7 @@ import { RetestSheet } from "./components/RetestSheet";
 import { TransferCard } from "./components/TransferCard";
 import { applyRecoveryProtocol } from "../src/domain/recoveryTasks";
 import { applyTeamTraining, readTeamTraining } from "../src/domain/teamTraining";
-import { allFixtures, readAthleteFixtures, scheduleClash } from "../src/domain/fixtures";
+import { allFixtures, fixtureOn, readAthleteFixtures, scheduleClash } from "../src/domain/fixtures";
 import { readRetests } from "../src/domain/retest";
 import { velocityTransfer } from "../src/domain/velocityTransfer";
 import { Bloods } from "./components/Bloods";
@@ -368,6 +369,19 @@ export function App() {
     [state]
   );
   const fixtures = useMemo(() => allFixtures(athleteFixtures), [athleteFixtures]);
+
+  /**
+   * Whether a game is on, on a given date.
+   *
+   * Threaded into every `buildSession` call rather than read inside it: the
+   * fixture list is the athlete's data and the programme is a pure function of
+   * week and day, and keeping it that way is what makes the sessions testable
+   * without a store behind them.
+   */
+  const gameOn = useCallback(
+    (on: IsoDate) => fixtureOn(on, fixtures) !== null,
+    [fixtures]
+  );
   const retests = useMemo(
     () => readRetests((state?.profile as { retests?: unknown } | undefined)?.retests),
     [state]
@@ -485,14 +499,16 @@ export function App() {
         if (week === null) return [];
         const plan = weekPlan(week, state.pbs);
         for (let day = 0; day < 7; day += 1) {
-          if (dateForWeekDay(plan, day) === on) return buildSession(plan, day).tasks;
+          if (dateForWeekDay(plan, day) === on) {
+            return buildSession(plan, day, { game: gameOn(on) }).tasks;
+          }
         }
       } catch {
         return [];
       }
       return [];
     },
-    [state]
+    [state, gameOn]
   );
 
   const resolvedOn = useCallback(
@@ -527,6 +543,9 @@ export function App() {
           adjustment: submission
             ? { planLevel: submission.planLevel, workloadFactor: submission.workloadFactor }
             : null,
+          // A fixture the athlete entered outranks the calendar's guess about
+          // which days hold a game.
+          game: gameOn(date),
         }),
         level,
         selectedDay
@@ -607,6 +626,7 @@ export function App() {
     soreness,
     tasksOn,
     resolvedOn,
+    gameOn,
   ]);
 
   const session = sessionWithRecovery.session;
@@ -616,9 +636,10 @@ export function App() {
   /**
    * A game in a week the programme planned as having none.
    *
-   * Surfaced rather than acted on: the phase table is fixed, and moving the
-   * back half of the year because one date was entered is not a call to make
-   * on the athlete's behalf.
+   * The day itself is acted on — `buildSession` gets `game` and builds a game
+   * day. This is about the days around it, which the fixed phase table still
+   * owns: rebuilding the back half of the year because one date was entered is
+   * not a call to make on the athlete's behalf.
    */
   const clash = useMemo(() => {
     if (!selectedWeekPlan) return null;
@@ -649,6 +670,50 @@ export function App() {
     Record<string, SkippedTask> | undefined
   >;
   const weekLoad = totalThrowLoad(throwingEntries.slice(-7));
+
+  /**
+   * The day's throwing, added up from what has actually been ticked.
+   *
+   * Games are folded in here too: an appearance's prescription is "team pitch
+   * limits apply", which is the honest thing for it to say and no use as a
+   * number, so the count comes from the game log once the game is entered.
+   */
+  const throwTally = useMemo(
+    () => tallyThrows(tasks, completed[date] ?? [], games.filter((game) => game.date === date), intentPercent),
+    [tasks, completed, date, games, intentPercent]
+  );
+
+  const throwEntry = useMemo(
+    () => ((state?.bullpens ?? {}) as Record<string, ThrowingRecord | undefined>)[date] ?? null,
+    [state?.bullpens, date]
+  );
+
+  /**
+   * Keep the stored throwing entry in step with the ticks.
+   *
+   * Run from the completion handler rather than from an effect: an effect that
+   * writes state on every render of a page that reads that state is a loop
+   * waiting for one wrong dependency, and this only ever needs to happen when
+   * a task is ticked or unticked. `adoptTally` decides whether the write is
+   * ours to make — a count the athlete typed is never overwritten.
+   */
+  const reconcileThrows = useCallback(
+    (draft: AppState, forDate: IsoDate, nextCompleted: string[]): AppState => {
+      const bullpens = { ...((draft.bullpens ?? {}) as Record<string, ThrowingRecord | undefined>) };
+      const tally = tallyThrows(
+        tasks,
+        nextCompleted,
+        games.filter((game) => game.date === forDate),
+        intentPercent
+      );
+      const outcome = adoptTally(bullpens[forDate], tally, forDate);
+      if (outcome.action === "keep") return draft;
+      if (outcome.action === "clear") delete bullpens[forDate];
+      else bullpens[forDate] = outcome.entry;
+      return { ...draft, bullpens: bullpens as AppState["bullpens"] };
+    },
+    [tasks, games, intentPercent]
+  );
 
   // Calories eaten on the day, for the recap card. Read here rather than from
   // the nutrition view below, which is derived later in the render.
@@ -1320,14 +1385,38 @@ export function App() {
             }))
           }
           onCompleteTask={(forDate, _taskId, next) =>
+            update((draft) =>
+              reconcileThrows(
+                {
+                  ...draft,
+                  completedTasks: { ...draft.completedTasks, [forDate]: next },
+                  taskCompletionUpdatedAt: {
+                    ...draft.taskCompletionUpdatedAt,
+                    [forDate]: new Date().toISOString(),
+                  },
+                },
+                forDate,
+                next
+              )
+            )
+          }
+          throwTally={throwTally}
+          throwEntry={throwEntry}
+          onSetThrows={(forDate, entry) =>
             update((draft) => ({
               ...draft,
-              completedTasks: { ...draft.completedTasks, [forDate]: next },
-              taskCompletionUpdatedAt: {
-                ...draft.taskCompletionUpdatedAt,
-                [forDate]: new Date().toISOString(),
+              bullpens: {
+                ...draft.bullpens,
+                [forDate]: { date: forDate, ...entry, source: "manual" },
               },
             }))
+          }
+          onUseAutoThrows={(forDate) =>
+            update((draft) => {
+              const bullpens = { ...((draft.bullpens ?? {}) as Record<string, ThrowingRecord | undefined>) };
+              delete bullpens[forDate];
+              return reconcileThrows({ ...draft, bullpens }, forDate, completed[forDate] ?? []);
+            })
           }
           onOverride={(forDate, override) =>
             update((draft) => {
@@ -1358,8 +1447,14 @@ export function App() {
           plan={plan}
           entries={throwingEntries}
           intentPercent={intentPercent}
+          gameDay={gameOn(date)}
           onLog={(entry) =>
-            update((draft) => ({ ...draft, bullpens: { ...draft.bullpens, [entry.date]: entry } }))
+            // Logged here by hand, so it is stamped as the athlete's and the
+            // session's automatic count will not overwrite it.
+            update((draft) => ({
+              ...draft,
+              bullpens: { ...draft.bullpens, [entry.date]: { ...entry, source: "manual" } },
+            }))
           }
           pitches={pitches}
           priorPitches={priorPitches}
@@ -1387,6 +1482,9 @@ export function App() {
           onReport={(report) => update((draft) => ({ ...draft, post: { ...draft.post, [report.date]: report } }))}
           healthPrefill={state.healthPrefill}
           submissions={state.pre}
+          loggedGamePitches={
+            games.find((game) => game.date === date && Number(game.pitches) > 0)?.pitches ?? null
+          }
           recap={recap}
           api={api}
           hasSyncKey={isValidSyncKey(syncKey)}
@@ -1404,7 +1502,28 @@ export function App() {
       )}
 
       {page === "annual" && (
-        <AnnualPlan selectedWeek={selectedWeek} onSelectWeek={setSelectedWeek} today={today.openDate} />
+        <AnnualPlan
+          selectedWeek={selectedWeek}
+          onSelectWeek={setSelectedWeek}
+          today={today.openDate}
+        />
+      )}
+
+      {/* Adding a game belongs on the page the season is read from, not three
+          taps away under the profile. Entering one here rebuilds that day as a
+          game day straight away. */}
+      {page === "annual" && (
+        <FixtureSettings
+          fixtures={athleteFixtures}
+          today={today.openDate}
+          onSelectWeek={setSelectedWeek}
+          onChange={(next) =>
+            update((draft) => ({
+              ...draft,
+              profile: { ...(draft.profile ?? {}), fixtures: next },
+            }))
+          }
+        />
       )}
 
       {page === "nutrition" && (
@@ -1562,19 +1681,6 @@ export function App() {
       )}
 
       {page === "profile" && <TransferCard transfer={transfer} />}
-
-      {page === "profile" && (
-        <FixtureSettings
-          fixtures={athleteFixtures}
-          today={today.openDate}
-          onChange={(next) =>
-            update((draft) => ({
-              ...draft,
-              profile: { ...(draft.profile ?? {}), fixtures: next },
-            }))
-          }
-        />
-      )}
 
       {page === "profile" && (
         <RecoverySettings

@@ -55,6 +55,13 @@ export interface WorkloadProps {
   entries: ThrowingEntry[];
   /** The athlete's own reading of the intent words. Defaults to the table. */
   intentPercent?: Record<string, number>;
+  /**
+   * Whether a fixture is scheduled today.
+   *
+   * Lifts the Wednesday/Saturday restriction on recording high-intent work, so
+   * a Friday final can be logged as what it was. See `checkHighIntentAllowed`.
+   */
+  gameDay?: boolean;
   onLog: (entry: ThrowingEntry) => void;
 }
 
@@ -71,6 +78,7 @@ export function Workload({
   plan,
   entries,
   intentPercent = INTENT_PERCENT,
+  gameDay = false,
   onLog,
   pitches,
   priorPitches,
@@ -109,7 +117,7 @@ export function Workload({
 
   function handleLog() {
     setError("");
-    const check = checkHighIntentAllowed(date, intent, plan);
+    const check = checkHighIntentAllowed(date, intent, plan, { gameDay });
     if (!check.allowed) {
       setError(check.message);
       return;

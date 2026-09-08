@@ -725,6 +725,41 @@ body {
 }
 .setlog-actions .btn { min-height: 36px; padding: 0 14px; font-size: 12px; }
 
+/* --- The day's throw count --------------------------------------------------
+ * The total the ticked throwing tasks add up to, beside the ticking. New: it
+ * used to be typed on the Workload tab from a number worked out in the head.
+ * ------------------------------------------------------------------------- */
+
+.throw-sources {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+}
+
+.throw-sources li {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--hairline);
+  font-size: var(--t-md);
+}
+
+.throw-sources li:last-child { border-bottom: 0; }
+
+/* The count is what the eye is here for, so it is the part that lines up. */
+.throw-sources li span:last-child {
+  color: var(--muted);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* The card's editor stacks a number and a select rather than the set logger's
+   reps-and-load grid, so it opts out of that grid's column template. */
+.setlog .field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 8px; }
+.setlog .field span { color: var(--muted); font-size: 11px; }
+
 /* --- Fuelling ---------------------------------------------------------------
  * Targets set by the day's session. New screen furniture; the prototype's
  * nutrition page had fixed targets only.

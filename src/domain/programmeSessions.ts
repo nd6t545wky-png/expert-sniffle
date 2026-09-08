@@ -115,6 +115,48 @@ export function dateForWeekDay(week: WeekPlan, day: number): IsoDate {
   return isoDate(addDays(week.start, day)) as IsoDate;
 }
 
+/** True when this session is built around an actual appearance. */
+export function sessionHasGame(session: Pick<Session, "tasks">): boolean {
+  return session.tasks.some(
+    (task) => task.stageTitle === "Compete" || /game appearance/i.test(String(task.name))
+  );
+}
+
+/**
+ * The programme's game day, moved onto another weekday.
+ *
+ * The programme writes exactly one game-day session — Saturday's "prepare,
+ * compete, recover" — and nothing in its content is Saturday-specific. A
+ * finals series that runs Friday and Saturday needs it twice, so it is rebuilt
+ * for the day in question rather than invented a second time.
+ *
+ * The ids are re-keyed, and that is the whole reason this is a function rather
+ * than a call. Every task id carries its day (`w9-d5-catch`), and handing
+ * Friday a session full of `-d5-` ids would file Friday's ticks, set logs and
+ * skips against Saturday's tasks — two days sharing one record, in a week with
+ * a game on both.
+ */
+function gameDayFor(week: WeekPlan, day: number): unknown {
+  const saturday = standardSession(week, 5) as Session;
+  const rekey = (id: string) => id.replace(/(^|-)d5-/, `$1d${day}-`);
+  return {
+    ...saturday,
+    title: `${DAY_NAMES[day] ?? "Game"} · Game Day`,
+    description: `${saturday.description} This day is a game because a fixture was entered for it; the programme had planned it as something else.`,
+    tasks: saturday.tasks.map((task) => ({ ...task, id: rekey(String(task.id)) })),
+  };
+}
+
+const DAY_NAMES = [
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
+  "Saturday",
+  "Sunday",
+];
+
 /**
  * Build the session for a given week and day.
  *
@@ -122,11 +164,23 @@ export function dateForWeekDay(week: WeekPlan, day: number): IsoDate {
  * recovery-only work; summer competition weeks, transition Wednesdays and
  * non-competition Saturdays each have their own shape; everything else is the
  * standard session. The readiness adjustment is applied last, as before.
+ *
+ * `options.game` is the one addition, and it is the fixture list talking. The
+ * programme's calendar is fixed at fifty-two weeks and guesses, by phase,
+ * which days hold a game — `nonCompetitionSaturdaySession` says so in its own
+ * description: "No league game is assumed in this calendar block." A fixture
+ * the athlete has entered is not an assumption, so where the two disagree the
+ * fixture wins and the day is built as a game day.
+ *
+ * It only ever adds a game. A day the programme already planned as one is left
+ * exactly as it was, and a day with no fixture is untouched — nothing here
+ * takes a game *away*, because the absence of an entry means nobody has told
+ * the app about that week yet, not that the week is empty.
  */
 export function buildSession(
   week: WeekPlan,
   day: number,
-  options: { risk?: string; adjustment?: PlanAdjustment | null } = {}
+  options: { risk?: string; adjustment?: PlanAdjustment | null; game?: boolean } = {}
 ): Session {
   if (options.risk === "red") return recoveryOnlySession(week, day) as Session;
 
@@ -142,6 +196,10 @@ export function buildSession(
     session = nonCompetitionSaturdaySession(week);
   } else {
     session = standardSession(week, day);
+  }
+
+  if (options.game && !sessionHasGame(session as Session)) {
+    session = gameDayFor(week, day);
   }
 
   return (options.adjustment ? applyReadinessToSession(session, options.adjustment) : session) as Session;

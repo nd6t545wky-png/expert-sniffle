@@ -6,6 +6,7 @@ import { TaskRow } from "./Page";
 import { TaskStages } from "./TaskStages";
 import { AnnualPlan } from "./AnnualPlan";
 import { Workload } from "./Workload";
+import { Tracking } from "./Tracking";
 import { PlanState, ReadinessSubmission } from "../../src/domain/session";
 import { SessionTask } from "../../src/domain/programmeSessions";
 
@@ -632,5 +633,49 @@ describe("TaskStages — multi-movement prescriptions", () => {
       )
       .join(" · ");
     expect(rebuilt).toBe(prescription);
+  });
+});
+
+describe("the check-out's game pitch count", () => {
+  /**
+   * It used to open at zero and be typed from memory, beside a game log that
+   * already held the number — and this is not a display figure. Summer's
+   * Saturday reads it to decide whether the day after a start is recovery or a
+   * primer, so two records of one appearance meant the programme followed
+   * whichever was typed second.
+   */
+  const props = {
+    date: "2026-09-11" as never,
+    plan: { status: "unlocked", planLevel: "full", workloadFactor: 1 } as never,
+    reports: {},
+    onReport: vi.fn(),
+  };
+
+  it("opens on the count from the logged game", () => {
+    render(<Tracking {...props} loggedGamePitches={62} />);
+    expect((screen.getByLabelText("Game pitches") as HTMLInputElement).value).toBe("62");
+    expect(screen.getByText(/From the game you logged for today/)).toBeTruthy();
+  });
+
+  it("opens at zero, and says nothing, when no game is logged", () => {
+    render(<Tracking {...props} loggedGamePitches={null} />);
+    expect((screen.getByLabelText("Game pitches") as HTMLInputElement).value).toBe("0");
+    expect(screen.queryByText(/From the game you logged/)).toBeNull();
+  });
+
+  it("keeps a count the athlete typed when the log changes underneath it", () => {
+    // A number typed into this field is an answer. Following the log after
+    // that would overwrite it — which is the failure the prefill exists to
+    // avoid, pointed the other way.
+    const { rerender } = render(<Tracking {...props} loggedGamePitches={62} />);
+    fireEvent.change(screen.getByLabelText("Game pitches"), { target: { value: "74" } });
+    rerender(<Tracking {...props} loggedGamePitches={68} />);
+    expect((screen.getByLabelText("Game pitches") as HTMLInputElement).value).toBe("74");
+  });
+
+  it("follows the log while the field still holds what the log said", () => {
+    const { rerender } = render(<Tracking {...props} loggedGamePitches={62} />);
+    rerender(<Tracking {...props} loggedGamePitches={68} />);
+    expect((screen.getByLabelText("Game pitches") as HTMLInputElement).value).toBe("68");
   });
 });

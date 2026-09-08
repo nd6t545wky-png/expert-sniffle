@@ -67,6 +67,38 @@ scripts/build.mjs   Copies public/ → dist/, minifies the client bundle
 wrangler.jsonc      Worker + bindings config
 ```
 
+## What updates itself
+
+Three records used to be kept by hand in two places each, and the copy that
+drifted was usually the one something else was reading.
+
+**A game you enter changes the plan.** Season fixtures live on the schedule
+page. The programme's calendar is fixed at fifty-two weeks and guesses, by
+phase, which days hold a game — `nonCompetitionSaturdaySession` says so in its
+own words: *"No league game is assumed in this calendar block."* An entered
+fixture is not an assumption, so `buildSession` builds a game day where there
+is a game, on whatever weekday it falls, re-keying the task ids so a Friday
+final does not share its record with the Saturday beside it. Recording
+high-intent throwing is unblocked for that day too. It only ever *adds* a game:
+a day already planned as one is untouched, and an empty fixture list means
+nobody has told the app about that week yet, not that the week is empty.
+
+The days *around* the game are still the phase table's, and the plan says so
+rather than re-phasing the back half of the year on its own.
+
+**Ticking a throwing task counts the throws.** The day's total is on the
+session screen, beside the ticking, built from what the completed tasks
+prescribe and any game logged for the date. Volume opens at the bottom of a
+range and intent at the top: what a set costs an arm is set by its hardest
+throws, and a total that reads low is one the athlete corrects in a tap on the
+screen they are already looking at. Correct it once and the day is theirs —
+nothing overwrites a number a person typed, including entries stored before
+this existed.
+
+**A logged game fills in the check-out.** The pitch count is not a display
+figure: summer's Saturday reads it to decide whether the day after a start is
+recovery or a primer.
+
 ## Design system
 
 The interface follows the iOS 26/27 material model. Everything below is

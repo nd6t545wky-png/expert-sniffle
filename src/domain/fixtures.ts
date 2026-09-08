@@ -178,13 +178,18 @@ export function daysUntil(today: IsoDate, fixture: Fixture): number {
  *
  * A finals series is exactly the case it gets wrong: the recovered draw stops
  * at Round 19, so the week a semi-final is played is a week the app has
- * planned as rest. The 2026 semi-finals are now in the fixture list, so this
- * fires on them — a week planned as an unload with two games in it, said out
- * loud rather than trained through by accident.
+ * planned as rest.
  *
- * Deliberately a warning rather than a re-phasing. Moving the whole back half
- * of the year because one date was typed in is not a decision this should make
- * unasked; the athlete can see the clash and choose.
+ * The *day* of the game now takes care of itself — `buildSession` reads the
+ * fixture list and builds a game day where there is a game, whatever the phase
+ * table guessed. This is about the rest of the week, which the phase table
+ * still owns: throwing volume down 45–55%, no pulldowns, plyo intent capped at
+ * the recovery band, on the Tuesday and Wednesday before a semi-final.
+ *
+ * Deliberately still a warning rather than a re-phasing. Rebuilding the back
+ * half of the year around a date someone typed is not a call to make unasked,
+ * and it is a different kind of change from putting a game on a day that has
+ * one: the athlete can see the clash and decide.
  */
 export interface ScheduleClash {
   fixture: Fixture;
@@ -206,6 +211,6 @@ export function scheduleClash(
   return {
     fixture,
     phase: week.phaseName,
-    message: `${fixture.label} is on this week, but the programme has these weeks as “${week.phaseName}” — planned with no game in them. Throwing volume, intent and the gym are all set for a week off. Check this before training it as written.`,
+    message: `${fixture.label} is on this week, and the programme has these weeks as “${week.phaseName}” — planned with no game in them. The game day itself is built as one. The days around it are not: throwing volume, intent and the gym are still set for a week off. Check the build-up before training it as written.`,
   };
 }

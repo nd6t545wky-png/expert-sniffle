@@ -10,10 +10,13 @@ import { SkipStageModal, SkipTaskModal, TaskDetailsModal } from "./TaskModals";
 import { VelocityBlock } from "./VelocityBlock";
 import { weekFromTasks } from "../../src/domain/velocity";
 import { Advice } from "../../src/domain/progression";
+import { ThrowTally, ThrowingRecord } from "../../src/domain/throwCount";
+import { ThrowCountCard } from "./ThrowCountCard";
 import {
   PlanState,
   ReadinessSubmission,
   SkippedTask,
+  ThrowIntent,
   completeTask,
   dayNameForDate,
   isHighIntentDay,
@@ -66,6 +69,20 @@ export interface DailyPlanProps {
   onCompleteTask: (date: IsoDate, taskId: string, next: string[]) => void;
   onSkipTask: (date: IsoDate, next: Record<string, SkippedTask>) => void;
   onOverride: (date: IsoDate, override: NonNullable<ReadinessSubmission["manualOverride"]>) => void;
+  /**
+   * The day's throwing, counted from the tasks that have been ticked.
+   *
+   * Passed in rather than derived here: the tally also has to reach the stored
+   * record when a task is ticked, and one calculation feeding both is the only
+   * way the card and the workload figure cannot disagree.
+   */
+  throwTally?: ThrowTally | null;
+  /** What is stored for the day — the athlete's number, or ours. */
+  throwEntry?: ThrowingRecord | null;
+  /** Record a count the athlete typed. Marks the day as theirs. */
+  onSetThrows?: (date: IsoDate, entry: { throws: number; intent: ThrowIntent }) => void;
+  /** Hand the day back to the automatic count. */
+  onUseAutoThrows?: (date: IsoDate) => void;
   /** Takes the athlete to the check-in that unlocks this session. */
   onOpenReadiness?: () => void;
   /** Takes the athlete to the post-session check-out. */
@@ -125,6 +142,10 @@ export function DailyPlan({
   onNextWeek,
   weekLabel,
   progression,
+  throwTally,
+  throwEntry,
+  onSetThrows,
+  onUseAutoThrows,
 }: DailyPlanProps) {
   const [error, setError] = useState("");
   const [reason, setReason] = useState("");
@@ -404,6 +425,15 @@ export function DailyPlan({
               <span>{sessionStress ? `${sessionStress} stress` : ""}</span>
             </div>
           </Card>
+
+          {onSetThrows && onUseAutoThrows && (
+            <ThrowCountCard
+              tally={throwTally ?? null}
+              entry={throwEntry ?? null}
+              onSave={(entry) => onSetThrows(date, entry)}
+              onUseAuto={() => onUseAutoThrows(date)}
+            />
+          )}
 
           {/* Which week of which block this is, and what it caps throwing
               intent at. Read off the tasks rather than passed in, for the same

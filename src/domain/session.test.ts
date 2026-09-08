@@ -534,3 +534,40 @@ describe("session progress", () => {
     expect(sessionProgress([], [], {}).percent).toBe(0);
   });
 });
+
+describe("high intent on a day with a game on it", () => {
+  const unlocked: PlanState = { status: "unlocked", planLevel: "full", workloadFactor: 1 };
+  // 2026-09-11 is a Friday: the semi-final, and not one of the two days the
+  // programme's spacing rule permits high-intent work on.
+  const friday = "2026-09-11" as never;
+
+  it("still refuses a Friday with no fixture on it", () => {
+    const check = checkHighIntentAllowed(friday, "high", unlocked);
+    expect(check.allowed).toBe(false);
+    expect(check.allowed === false && check.reason).toBe("day-not-permitted");
+  });
+
+  it("permits it when a game is scheduled", () => {
+    // Refusing to record what was thrown in a final does not make the throwing
+    // not have happened. It loses the number the workload ratio is built from.
+    expect(checkHighIntentAllowed(friday, "high", unlocked, { gameDay: true })).toEqual({ allowed: true });
+  });
+
+  it("does not let a game override a health hold", () => {
+    const held: PlanState = { status: "held", workloadFactor: 0, message: "Hold." };
+    const check = checkHighIntentAllowed(friday, "high", held, { gameDay: true });
+    expect(check.allowed).toBe(false);
+    expect(check.allowed === false && check.reason).toBe("plan-held");
+  });
+
+  it("does not let a game override a reduced plan", () => {
+    const reduced: PlanState = { status: "unlocked", planLevel: "reduced", workloadFactor: 0.75 };
+    const check = checkHighIntentAllowed(friday, "high", reduced, { gameDay: true });
+    expect(check.allowed).toBe(false);
+    expect(check.allowed === false && check.reason).toBe("plan-restricts-intent");
+  });
+
+  it("leaves everything below high intent alone", () => {
+    expect(checkHighIntentAllowed(friday, "moderate", unlocked)).toEqual({ allowed: true });
+  });
+});

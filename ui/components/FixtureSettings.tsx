@@ -16,6 +16,7 @@
 
 import { useState } from "react";
 import { Fixture, allFixtures } from "../../src/domain/fixtures";
+import { programmeWeekFor } from "../../src/domain/calendar";
 import { IsoDate } from "../../src/domain/state";
 import { Card, CardHead } from "./Page";
 
@@ -25,6 +26,8 @@ export interface FixtureSettingsProps {
   /** Today, so the list can separate what is still to come. */
   today: IsoDate;
   onChange: (next: Fixture[]) => void;
+  /** Jump the plan to the week a fixture falls in. */
+  onSelectWeek?: (week: number) => void;
 }
 
 const format = (date: string) =>
@@ -36,7 +39,7 @@ const format = (date: string) =>
     year: "numeric",
   }).format(new Date(`${date}T00:00:00+10:00`));
 
-export function FixtureSettings({ fixtures, today, onChange }: FixtureSettingsProps) {
+export function FixtureSettings({ fixtures, today, onChange, onSelectWeek }: FixtureSettingsProps) {
   const [date, setDate] = useState("");
   const [label, setLabel] = useState("");
   const [team, setTeam] = useState("Norths");
@@ -56,7 +59,7 @@ export function FixtureSettings({ fixtures, today, onChange }: FixtureSettingsPr
     <Card>
       <CardHead
         title="Season fixtures"
-        detail="The built-in draw stops at FNCBA Round 19 on 5 September. Finals and anything drawn since have to be added here — the plan reads them and will say so when a game lands in a week it planned as rest."
+        detail="The built-in draw stops at FNCBA Round 19 on 5 September. Finals and anything drawn since go in here. A day with a game on it is then built as a game day, whatever the calendar had planned; the days around it are not, and the plan says so."
       />
 
       {upcoming.length === 0 ? (
@@ -73,6 +76,7 @@ export function FixtureSettings({ fixtures, today, onChange }: FixtureSettingsPr
             // the frozen list — offering Remove on it gave a button that
             // filtered a list the fixture was never in, and did nothing.
             const mine = fixtures.some((entry) => entry.id === fixture.id);
+            const week = programmeWeekFor(fixture.date);
             return (
               <li key={fixture.id}>
                 <div>
@@ -85,6 +89,11 @@ export function FixtureSettings({ fixtures, today, onChange }: FixtureSettingsPr
                         ? "supplied earlier, built in"
                         : "from the published draw"}
                   </small>
+                  {onSelectWeek && week !== null && (
+                    <button type="button" className="text-button" onClick={() => onSelectWeek(week)}>
+                      Open week {week}
+                    </button>
+                  )}
                 </div>
                 {mine ? (
                   <button

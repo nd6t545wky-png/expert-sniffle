@@ -11,7 +11,6 @@ import {
   phaseForWeek,
 } from "../../src/domain/calendar";
 import { programmeWeekFor } from "../../src/domain/calendar";
-import { FIXTURES, daysUntil, upcomingFixtures } from "../../src/domain/fixtures";
 import { Card, CardHead, PageHead } from "./Page";
 
 /**
@@ -62,6 +61,14 @@ export interface AnnualPlanProps {
   /** Today, so the calendar can mark it. */
   today?: IsoDate;
 }
+
+/*
+ * The season's fixtures used to be listed here as well, read straight off
+ * `FIXTURES` — which meant a game entered in the app never appeared on the page
+ * the athlete goes to to look at their season, and the same heading appeared
+ * twice once the entry form moved onto this page. `FixtureSettings` renders
+ * below this component and does both jobs from one list.
+ */
 
 type View = "year" | "month";
 
@@ -185,64 +192,7 @@ export function AnnualPlan({ selectedWeek, onSelectWeek, today }: AnnualPlanProp
         </Card>
       )}
 
-      <FixtureList today={today} onSelectWeek={onSelectWeek} />
     </>
-  );
-}
-
-/**
- * The season's games, against the plan they are the point of.
- *
- * Each one says where it came from. The official draw and a date the athlete
- * gave are not the same kind of fact, and a season list that presents them
- * identically invites planning a taper around the weaker one.
- */
-function FixtureList({ today, onSelectWeek }: { today?: IsoDate; onSelectWeek: (week: number) => void }) {
-  const from = today ?? FIXTURES[0]?.date;
-  const upcoming = from ? upcomingFixtures(from) : [];
-  const played = from ? FIXTURES.filter((fixture) => fixture.date < from) : [];
-
-  return (
-    <Card>
-      <CardHead
-        title="Season fixtures"
-        detail="Shown against the plan. Nothing here moves a session on its own."
-      />
-      {upcoming.length === 0 ? (
-        <p className="fixture-note">No fixtures ahead in this season's list.</p>
-      ) : (
-        <ul className="fixture-list">
-          {upcoming.map((fixture) => {
-            const away = from ? daysUntil(from, fixture) : null;
-            const week = programmeWeekFor(fixture.date);
-            return (
-              <li key={fixture.id}>
-                <div className="fixture-row">
-                  <strong>{fixture.label}</strong>
-                  <span className="fixture-when">
-                    {away === 0 ? "Today" : away === 1 ? "Tomorrow" : `In ${away} days`}
-                  </span>
-                </div>
-                <span className="fixture-meta">
-                  {fixture.date} · {fixture.team} ·{" "}
-                  {fixture.source === "official" ? "from the draw" : "supplied by you"}
-                </span>
-                {week !== null && (
-                  <button type="button" className="text-button" onClick={() => onSelectWeek(week)}>
-                    Open week {week}
-                  </button>
-                )}
-              </li>
-            );
-          })}
-        </ul>
-      )}
-      {played.length > 0 && (
-        <p className="fixture-note">
-          {played.length} earlier fixture{played.length === 1 ? "" : "s"} this season have passed.
-        </p>
-      )}
-    </Card>
   );
 }
 

@@ -256,3 +256,98 @@ describe("day selection cannot drift from its date", () => {
     );
   });
 });
+
+describe("a fixture the athlete entered", () => {
+  /**
+   * The programme's calendar is fixed at fifty-two weeks and guesses, by
+   * phase, which days hold a game. `nonCompetitionSaturdaySession` says so in
+   * its own description: "No league game is assumed in this calendar block."
+   * An entered fixture is not an assumption, so where the two disagree the
+   * fixture wins.
+   */
+  const hasGame = (session: { tasks: { stageTitle: string }[] }) =>
+    session.tasks.some((task) => task.stageTitle === "Compete");
+
+  /** The first week the phase table plans with no game in it. */
+  const noGameWeek = (() => {
+    for (let week = 1; week <= 52; week += 1) {
+      const plan = weekPlan(week);
+      if (["transition", "transition_summer", "preseason", "summer_break"].includes(String(plan.phase.id))) {
+        return week;
+      }
+    }
+    throw new Error("no off-season week in the phase table");
+  })();
+
+  it("turns a planned rest Saturday into a game day", () => {
+    const plan = weekPlan(noGameWeek);
+    expect(hasGame(buildSession(plan, 5))).toBe(false);
+    expect(hasGame(buildSession(plan, 5, { game: true }))).toBe(true);
+  });
+
+  it("puts the game day on a Friday when that is where the game is", () => {
+    // The programme writes exactly one game-day session and it is Saturday's.
+    // A finals series runs Friday and Saturday, so it is rebuilt for the day
+    // rather than invented a second time.
+    const plan = weekPlan(noGameWeek);
+    const friday = buildSession(plan, 4, { game: true });
+    expect(hasGame(friday)).toBe(true);
+    expect(friday.title).toMatch(/^Friday · Game Day/);
+  });
+
+  it("re-keys the ids, so Friday's ticks are not filed against Saturday", () => {
+    // Two games in one week is exactly when this matters: a Friday session
+    // carrying `-d5-` ids would share every completion, set log and skip with
+    // the Saturday beside it.
+    const plan = weekPlan(noGameWeek);
+    const friday = buildSession(plan, 4, { game: true });
+    const saturday = buildSession(plan, 5, { game: true });
+    expect(friday.tasks.every((task) => !/-d5-/.test(task.id))).toBe(true);
+    expect(friday.tasks.some((task) => /-d4-/.test(task.id))).toBe(true);
+    const shared = friday.tasks
+      .map((task) => task.id)
+      .filter((id) => saturday.tasks.some((task) => task.id === id));
+    expect(shared).toEqual([]);
+  });
+
+  it("leaves a day the programme already planned as a game exactly as it was", () => {
+    // Nothing here adds a second game to a game day, or changes one.
+    for (let week = 1; week <= 52; week += 1) {
+      const plan = weekPlan(week);
+      for (let day = 0; day < 7; day += 1) {
+        const planned = buildSession(plan, day);
+        if (!hasGame(planned)) continue;
+        expect(buildSession(plan, day, { game: true }), `week ${week} day ${day}`).toEqual(planned);
+      }
+    }
+  });
+
+  it("changes nothing at all on a day with no fixture", () => {
+    // An empty fixture list means nobody has told the app about that week yet,
+    // not that the week is empty — so the absence of a game never takes one
+    // away.
+    for (let week = 1; week <= 52; week += 1) {
+      const plan = weekPlan(week);
+      for (let day = 0; day < 7; day += 1) {
+        expect(buildSession(plan, day, { game: false }), `week ${week} day ${day}`).toEqual(
+          buildSession(plan, day)
+        );
+      }
+    }
+  });
+
+  it("still yields recovery-only work on a red readiness reading", () => {
+    // A game on the calendar does not outrank a health signal.
+    const plan = weekPlan(noGameWeek);
+    expect(hasGame(buildSession(plan, 5, { game: true, risk: "red" }))).toBe(false);
+  });
+
+  it("produces a game day with the throwing the day actually needs", () => {
+    const plan = weekPlan(noGameWeek);
+    const friday = buildSession(plan, 4, { game: true });
+    const names = friday.tasks.map((task) => task.name);
+    expect(names).toContain("Pregame bullpen");
+    expect(names).toContain("Game appearance");
+    expect(friday.description).toMatch(/a fixture was entered for it/);
+  });
+});
