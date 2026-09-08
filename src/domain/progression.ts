@@ -1,5 +1,6 @@
 import { IsoDate } from "./state";
 import { LoggedSet, SetUnit, readDayLog, setUnit } from "./setLog";
+import { BASELINE_ANCHORS } from "./baseline";
 import { SessionTask } from "./programmeSessions";
 
 /**
@@ -200,9 +201,11 @@ function incrementFor(task: Pick<SessionTask, "name" | "prescription">): { kg: n
  * Three families, excluded for one underlying reason: none of them is trying to
  * get heavier.
  *
- *  - **Throws and jumps.** Judged on output speed, not load. The med-ball shot
- *    put is prescribed at 2–3 kg *precisely so it can be thrown fast*; making
- *    it heavier makes it a different exercise.
+ *  - **Throws and unloaded jumps.** Judged on output speed, not load. The
+ *    med-ball shot put is prescribed at 2–3 kg *precisely so it can be thrown
+ *    fast*; making it heavier makes it a different exercise. A pogo, a depth
+ *    jump and a broad jump have no external load at all, so there is nothing
+ *    for this rule to have an opinion about.
  *  - **Anti-rotation and trunk work.** A Pallof press is a bracing drill. It is
  *    prescribed to be resisted, not won.
  *  - **Isometrics.** Held for seconds. The set×rep shape written beside them
@@ -211,6 +214,15 @@ function incrementFor(task: Pick<SessionTask, "name" | "prescription">): { kg: n
  * Carries are deliberately *not* here: a farmer carry is loaded grip and trunk
  * work that progresses by getting heavier, which is what the rule is for. It
  * appears in the increment table above and nowhere in this one.
+ *
+ * A *loaded* jump is the one member of that family that does get a verdict,
+ * and it is worth saying why the exception is not a hole. The trap bar jump
+ * carries a stated kilogram load, so "should this be heavier" is at least a
+ * question you can ask of it — and the answer this file gives is the
+ * comparison, never an instruction to add plates, because the load is a
+ * position on a power curve rather than a target. See `LOADED_JUMP` below and
+ * `withJumpPowerLoad` in `programmeUpdates.ts`, which is where the load
+ * actually moves: with the tested max, at a retest.
  *
  * That used to be a claim this file could not honour. Monday's `Pallof press +
  * farmer carry` was a single task holding one of each, so the whole task had to
@@ -226,13 +238,45 @@ const NOT_PROGRESSED =
   /med-?\s?ball|shot put|scoop|toss|throw|\bjumps?\b|pogo|\bhops?\b|hurdle hop|\bbounds?\b|pallof|chop|dead ?bug|bird ?dog|plank|isometric|\biso\b/i;
 
 /**
+ * A jump carrying an external load, which the exclusion above lets through.
+ *
+ * The `@ N kg` form is deliberate and does the whole of the work. "Depth jump —
+ * 15–20 cm box" and "Pogo 2 × 6 · vertical jump 2 × 2" carry numbers and no
+ * load; the retest battery mentions "bar velocity at 94 kg and 116 kg", which
+ * is a measurement taken at a load rather than a load prescribed — and none of
+ * the three writes a load with an `@` in front of it, because none of them has
+ * one.
+ */
+const LOADED_JUMP = /@\s*\d+(?:\.\d+)?\s*kg/i;
+
+/**
  * True when "should this be heavier" is a question worth asking of this task.
  *
  * Exported because the plan needs the same answer to decide whether to leave
  * room for a verdict beside the prescription.
  */
 export function progressesByLoad(task: Pick<SessionTask, "name" | "prescription">): boolean {
-  return !NOT_PROGRESSED.test(`${task.name ?? ""} ${task.prescription ?? ""}`);
+  const text = `${task.name ?? ""} ${task.prescription ?? ""}`;
+  // A loaded jump is the exception to the jump exclusion, and only to that one:
+  // everything else in `NOT_PROGRESSED` stays excluded whatever it weighs,
+  // because a heavier medicine ball is a different exercise and a Pallof press
+  // is meant to be resisted rather than won.
+  if (isLoadedJump(task)) return true;
+  return !NOT_PROGRESSED.test(text);
+}
+
+/** True for a jump the programme prescribes with an external load. */
+export function isLoadedJump(task: Pick<SessionTask, "name" | "prescription">): boolean {
+  const text = `${task.name ?? ""} ${task.prescription ?? ""}`;
+  if (!/\bjumps?\b/i.test(text)) return false;
+  // Only a jump, though. "Broad jump 2 × 2 · trap bar jump 3 × 3 @ 30 kg" was
+  // one task holding a loaded jump and an unloaded one; the overlay splits it
+  // before this ever sees it, and if that ever stops being true this must not
+  // start advising on the pair.
+  if (/med-?\s?ball|shot put|scoop|toss|throw|pogo|hurdle|\bbounds?\b|retest|battery/i.test(text)) {
+    return false;
+  }
+  return LOADED_JUMP.test(String(task.prescription ?? ""));
 }
 
 function round(value: number, to: number): number {
@@ -307,16 +351,25 @@ export function progressionFor(
   // never an instruction to add plates on top of the periodisation.
   if (shape.fixedLoad && shape.kg !== null) {
     const step = round(shape.kg - load, 0.5);
+    const jump = isLoadedJump(task);
     const headline =
       step > 0
         ? `Up ${step} kg on last time — ${load} kg → ${shape.kg} kg.`
         : step < 0
-          ? `Lighter than last time by ${Math.abs(step)} kg — that is the block, not a mistake.`
+          ? `Lighter than last time by ${Math.abs(step)} kg — that is the ${jump ? "power load" : "block"}, not a mistake.`
           : `Same load as last time — ${shape.kg} kg.`;
     return {
       verdict: "follow_plan",
       headline,
-      reason: `${when} you lifted ${did}. Today's load is set by the block from your tested max, so it moves when the block moves it — the way to make this number bigger is to retest, not to add plates.`,
+      // A loaded jump takes the same verdict for a different reason, and the
+      // difference matters standing in front of the bar: the block owns a
+      // squat's load, but a jump's load is owned by physics. Peak power in a
+      // loaded jump sits at a low load and falls away either side, so a good
+      // day is not a reason to add weight — adding it makes this a slower
+      // lift, which is the one already programmed beside it.
+      reason: jump
+        ? `${when} you moved ${did}. This load is a position on your power curve rather than a target: a loaded jump makes peak power at a light load and adding weight past it turns it into a slower, more force-dominant lift — which is what the trap bar deadlift is for. It is ${shape.kg} kg because that is ${BASELINE_ANCHORS.jumpPowerPercentOf1Rm}% of your tested squat max, so it goes up when the max does. Chase bar speed and landing quality; the plates follow a retest.`
+        : `${when} you lifted ${did}. Today's load is set by the block from your tested max, so it moves when the block moves it — the way to make this number bigger is to retest, not to add plates.`,
       suggestedKg: shape.kg,
       last,
     };

@@ -83,8 +83,37 @@ high-intent throwing is unblocked for that day too. It only ever *adds* a game:
 a day already planned as one is untouched, and an empty fixture list means
 nobody has told the app about that week yet, not that the week is empty.
 
-The days *around* the game are still the phase table's, and the plan says so
-rather than re-phasing the back half of the year on its own.
+**The week around it re-phases too.** Weeks 9 and 10 are an unload, and the
+block table says what they assume: *"Deliberate unload after the final
+published FNCBA round."* A final is a game after that round, so the assumption
+is false and the week is a competition week wearing an off-season policy. What
+changes is only the intensity suppression — the plyo ceiling and the velocity
+day — because a taper cuts volume and holds intensity (Bosquet 2007, largest
+effects at a 41–60% volume cut with intensity and frequency maintained; Mujika
+& Padilla 2003) while an unload cuts both. It invents no policy to do that: a
+week with one game is structurally an in-season week and a week with two is a
+two-game week, and the table already holds both. A finals *weekend* therefore
+resolves to `two_game`, which assigns no separate velocity day at all — the
+hard throwing comes out of the games.
+
+The volume is deliberately left alone. The reduced week is 45–55% down on
+throwing, which already sits inside the band the tapering meta-analysis reports
+as optimal, so whether to change it for a finals series is a judgement about
+this athlete rather than something to derive from a date. The plan says so.
+
+**The trap bar jump's load follows a retest.** It was a flat 30 kg in all
+fifty-two weeks while every other loaded lift in the programme is a percentage
+of a tested number. It is now written as 20% of the tested squat max — which
+resolves to the same 30 kg today, and moves when the max does. It gets
+progression advice, and that advice is never "add weight": peak power in a
+loaded jump occurs at a light load and falls away either side, so loading past
+it makes this the slower, more force-dominant lift the trap bar deadlift beside
+it already is. The 20% is back-derived from the programme's own number, not
+lifted from a trial — reported optimal loads for the jump squat sit between
+bodyweight and roughly 30% of squat 1RM and disagree within that band, which is
+why Cormie, McGuigan & Newton (Sports Med 2011) conclude it has to be
+individualised. Swinton et al. (J Strength Cond Res 2012;26(4):906–13) is why
+the implement is a hex bar.
 
 **Ticking a throwing task counts the throws.** The day's total is on the
 session screen, beside the ticking, built from what the completed tasks

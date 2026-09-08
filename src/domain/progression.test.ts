@@ -301,9 +301,47 @@ describe("lifts that are not trying to get heavier", () => {
     }
   });
 
-  it("says nothing about a jump", () => {
-    expect(progressionFor(task("Trap bar jump", "3 × 3 @ 30 kg"), cleared, TODAY)).toBeNull();
-    expect(progressesByLoad(task("Broad jump + trap bar jump", "Broad jump 2 × 2"))).toBe(false);
+  it("says nothing about a jump that carries no load", () => {
+    // A pogo is judged on stiffness, a depth jump on ground contact, a broad
+    // jump on distance. None of them has a load, so there is nothing for a
+    // rule whose whole vocabulary is "put more on the bar" to say.
+    for (const [name, prescription] of [
+      ["Depth jump — 15–20 cm box", "2 × 3 · full recovery · contact under 0.25 s"],
+      ["Pogo + vertical jump", "Pogo 2 × 6 · vertical jump 2 × 2"],
+      ["Ankle stiffness pogos", "2 × 10 · low amplitude · minimal ground contact"],
+      ["Broad jump + trap bar jump", "Broad jump 2 × 2"],
+    ] as const) {
+      expect(progressesByLoad(task(name, prescription)), name).toBe(false);
+      expect(progressionFor(task(name, prescription), cleared, TODAY), name).toBeNull();
+    }
+  });
+
+  it("does advise a loaded jump, and never tells it to get heavier", () => {
+    // The athlete asked for this one, on the condition that the advice be
+    // research-backed. A loaded jump makes peak power at a light load and
+    // falls away either side, so double progression — the rule that is right
+    // for the trap bar deadlift beside it — would walk it out of the quality
+    // it exists to train. The verdict is the comparison, and the load moves
+    // with the tested max rather than with a good day.
+    const jump = task("Trap bar jump", "3 × 3 @ 30 kg · 20% of tested squat max");
+    expect(progressesByLoad(jump)).toBe(true);
+    const advice = progressionFor(jump, [perf("2026-08-17", [[3, 30], [3, 30], [3, 30]])], TODAY);
+    expect(advice?.verdict).toBe("follow_plan");
+    expect(advice?.suggestedKg).toBe(30);
+    expect(advice?.reason).toMatch(/position on your power curve/);
+    expect(advice?.reason).toMatch(/20% of your tested squat max/);
+    expect(advice?.reason).not.toMatch(/add the smallest useful jump/);
+  });
+
+  it("does not read a measurement taken at a load as a load", () => {
+    // The retest battery says "bar velocity at 94 kg and 116 kg". That is a
+    // number recorded during a test, not a prescription, and there is no `@`
+    // in front of it — which is the whole of why the check looks for one.
+    const battery = task(
+      "Retest battery — jumps, sprint, bar speed",
+      "SJ 3 · CMJ 3 · drop jump 3 · 10 m sprint 2 · bar velocity at 94 kg and 116 kg · med-ball scoop 3"
+    );
+    expect(progressesByLoad(battery)).toBe(false);
   });
 
   it("says nothing about anti-rotation or trunk work", () => {

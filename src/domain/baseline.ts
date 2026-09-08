@@ -51,6 +51,33 @@ export const BASELINE_ANCHORS = {
   meanVelocityAt80Pct: 0.51,
   /** Report's reactive-development box height. */
   depthJumpBoxCm: [15, 20] as const,
+  /**
+   * External load on the trap bar jump, as a share of the tested squat max.
+   *
+   * Back-derived, not prescribed by a study: the programme writes the trap bar
+   * jump at a flat 30 kg, and 30 kg is 20% of this athlete's tested 145 kg. It
+   * is written as a percentage so it moves when the max is retested, which the
+   * flat number never did.
+   *
+   * Twenty per cent sits inside the band the loaded-jump literature reports for
+   * peak power — studies of the jump squat put it low, commonly between
+   * bodyweight alone and about 30% of squat 1RM, and they disagree with each
+   * other about where in that band, which is why Cormie, McGuigan & Newton
+   * (Sports Med 2011;41(1):17–38 and 41(2):125–146, "Developing maximal
+   * neuromuscular power") conclude the optimal load is exercise- and
+   * athlete-specific and has to be individualised rather than looked up. So the
+   * athlete's own programme supplies the number and the literature supplies the
+   * check that it is a sane one.
+   *
+   * The hexagonal bar is the right implement for it: Swinton, Stewart, Lloyd,
+   * Agouris & Keogh (J Strength Cond Res 2012;26(4):906–13, "Effect of load
+   * positioning on the kinematics and kinetics of weighted vertical jumps")
+   * compared hexagonal-barbell and straight-barbell weighted jumps across a
+   * range of loads and found the hexagonal bar produced greater peak power,
+   * force and velocity — the load sits at the hips rather than on the back, so
+   * more of it goes into the jump.
+   */
+  jumpPowerPercentOf1Rm: 20,
   /** Measured basal metabolic rate, Harris-Benedict via DEXA lean mass. */
   basalMetabolicRateKcal: 2028,
   /** DEXA, 2026-04-27. Lean mass is what protein targets should scale to. */

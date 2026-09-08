@@ -48,6 +48,20 @@ export interface SessionTask {
 }
 
 export interface Session {
+  /**
+   * How many fixtures the athlete has entered in this session's week.
+   *
+   * Stamped by `buildSession` and read back by the overlay, so it travels with
+   * the session the way its week does. A fourth argument to
+   * `applyBaselineProgramming` would have been forgotten by most of its eighty
+   * call sites, and a policy that silently does nothing when an argument is
+   * forgotten is a policy that will eventually be forgotten — the same
+   * reasoning that made `weekFromTasks` read the week off the task ids.
+   *
+   * Absent means "nobody has said", which is the safe reading: the programme's
+   * own phase table is used unchanged.
+   */
+  gamesThisWeek?: number;
   title: string;
   focus: string;
   duration: string;
@@ -180,9 +194,18 @@ const DAY_NAMES = [
 export function buildSession(
   week: WeekPlan,
   day: number,
-  options: { risk?: string; adjustment?: PlanAdjustment | null; game?: boolean } = {}
+  options: {
+    risk?: string;
+    adjustment?: PlanAdjustment | null;
+    game?: boolean;
+    /** Fixtures in this whole week, for the week-level intensity policy. */
+    weekGames?: number;
+  } = {}
 ): Session {
-  if (options.risk === "red") return recoveryOnlySession(week, day) as Session;
+  const stamp = (built: Session): Session =>
+    options.weekGames === undefined ? built : { ...built, gamesThisWeek: options.weekGames };
+
+  if (options.risk === "red") return stamp(recoveryOnlySession(week, day) as Session);
 
   let session: unknown;
   if (isSummerCompetitionPhase(week.phase.id)) {
@@ -202,5 +225,7 @@ export function buildSession(
     session = gameDayFor(week, day);
   }
 
-  return (options.adjustment ? applyReadinessToSession(session, options.adjustment) : session) as Session;
+  return stamp(
+    (options.adjustment ? applyReadinessToSession(session, options.adjustment) : session) as Session
+  );
 }

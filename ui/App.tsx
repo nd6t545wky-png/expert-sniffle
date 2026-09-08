@@ -31,6 +31,7 @@ import { isValidSyncKey } from "../src/domain/sync";
 import { syncNow } from "../src/domain/cloudSync";
 import {
   Session,
+  WeekPlan,
   buildSession,
   currentSelection,
   dateForWeekDay,
@@ -72,7 +73,7 @@ import { RetestSheet } from "./components/RetestSheet";
 import { TransferCard } from "./components/TransferCard";
 import { applyRecoveryProtocol } from "../src/domain/recoveryTasks";
 import { applyTeamTraining, readTeamTraining } from "../src/domain/teamTraining";
-import { allFixtures, fixtureOn, readAthleteFixtures, scheduleClash } from "../src/domain/fixtures";
+import { allFixtures, fixtureOn, fixturesBetween, readAthleteFixtures, scheduleClash } from "../src/domain/fixtures";
 import { readRetests } from "../src/domain/retest";
 import { velocityTransfer } from "../src/domain/velocityTransfer";
 import { Bloods } from "./components/Bloods";
@@ -382,6 +383,21 @@ export function App() {
     (on: IsoDate) => fixtureOn(on, fixtures) !== null,
     [fixtures]
   );
+
+  /**
+   * Fixtures in the week a session belongs to.
+   *
+   * The day-level flag decides whether that day is a game day; this decides
+   * what the *week* is for. A week the block table planned as a post-season
+   * unload but which actually holds a final is a competition week, and the
+   * intensity policy has to know before it caps the plyo ladder at the
+   * recovery band on the Wednesday before it.
+   */
+  const gamesInWeekOf = useCallback(
+    (plan: WeekPlan | null) =>
+      plan ? fixturesBetween(dateForWeekDay(plan, 0), dateForWeekDay(plan, 6), fixtures).length : 0,
+    [fixtures]
+  );
   const retests = useMemo(
     () => readRetests((state?.profile as { retests?: unknown } | undefined)?.retests),
     [state]
@@ -500,7 +516,10 @@ export function App() {
         const plan = weekPlan(week, state.pbs);
         for (let day = 0; day < 7; day += 1) {
           if (dateForWeekDay(plan, day) === on) {
-            return buildSession(plan, day, { game: gameOn(on) }).tasks;
+            return buildSession(plan, day, {
+              game: gameOn(on),
+              weekGames: gamesInWeekOf(plan),
+            }).tasks;
           }
         }
       } catch {
@@ -508,7 +527,7 @@ export function App() {
       }
       return [];
     },
-    [state, gameOn]
+    [state, gameOn, gamesInWeekOf]
   );
 
   const resolvedOn = useCallback(
@@ -544,8 +563,10 @@ export function App() {
             ? { planLevel: submission.planLevel, workloadFactor: submission.workloadFactor }
             : null,
           // A fixture the athlete entered outranks the calendar's guess about
-          // which days hold a game.
+          // which days hold a game, and about whether the week is competition
+          // or an off-season unload.
           game: gameOn(date),
+          weekGames: gamesInWeekOf(selectedWeekPlan),
         }),
         level,
         selectedDay
@@ -627,6 +648,7 @@ export function App() {
     tasksOn,
     resolvedOn,
     gameOn,
+    gamesInWeekOf,
   ]);
 
   const session = sessionWithRecovery.session;
@@ -1402,6 +1424,7 @@ export function App() {
           }
           throwTally={throwTally}
           throwEntry={throwEntry}
+          weekGames={gamesInWeekOf(selectedWeekPlan)}
           onSetThrows={(forDate, entry) =>
             update((draft) => ({
               ...draft,

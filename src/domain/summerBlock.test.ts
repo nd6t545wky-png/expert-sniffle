@@ -47,7 +47,7 @@ describe("the movement the report asked to replace", () => {
     const wednesday = tasksFor(7, 2);
     const jump = wednesday.find((task) => /trap bar jump/i.test(task.name));
     expect(jump?.name).toBe("Trap bar jump");
-    expect(jump?.prescription).toBe("3 × 3 @ 30 kg");
+    expect(jump?.prescription).toBe("3 × 3 @ 30 kg · 20% of tested squat max");
 
     const summer = tasksFor(SUMMER[0], 2);
     expect(summer.some((task) => /shot put/i.test(task.name))).toBe(true);
@@ -248,6 +248,7 @@ describe("the summer block's primary lift", () => {
     // Winter's trap bar carries real numbers from the week plan; nothing here
     // should touch it. It survives on Wednesday as the jump variant.
     const wednesday = tasksFor(7, 2).find((task) => /trap bar jump/i.test(task.name));
-    expect(wednesday?.prescription).toBe("3 × 3 @ 30 kg");
+    // The sets and reps are untouched; only the load gained its basis.
+    expect(wednesday?.prescription).toBe("3 × 3 @ 30 kg · 20% of tested squat max");
   });
 });

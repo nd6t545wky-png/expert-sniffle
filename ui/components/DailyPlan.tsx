@@ -83,6 +83,14 @@ export interface DailyPlanProps {
   onSetThrows?: (date: IsoDate, entry: { throws: number; intent: ThrowIntent }) => void;
   /** Hand the day back to the automatic count. */
   onUseAutoThrows?: (date: IsoDate) => void;
+  /**
+   * Fixtures in this week, for the velocity panel.
+   *
+   * The tasks already carry the fixture-aware policy — it is applied when the
+   * session is built. This is so the panel explaining the week's intent
+   * ceiling agrees with them.
+   */
+  weekGames?: number;
   /** Takes the athlete to the check-in that unlocks this session. */
   onOpenReadiness?: () => void;
   /** Takes the athlete to the post-session check-out. */
@@ -146,6 +154,7 @@ export function DailyPlan({
   throwEntry,
   onSetThrows,
   onUseAutoThrows,
+  weekGames,
 }: DailyPlanProps) {
   const [error, setError] = useState("");
   const [reason, setReason] = useState("");
@@ -439,7 +448,7 @@ export function DailyPlan({
               intent at. Read off the tasks rather than passed in, for the same
               reason the domain does it: a prop threaded through three
               components is a prop that eventually stops being passed. */}
-          {planWeek !== null && <VelocityBlock week={planWeek} />}
+          {planWeek !== null && <VelocityBlock week={planWeek} games={weekGames} />}
 
           <Card>
             <div className="card-head">

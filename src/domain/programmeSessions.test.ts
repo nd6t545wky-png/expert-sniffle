@@ -9,6 +9,7 @@ import {
   weekPlan,
 } from "./programmeSessions";
 import { DAY_NAMES } from "./session";
+import { applyBaselineProgramming } from "./programmeUpdates";
 
 /**
  * These pin the extracted programme content against the prototype. If an
@@ -349,5 +350,111 @@ describe("a fixture the athlete entered", () => {
     expect(names).toContain("Pregame bullpen");
     expect(names).toContain("Game appearance");
     expect(friday.description).toMatch(/a fixture was entered for it/);
+  });
+});
+
+describe("a week's fixtures reaching the intensity policy", () => {
+  /**
+   * The day-level flag decides whether a day is a game day. This is the week
+   * level: whether the plyo ladder on the Wednesday *before* a final is still
+   * capped at the recovery band because the block table planned an off-season
+   * unload there.
+   *
+   * The count travels on the session rather than through a fourth argument to
+   * `applyBaselineProgramming`, for the reason that function's own comment
+   * gives about its eighty call sites — and so it cannot be forgotten.
+   */
+  it("stamps the count on the session it builds", () => {
+    const plan = weekPlan(9);
+    expect(buildSession(plan, 2, { weekGames: 2 }).gamesThisWeek).toBe(2);
+    expect(buildSession(plan, 2).gamesThisWeek).toBeUndefined();
+  });
+
+  it("stamps it on a recovery-only session too", () => {
+    // A red readiness reading replaces the session, and the week is still the
+    // week it was.
+    expect(buildSession(weekPlan(9), 2, { weekGames: 2, risk: "red" }).gamesThisWeek).toBe(2);
+  });
+
+  const plyos = (week: number, day: number, games?: number) =>
+    applyBaselineProgramming(
+      buildSession(weekPlan(week), day, games === undefined ? {} : { weekGames: games }),
+      null,
+      day
+    )
+      .tasks.filter((task) => task.stageTitle === "Plyo Ball Preparation")
+      .map((task) => task.prescription);
+
+  it("lifts the unload's intent cap on the days around a final", () => {
+    // Tuesday of week 9. The programme writes this ladder at 70%, and the
+    // restore block's recovery ceiling pulls it down to 50–60%; with a finals
+    // weekend entered it goes back to hybrid B — the ceiling the season itself
+    // ran at, and no higher.
+    expect(plyos(9, 1).length).toBeGreaterThan(0);
+    expect(plyos(9, 1).every((dose) => /recovery intent/.test(dose))).toBe(true);
+    expect(plyos(9, 1, 2).filter((dose) => /hybrid B intent/.test(dose)).length).toBeGreaterThan(0);
+  });
+
+  it("raises nothing the programme itself wrote low", () => {
+    // The ceiling is a cap, never a promotion. Tuesday's 1,000 g reverse throw
+    // is written at 50–60% because it is the heaviest ball, and it stays there
+    // whatever the week is allowed to reach — the same rule `applyToPlyos`
+    // already follows for a develop week.
+    const heaviest = (games?: number) => plyos(9, 1, games)[0];
+    expect(heaviest()).toMatch(/50–60%/);
+    expect(heaviest(2)).toBe(heaviest());
+  });
+
+  it("leaves the transition Wednesday alone, pulldowns included", () => {
+    // The one day it would be wrong to un-suppress. A two-game week assigns no
+    // separate velocity day — the hard throwing comes out of the games — so
+    // the Wednesday that already has no pulldowns is the right Wednesday, and
+    // its ladder is written low by the programme rather than capped by the
+    // block.
+    const wednesday = (games?: number) =>
+      applyBaselineProgramming(
+        buildSession(weekPlan(9), 2, games === undefined ? {} : { weekGames: games }),
+        null,
+        2
+      ).tasks;
+    // The work itself, not the whole task: the policy's own note travels on
+    // `evidence`, and it should say which policy is in force.
+    const work = (tasks: ReturnType<typeof wednesday>) =>
+      tasks.map((task) => `${task.name} :: ${task.prescription}`);
+    expect(work(wednesday(2))).toEqual(work(wednesday()));
+    expect(wednesday(2).some((task) => /pulldown/i.test(task.name))).toBe(false);
+  });
+
+  it("adds no volume doing it", () => {
+    // A taper cuts volume and holds intensity (Bosquet 2007). This lifts the
+    // intensity cap and must not touch anything else — same tasks, in the same
+    // order, at the same sets and reps.
+    for (const day of [1, 4]) {
+      const capped = applyBaselineProgramming(buildSession(weekPlan(9), day), null, day).tasks;
+      const restored = applyBaselineProgramming(
+        buildSession(weekPlan(9), day, { weekGames: 2 }),
+        null,
+        day
+      ).tasks;
+      expect(restored.map((task) => task.id), `day ${day}`).toEqual(capped.map((task) => task.id));
+      const shape = (text: string) => (String(text).match(/\d+\s*×\s*\d+/) ?? [""])[0];
+      expect(restored.map((task) => shape(task.prescription)), `day ${day}`).toEqual(
+        capped.map((task) => shape(task.prescription))
+      );
+    }
+  });
+
+  it("leaves an in-season week alone, whatever its fixtures", () => {
+    // Only a restore week is overridden — every other block either already
+    // expects competition or is a build the athlete is in the middle of.
+    for (const week of [3, 15, 26]) {
+      const plan = weekPlan(week);
+      for (let day = 0; day < 7; day += 1) {
+        expect(
+          applyBaselineProgramming(buildSession(plan, day, { weekGames: 2 }), null, day).tasks,
+          `week ${week} day ${day}`
+        ).toEqual(applyBaselineProgramming(buildSession(plan, day), null, day).tasks);
+      }
+    }
   });
 });

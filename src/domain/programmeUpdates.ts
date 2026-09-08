@@ -522,6 +522,79 @@ function retestTask(prefix: string, stageTitle: string, stageDescription: string
 }
 
 /**
+ * The trap bar jump's load, written as a share of the tested max.
+ *
+ * The programme prescribes a flat `3 × 3 @ 30 kg`, in every week of the year,
+ * for as long as the athlete owns the app. Everything else loaded in the
+ * programme is a percentage of a tested number and moves when that number
+ * moves; this one lift was a literal, so an athlete who added twenty kilos to
+ * their squat kept jumping with the same thirty.
+ *
+ * ## Why it is not simply progressed
+ *
+ * A loaded jump is not trying to get heavier. Peak power in one occurs at a
+ * low external load and falls away either side of it, so adding weight past
+ * that point does not make the exercise better — it makes it a different
+ * exercise, slower and more force-dominant, which is what the trap bar
+ * deadlift beside it is already for. Double progression, which is the right
+ * rule for that deadlift, would walk this straight out of the quality it
+ * exists to train.
+ *
+ * What legitimately moves it is the athlete's force capacity. Thirty kilos is
+ * 20% of their tested 145 kg squat, so writing it that way is not a change to
+ * the dose today — it resolves to the same 30 kg — and is a change to what
+ * happens after the next retest.
+ *
+ * ## What the number rests on
+ *
+ * The 20% is back-derived from the programme's own prescription against the
+ * athlete's own tested max, not lifted from a trial, and
+ * `BASELINE_ANCHORS.jumpPowerPercentOf1Rm` says so. The literature is the
+ * check rather than the source: reported optimal loads for peak power in a
+ * jump squat sit low and disagree with each other, and Cormie, McGuigan &
+ * Newton (Sports Med 2011) conclude the load is athlete-specific and has to be
+ * individualised. Swinton et al. (J Strength Cond Res 2012;26(4):906–13) is
+ * the reason the implement is a hex bar rather than a straight one.
+ *
+ * The athlete's measured 94 kg optimal power load is deliberately *not* used
+ * here. That is L0/2 from a back-squat load-velocity profile — a non-ballistic
+ * lift where the load is all external. In a jump the athlete's own 89 kg is
+ * part of the system being accelerated, and the external load that maximises
+ * power is far lower. Reading one number as the other would be a fivefold
+ * error on a movement done for speed.
+ */
+const JUMP_LOAD = /@\s*\d+(?:\.\d+)?\s*kg/i;
+
+function withJumpPowerLoad(task: SessionTask): SessionTask {
+  if (!/^Trap bar jump$/i.test(String(task.name))) return task;
+  const prescription = String(task.prescription);
+  if (!JUMP_LOAD.test(prescription)) return task;
+  // The overlay is run more than once on the same session in places, and a
+  // rewrite that appends has to be able to see its own output. Without this the
+  // second pass reads its own `@ 30 kg` and annotates it again.
+  if (/% of tested squat max/i.test(prescription)) return task;
+
+  const max = BASELINE_ANCHORS.backSquat1RmKg;
+  const percent = BASELINE_ANCHORS.jumpPowerPercentOf1Rm;
+  const kg = Math.round((max * percent) / 100 / 2.5) * 2.5;
+  if (!(kg > 0)) return task;
+
+  return {
+    ...task,
+    prescription: prescription.replace(JUMP_LOAD, `@ ${kg} kg · ${percent}% of tested squat max`),
+    cue: appendOnce(
+      task.cue,
+      "The load is a position on your power curve, not a target. It goes up when the squat max does, not because the last set felt easy."
+    ),
+    setup: appendOnce(
+      String(task.setup ?? ""),
+      `${kg} kg is ${percent}% of the tested ${max} kg squat — the programme's own 30 kg, written so it follows a retest instead of standing still.`
+    ),
+    evidence: `The programme wrote this as a flat "${prescription}", unchanged in all fifty-two weeks, while every other loaded lift in it is a percentage of a tested number. ${percent}% is back-derived from that 30 kg against the tested ${max} kg max rather than taken from a trial. It is a load for power, not a load to progress: peak power in a loaded jump occurs low and falls away either side, so adding weight past it makes this the slower, more force-dominant lift the trap bar deadlift beside it already is. Reported optimal loads for the jump squat sit between bodyweight and roughly 30% of squat 1RM and disagree within that band, which is why Cormie, McGuigan & Newton (Sports Med 2011;41(1):17–38, 41(2):125–146) conclude it has to be individualised rather than looked up; Swinton et al. (J Strength Cond Res 2012;26(4):906–13) is why the implement is a hexagonal bar, which produced greater peak power, force and velocity than a straight barbell across the loads they tested. The measured 94 kg optimal power load is not used here: that is L0/2 from a back-squat profile, where the load is all external, and in a jump the athlete's own body mass is most of the system.`,
+  };
+}
+
+/**
  * Bar-speed intent cueing on primary strength lifts.
  *
  * The report calls this out explicitly to address a 354 ms time to peak
@@ -1025,6 +1098,9 @@ export function applyBaselineProgramming(
     .filter((task): task is SessionTask => task !== null)
     .map(withTrapBarDose(week))
     .map(withoutSelfReference)
+    // After the broad jump is split out, so the survivor is named "Trap bar
+    // jump" rather than "Broad jump + trap bar jump".
+    .map(withJumpPowerLoad)
     .map(withBarSpeedIntent)
     .map(withPlyoEvidence)
     .map(withSupersets(day))
@@ -1136,6 +1212,11 @@ export function applyBaselineProgramming(
    * lower-body lifts forty-eight hours before a game, which is precisely the
    * stacking that took the trap bar off Monday in the first place.
    */
+  // Deliberately the *planned* block, with no fixture override. This decides
+  // which lifts a week's single gym day can carry, which is a fact about the
+  // shape of the summer block rather than about intensity — a winter finals
+  // week resolving to "two_game" for intent reasons has a full winter gym week
+  // underneath it and must not be handed the summer week's exercise budget.
   const twoGameWeek = week !== null && velocityPolicy(week).block === "two_game";
 
   /**
@@ -1271,7 +1352,14 @@ function weekFocus(week: number | null): string | null {
 function withVelocityPolicy(session: Session, tasks: SessionTask[], level: ReducedLevel | null): Session {
   const policed = applyVelocityPolicy(
     { ...session, tasks },
-    { week: weekFromTasks(tasks), reduced: level !== null }
+    {
+      week: weekFromTasks(tasks),
+      reduced: level !== null,
+      // Entered fixtures, where the session carries them. A week the block
+      // table planned as an unload but which actually holds a game is a
+      // competition week, and `velocityPolicy` says so.
+      games: session.gamesThisWeek,
+    }
   );
   // After the policy, not before it. On a develop week the policy replaces the
   // pulldown task's cue outright, so an instruction added ahead of it is

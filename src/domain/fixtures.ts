@@ -180,16 +180,22 @@ export function daysUntil(today: IsoDate, fixture: Fixture): number {
  * at Round 19, so the week a semi-final is played is a week the app has
  * planned as rest.
  *
- * The *day* of the game now takes care of itself — `buildSession` reads the
- * fixture list and builds a game day where there is a game, whatever the phase
- * table guessed. This is about the rest of the week, which the phase table
- * still owns: throwing volume down 45–55%, no pulldowns, plyo intent capped at
- * the recovery band, on the Tuesday and Wednesday before a semi-final.
+ * Two of the three things that used to be wrong about it now take care of
+ * themselves. `buildSession` reads the fixture list and builds a game day
+ * where there is a game, whatever the phase table guessed; and `velocityPolicy`
+ * stops applying the unload's intent ceiling to a week that holds one, because
+ * a taper cuts volume and holds intensity while an unload cuts both.
  *
- * Deliberately still a warning rather than a re-phasing. Rebuilding the back
- * half of the year around a date someone typed is not a call to make unasked,
- * and it is a different kind of change from putting a game on a day that has
- * one: the athlete can see the clash and decide.
+ * What is left is the volume, and it is left on purpose. The reduced week is
+ * 45–55% down on throwing, which happens to sit inside the band the tapering
+ * meta-analysis reports as optimal — so for a week with a final in it the
+ * volume is plausibly right already, and cutting or raising it is a judgement
+ * about this athlete's finals series rather than something to derive from a
+ * date. The gym is the same: week 9 is an unload and the athlete may well want
+ * it to stay one.
+ *
+ * So the warning stays, and now says the narrower true thing: the day is
+ * handled, the intent is handled, and the volume is still the phase table's.
  */
 export interface ScheduleClash {
   fixture: Fixture;
@@ -211,6 +217,6 @@ export function scheduleClash(
   return {
     fixture,
     phase: week.phaseName,
-    message: `${fixture.label} is on this week, and the programme has these weeks as “${week.phaseName}” — planned with no game in them. The game day itself is built as one. The days around it are not: throwing volume, intent and the gym are still set for a week off. Check the build-up before training it as written.`,
+    message: `${fixture.label} is on this week, and the programme has these weeks as “${week.phaseName}” — planned with no game in them. The game day is built as a game day, and the intent cap that unload put on the days around it has been lifted, because a taper holds intensity where an unload drops it. Throwing volume and the gym are still set for a week off, which may be right for a finals week and is your call. Check the build-up before training it as written.`,
   };
 }

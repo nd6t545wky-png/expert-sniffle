@@ -415,7 +415,10 @@ describe("one primary bilateral lift on Monday, not two", () => {
     // comes out wherever it appears rather than only inside Monday's primer.
     const jump = wednesday.find((t) => /trap bar jump/i.test(t.name));
     expect(jump?.name).toBe("Trap bar jump");
-    expect(jump?.prescription).toBe("3 × 3 @ 30 kg");
+    // The load itself is unchanged — 30 kg is what 20% of the tested 145 kg
+    // squat rounds to. Writing it as a percentage is what lets it follow a
+    // retest instead of standing still for fifty-two weeks.
+    expect(jump?.prescription).toBe("3 × 3 @ 30 kg · 20% of tested squat max");
     expect(wednesday.some((t) => /broad jump/i.test(t.name))).toBe(false);
   });
 
