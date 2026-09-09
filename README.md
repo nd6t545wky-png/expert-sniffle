@@ -96,6 +96,22 @@ on Thursday, in `soleusTask`'s own words, "precisely because it is the light one
 ... the day before a game block", and that position is exactly what a Friday
 game removes.
 
+**A finals week gets its velocity work back.** Two lists of gym stage names
+existed and both were missing `Whole-Body Rebuild` — the entire gym block of a
+transition Wednesday. `GYM_STAGE_TITLES` missing it meant `gymIndex` came back
+-1, the session looked stageless, and `applyBaselineProgramming` returned early:
+*no* overlay addition reached those four sessions in the year, including the
+speed squat the rule was already gated to add.
+
+Measured against the last in-season week, the finals week was down 34% on
+working sets with its tonnage *up* 7% — the cut fell entirely on the
+lowest-volume, highest-velocity work (the speed squat is twelve total reps) and
+not at all on the accumulation work, which is a taper run backwards. On a
+rebuild Wednesday in a week that actually holds a game, the speed squat and
+trap bar jump go back in and nothing else does. Gated on the fixtures rather
+than the phase: weeks 10, 37 and 38 are genuine unload weeks and keep the
+rebuild block exactly as written.
+
 **The week around it re-phases too.** Weeks 9 and 10 are an unload, and the
 block table says what they assume: *"Deliberate unload after the final
 published FNCBA round."* A final is a game after that round, so the assumption

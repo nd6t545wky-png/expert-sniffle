@@ -405,24 +405,58 @@ describe("a week's fixtures reaching the intensity policy", () => {
     expect(heaviest(2)).toBe(heaviest());
   });
 
-  it("leaves the transition Wednesday alone, pulldowns included", () => {
-    // The one day it would be wrong to un-suppress. A two-game week assigns no
-    // separate velocity day — the hard throwing comes out of the games — so
+  const wednesday = (games?: number) =>
+    applyBaselineProgramming(
+      buildSession(weekPlan(9), 2, games === undefined ? {} : { weekGames: games }),
+      null,
+      2
+    ).tasks;
+
+  it("leaves the transition Wednesday's throwing alone, pulldowns included", () => {
+    // The one thing it would be wrong to un-suppress. A two-game week assigns
+    // no separate velocity day — the hard throwing comes out of the games — so
     // the Wednesday that already has no pulldowns is the right Wednesday, and
     // its ladder is written low by the programme rather than capped by the
     // block.
-    const wednesday = (games?: number) =>
-      applyBaselineProgramming(
-        buildSession(weekPlan(9), 2, games === undefined ? {} : { weekGames: games }),
-        null,
-        2
-      ).tasks;
-    // The work itself, not the whole task: the policy's own note travels on
-    // `evidence`, and it should say which policy is in force.
-    const work = (tasks: ReturnType<typeof wednesday>) =>
-      tasks.map((task) => `${task.name} :: ${task.prescription}`);
-    expect(work(wednesday(2))).toEqual(work(wednesday()));
+    const throwing = (tasks: ReturnType<typeof wednesday>) =>
+      tasks
+        .filter((task) => /^(Throw|Plyo Ball Preparation)$/.test(String(task.stageTitle)))
+        .map((task) => `${task.name} :: ${task.prescription}`);
+    expect(throwing(wednesday(2))).toEqual(throwing(wednesday()));
     expect(wednesday(2).some((task) => /pulldown/i.test(task.name))).toBe(false);
+  });
+
+  it("gives the transition Wednesday's gym its velocity work back", () => {
+    // The gym is the half that *should* change. The rebuild block was written
+    // for an athlete whose season had ended: it drops the speed squat and the
+    // trap bar jump for moderate-rep strength, which leaves the finals week
+    // cutting its lowest-volume, highest-velocity work and none of its
+    // accumulation work. A taper is the other way round.
+    const names = (tasks: ReturnType<typeof wednesday>) => tasks.map((task) => String(task.name));
+    expect(names(wednesday())).not.toContain("Speed squat — optimal power load");
+    expect(names(wednesday())).not.toContain("Trap bar jump");
+    expect(names(wednesday(2))).toContain("Speed squat — optimal power load");
+    expect(names(wednesday(2))).toContain("Trap bar jump");
+  });
+
+  it("leaves an unload Wednesday with no game in it exactly as it was", () => {
+    // Weeks 10, 37 and 38 are genuine unload weeks. The rebuild block is right
+    // for them and nothing here has a reason to touch it.
+    for (const week of [10, 37, 38]) {
+      const tasks = applyBaselineProgramming(buildSession(weekPlan(week), 2), null, 2).tasks;
+      expect(tasks.some((task) => /Speed squat/.test(String(task.name))), `week ${week}`).toBe(false);
+      expect(tasks.some((task) => /Trap bar jump/.test(String(task.name))), `week ${week}`).toBe(false);
+    }
+  });
+
+  it("prices the restored jump from the same anchor as the programme's own", () => {
+    // Two trap bar jumps now exist — one in the programme's content, one added
+    // here — and a hardcoded load in either would drift from the other.
+    const added = wednesday(2).find((task) => String(task.name) === "Trap bar jump");
+    const inSeason = applyBaselineProgramming(buildSession(weekPlan(3), 2), null, 2).tasks.find(
+      (task) => String(task.name) === "Trap bar jump"
+    );
+    expect(added?.prescription).toBe(inSeason?.prescription);
   });
 
   it("adds no volume doing it", () => {

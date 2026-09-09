@@ -45,7 +45,27 @@ const [PCT_MIN, PCT_MAX] = BASELINE_ANCHORS.strengthPercentRange;
  * opted out. `recoveryProtocol.ts` has always known the name; only this file
  * did not.
  */
-const GYM_STAGE_TITLES = ["Whole-Body Force", "Whole-Body Power", "Whole-Body Gym"];
+/**
+ * The stages an addition can be inserted into.
+ *
+ * "Whole-Body Rebuild" was missing, and it is the whole gym block of a
+ * transition Wednesday. Without it `gymIndex` came back -1, the session looked
+ * like a Thursday-style stageless day, and `applyBaselineProgramming` returned
+ * early — so *no* overlay addition reached those four sessions in the year.
+ * The velocity squat that Wednesday is supposed to carry was gated correctly
+ * and then dropped on the floor by a list that did not know the stage existed.
+ *
+ * Same shape of bug as `LOGGABLE_STAGE` missing "rebuild": every gym stage in
+ * the programme is named `Whole-Body <something>`, and a hand-maintained list
+ * of them will keep missing one. "Whole-Body Primer" is deliberately still out
+ * — the pre-game primer is not a session anything should be inserted into.
+ */
+const GYM_STAGE_TITLES = [
+  "Whole-Body Force",
+  "Whole-Body Power",
+  "Whole-Body Gym",
+  "Whole-Body Rebuild",
+];
 
 /**
  * The broad jump comes out wherever it appears.
@@ -203,6 +223,41 @@ function velocitySquatTask(prefix: string, stageTitle: string, stageDescription:
   };
 }
 
+
+/**
+ * The ballistic half of Wednesday's velocity work, for a week that lost it.
+ *
+ * An in-season Wednesday carries a trap bar jump of its own, out of
+ * `programmeContent`. The transition week's rebuild session does not — it was
+ * written for an athlete whose season had ended, so it drops the jump along
+ * with the speed squat and the push press. On a week that turns out to hold a
+ * final, that is the wrong thing to have dropped: nine total reps at a load
+ * chosen for peak power is the definition of what a taper keeps.
+ *
+ * Same load and the same reasoning as the programme's own jump, from the same
+ * anchor, so the two cannot drift apart: the external load is a share of the
+ * tested squat max, it is a position on a power curve rather than a target,
+ * and it moves when the max moves. See `withJumpPowerLoad`.
+ */
+function trapBarJumpTask(prefix: string, stageTitle: string, stageDescription: string): SessionTask {
+  const max = BASELINE_ANCHORS.backSquat1RmKg;
+  const percent = BASELINE_ANCHORS.jumpPowerPercentOf1Rm;
+  const kg = Math.round((max * percent) / 100 / 2.5) * 2.5;
+  return {
+    id: `${prefix}-trap-bar-jump`,
+    stage: 4,
+    stageTitle,
+    stageDescription,
+    name: "Trap bar jump",
+    prescription: `3 × 3 @ ${kg} kg · ${percent}% of tested squat max`,
+    cue: "Chase height and a quiet landing, not load. The load is a position on your power curve, not a target — it goes up when the squat max does.",
+    setup: `Hex bar loaded to ${kg} kg, which is ${percent}% of the tested ${max} kg squat. Clear floor, room to land.`,
+    execution:
+      "Dip and jump in one movement, driving through the whole foot. Reset between reps rather than bouncing them together; land softly and stand up before the next one.",
+    rest: "2–3 minutes. This is power work and it needs full recovery to stay power work.",
+    stop: "Stop the set on any drop in jump height, for a heavy or noisy landing, or for knee, ankle or Achilles pain.",
+  };
+}
 
 /**
  * The anterior-chain strength lift the report prescribes and the session did
@@ -1205,6 +1260,29 @@ export function applyBaselineProgramming(
   // caller that has not said. It gets everything, as before.
   const onMonday = day === null || day === DAY_MONDAY;
   const onWednesday = day === null || day === DAY_WEDNESDAY;
+
+  /**
+   * A Wednesday whose gym block is the transition week's rebuild session.
+   *
+   * Four exist, and they are a different session from an in-season Wednesday:
+   * the rebuild block is written for an athlete whose season has ended. It
+   * drops every piece of speed-strength work — the speed squat, the trap bar
+   * jump, the push press — and replaces them with moderate-rep strength, which
+   * is right for rebuilding and wrong for a week with a final in it.
+   *
+   * Measured against the last in-season week, that leaves the finals week down
+   * 34% on working sets while its *tonnage* is up 7%: the cut falls entirely on
+   * the lowest-volume, highest-velocity work in the week (the speed squat is
+   * twelve total reps) and not at all on the accumulation work. A taper is the
+   * other way round — cut volume, hold intensity (Bosquet 2007; Mujika &
+   * Padilla 2003) — so on a week that actually holds a game the velocity work
+   * goes back in, and only that.
+   *
+   * Gated on the fixtures rather than on the phase, because weeks 10, 37 and 38
+   * are genuine unload weeks with no game in them and have no reason to change.
+   */
+  const rebuildWednesday = tasks.some((task) => task.stageTitle === "Whole-Body Rebuild");
+  const tapering = rebuildWednesday && Number(session.gamesThisWeek ?? 0) > 0;
   /**
    * Thursday's microdoses, unless Thursday has become the day before a game.
    *
@@ -1258,14 +1336,21 @@ export function applyBaselineProgramming(
   // measure the fatigue rather than the quality.
   const testingToday = onMonday && week !== null && isRetestWeek(week);
 
+  // An unload Wednesday keeps its rebuild block exactly as written; a finals
+  // week gets the velocity work back. Declared here because `twoGameWeek`
+  // above is what it reads.
+  const wantsVelocityWork = onWednesday && !twoGameWeek && (!rebuildWednesday || tapering);
+
   const early = [
     ...(testingToday ? [retestTask(prefix, stageTitle, stageDescription, week)] : []),
     ...(wantsDepthJump && !testingToday
       ? [depthJumpTask(prefix, stageTitle, stageDescription, twoGameWeek ? 2 : 3)]
       : []),
-    ...(onWednesday && !twoGameWeek
-      ? [velocitySquatTask(prefix, stageTitle, stageDescription)]
-      : []),
+    ...(wantsVelocityWork ? [velocitySquatTask(prefix, stageTitle, stageDescription)] : []),
+    // The ballistic half of the same argument, and only where the rebuild
+    // session displaced it: an in-season Wednesday already carries its own
+    // trap bar jump from the programme.
+    ...(tapering ? [trapBarJumpTask(prefix, stageTitle, stageDescription)] : []),
     // Heavy strength follows the velocity work: light-and-fast first, then
     // load. The reverse order leaves the fast work fatigued.
     ...(onMonday && !twoGameWeek
