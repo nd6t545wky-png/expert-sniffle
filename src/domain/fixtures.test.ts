@@ -71,23 +71,27 @@ describe("finding a fixture", () => {
 });
 
 describe("the rest of the season, entered by the athlete", () => {
+  // Deliberately a date the built-in list does not have. The semi-finals it
+  // once stood in for are in that list now, and a test whose entered fixture
+  // lands on the same day as a real one stops testing the merge and starts
+  // testing which of two identical dates a Map happens to yield first.
   const entry = [
-    { id: "athlete-1", date: "2026-09-12", team: "Norths", label: "Semi-final", source: "athlete-provided" as const },
+    { id: "athlete-1", date: "2026-09-19", team: "Norths", label: "Grand final", source: "athlete-provided" as const },
   ];
 
   it("reads entries defensively and drops anything undated", () => {
     const read = readAthleteFixtures([
-      { date: "2026-09-12", label: "Semi-final", team: "Norths" },
+      { date: "2026-09-19", label: "Grand final", team: "Norths" },
       { label: "no date" },
       "nonsense",
       null,
     ]);
     expect(read).toHaveLength(1);
-    expect(read[0]).toMatchObject({ date: "2026-09-12", label: "Semi-final", source: "athlete-provided" });
+    expect(read[0]).toMatchObject({ date: "2026-09-19", label: "Grand final", source: "athlete-provided" });
   });
 
   it("fills in a sensible label and team rather than rendering blanks", () => {
-    const read = readAthleteFixtures([{ date: "2026-09-12" }]);
+    const read = readAthleteFixtures([{ date: "2026-09-19" }]);
     expect(read[0].label).toBe("Game");
     expect(read[0].team).toBeTruthy();
   });
@@ -106,11 +110,14 @@ describe("the rest of the season, entered by the athlete", () => {
 
   it("is visible to fixtureOn and upcomingFixtures once merged", () => {
     const merged = allFixtures(entry);
-    expect(fixtureOn("2026-09-12" as never, merged)?.label).toBe("Semi-final");
-    // The Cubs opener is still ahead of it, so the entered final leads the list
-    // rather than being the whole of it.
+    expect(fixtureOn("2026-09-19" as never, merged)?.label).toBe("Grand final");
+    // The built-in semi-finals come first and the Cubs opener is still ahead of
+    // it, so the entered final takes its place in the run rather than being the
+    // whole of it.
     expect(upcomingFixtures("2026-09-06" as never, 5, merged).map((f) => f.date)).toEqual([
+      "2026-09-11",
       "2026-09-12",
+      "2026-09-19",
       "2026-10-02",
     ]);
   });
@@ -124,19 +131,28 @@ describe("a game in a week planned as rest", () => {
     phaseName: "Post-Winter Transition",
   };
 
-  it("is exactly the finals case, and it says so", () => {
-    const merged = allFixtures([
-      { id: "a", date: "2026-09-12" as never, team: "Norths", label: "Semi-final", source: "athlete-provided" },
-    ]);
-    const clash = scheduleClash(week, merged);
+  it("fires on the semi-finals in the built-in list, which is the whole point", () => {
+    // The 2026 semi-finals fall in the week the phase table has as an unload —
+    // the case this function was written for, now reachable without anyone
+    // entering anything.
+    const clash = scheduleClash(week, allFixtures());
     expect(clash).toBeTruthy();
-    expect(clash!.message).toMatch(/Semi-final/);
+    expect(clash!.message).toMatch(/semi-final/i);
     expect(clash!.message).toMatch(/Post-Winter Transition/);
     expect(clash!.message).toMatch(/no game in them/);
   });
 
+  it("fires on a game the athlete entered too", () => {
+    const later = { ...week, start: "2026-09-14" as never, end: "2026-09-20" as never };
+    const merged = allFixtures([
+      { id: "a", date: "2026-09-19" as never, team: "Norths", label: "Grand final", source: "athlete-provided" },
+    ]);
+    expect(scheduleClash(later, merged)?.message).toMatch(/Grand final/);
+  });
+
   it("says nothing when the week is empty, which is most of them", () => {
-    expect(scheduleClash(week, allFixtures())).toBeNull();
+    const empty = { ...week, start: "2026-09-14" as never, end: "2026-09-20" as never };
+    expect(scheduleClash(empty, allFixtures())).toBeNull();
   });
 
   it("says nothing about an in-season week, where a game is the point", () => {

@@ -285,12 +285,66 @@ const BLOCKS: readonly BlockRange[] = [
   },
 ];
 
-export function velocityPolicy(week: number): VelocityPolicy {
+/**
+ * A restore week that turns out to hold a game.
+ *
+ * Weeks 9 and 10 are an unload, and the note above says exactly what they
+ * assume: "Deliberate unload after the final *published* FNCBA round." A
+ * finals series is a game after that round, and once the athlete enters one
+ * the assumption is simply false — the week is a competition week wearing an
+ * off-season policy.
+ *
+ * Two things stay separate here, because the tapering literature separates
+ * them and the unload does not. Bosquet 2007 (Med Sci Sports Exerc
+ * 39(8):1358–65, meta-analysis of tapering studies) finds performance is best
+ * preserved by cutting training *volume* — the largest effects at a 41–60%
+ * reduction — while holding intensity and session frequency where they were;
+ * Mujika & Padilla 2003 (Med Sci Sports Exerc 35(7):1182–7) reach the same
+ * conclusion reviewing the same question. A restore week cuts both. So the
+ * volume reduction stays exactly as it is, and this lifts only the intensity
+ * suppression: the plyo ceiling and the velocity day.
+ *
+ * It does not invent a policy to do that. A week with one game is structurally
+ * an in-season week and a week with two is structurally a two-game week, and
+ * this table already holds both, with their own reasoning and their own
+ * numbers. Reusing them is the point — a third set of numbers written here
+ * would be a third opinion about the same question.
+ *
+ * Note which way that lands for a finals *weekend*: two games resolves to
+ * `two_game`, which assigns no separate velocity day at all. The hard throwing
+ * comes out of the games. Nothing here raises intent above what the season
+ * itself ran at, and nothing here adds volume.
+ */
+function competitionOverride(games: number): BlockRange | null {
+  if (games <= 0) return null;
+  const block: VelocityBlock = games >= 2 ? "two_game" : "in_season";
+  const canonical = BLOCKS.find((candidate) => candidate.block === block);
+  if (!canonical) return null;
+  return {
+    from: 0,
+    to: 0,
+    block,
+    plyoCeiling: canonical.plyoCeiling,
+    velocityDay: canonical.velocityDay,
+    highEffortThrows: canonical.highEffortThrows,
+    note: `${games === 1 ? "A game is" : `${games} games are`} scheduled this week, so the unload this week was planned as does not apply: it was written for the weeks after the last published round, and these fixtures come after it. The volume reduction stands — a taper cuts volume and holds intensity (Bosquet 2007, best effects at a 41–60% volume cut with intensity and frequency maintained; Mujika & Padilla 2003), and an unload cuts both. Only the intensity suppression is lifted, to this year's own ${BLOCK_LABELS[block].toLowerCase()} policy. ${canonical.note}`,
+  };
+}
+
+/**
+ * What this week permits, as far as throwing hard is concerned.
+ *
+ * `options.games` is the fixture list talking. The block table is fixed at
+ * fifty-two weeks and guesses which weeks hold competition; where the athlete
+ * has entered a game into a week the table planned as an unload, the fixture
+ * wins. See `competitionOverride`.
+ */
+export function velocityPolicy(week: number, options: { games?: number } = {}): VelocityPolicy {
   const range = BLOCKS.find((candidate) => week >= candidate.from && week <= candidate.to);
   // Outside the programme's fifty-two weeks there is no phase to reason from.
   // The safe reading of "I do not know what week this is" is the conservative
   // one: cap at hybrid B and assign no velocity day.
-  const resolved: BlockRange = range ?? {
+  const planned: BlockRange = range ?? {
     from: week,
     to: week,
     block: "in_season",
@@ -299,6 +353,14 @@ export function velocityPolicy(week: number): VelocityPolicy {
     highEffortThrows: null,
     note: "Outside the planned fifty-two weeks, so intent is capped conservatively and no velocity day is assigned.",
   };
+
+  // Only a restore week is overridden. Every other block either already
+  // expects competition or is a build the athlete is deliberately in the
+  // middle of, and neither is something a fixture should rewrite.
+  const override = planned.block === "restore" ? competitionOverride(Number(options.games ?? 0)) : null;
+  const resolved: BlockRange = override
+    ? { ...override, from: planned.from, to: planned.to }
+    : planned;
 
   const blockWeeks = resolved.to - resolved.from + 1;
   const weekInBlock = week - resolved.from + 1;
@@ -515,10 +577,10 @@ function applyToPulldowns(
  */
 export function applyVelocityPolicy(
   session: Session,
-  options: { week: number | null; reduced?: boolean }
+  options: { week: number | null; reduced?: boolean; games?: number }
 ): Session {
   if (options.week === null) return session;
-  const policy = velocityPolicy(options.week);
+  const policy = velocityPolicy(options.week, { games: options.games });
   const reduced = Boolean(options.reduced);
 
   // The ladder is capped first, because what is left of the week's high-effort

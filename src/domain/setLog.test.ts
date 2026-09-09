@@ -8,6 +8,7 @@ import {
   oneRepMaxHistory,
   prescribedSets,
   readDayLog,
+  setUnit,
 } from "./setLog";
 import { SessionTask } from "./programmeSessions";
 
@@ -30,9 +31,35 @@ describe("isLoggable", () => {
   });
 
   it("does not offer it on lifting with no set × rep shape", () => {
-    // A carry or a hold is real work, but not a reps-and-load table.
-    expect(isLoggable(task("Strength", "2 × 30 m heavy carry"))).toBe(true);
+    // A hold or an untimed piece of work is real, but not a table of sets.
     expect(isLoggable(task("Strength", "Farmer carry, 40 m"))).toBe(false);
+  });
+
+  it("does offer it on a carry written as sets × metres", () => {
+    // Monday's farmer carry, since the athlete asked for it out of the Pallof
+    // press's task. It is loaded work that progresses by getting heavier, which
+    // means it needs a log like every other lift — `setUnit` is what keeps its
+    // second number labelled metres.
+    expect(isLoggable(task("Whole-Body Force", "2 × 20 m (no straps)"))).toBe(true);
+  });
+});
+
+describe("setUnit", () => {
+  it("reads a carry's second number as metres and everything else as reps", () => {
+    expect(setUnit(task("Whole-Body Force", "2 × 20 m (no straps)"))).toBe("m");
+    expect(setUnit(task("Whole-Body Force", "3 × 20 m @ RPE 7 · 32 kg per hand"))).toBe("m");
+    expect(setUnit(task("Whole-Body Force", "2 × 8/side"))).toBe("reps");
+    expect(setUnit(task("Strength", "3 × 5 @ 130 kg"))).toBe("reps");
+  });
+
+  it("is not fooled by a stray m elsewhere in the prescription", () => {
+    // "3 × 5 @ 130 kg · 2 min rest" has an `m`, and none of it is a distance.
+    expect(setUnit(task("Strength", "3 × 5 @ 130 kg · 2 min rest"))).toBe("reps");
+    expect(setUnit(task("Strength", "4 × 6 · moderate"))).toBe("reps");
+  });
+
+  it("says reps when there is nothing to read", () => {
+    expect(setUnit({ prescription: undefined } as unknown as SessionTask)).toBe("reps");
   });
 });
 
@@ -88,6 +115,19 @@ describe("loggedTonnage", () => {
     };
     expect(loggedTonnage(log)).toBe(1780);
     expect(loggedSetCount(log)).toBe(3);
+  });
+
+  it("leaves distance work out rather than counting metres as kilograms", () => {
+    // 2 × 20 m at 32 kg is 1280 metre-kilograms and no amount of kilograms
+    // lifted. Counted in, it was about a tenth of a Monday's reported tonnage.
+    const log = {
+      squat: [{ reps: 5, kg: 130 }, { reps: 5, kg: 130 }],
+      "w1-d0-carry": [{ reps: 20, kg: 32 }, { reps: 20, kg: 32 }],
+    };
+    expect(loggedTonnage(log)).toBe(2580);
+    expect(loggedTonnage(log, { "w1-d0-carry": "m" })).toBe(1300);
+    // Sets are still sets: the carry happened, and the count says so.
+    expect(loggedSetCount(log)).toBe(4);
   });
 
   it("counts nothing when nothing was logged", () => {

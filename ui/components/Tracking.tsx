@@ -36,6 +36,16 @@ export interface TrackingProps {
   onToggleRecapStat?: (id: string) => void;
   /** Lift, velocity and bodyweight series — see `progressTrends`. */
   progress?: ProgressSpec[];
+  /**
+   * Pitches thrown in a game logged for this date, when one has been.
+   *
+   * The field below used to open at zero and be typed from memory, next to a
+   * game log that already held the number — and this is not a display figure:
+   * `summerSession` reads it to decide whether the day after a start is
+   * recovery or a primer. Two records of one appearance, and the programme
+   * following whichever was typed second.
+   */
+  loggedGamePitches?: number | null;
 }
 
 /**
@@ -147,17 +157,36 @@ export function Tracking({
   recapStats,
   onToggleRecapStat,
   progress,
+  loggedGamePitches,
 }: TrackingProps) {
   const [perceivedExertion, setPerceivedExertion] = useState(6);
   const [armFeel, setArmFeel] = useState(8);
-  const [gamePitches, setGamePitches] = useState(0);
+  const [gamePitches, setGamePitches] = useState(loggedGamePitches ?? 0);
   const [bestVelocity, setBestVelocity] = useState(0);
   const [velocityType, setVelocityType] = useState("pulldown");
   const [notes, setNotes] = useState("");
   const [error, setError] = useState("");
 
+  // Follow the game log when it moves — a game entered after the check-out
+  // form was opened, or the day being changed underneath it. Only while the
+  // field still holds what the log last said: once it has been typed over, the
+  // typed number is the athlete's answer and stands.
+  const [pitchesFrom, setPitchesFrom] = useState(loggedGamePitches ?? 0);
+  if (pitchesFrom !== (loggedGamePitches ?? 0)) {
+    setPitchesFrom(loggedGamePitches ?? 0);
+    if (gamePitches === pitchesFrom) setGamePitches(loggedGamePitches ?? 0);
+  }
+
   const existing = reports[date];
-  const recent = Object.values(reports).filter(Boolean) as SessionReport[];
+  // Keyed by date, so the key is the authority on which day a report belongs
+  // to. Records written by older builds (and the `post` map restored from a
+  // backup) carry no `date` field of their own, and reading `report.date`
+  // straight off them threw on sort — taking the whole Progress page down
+  // behind the error boundary. The key fills the gap; anything still without a
+  // usable date is dropped rather than sorted against `undefined`.
+  const recent: SessionReport[] = Object.entries(reports)
+    .flatMap(([key, report]) => (report ? [{ ...report, date: report.date ?? key }] : []))
+    .filter((report) => typeof report.date === "string" && report.date.length > 0);
   const trendDays = ouraTrendDays(healthPrefill, submissions);
 
   function handleSubmit(event: React.FormEvent) {
@@ -230,6 +259,11 @@ export function Tracking({
                 value={gamePitches}
                 onChange={(event) => setGamePitches(Number(event.target.value))}
               />
+              {loggedGamePitches ? (
+                <small className="fineprint">
+                  From the game you logged for today. Change it if the count was different.
+                </small>
+              ) : null}
             </div>
 
             <div className="field">

@@ -4,6 +4,7 @@ import {
   bodyweightHistory,
   liftProgress,
   summariseProgress,
+  taskIndexForDates,
   taskNamesForDates,
   velocityHistory,
 } from "./progressTrends";
@@ -41,6 +42,22 @@ describe("taskNamesForDates", () => {
     expect(Object.values(names)).toContain("Back squat");
     expect(Object.values(names).some((name) => /Depth jump/.test(name))).toBe(true);
     expect(names["w8-d0-back-squat"]).toBe("Back squat");
+  });
+
+  it("says which tasks count their sets in metres", () => {
+    // Logged sets are read in places that never see the session they came from
+    // — a past day's tonnage, above all, which sums `reps × kg`. Without this,
+    // Monday's farmer carry contributed metre-kilograms to a total measured in
+    // kilograms.
+    const monday = dateForWeekDay(weekPlan(8), 0);
+    const { names, units } = taskIndexForDates([monday]);
+    const carry = Object.keys(names).find((id) => names[id] === "Farmer carry");
+    const press = Object.keys(names).find((id) => names[id] === "Pallof press");
+    expect(carry, "no Farmer carry task in week 8 Monday").toBeTruthy();
+    expect(press, "no Pallof press task in week 8 Monday").toBeTruthy();
+    expect(units[carry!]).toBe("m");
+    expect(units[press!]).toBe("reps");
+    expect(units["w8-d0-back-squat"]).toBe("reps");
   });
 
 

@@ -3,13 +3,14 @@ import { Fragment, ReactNode, useState } from "react";
 /**
  * App shell.
  *
- * The markup here mirrors the prototype's exactly — `app-shell` + theme class,
- * `main.main` containing `header.topbar` and `div.content`, and `nav.bottom-nav`.
- * The prototype's stylesheet is written against those selectors, so the
- * structure is the contract: change a class name and the design falls apart.
+ * The markup mirrors the prototype's — `app-shell` + theme class, `main.main`
+ * containing `header.topbar` and `div.content`, and `nav.bottom-nav`. The
+ * stylesheet is written against those selectors, so the structure is the
+ * contract: change a class name and the design falls apart.
  *
- * Nothing in styles.css is edited to accommodate the rebuild. The rebuild
- * matches the stylesheet, not the other way round.
+ * The chrome is flush rather than floating: the rail, the bar and the phone's
+ * tab strip each meet the content along a single 1px line, and that line is the
+ * only thing separating them from it.
  */
 
 export type PageId =

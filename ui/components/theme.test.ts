@@ -9,9 +9,9 @@
  * used. That is the kind of break no unit test catches and no screenshot of
  * the *current* week catches either, because the current week was winter.
  *
- * `styles.css` is frozen, so this reads it rather than asserting against a
- * hardcoded list: whatever themes the stylesheet defines are the themes the
- * app is allowed to name.
+ * This reads the stylesheet rather than asserting against a hardcoded list:
+ * whatever themes the stylesheet defines are the themes the app is allowed to
+ * name, so the check survives the palette being rewritten under it.
  */
 
 import { readFileSync } from "node:fs";

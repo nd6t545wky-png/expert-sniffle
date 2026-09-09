@@ -1,0 +1,46 @@
+# Typecheck and tests on every pull request.
+#
+# The repository had no CI at all, so nothing stood between a pull request and
+# the default branch except someone reading the diff — and the deploy workflow
+# beside this one ships the default branch straight to production. This is the
+# gate that makes that safe.
+#
+# Deliberately not the browser audits (`design:audit`, `a11y:audit`) or `e2e`:
+# both need a served build and a real Chromium, the e2e worker suite needs a
+# migrated D1, and a check that fails for reasons unrelated to the change is a
+# check people learn to ignore.
+name: CI
+
+on:
+  pull_request:
+  # So the default branch itself is checked even when something lands without
+  # a pull request.
+  push:
+    branches: [claude/tulmareee-website-audit-uiqvlg]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Tests
+        run: npm test
+
+      - name: Build
+        run: npm run build

@@ -64,13 +64,26 @@ export interface Game {
  * into arithmetic, which is the bug this whole representation exists to stop.
  */
 export function formatInnings(outs: number): string {
-  const whole = Math.floor(Math.max(0, outs) / 3);
-  return `${whole}.${Math.max(0, outs) % 3}`;
+  const safe = safeOuts(outs);
+  return `${Math.floor(safe / 3)}.${safe % 3}`;
+}
+
+/**
+ * An out count that can be counted with.
+ *
+ * A game restored from a backup, or imported before the log stored outs at
+ * all, carries no `outs` field — and `Math.max(0, undefined)` is NaN, which
+ * printed "NaN.NaN" in the innings column and poisoned every rate below it.
+ * A line with no innings on it has pitched none; that is what is shown.
+ */
+function safeOuts(outs: unknown): number {
+  const value = Number(outs);
+  return Number.isFinite(value) ? Math.floor(Math.max(0, value)) : 0;
 }
 
 /** Outs as true innings, for rates that divide by nine. */
 export function inningsPitched(outs: number): number {
-  return Math.max(0, outs) / 3;
+  return safeOuts(outs) / 3;
 }
 
 /** "3.2" or "3 2/3" back into outs, for typed input. */

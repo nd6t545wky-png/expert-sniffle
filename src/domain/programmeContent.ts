@@ -13,6 +13,16 @@
  * maxes from a page-wide `state` singleton, which is threaded through
  * `setProgrammeContext` here so the module stays free of globals.
  *
+ * One change is not mechanical. On the athlete's instruction, Monday's single
+ * `Pallof press + farmer carry` task is split into a `Pallof press` task and a
+ * `Farmer carry` task, so that the carry — which is trying to get heavier — can
+ * carry its own log and its own progression advice, and the press, which is
+ * not, can decline both. No prescription wording changed in the split: the
+ * sentences were divided between the two exercises they already named, and the
+ * press's stop criterion is the one the programme already gives it in the
+ * Whole-Body Gym session. The split is re-applied by the extraction script, so
+ * regenerating this file preserves it.
+ *
  * @ts-nocheck is deliberate and scoped to this file only. The contents are a
  * verbatim copy of code already proven in production; annotating it would mean
  * editing the prescriptions, which is exactly what must not happen. Type
@@ -469,8 +479,16 @@ function standardSession(week, day) {
         task(`${p}-nordic`, 4, "Whole-Body Force", "Power first, then primary strength, secondary work and arm care.", "Nordic hamstring curl", "2 × 4 · 3–4 second eccentric", "Keep the hips extended and use the hands to catch the descent.", {
           setup: "Secure the ankles with a pad or partner.", execution: "Lower only as far as you can control. Use the hands to assist the return.", rest: "90 seconds.", stop: "Stop for cramping or loss of hip position."
         }),
-        task(`${p}-trunk`, 4, "Whole-Body Force", "Power first, then primary strength, secondary work and arm care.", "Pallof press + farmer carry", "Pallof press 2 × 8/side · farmer carry 2 × 20 m (no straps)", "Brace without holding your breath; carry tall and controlled.", {
-          setup: "Cable/band at sternum height; carry space clear.", execution: "Resist rotation on the press. Use the carry as deliberate grip work, not a max test.", rest: "45–60 seconds.", stop: "End the carry before posture or grip fails."
+        // Split from the single `Pallof press + farmer carry` task on the
+        // athlete's instruction. No prescription wording changed: each sentence
+        // of the original went to the exercise it names, and the Pallof press's
+        // stop criterion is the one the programme already gives it in the
+        // Whole-Body Gym session below.
+        task(`${p}-trunk`, 4, "Whole-Body Force", "Power first, then primary strength, secondary work and arm care.", "Pallof press", "2 × 8/side", "Brace without holding your breath.", {
+          setup: "Cable/band at sternum height.", execution: "Resist rotation on the press.", rest: "45–60 seconds.", stop: "Reduce tension if posture changes."
+        }),
+        task(`${p}-carry`, 4, "Whole-Body Force", "Power first, then primary strength, secondary work and arm care.", "Farmer carry", "2 × 20 m (no straps)", "Carry tall and controlled.", {
+          setup: "Carry space clear.", execution: "Use the carry as deliberate grip work, not a max test.", rest: "45–60 seconds.", stop: "End the carry before posture or grip fails."
         }),
         task(`${p}-aerobic`, 5, "Condition", "Build aerobic capacity after strength without adding another high-speed exposure.", "Low-impact aerobic base", "15–20 minutes bike or incline walk · RPE 2–3/10 · conversational pace", "This is conditioning at low mechanical cost, not a test and not proof of faster recovery.", {
           setup: "Choose a bike or incline walk after lifting. Keep resistance low enough to breathe in complete sentences.", execution: "Hold a steady output and finish with the same posture and breathing control you started with.", rest: "Continuous easy work.", stop: "Stop if symptoms rise, gait changes, or the session starts to feel like interval training."

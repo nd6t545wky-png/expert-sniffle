@@ -4,8 +4,9 @@ import { App } from "./App";
 import { PhysioView } from "./components/PhysioView";
 import { readShareLink } from "../src/domain/physioShare";
 import { ErrorBoundary } from "./ErrorBoundary";
-// Reuses the prototype's stylesheet verbatim so the rebuild keeps the current
-// appearance. Restyling is explicitly out of scope for this phase.
+// The palette, structure and type scale. `styles.css` is a byte-identical copy
+// of `public/styles.css` (the prototype at `/` serves that one); a test asserts
+// they have not drifted.
 import "./styles.css";
 // Loaded after styles.css so shell-layout fixes win over colliding legacy rules.
 import "./app.css";

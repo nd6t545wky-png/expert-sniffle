@@ -48,6 +48,20 @@ export interface SessionTask {
 }
 
 export interface Session {
+  /**
+   * How many fixtures the athlete has entered in this session's week.
+   *
+   * Stamped by `buildSession` and read back by the overlay, so it travels with
+   * the session the way its week does. A fourth argument to
+   * `applyBaselineProgramming` would have been forgotten by most of its eighty
+   * call sites, and a policy that silently does nothing when an argument is
+   * forgotten is a policy that will eventually be forgotten — the same
+   * reasoning that made `weekFromTasks` read the week off the task ids.
+   *
+   * Absent means "nobody has said", which is the safe reading: the programme's
+   * own phase table is used unchanged.
+   */
+  gamesThisWeek?: number;
   title: string;
   focus: string;
   duration: string;
@@ -115,6 +129,84 @@ export function dateForWeekDay(week: WeekPlan, day: number): IsoDate {
   return isoDate(addDays(week.start, day)) as IsoDate;
 }
 
+/** True when this session is built around an actual appearance. */
+export function sessionHasGame(session: Pick<Session, "tasks">): boolean {
+  return session.tasks.some(
+    (task) => task.stageTitle === "Compete" || /game appearance/i.test(String(task.name))
+  );
+}
+
+/**
+ * The programme's game day, moved onto another weekday.
+ *
+ * The programme writes exactly one game-day session — Saturday's "prepare,
+ * compete, recover" — and nothing in its content is Saturday-specific. A
+ * finals series that runs Friday and Saturday needs it twice, so it is rebuilt
+ * for the day in question rather than invented a second time.
+ *
+ * The ids are re-keyed, and that is the whole reason this is a function rather
+ * than a call. Every task id carries its day (`w9-d5-catch`), and handing
+ * Friday a session full of `-d5-` ids would file Friday's ticks, set logs and
+ * skips against Saturday's tasks — two days sharing one record, in a week with
+ * a game on both.
+ */
+function gameDayFor(week: WeekPlan, day: number): unknown {
+  const saturday = standardSession(week, 5) as Session;
+  const rekey = (id: string) => id.replace(/(^|-)d5-/, `$1d${day}-`);
+  return {
+    ...saturday,
+    title: `${DAY_NAMES[day] ?? "Game"} · Game Day`,
+    description: `${saturday.description} This day is a game because a fixture was entered for it; the programme had planned it as something else.`,
+    tasks: saturday.tasks.map((task) => ({ ...task, id: rekey(String(task.id)) })),
+  };
+}
+
+/** True when this session is already the programme's pre-game preparation day. */
+export function sessionIsPrimer(session: Pick<Session, "tasks">): boolean {
+  return session.tasks.some((task) => task.stageTitle === "Whole-Body Primer");
+}
+
+/**
+ * The programme's pre-game day, moved onto the day before the game.
+ *
+ * The programme writes exactly one of these — Friday's "Primer + Whole-Body
+ * Microdose", whose own description says it is what happens "before Saturday
+ * competition" and whose focus line is "Finish fresher than you started". It
+ * is a session about the day *after* it, and nothing in it is Friday-specific.
+ *
+ * On a finals weekend that day is Thursday, and what the phase table had
+ * planned there is a post-season recovery day carrying the overlay's
+ * microdoses: a Romanian deadlift at RPE 7, a calf raise at RPE 7–8, three
+ * sets of pogos and twenty-five minutes of aerobic work — on a day whose own
+ * description reads "no step-behinds, underload velocity throws, lifting or
+ * sprinting". Fine in a week that ends in nothing. Not what belongs eighteen
+ * hours before a semi-final.
+ *
+ * Ids are re-keyed for the same reason `gameDayFor` re-keys them: every task
+ * id carries its day, and a Thursday full of `-d4-` ids would file Thursday's
+ * ticks and set logs against the Friday game beside it.
+ */
+function primerFor(week: WeekPlan, day: number): unknown {
+  const friday = standardSession(week, 4) as Session;
+  const rekey = (id: string) => id.replace(/(^|-)d4-/, `$1d${day}-`);
+  return {
+    ...friday,
+    title: `${DAY_NAMES[day] ?? "Primer"} · Primer + Whole-Body Microdose`,
+    description: `${friday.description} This is the day before a game, so it is the programme's own pre-game primer rather than what the calendar had planned here.`,
+    tasks: friday.tasks.map((task) => ({ ...task, id: rekey(String(task.id)) })),
+  };
+}
+
+const DAY_NAMES = [
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
+  "Saturday",
+  "Sunday",
+];
+
 /**
  * Build the session for a given week and day.
  *
@@ -122,13 +214,48 @@ export function dateForWeekDay(week: WeekPlan, day: number): IsoDate {
  * recovery-only work; summer competition weeks, transition Wednesdays and
  * non-competition Saturdays each have their own shape; everything else is the
  * standard session. The readiness adjustment is applied last, as before.
+ *
+ * `options.game` is the one addition, and it is the fixture list talking. The
+ * programme's calendar is fixed at fifty-two weeks and guesses, by phase,
+ * which days hold a game — `nonCompetitionSaturdaySession` says so in its own
+ * description: "No league game is assumed in this calendar block." A fixture
+ * the athlete has entered is not an assumption, so where the two disagree the
+ * fixture wins and the day is built as a game day.
+ *
+ * `options.gameTomorrow` is the same idea one day earlier. The programme
+ * prepares for a game on the day before it — that is what Friday's primer is —
+ * and it knew which day that was only for the games its calendar assumed. A
+ * game the athlete entered gets the same preparation in front of it.
+ *
+ * Both only ever add. A day the programme already planned as a game, or
+ * already primes, is left exactly as it was, and a day with no fixture beside
+ * it is untouched — nothing here takes a game *away*, because the absence of an
+ * entry means nobody has told the app about that week yet, not that the week is
+ * empty.
  */
 export function buildSession(
   week: WeekPlan,
   day: number,
-  options: { risk?: string; adjustment?: PlanAdjustment | null } = {}
+  options: {
+    risk?: string;
+    adjustment?: PlanAdjustment | null;
+    game?: boolean;
+    /**
+     * Whether a fixture is scheduled for the *next* day.
+     *
+     * The programme prepares for a game on the day before it, and it knew which
+     * day that was only for the games its calendar assumed. Passing this lets
+     * the same preparation land in front of a game the athlete entered.
+     */
+    gameTomorrow?: boolean;
+    /** Fixtures in this whole week, for the week-level intensity policy. */
+    weekGames?: number;
+  } = {}
 ): Session {
-  if (options.risk === "red") return recoveryOnlySession(week, day) as Session;
+  const stamp = (built: Session): Session =>
+    options.weekGames === undefined ? built : { ...built, gamesThisWeek: options.weekGames };
+
+  if (options.risk === "red") return stamp(recoveryOnlySession(week, day) as Session);
 
   let session: unknown;
   if (isSummerCompetitionPhase(week.phase.id)) {
@@ -144,5 +271,20 @@ export function buildSession(
     session = standardSession(week, day);
   }
 
-  return (options.adjustment ? applyReadinessToSession(session, options.adjustment) : session) as Session;
+  if (options.game && !sessionHasGame(session as Session)) {
+    session = gameDayFor(week, day);
+  } else if (
+    options.gameTomorrow &&
+    !sessionHasGame(session as Session) &&
+    !sessionIsPrimer(session as Session)
+  ) {
+    // A game day is never demoted to a primer: on a finals weekend Friday is
+    // both a game and the day before one, and it stays a game day. Nor is a day
+    // the programme already primes primed twice.
+    session = primerFor(week, day);
+  }
+
+  return stamp(
+    (options.adjustment ? applyReadinessToSession(session, options.adjustment) : session) as Session
+  );
 }

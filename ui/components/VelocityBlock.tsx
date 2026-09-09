@@ -22,8 +22,17 @@ import {
 } from "../../src/domain/velocity";
 import { Card } from "./Page";
 
-export function VelocityBlock({ week }: { week: number }) {
-  const policy = velocityPolicy(week);
+/**
+ * `games` is the week's entered fixtures.
+ *
+ * Without it this card read the block table straight and said "Restore" over a
+ * plan that was running a taper — the panel that exists to explain the week's
+ * intent ceiling contradicting the ceiling actually applied to the tasks
+ * beside it. It takes the same argument `velocityPolicy` does, for the same
+ * reason: the fixture list outranks the calendar's guess.
+ */
+export function VelocityBlock({ week, games }: { week: number; games?: number }) {
+  const policy = velocityPolicy(week, { games });
   const ceiling = BAND_ORDER.indexOf(policy.plyoCeiling);
 
   return (

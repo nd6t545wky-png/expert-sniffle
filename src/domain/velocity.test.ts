@@ -345,3 +345,89 @@ describe("the band table", () => {
     expect(new Set(percents).size).toBe(percents.length);
   });
 });
+
+describe("a restore week that turns out to hold a game", () => {
+  /**
+   * Weeks 9 and 10 are an unload, and the block table says what they assume:
+   * "Deliberate unload after the final *published* FNCBA round." A finals
+   * series is a game after that round, so once one is entered the assumption
+   * is false and the week is a competition week wearing an off-season policy.
+   *
+   * What changes is only the intensity suppression. A taper cuts volume and
+   * holds intensity (Bosquet 2007; Mujika & Padilla 2003); an unload cuts
+   * both. The volume reduction is untouched here — this file has never set it.
+   */
+  it("plans weeks 9 and 10 as an unload when nothing is entered", () => {
+    for (const week of [9, 10]) {
+      const policy = velocityPolicy(week);
+      expect(policy.block, `week ${week}`).toBe("restore");
+      expect(policy.plyoCeiling).toBe("recovery");
+      expect(policy.velocityDay).toBe(false);
+      expect(policy.highEffortThrows).toBe(0);
+    }
+  });
+
+  it("treats a finals weekend as the two-game week it structurally is", () => {
+    // Two games resolves to `two_game`, which assigns no separate velocity
+    // day: the hard throwing comes out of the games. Intent comes back to
+    // hybrid B — the ceiling the season itself ran at — and no higher.
+    const policy = velocityPolicy(9, { games: 2 });
+    expect(policy.block).toBe("two_game");
+    expect(policy.plyoCeiling).toBe("hybrid_b");
+    expect(policy.velocityDay).toBe(false);
+  });
+
+  it("treats a single game as an in-season week", () => {
+    const policy = velocityPolicy(9, { games: 1 });
+    expect(policy.block).toBe("in_season");
+    expect(policy.plyoCeiling).toBe("hybrid_b");
+    expect(policy.velocityDay).toBe(true);
+  });
+
+  it("says why, in the note", () => {
+    const note = velocityPolicy(9, { games: 2 }).note;
+    expect(note).toMatch(/2 games are scheduled/);
+    expect(note).toMatch(/Bosquet 2007/);
+    expect(note).toMatch(/volume reduction stands/);
+  });
+
+  it("reuses this table's own numbers rather than inventing any", () => {
+    // A third set of numbers written for the override would be a third opinion
+    // about the same question.
+    for (const [games, block] of [[1, "in_season"], [2, "two_game"]] as const) {
+      const override = velocityPolicy(9, { games });
+      const canonical = velocityPolicy(block === "in_season" ? 1 : 12);
+      expect(canonical.block).toBe(block);
+      expect(override.plyoCeiling).toBe(canonical.plyoCeiling);
+      expect(override.velocityDay).toBe(canonical.velocityDay);
+      expect(override.highEffortThrows).toBe(canonical.highEffortThrows);
+    }
+  });
+
+  it("overrides a restore week and nothing else", () => {
+    // Every other block either already expects competition or is a build the
+    // athlete is deliberately in the middle of, and a fixture must not rewrite
+    // either. A develop week with a game in it stays a develop week.
+    for (let week = 1; week <= 52; week += 1) {
+      const planned = velocityPolicy(week);
+      if (planned.block === "restore") continue;
+      expect(velocityPolicy(week, { games: 2 }).block, `week ${week}`).toBe(planned.block);
+      expect(velocityPolicy(week, { games: 1 }).block, `week ${week}`).toBe(planned.block);
+    }
+  });
+
+  it("changes nothing when no game is entered", () => {
+    // An empty fixture list means nobody has told the app about that week yet,
+    // not that the week is empty.
+    for (let week = 1; week <= 52; week += 1) {
+      expect(velocityPolicy(week, { games: 0 }), `week ${week}`).toEqual(velocityPolicy(week));
+    }
+  });
+
+  it("keeps the week's position in its block", () => {
+    // The override borrows the other block's intensity, not its calendar.
+    const policy = velocityPolicy(10, { games: 2 });
+    expect(policy.weekInBlock).toBe(2);
+    expect(policy.blockWeeks).toBe(2);
+  });
+});

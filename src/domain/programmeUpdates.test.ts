@@ -127,21 +127,43 @@ describe("baseline programming overlay", () => {
   });
 });
 
-describe("seeding the tested max", () => {
+describe("seeding the known maxes", () => {
+  type Seeded = { pbs: { trainingMaxes: { lifts: Record<string, { value: number; kind: string }> } } };
+
   it("puts the measured back squat where the programme reads training maxes", () => {
-    const seeded = seedBaselinePbs({}) as { pbs: { trainingMaxes: { lifts: Record<string, { value: number; kind: string }> } } };
+    const seeded = seedBaselinePbs({}) as Seeded;
     expect(seeded.pbs.trainingMaxes.lifts.backSquat.value).toBe(145);
     expect(seeded.pbs.trainingMaxes.lifts.backSquat.kind).toBe("tested");
   });
 
+  it("puts the trap bar max there too, and says it is derived", () => {
+    // Solved out of the programme's own two tables rather than tested, so it
+    // is shown as an estimate wherever it is used.
+    const seeded = seedBaselinePbs({}) as Seeded;
+    expect(seeded.pbs.trainingMaxes.lifts.trapBarDeadlift.value).toBe(150);
+    expect(seeded.pbs.trainingMaxes.lifts.trapBarDeadlift.kind).toBe("derived");
+  });
+
   it("never overwrites a max the athlete has already updated", () => {
-    const existing = { pbs: { trainingMaxes: { lifts: { backSquat: { value: 160, kind: "tested" } } } } };
+    const existing = {
+      pbs: { trainingMaxes: { lifts: { backSquat: { value: 160, kind: "tested" }, trapBarDeadlift: { value: 170, kind: "tested" } } } },
+    };
     expect(seedBaselinePbs(existing)).toBe(existing);
+  });
+
+  it("fills in the lift that is missing without touching the one that is not", () => {
+    // The case the old all-or-nothing guard got wrong: every athlete already
+    // using the app had a back squat, so an early return on that key meant a
+    // second max could never reach any of them.
+    const existing = { pbs: { trainingMaxes: { lifts: { backSquat: { value: 160, kind: "tested" } } } } };
+    const seeded = seedBaselinePbs(existing) as Seeded;
+    expect(seeded.pbs.trainingMaxes.lifts.backSquat).toEqual({ value: 160, kind: "tested" });
+    expect(seeded.pbs.trainingMaxes.lifts.trapBarDeadlift.value).toBe(150);
   });
 
   it("leaves other lifts and the rest of the state alone", () => {
     const state = { pbs: { trainingMaxes: { lifts: { benchPress: { value: 90 } } } }, pre: { a: 1 } };
-    const seeded = seedBaselinePbs(state) as typeof state;
+    const seeded = seedBaselinePbs(state) as typeof state & Seeded;
     expect(seeded.pbs.trainingMaxes.lifts.benchPress).toEqual({ value: 90 });
     expect(seeded.pre).toEqual({ a: 1 });
   });
@@ -335,10 +357,10 @@ describe("supersets are marked, and only where they belong", () => {
   it("pairs the hamstring and anti-rotation work too", () => {
     const marked = supersetOf(0, [
       task({ id: "a", name: "Nordic hamstring curl" }),
-      task({ id: "b", name: "Pallof press + farmer carry" }),
+      task({ id: "b", name: "Pallof press" }),
     ]);
     expect(marked["Nordic hamstring curl"]).toBe("B1");
-    expect(marked["Pallof press + farmer carry"]).toBe("B2");
+    expect(marked["Pallof press"]).toBe("B2");
   });
 
   it("never pairs anything that has to be fresh", () => {
@@ -415,7 +437,10 @@ describe("one primary bilateral lift on Monday, not two", () => {
     // comes out wherever it appears rather than only inside Monday's primer.
     const jump = wednesday.find((t) => /trap bar jump/i.test(t.name));
     expect(jump?.name).toBe("Trap bar jump");
-    expect(jump?.prescription).toBe("3 × 3 @ 30 kg");
+    // The load itself is unchanged — 30 kg is what 20% of the tested 145 kg
+    // squat rounds to. Writing it as a percentage is what lets it follow a
+    // retest instead of standing still for fifty-two weeks.
+    expect(jump?.prescription).toBe("3 × 3 @ 30 kg · 20% of tested squat max");
     expect(wednesday.some((t) => /broad jump/i.test(t.name))).toBe(false);
   });
 

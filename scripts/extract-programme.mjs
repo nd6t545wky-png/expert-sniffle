@@ -49,6 +49,32 @@ body = body.replace(/\bstate\.post\b/g, "(ctx.post ?? {})");
 if (/\bstate\b/.test(body.replace(/ctx\.[a-z]+/g, ""))) {
   throw new Error("extraction still references the page-wide `state` singleton");
 }
+
+// Monday's trunk slot is one task in the prototype holding two exercises. The
+// athlete asked for them apart: a farmer carry progresses by getting heavier and
+// needs its own log, a Pallof press does not and should not be offered one.
+// Re-applied here rather than hand-edited into the output, so regenerating the
+// file does not quietly put them back together.
+const BUNDLED_TRUNK = `        task(\`\${p}-trunk\`, 4, "Whole-Body Force", "Power first, then primary strength, secondary work and arm care.", "Pallof press + farmer carry", "Pallof press 2 × 8/side · farmer carry 2 × 20 m (no straps)", "Brace without holding your breath; carry tall and controlled.", {
+          setup: "Cable/band at sternum height; carry space clear.", execution: "Resist rotation on the press. Use the carry as deliberate grip work, not a max test.", rest: "45–60 seconds.", stop: "End the carry before posture or grip fails."
+        }),`;
+
+const SPLIT_TRUNK = `        // Split from the single \`Pallof press + farmer carry\` task on the
+        // athlete's instruction. No prescription wording changed: each sentence
+        // of the original went to the exercise it names, and the Pallof press's
+        // stop criterion is the one the programme already gives it in the
+        // Whole-Body Gym session below.
+        task(\`\${p}-trunk\`, 4, "Whole-Body Force", "Power first, then primary strength, secondary work and arm care.", "Pallof press", "2 × 8/side", "Brace without holding your breath.", {
+          setup: "Cable/band at sternum height.", execution: "Resist rotation on the press.", rest: "45–60 seconds.", stop: "Reduce tension if posture changes."
+        }),
+        task(\`\${p}-carry\`, 4, "Whole-Body Force", "Power first, then primary strength, secondary work and arm care.", "Farmer carry", "2 × 20 m (no straps)", "Carry tall and controlled.", {
+          setup: "Carry space clear.", execution: "Use the carry as deliberate grip work, not a max test.", rest: "45–60 seconds.", stop: "End the carry before posture or grip fails."
+        }),`;
+
+if (!body.includes(BUNDLED_TRUNK)) {
+  throw new Error("the bundled Pallof/farmer-carry task is no longer where the split expects it");
+}
+body = body.replace(BUNDLED_TRUNK, SPLIT_TRUNK);
 // PHASES is redeclared here; rename to avoid clashing with the canonical dataset.
 body = body.replace(/\bPHASES\b/g, "LEGACY_PHASE_TABLE");
 
@@ -66,6 +92,16 @@ const header = `/* eslint-disable */
  * The one change from the original is mechanical: the prototype read training
  * maxes from a page-wide \`state\` singleton, which is threaded through
  * \`setProgrammeContext\` here so the module stays free of globals.
+ *
+ * One change is not mechanical. On the athlete's instruction, Monday's single
+ * \`Pallof press + farmer carry\` task is split into a \`Pallof press\` task and a
+ * \`Farmer carry\` task, so that the carry — which is trying to get heavier — can
+ * carry its own log and its own progression advice, and the press, which is
+ * not, can decline both. No prescription wording changed in the split: the
+ * sentences were divided between the two exercises they already named, and the
+ * press's stop criterion is the one the programme already gives it in the
+ * Whole-Body Gym session. The split is re-applied by the extraction script, so
+ * regenerating this file preserves it.
  *
  * @ts-nocheck is deliberate and scoped to this file only. The contents are a
  * verbatim copy of code already proven in production; annotating it would mean

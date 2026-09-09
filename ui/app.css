@@ -44,19 +44,19 @@ body {
   color: var(--ink);
   background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: 14px;
+  border-radius: var(--radius);
   cursor: pointer;
 }
 .cal-cycle:hover { border-color: var(--cycle); }
 .cal-cycle.active {
   border-color: var(--cycle);
-  box-shadow: inset 0 0 0 1px var(--cycle);
+  box-shadow: none;
 }
 .cal-swatch {
   width: 12px;
   height: 12px;
   flex: 0 0 12px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   background: var(--cycle);
 }
 .cal-cycle strong { display: block; font-size: 12px; line-height: 1.3; }
@@ -109,7 +109,7 @@ body {
   place-items: center;
   padding: 0;
   border: 1px solid transparent;
-  border-radius: 9px;
+  border-radius: var(--radius-md);
   color: var(--ink);
   /* The cycle colour tints the day rather than filling it, so the date stays
      readable in both themes. */
@@ -118,7 +118,7 @@ body {
   font-variant-numeric: tabular-nums;
   cursor: pointer;
 }
-.cal-grid.compact .cal-day { font-size: 10px; border-radius: 7px; }
+.cal-grid.compact .cal-day { font-size: 10px; border-radius: var(--radius-sm); }
 .cal-day.empty { background: none; cursor: default; }
 .cal-day.outside { color: var(--muted); background: none; cursor: not-allowed; }
 .cal-day:not(.outside):not(.empty):hover { border-color: var(--cycle); }
@@ -162,7 +162,7 @@ body {
 .mech-bar span {
   height: 6px;
   flex: 1;
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   background: var(--surface-secondary);
 }
 .mech-bar span.filled { background: var(--blue); }
@@ -186,7 +186,7 @@ body {
   display: inline-block;
   margin-right: 8px;
   padding: 2px 7px;
-  border-radius: 7px;
+  border-radius: var(--radius-sm);
   background: var(--team-primary-soft);
   color: var(--blue);
   font-size: 9px;
@@ -255,7 +255,7 @@ body {
   gap: 5px;
   flex: 0 0 auto;
   padding: 4px 9px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--surface-secondary);
   color: var(--ink);
   font-size: 10px;
@@ -264,8 +264,8 @@ body {
   white-space: nowrap;
 }
 
-.trend-verdict.is-better { background: rgba(52, 199, 89, .16); }
-.trend-verdict.is-worse { background: rgba(255, 59, 48, .14); }
+.trend-verdict.is-better { background: var(--accent-soft); }
+.trend-verdict.is-worse { background: var(--crit-soft); }
 .trend-verdict.is-normal { background: var(--surface-secondary); }
 .trend-verdict.is-unknown { background: var(--surface-secondary); color: var(--muted); }
 
@@ -279,7 +279,7 @@ body {
 }
 
 .trend-value strong {
-  font-size: 30px;
+  font-size: var(--t-3xl);
   font-weight: 700;
   letter-spacing: -.02em;
   line-height: 1;
@@ -357,8 +357,8 @@ body {
 .trend-dot.is-progress-level { fill: var(--muted); }
 .trend-dot.is-progress-down { fill: var(--muted); }
 
-.trend-verdict.is-progress-best { background: rgba(52, 199, 89, .16); }
-.trend-verdict.is-progress-up { background: rgba(52, 199, 89, .16); }
+.trend-verdict.is-progress-best { background: var(--accent-soft); }
+.trend-verdict.is-progress-up { background: var(--accent-soft); }
 .trend-verdict.is-progress-level { background: var(--surface-secondary); }
 .trend-verdict.is-progress-down { background: var(--surface-secondary); color: var(--muted); }
 
@@ -411,7 +411,7 @@ body {
 .trend-key-band {
   width: 18px;
   height: 9px;
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   background: var(--line);
   flex: 0 0 auto;
 }
@@ -462,7 +462,7 @@ body {
   border-radius: var(--radius);
   /* Story format. 4:5 gets letterboxed by Instagram, TikTok and WhatsApp. */
   aspect-ratio: 9 / 16;
-  background: #101014;
+  background: var(--slab);
   margin-bottom: 14px;
 }
 
@@ -477,7 +477,10 @@ body {
 }
 
 .recap-photo-empty {
-  background: linear-gradient(160deg, #23232b 0%, #101014 70%);
+  /* The recap frame is always a dark plate — it stands in for a photograph,
+     and the caption over it is always light. `--slab` does not flip with the
+     theme; `--ink` would. */
+  background: var(--slab);
 }
 
 /* A light wash only. The reference leaves the photo almost untouched, so
@@ -497,7 +500,7 @@ body {
     rgba(8, 8, 10, .34) 72%,
     rgba(8, 8, 10, .72) 100%
   );
-  color: #fff;
+  color: var(--on-slab);
   text-shadow: 0 2px 12px rgba(0, 0, 0, .8);
   /* Everything scales off the card's own width, so the preview and the
      exported PNG keep the same proportions at any size. */
@@ -506,7 +509,7 @@ body {
 
 .recap-eyebrow {
   margin: 0;
-  color: rgba(255, 255, 255, .78);
+  color: var(--on-slab-muted);
   font-size: clamp(10px, 3.1cqw, 15px);
   font-weight: 700;
   letter-spacing: .07em;
@@ -524,7 +527,7 @@ body {
 /* A personal best is the reason to post at all. */
 .recap-pb {
   margin: 10px 0 0;
-  color: #ffd166;
+  color: var(--accent-on-ink);
   font-size: clamp(11px, 3.4cqw, 17px);
   font-weight: 700;
   letter-spacing: .02em;
@@ -543,7 +546,7 @@ body {
 .recap-stats li { display: flex; flex-direction: column; gap: 2px; }
 
 .recap-stat-label {
-  color: rgba(255, 255, 255, .78);
+  color: var(--on-slab-muted);
   font-size: clamp(10px, 2.9cqw, 15px);
   font-weight: 500;
 }
@@ -563,7 +566,7 @@ body {
   margin: 0;
   padding: 0;
   list-style: none;
-  color: rgba(255, 255, 255, .8);
+  color: var(--on-slab-muted);
   font-size: clamp(10px, 3cqw, 16px);
   line-height: 1.45;
 }
@@ -586,13 +589,13 @@ body {
   top: .5em;
   width: 6px;
   height: 6px;
-  border-radius: 1px;
-  background: rgba(255, 255, 255, .5);
+  border-radius: var(--radius-sm);
+  background: var(--on-slab-muted);
 }
 
 .recap-caption {
   margin: 10px 0 0;
-  color: #fff;
+  color: var(--on-slab);
   font-size: clamp(11px, 3.4cqw, 18px);
   line-height: 1.4;
 }
@@ -623,7 +626,7 @@ body {
   gap: 10px;
   padding: 10px 12px;
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background: var(--surface);
   cursor: pointer;
 }
@@ -675,7 +678,7 @@ body {
   margin-top: 8px;
   padding: 10px;
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background: var(--surface-secondary);
 }
 
@@ -705,7 +708,7 @@ body {
   min-height: 40px;
   padding: 6px 8px;
   border: 1px solid var(--line);
-  border-radius: 9px;
+  border-radius: var(--radius-md);
   background: var(--surface);
   color: var(--ink);
   font: inherit;
@@ -721,6 +724,41 @@ body {
   margin-top: 10px;
 }
 .setlog-actions .btn { min-height: 36px; padding: 0 14px; font-size: 12px; }
+
+/* --- The day's throw count --------------------------------------------------
+ * The total the ticked throwing tasks add up to, beside the ticking. New: it
+ * used to be typed on the Workload tab from a number worked out in the head.
+ * ------------------------------------------------------------------------- */
+
+.throw-sources {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+}
+
+.throw-sources li {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--hairline);
+  font-size: var(--t-md);
+}
+
+.throw-sources li:last-child { border-bottom: 0; }
+
+/* The count is what the eye is here for, so it is the part that lines up. */
+.throw-sources li span:last-child {
+  color: var(--muted);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* The card's editor stacks a number and a select rather than the set logger's
+   reps-and-load grid, so it opts out of that grid's column template. */
+.setlog .field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 8px; }
+.setlog .field span { color: var(--muted); font-size: 11px; }
 
 /* --- Fuelling ---------------------------------------------------------------
  * Targets set by the day's session. New screen furniture; the prototype's
@@ -741,7 +779,7 @@ body {
   gap: 3px;
   padding: 10px 12px;
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background: var(--surface-secondary);
 }
 .fuel-grid span {
@@ -752,7 +790,7 @@ body {
   text-transform: uppercase;
 }
 .fuel-grid strong {
-  font-size: 22px;
+  font-size: var(--t-xl);
   font-weight: 700;
   line-height: 1;
   letter-spacing: -.02em;
@@ -786,7 +824,7 @@ body {
   letter-spacing: .06em;
   text-transform: uppercase;
 }
-.pitch-best strong { font-size: 26px; font-weight: 700; letter-spacing: -.02em; }
+.pitch-best strong { font-size: var(--t-2xl); font-weight: 700; letter-spacing: -.02em; }
 .pitch-best small { color: var(--muted); font-size: 12px; }
 
 /* Wide tables scroll in their own container so the page never does. */
@@ -852,7 +890,7 @@ body {
   gap: 3px;
   padding: 12px 14px;
   border: 1px solid var(--line);
-  border-radius: 14px;
+  border-radius: var(--radius);
   background: var(--surface-secondary);
 }
 /* A flag is a border and a word in the findings list, never colour alone. */
@@ -865,7 +903,7 @@ body {
   text-transform: uppercase;
 }
 .arm-metric strong {
-  font-size: 26px;
+  font-size: var(--t-2xl);
   font-weight: 700;
   line-height: 1;
   letter-spacing: -.02em;
@@ -904,7 +942,7 @@ body {
   min-height: 40px;
   padding: 6px 8px;
   border: 1px solid var(--line);
-  border-radius: 9px;
+  border-radius: var(--radius-md);
   background: var(--surface);
   color: var(--ink);
   font: inherit;
@@ -1076,7 +1114,7 @@ body {
 .micro-bar {
   height: 6px;
   margin: 6px 0 5px;
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   background: var(--surface-secondary);
   overflow: hidden;
 }
@@ -1084,7 +1122,7 @@ body {
 .micro-fill {
   display: block;
   height: 100%;
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   background: var(--ink);
   opacity: .72;
 }
@@ -1127,7 +1165,7 @@ body {
 .kin-views .is-active,
 .kin-checkpoint.is-active {
   border: 1px solid var(--blue);
-  box-shadow: inset 0 0 0 1px var(--blue);
+  box-shadow: none;
 }
 
 .kin-stage {
@@ -1137,7 +1175,7 @@ body {
   margin: 12px auto;
   border-radius: var(--radius);
   overflow: hidden;
-  background: #000;
+  background: var(--slab);
 }
 
 .kin-video {
@@ -1167,14 +1205,14 @@ body {
   margin: -10px 0 0 -10px;
   display: grid;
   place-items: center;
-  border: 2px solid #fff;
+  border: 2px solid var(--on-slab);
   border-radius: 50%;
-  background: rgba(0, 0, 0, .55);
+  background: var(--slab);
   pointer-events: none;
 }
 
 .kin-point b {
-  color: #fff;
+  color: var(--on-slab);
   font-size: 10px;
   font-weight: 800;
   line-height: 1;
@@ -1207,7 +1245,7 @@ body {
   padding: 10px 12px;
   text-align: left;
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background: var(--surface);
   color: var(--ink);
   cursor: pointer;
@@ -1221,7 +1259,7 @@ body {
 .kin-prompt {
   margin: 10px 0;
   padding: 10px 12px;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background: var(--team-primary-soft);
   color: var(--ink);
   font-size: 12px;
@@ -1266,7 +1304,7 @@ body {
 .kin-derived li {
   padding: 10px 12px;
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   color: var(--muted);
   font-size: 11px;
 }
@@ -1274,7 +1312,7 @@ body {
 .kin-derived strong {
   display: block;
   color: var(--ink);
-  font-size: 17px;
+  font-size: var(--t-lg);
   font-variant-numeric: tabular-nums;
 }
 
@@ -1344,7 +1382,7 @@ body {
 
 .rate-grid strong {
   display: block;
-  font-size: 22px;
+  font-size: var(--t-xl);
   letter-spacing: -.02em;
   font-variant-numeric: tabular-nums;
 }
@@ -1381,7 +1419,7 @@ body {
 .shortcut-steps code,
 .disclosure-body td code {
   padding: 1px 5px;
-  border-radius: 5px;
+  border-radius: var(--radius-sm);
   background: var(--surface-secondary);
   font-size: 11px;
 }
@@ -1401,7 +1439,7 @@ body {
 .kin-posenote {
   margin: 8px 0 0;
   padding: 8px 10px;
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   background: var(--surface-secondary);
   color: var(--ink);
   font-size: 11.5px;
@@ -1493,7 +1531,7 @@ body {
 
 .physio-figure {
   margin: 4px 0 0;
-  font-size: 32px;
+  font-size: var(--t-3xl);
   font-weight: 600;
   color: var(--ink);
   font-variant-numeric: tabular-nums;
@@ -1565,7 +1603,7 @@ body {
 
 .physio-tag {
   padding: 2px 8px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--team-primary-soft);
   color: var(--ink);
   font-size: 12px;
@@ -1825,7 +1863,7 @@ body {
    look alike at a glance. */
 .soreness-tier {
   padding: 2px 8px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   font-size: 12px;
   background: var(--team-primary-soft);
   color: var(--ink);
@@ -1874,7 +1912,7 @@ body {
   display: inline-block;
   min-width: 62px;
   padding: 1px 6px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   background: var(--team-primary-soft);
   color: var(--ink);
   font-size: 11px;
@@ -1994,10 +2032,10 @@ body {
    vanished into the gradient. The paragraph and kicker survived only because
    they set their own colour. */
 .hero-session {
-  color: #fff;
+  color: var(--on-slab);
 }
 .hero-session h3 {
-  color: #fff;
+  color: var(--on-slab);
 }
 
 /* --- 6. Day tabs ----------------------------------------------------------
@@ -2029,17 +2067,7 @@ body {
    in dark mode; measuring them says otherwise. */
 .app-shell.theme-norths,
 .app-shell.theme-coomera {
-  --team-on-primary: #fff;
-}
-:root[data-theme="dark"] .app-shell.theme-norths,
-:root[data-theme="dark"] .app-shell.theme-coomera {
-  --team-on-primary: #1d1d1f;
-}
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) .app-shell.theme-norths,
-  :root:not([data-theme="light"]) .app-shell.theme-coomera {
-    --team-on-primary: #1d1d1f;
-  }
+  --team-on-primary: var(--on-accent);
 }
 
 /* ===== Velocity block, Aug 2026 ==========================================
@@ -2111,7 +2139,7 @@ body {
 }
 .velocity-band.ceiling span,
 .velocity-band.ceiling small {
-  color: var(--team-on-primary, #fff);
+  color: var(--on-accent);
 }
 .velocity-note {
   margin: 12px 0 0;
@@ -2152,7 +2180,7 @@ body {
 .verdict-chip {
   flex: none;
   padding: 2px 7px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--surface-secondary);
   color: var(--muted);
   font-size: 10px;
@@ -2183,35 +2211,35 @@ body {
    statements of fact, not calls to action, and tinting them would make every
    lift on the page shout. */
 .last-time.verdict-increase {
-  border-left-color: #2e9e5b;
+  border-left-color: var(--accent);
 }
 .last-time.verdict-increase .verdict-chip {
-  background: color-mix(in srgb, #2e9e5b 16%, transparent);
-  color: #237a46;
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  color: var(--accent);
 }
 .last-time.verdict-back_off {
-  border-left-color: #c9791f;
+  border-left-color: var(--warn);
 }
 .last-time.verdict-back_off .verdict-chip {
-  background: color-mix(in srgb, #c9791f 18%, transparent);
-  color: #9c5c14;
+  background: color-mix(in srgb, var(--warn) 18%, transparent);
+  color: var(--warn);
 }
 .last-time.verdict-repeat {
   border-left-color: color-mix(in srgb, var(--ink) 30%, var(--line));
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) .last-time.verdict-increase .verdict-chip {
-    color: #6ede9a;
+    color: var(--accent);
   }
   :root:not([data-theme="light"]) .last-time.verdict-back_off .verdict-chip {
-    color: #f0ad57;
+    color: var(--warn);
   }
 }
 :root[data-theme="dark"] .last-time.verdict-increase .verdict-chip {
-  color: #6ede9a;
+  color: var(--accent);
 }
 :root[data-theme="dark"] .last-time.verdict-back_off .verdict-chip {
-  color: #f0ad57;
+  color: var(--warn);
 }
 
 /* ===== Skip a whole section ============================================= */
@@ -2259,7 +2287,7 @@ body {
 .fixture-source {
   flex: none;
   padding: 2px 7px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--team-primary-soft);
   color: var(--muted);
   font-size: 10px;
@@ -2308,20 +2336,20 @@ body {
 /* Signed against April, and always oriented so up means better — a falling
    ground-contact time is an improvement and has to read like one. */
 .retest-delta { font-weight: 700; }
-.retest-delta.up { color: #2e9e5b; }
-.retest-delta.down { color: #c9791f; }
+.retest-delta.up { color: var(--accent); }
+.retest-delta.down { color: var(--warn); }
 .retest-hit {
   font-weight: 700;
-  color: #2e9e5b;
+  color: var(--accent);
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) .retest-delta.up,
-  :root:not([data-theme="light"]) .retest-hit { color: #6ede9a; }
-  :root:not([data-theme="light"]) .retest-delta.down { color: #f0ad57; }
+  :root:not([data-theme="light"]) .retest-hit { color: var(--accent); }
+  :root:not([data-theme="light"]) .retest-delta.down { color: var(--warn); }
 }
 :root[data-theme="dark"] .retest-delta.up,
-:root[data-theme="dark"] .retest-hit { color: #6ede9a; }
-:root[data-theme="dark"] .retest-delta.down { color: #f0ad57; }
+:root[data-theme="dark"] .retest-hit { color: var(--accent); }
+:root[data-theme="dark"] .retest-delta.down { color: var(--warn); }
 
 .retest-form { margin-top: 6px; }
 
@@ -2341,7 +2369,7 @@ body {
 .transfer-chip {
   flex: none;
   padding: 2px 8px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.03em;
@@ -2350,8 +2378,8 @@ body {
   color: var(--muted);
   border: 1px solid var(--line);
 }
-.transfer-head.tone-engine { border-left: 3px solid #2e9e5b; }
-.transfer-head.tone-transfer { border-left: 3px solid #c9791f; }
+.transfer-head.tone-engine { border-left: 3px solid var(--accent); }
+.transfer-head.tone-transfer { border-left: 3px solid var(--warn); }
 .transfer-head.tone-borderline { border-left: 3px solid var(--muted); }
 .transfer-head.tone-unknown { border-left: 3px dashed var(--line); }
 
@@ -2375,7 +2403,7 @@ body {
 }
 .transfer-pair dd {
   margin: 3px 0 0;
-  font-size: 18px;
+  font-size: var(--t-xl);
   font-weight: 650;
   font-variant-numeric: tabular-nums;
 }
@@ -2420,7 +2448,7 @@ body {
 }
 .blood-row:first-child { border-top: 0; }
 .blood-row.flag-below,
-.blood-row.flag-above { border-left-color: #c9791f; }
+.blood-row.flag-above { border-left-color: var(--warn); }
 .blood-row.flag-expected-to-vary { border-left-color: var(--line); }
 
 .blood-name strong { display: block; font-size: 13px; font-weight: 650; }
@@ -2434,7 +2462,7 @@ body {
 }
 
 .blood-value b {
-  font-size: 17px;
+  font-size: var(--t-lg);
   font-weight: 650;
   font-variant-numeric: tabular-nums;
 }
@@ -2451,7 +2479,7 @@ body {
   flex: none;
   align-self: center;
   padding: 2px 8px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.03em;
@@ -2462,7 +2490,7 @@ body {
   color: var(--muted);
 }
 .blood-flag.flag-below,
-.blood-flag.flag-above { border-color: #c9791f; color: #a4611a; }
+.blood-flag.flag-above { border-color: var(--warn); color: var(--warn); }
 
 .blood-history { list-style: none; margin: 0; padding: 0; }
 .blood-history li {
@@ -2585,26 +2613,30 @@ body {
   --dur-fast: 150ms;
   --dur-base: 200ms;
 
-  /* A shadow carrying the ink's hue rather than pure black, so cards sit on
-     the paper instead of hovering over a grey hole. */
-  --shadow: 0 1px 2px rgba(29, 29, 31, .05), 0 6px 20px -6px rgba(29, 29, 31, .07);
-  --shadow-raised: 0 2px 4px rgba(29, 29, 31, .06), 0 12px 32px -10px rgba(29, 29, 31, .11);
+  /* Elevation lives in styles.css, on one three-step scale. Nothing is
+     redefined here — a second opinion about how far a card floats is how the
+     app ended up with fifty hand-tuned rgba shadows in the first place.
+
+     The focus ring is this file's, and it is not decoration — it is the only
+     thing that makes the app usable from a keyboard. Two rings: a 2px halo in
+     the surface colour so the ring reads on a dark control too, then 2px of
+     the club accent outside it. */
   --focus-ring: 0 0 0 2px var(--surface), 0 0 0 4px var(--team-primary, var(--blue));
 }
 
 :root[data-theme="dark"],
 :root:not([data-theme="light"]) {
-  --shadow-dark-base: 0 1px 2px rgba(0, 0, 0, .4), 0 8px 28px -8px rgba(0, 0, 0, .55);
+  --shadow-dark-base: var(--shadow);
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --shadow: var(--shadow-dark-base);
-    --shadow-raised: 0 2px 6px rgba(0, 0, 0, .45), 0 16px 40px -12px rgba(0, 0, 0, .6);
+    --shadow: var(--shadow);
+    --shadow-raised: var(--shadow-raised);
   }
 }
 :root[data-theme="dark"] {
-  --shadow: var(--shadow-dark-base);
-  --shadow-raised: 0 2px 6px rgba(0, 0, 0, .45), 0 16px 40px -12px rgba(0, 0, 0, .6);
+  --shadow: var(--shadow);
+  --shadow-raised: var(--shadow-raised);
 }
 
 /* --- Type scale ---------------------------------------------------------
@@ -2621,7 +2653,7 @@ h4, h5, h6 { letter-spacing: -.011em; }
 h1, h2, h3 { text-wrap: balance; }
 
 .page-head h2 {
-  font-size: clamp(26px, 3vw, 34px);
+  font-size: var(--t-3xl);
   font-weight: 600;
   letter-spacing: -.028em;
   line-height: 1.06;
@@ -2712,10 +2744,23 @@ so none of this costs a
 .day-chip:focus-visible,
 .metric-shortcut:focus-visible,
 .select:focus-visible,
+.cal-day:focus-visible,
 input:focus-visible,
+select:focus-visible,
 textarea:focus-visible,
+summary:focus-visible,
 [role="button"]:focus-visible {
   outline: none;
+                                                
+    
+                                                                        
+                                                                              
+                                                                            
+                                                                           
+                                                                       
+                                                                         
+                                                                         
+                                         
   box-shadow: var(--focus-ring);
   border-radius: calc(var(--radius) / 2);
 }
@@ -2799,10 +2844,10 @@ textarea:focus-visible,
 :root .day-tab.active,
 :root[data-theme] .day-tab.active,
 :root[data-theme] .day-tab[aria-current="date"] {
-  color: var(--team-on-primary, #fff);
+  color: var(--on-accent);
   border-color: transparent;
   background: var(--team-primary, var(--blue));
-  box-shadow: 0 6px 18px -6px color-mix(in srgb, var(--team-primary, var(--blue)) 45%, transparent);
+  box-shadow: var(--shadow-raised);
 }
 :root .day-tab.active span,
 :root .day-tab.active strong,
@@ -2810,7 +2855,7 @@ textarea:focus-visible,
 :root[data-theme] .day-tab.active strong,
 :root[data-theme] .day-tab[aria-current="date"] span,
 :root[data-theme] .day-tab[aria-current="date"] strong {
-  color: var(--team-on-primary, #fff);
+  color: var(--on-accent);
 }
 /* The date line stays quieter than the weekday without going invisible. */
 :root .day-tab.active span,
@@ -2856,13 +2901,6 @@ h1, h2, h3, h4 { font-weight: 600; }
  * painted background. These are the ones that came back under WCAG AA.
  */
 
-/* The muted grey was 4.42:1 on white — a hair under the 4.5 needed at body
-   size, and it is the colour of every secondary line in the product. */
-:root { --muted: #67676c; }
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) { --muted: #a8a8ae; }
-}
-:root[data-theme="dark"] { --muted: #a8a8ae; }
 
 /* White on the team red measured 3.41:1, so every primary button in the app
    failed at its own label size. The accent itself is the athlete's club
@@ -2877,28 +2915,28 @@ h1, h2, h3, h4 { font-weight: 600; }
 .btn-primary,
 .btn-dark,
 .today-button {
-  background: color-mix(in srgb, var(--team-primary, var(--blue)) 84%, #000);
+  background: var(--accent);
   border-color: transparent;
 }
 .btn-primary:hover,
 .btn-dark:hover,
 .today-button:hover {
-  background: color-mix(in srgb, var(--team-primary, var(--blue)) 74%, #000);
+  background: var(--accent-dark);
 }
 
 /* My own blood-flag chip, at 3.49:1 on a dark surface. */
 .blood-flag.flag-below,
-.blood-flag.flag-above { border-color: #c07f33; color: #9a5814; }
+.blood-flag.flag-above { border-color: var(--warn); color: var(--warn); }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) .blood-flag.flag-below,
-  :root:not([data-theme="light"]) .blood-flag.flag-above { border-color: #d9954a; color: #f0b169; }
+  :root:not([data-theme="light"]) .blood-flag.flag-above { border-color: var(--warn); color: var(--warn); }
   :root:not([data-theme="light"]) .blood-row.flag-below,
-  :root:not([data-theme="light"]) .blood-row.flag-above { border-left-color: #d9954a; }
+  :root:not([data-theme="light"]) .blood-row.flag-above { border-left-color: var(--warn); }
 }
 :root[data-theme="dark"] .blood-flag.flag-below,
-:root[data-theme="dark"] .blood-flag.flag-above { border-color: #d9954a; color: #f0b169; }
+:root[data-theme="dark"] .blood-flag.flag-above { border-color: var(--warn); color: var(--warn); }
 :root[data-theme="dark"] .blood-row.flag-below,
-:root[data-theme="dark"] .blood-row.flag-above { border-left-color: #d9954a; }
+:root[data-theme="dark"] .blood-row.flag-above { border-left-color: var(--warn); }
 
 /* --- Token overrides at the specificity that actually wins ---------------
  * styles.css defines the palette three times: on `:root`, then again on
@@ -2906,25 +2944,122 @@ h1, h2, h3, h4 { font-weight: 600; }
  * writes a data-theme, so the two-class selectors are the ones in force and a
  * plain `:root` override never applied. Matching their specificity is the fix.
  */
-:root[data-theme="light"] { --muted: #67676c; }
-:root[data-theme="dark"] { --muted: #a8a8ae; }
 
-/* The team accent inverts to a lighter tone in dark mode, where white text on
-   it measured 3.41:1. At that lightness dark text is the readable pairing, and
-   the surface keeps the full accent rather than being darkened toward it. */
-:root[data-theme="dark"] { --team-on-primary: #1d1d1f; }
-:root[data-theme="dark"] .btn-primary,
-:root[data-theme="dark"] .btn-dark,
-:root[data-theme="dark"] .today-button {
-  color: #1d1d1f;
-  background: var(--team-primary, var(--blue));
-}
-:root[data-theme="dark"] .btn-primary:hover,
-:root[data-theme="dark"] .btn-dark:hover,
-:root[data-theme="dark"] .today-button:hover {
-  background: color-mix(in srgb, var(--team-primary, var(--blue)) 88%, #fff);
-}
 
 /* Destructive text links sat at 3.55:1 in light. */
-:root[data-theme="light"] .danger-text { color: #c4271d; }
-:root[data-theme="dark"] .danger-text { color: #ff8078; }
+:root[data-theme="light"] .danger-text { color: var(--crit); }
+:root[data-theme="dark"] .danger-text { color: var(--crit); }
+
+/* --- Today, as a split panel --------------------------------------------
+ * The dashboard stacked one full-width session card above four full-width
+ * metric tiles: two decisions' worth of content spread over a screen and a
+ * half, with the lower half of a 1440px window empty. The two now sit side by
+ * side, and the shortcuts become a single dense column — four rows sharing one
+ * bordered panel, divided by hairlines, rather than four cards floating in
+ * their own gaps.
+ *
+ * Below 1150px the split collapses and the original stack returns, because at
+ * that width a two-column layout would put the session title on three lines.
+ */
+.today-split {
+  display: grid;
+  gap: var(--sp-4);
+  align-items: start;
+  margin-bottom: var(--sp-4);
+}
+.today-split > .today-focus,
+.today-split > .today-shortcuts { margin-bottom: 0; }
+
+@media (min-width: 1150px) {
+  .today-split { grid-template-columns: minmax(0, 1.45fr) minmax(300px, .55fr); }
+
+  /* One panel, four rows. The grid's own gap is what made them read as
+     separate cards, so it goes to zero and the hairline does the dividing. */
+  .today-split > .today-shortcuts {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+    padding: 0;
+    /* Not `overflow: hidden`: clipping here would cut the focus ring off the
+       first and last rows. They carry matching corners instead. */
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: var(--surface);
+    box-shadow: var(--shadow);
+  }
+  /* A row, not a tile: the figure moves out of the stack and onto the right,
+     on the label's own line, so each shortcut costs two lines instead of four
+     and the four of them stand as tall as the session beside them. Placement
+     is explicit because the DOM order is label, figure, detail, source — the
+     reading order, which is not the layout order. */
+  .today-split > .today-shortcuts > .metric {
+    min-height: 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: baseline;
+    column-gap: var(--sp-4);
+    row-gap: 2px;
+    padding: var(--sp-3) 52px var(--sp-3) var(--sp-4);
+    border: 0;
+    border-bottom: 1px solid var(--hairline);
+    border-radius: 0;
+    background: transparent;
+  }
+  .today-split > .today-shortcuts > .metric:first-child {
+    border-radius: var(--radius) var(--radius) 0 0;
+  }
+  .today-split > .today-shortcuts > .metric:last-child {
+    border-bottom: 0;
+    border-radius: 0 0 var(--radius) var(--radius);
+  }
+  .today-split > .today-shortcuts .metric-label { grid-column: 1; grid-row: 1; }
+  .today-split > .today-shortcuts .metric-value {
+    grid-column: 2;
+    grid-row: 1;
+    margin-top: 0;
+    font-size: var(--t-2xl);
+  }
+  .today-split > .today-shortcuts .metric-detail { grid-column: 1 / -1; grid-row: 2; margin-top: 0; }
+  .today-split > .today-shortcuts .data-source { grid-column: 1 / -1; grid-row: 3; margin-top: var(--sp-1); }
+  /* The chevron sat bottom-right of a tall tile; in a row it belongs on the
+     row's own centre line. */
+  .today-split > .today-shortcuts .metric-arrow {
+    top: 50%;
+    bottom: auto;
+    transform: translateY(-50%);
+  }
+  .today-split > .today-shortcuts > .metric:active .metric-arrow {
+    transform: translateY(-50%);
+  }
+}
+
+/* A date or time input hands focus to one of its internal segments, and
+ * Chromium matches neither `:focus` nor `:focus-visible` on the host while it
+ * holds it — so the ring above never fires for them and the only field on the
+ * Athlete page you cannot see yourself reach is the one asking for a date.
+ * `:focus-within` on the wrapper is what actually describes "the caret is in
+ * this control". */
+.field:focus-within input[type="date"],
+.field:focus-within input[type="time"],
+.nutrition-date-control:focus-within input {
+  outline: none;
+  box-shadow: var(--focus-ring) !important;
+}
+
+/* The readiness sliders were the last tab stops in the app with no indicator
+ * at all, and they got there by being caught between two rules:
+ *
+ *   - their own track styling sets `box-shadow: none !important`, which kills
+ *     the ring above no matter how specific it is, and
+ *   - `:root[data-theme] .field input:focus` — the slider sits inside a
+ *     `.field` — zeroes the outline at (0,4,1), which outranks any plain
+ *     `.range-wrap input[type="range"]:focus-visible` rule however late it is
+ *     written. `:root` is a pseudo-class and counts, which is the part that is
+ *     easy to miss.
+ *
+ * So the outline is restated at the same depth, which is the only way to win
+ * it. Outline rather than shadow because the shadow is already spoken for. */
+:root[data-theme] .range-wrap input[type="range"]:focus-visible,
+.range-wrap input[type="range"]:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}

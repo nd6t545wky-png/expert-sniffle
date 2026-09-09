@@ -6,6 +6,8 @@ import { TaskRow } from "./Page";
 import { TaskStages } from "./TaskStages";
 import { AnnualPlan } from "./AnnualPlan";
 import { Workload } from "./Workload";
+import { Tracking } from "./Tracking";
+import { TrainingMaxes } from "./TrainingMaxes";
 import { PlanState, ReadinessSubmission } from "../../src/domain/session";
 import { SessionTask } from "../../src/domain/programmeSessions";
 
@@ -310,14 +312,21 @@ describe("AnnualPlan — the year as a calendar", () => {
     expect(document.querySelectorAll(".cal-month-card")).toHaveLength(13);
   });
 
-  it("gives one tab per training cycle, coloured from the phase table", () => {
+  it("gives one tab per training cycle, coloured on the season tokens", () => {
     render(<AnnualPlan selectedWeek={1} onSelectWeek={vi.fn()} />);
     const cycles = document.querySelectorAll(".cal-cycle");
     expect(cycles).toHaveLength(8);
     expect(screen.getByText("FNCBA Winter · In Season")).toBeDefined();
     expect(screen.getByText("GBL Preseason")).toBeDefined();
-    // Colour comes from the data, not from a class name written here.
-    expect((cycles[0] as HTMLElement).style.getPropertyValue("--cycle")).toBe("#e52b21");
+    // A token, not the hex the frozen phase table carries: the calendar says
+    // which club's season a week belongs to, in that club's own accent, and
+    // the accent is defined once in the stylesheet for both themes.
+    const cycle = (index: number) =>
+      (cycles[index] as HTMLElement).style.getPropertyValue("--cycle");
+    expect(cycle(0)).toBe("var(--season-winter)");
+    expect(cycle(2)).toBe("var(--season-summer)");
+    // A block belonging to no season is slate rather than a fourth hue.
+    expect(cycle(1)).toBe("var(--muted)");
   });
 
   it("marks the cycle the selected week belongs to", () => {
@@ -625,5 +634,101 @@ describe("TaskStages — multi-movement prescriptions", () => {
       )
       .join(" · ");
     expect(rebuilt).toBe(prescription);
+  });
+});
+
+describe("the check-out's game pitch count", () => {
+  /**
+   * It used to open at zero and be typed from memory, beside a game log that
+   * already held the number — and this is not a display figure. Summer's
+   * Saturday reads it to decide whether the day after a start is recovery or a
+   * primer, so two records of one appearance meant the programme followed
+   * whichever was typed second.
+   */
+  const props = {
+    date: "2026-09-11" as never,
+    plan: { status: "unlocked", planLevel: "full", workloadFactor: 1 } as never,
+    reports: {},
+    onReport: vi.fn(),
+  };
+
+  it("opens on the count from the logged game", () => {
+    render(<Tracking {...props} loggedGamePitches={62} />);
+    expect((screen.getByLabelText("Game pitches") as HTMLInputElement).value).toBe("62");
+    expect(screen.getByText(/From the game you logged for today/)).toBeTruthy();
+  });
+
+  it("opens at zero, and says nothing, when no game is logged", () => {
+    render(<Tracking {...props} loggedGamePitches={null} />);
+    expect((screen.getByLabelText("Game pitches") as HTMLInputElement).value).toBe("0");
+    expect(screen.queryByText(/From the game you logged/)).toBeNull();
+  });
+
+  it("keeps a count the athlete typed when the log changes underneath it", () => {
+    // A number typed into this field is an answer. Following the log after
+    // that would overwrite it — which is the failure the prefill exists to
+    // avoid, pointed the other way.
+    const { rerender } = render(<Tracking {...props} loggedGamePitches={62} />);
+    fireEvent.change(screen.getByLabelText("Game pitches"), { target: { value: "74" } });
+    rerender(<Tracking {...props} loggedGamePitches={68} />);
+    expect((screen.getByLabelText("Game pitches") as HTMLInputElement).value).toBe("74");
+  });
+
+  it("follows the log while the field still holds what the log said", () => {
+    const { rerender } = render(<Tracking {...props} loggedGamePitches={62} />);
+    rerender(<Tracking {...props} loggedGamePitches={68} />);
+    expect((screen.getByLabelText("Game pitches") as HTMLInputElement).value).toBe("68");
+  });
+});
+
+describe("the training maxes screen", () => {
+  /**
+   * The trap bar spent the whole year with a periodised percentage table and
+   * no max behind it, and nothing said so. An empty box here is the reason a
+   * session reads "@ RPE 6" instead of a weight, so the screen has to make
+   * that legible and correctable.
+   */
+  const maxes = {
+    backSquat: { value: 145, kind: "tested" as const, source: "VALD ForceDecks load-velocity profile" },
+    trapBarDeadlift: { value: 150, kind: "derived" as const },
+  };
+
+  it("shows each max with where it came from", () => {
+    render(<TrainingMaxes maxes={maxes} onChange={vi.fn()} />);
+    expect(screen.getByText(/145 kg · Tested/)).toBeTruthy();
+    expect(screen.getByText(/150 kg · Derived/)).toBeTruthy();
+  });
+
+  it("says plainly when a lift has no max", () => {
+    render(<TrainingMaxes maxes={maxes} onChange={vi.fn()} />);
+    expect(screen.getAllByText(/running on the written fallback/).length).toBe(2);
+  });
+
+  it("records a corrected max", () => {
+    const onChange = vi.fn();
+    render(<TrainingMaxes maxes={maxes} onChange={onChange} />);
+    const input = screen.getByLabelText("kg", { selector: "#max-trapBarDeadlift" });
+    fireEvent.change(input, { target: { value: "165" } });
+    fireEvent.blur(input);
+    expect(onChange).toHaveBeenCalledWith("trapBarDeadlift", 165);
+  });
+
+  it("clears a max rather than storing a blank", () => {
+    const onChange = vi.fn();
+    render(<TrainingMaxes maxes={maxes} onChange={onChange} />);
+    const input = screen.getByLabelText("kg", { selector: "#max-trapBarDeadlift" });
+    fireEvent.change(input, { target: { value: "" } });
+    fireEvent.blur(input);
+    expect(onChange).toHaveBeenCalledWith("trapBarDeadlift", null);
+  });
+
+  it("refuses a typo instead of writing it behind every load in the year", () => {
+    const onChange = vi.fn();
+    render(<TrainingMaxes maxes={maxes} onChange={onChange} />);
+    const input = screen.getByLabelText("kg", { selector: "#max-backSquat" });
+    fireEvent.change(input, { target: { value: "1450" } });
+    fireEvent.blur(input);
+    expect(onChange).not.toHaveBeenCalled();
+    expect(screen.getByRole("alert").textContent).toMatch(/nothing was changed/);
   });
 });

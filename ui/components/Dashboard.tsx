@@ -6,10 +6,18 @@ import { PageId } from "./Shell";
 /**
  * Dashboard.
  *
- * Markup mirrors the prototype exactly: `section.page-head.dashboard-page-head`
- * with the club logo, `section.today-focus > article.card.hero-session`, and a
- * `section.grid.metrics.today-shortcuts` of `button.card.metric.metric-shortcut`
- * tiles. The stylesheet is written against these selectors.
+ * Markup: `section.page-head.dashboard-page-head` with the club logo, then a
+ * `section.today-split` holding `section.today-focus > article.card.hero-session`
+ * beside a `section.grid.metrics.today-shortcuts` of
+ * `button.card.metric.metric-shortcut` tiles. The stylesheet is written against
+ * these selectors.
+ *
+ * The split is why the wrapper exists. The two sections were stacked full-width,
+ * which put one decision and four numbers on a 1440px screen and left the lower
+ * half of it empty. Side by side, the day's session and every number that
+ * qualifies it are read without scrolling — the shortcuts become a dense list
+ * rather than four tiles with a lot of air in them. Below 1150px the wrapper
+ * collapses to a single column and the stack returns.
  */
 
 export interface DashboardProps {
@@ -94,7 +102,8 @@ export function Dashboard({
         </div>
       </section>
 
-      <section className="today-focus">
+      <section className="today-split">
+        <section className="today-focus">
         <article className="card hero-session">
           <div className="hero-priority">
             <span className="kicker">{kicker}</span>
@@ -116,10 +125,10 @@ export function Dashboard({
           <button className="btn btn-primary hero-action" type="button" onClick={onOpenPlan}>
             {locked ? "Complete check-in" : "Open session"} <span aria-hidden="true">→</span>
           </button>
-        </article>
-      </section>
+          </article>
+        </section>
 
-      <section className="grid metrics today-shortcuts">
+        <section className="grid metrics today-shortcuts">
         <button
           className="card metric metric-shortcut accent"
           type="button"
@@ -199,6 +208,7 @@ export function Dashboard({
             ›
           </span>
         </button>
+        </section>
       </section>
     </>
   );

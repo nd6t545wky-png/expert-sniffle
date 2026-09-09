@@ -570,12 +570,12 @@ const STRAPPED_DEADLIFT: Swap = {
   why: "Straps take the forearm and grip out of the lift without touching the training stimulus the day was built around.",
 };
 
-const PALLOF_WITHOUT_CARRY: Swap = {
-  match: /Pallof press \+ farmer carry/i,
-  name: "Pallof press",
-  prescription: "As programmed for the Pallof press. The farmer carry is out today.",
-  why: "The anti-rotation work is the point of the pairing; the carry is the part that loads the grip and the forearm.",
-};
+// There was a `PALLOF_WITHOUT_CARRY` swap here, rewriting Monday's
+// `Pallof press + farmer carry` down to just the press for the regions that
+// object to grip work. It is gone because the programme no longer bundles them:
+// `Farmer carry` is its own task and `/farmer carry/i` in GRIP_TASKS above
+// removes it outright, which leaves the Pallof press standing untouched — the
+// same outcome the swap was faking, reached by the ordinary rule.
 
 export const REGION_PLAYBOOK: Record<BodyRegion, RegionPlaybook> = {
   elbow_medial: {
@@ -586,7 +586,7 @@ export const REGION_PLAYBOOK: Record<BodyRegion, RegionPlaybook> = {
       /Wrist and forearm prep/i,
       ...GRIP_TASKS,
     ],
-    swaps: [STRAPPED_DEADLIFT, PALLOF_WITHOUT_CARRY],
+    swaps: [STRAPPED_DEADLIFT],
     modify: [
       isometric(
         "wrist-flexion-iso",
@@ -621,7 +621,7 @@ export const REGION_PLAYBOOK: Record<BodyRegion, RegionPlaybook> = {
 
   elbow_lateral: {
     avoid: [/Plyo Ball Reverse Throw/i, /Wrist and forearm prep/i, ...GRIP_TASKS],
-    swaps: [STRAPPED_DEADLIFT, PALLOF_WITHOUT_CARRY],
+    swaps: [STRAPPED_DEADLIFT],
     modify: [
       isometric(
         "wrist-extension-iso",
@@ -761,7 +761,7 @@ export const REGION_PLAYBOOK: Record<BodyRegion, RegionPlaybook> = {
 
   forearm: {
     avoid: [...GRIP_TASKS, /Plyo Ball Reverse Throw/i, /Wrist and forearm prep/i],
-    swaps: [STRAPPED_DEADLIFT, PALLOF_WITHOUT_CARRY],
+    swaps: [STRAPPED_DEADLIFT],
     modify: [
       isometric(
         "grip-iso",
@@ -782,7 +782,7 @@ export const REGION_PLAYBOOK: Record<BodyRegion, RegionPlaybook> = {
 
   wrist_hand: {
     avoid: [...GRIP_TASKS, /Plyo Ball/i, /Med-ball/i, /Wrist and forearm prep/i],
-    swaps: [STRAPPED_DEADLIFT, PALLOF_WITHOUT_CARRY],
+    swaps: [STRAPPED_DEADLIFT],
     modify: [
       isometric(
         "wrist-iso-both",
