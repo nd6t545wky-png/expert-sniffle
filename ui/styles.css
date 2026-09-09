@@ -161,9 +161,23 @@
     --ink: #f2f2f4;
     --muted: #9ba0a6;
     --paper: #0b0b0c;
-    --surface: #141416;
-    --surface-raised: #1a1a1d;
-    --surface-secondary: #1f1f22;
+    --surface: #17181c;
+    --surface-raised: #212228;
+    --surface-secondary: #2a2b31;
+    /* The hero slab inverts in the dark.
+     *
+     * `--slab` is the dark feature panel the session card is built on, and at
+     * :root it is #101114 -- which against a white page is the whole point,
+     * and against this one is nothing at all: the page is #0b0b0c, so the
+     * "dark panel" device lands 6/255 above its own background and the card
+     * reads as a flat rectangle. Its shadow cannot rescue it either, because
+     * a black shadow on a near-black ground draws nothing.
+     *
+     * So in the dark the slab goes the other way: lighter than the page, and
+     * lighter than an ordinary card, which keeps it the most prominent
+     * surface on the screen in both themes. `--on-slab` stays light and still
+     * clears AA against it by a wide margin. */
+    --slab: #212228;
     --line: #34353a;
     --hairline: #26272b;
     --control-fill: #1f1f22;
@@ -178,8 +192,8 @@
     --crit-soft: #2c1512;
     --season-winter: #ff6b60;
     --season-summer: #b78cff;
-    --shadow: 0 1px 2px rgba(0, 0, 0, .50), 0 6px 16px -8px rgba(0, 0, 0, .60);
-    --shadow-raised: 0 2px 8px rgba(0, 0, 0, .50), 0 18px 40px -14px rgba(0, 0, 0, .70);
+    --shadow: 0 1px 2px rgba(0, 0, 0, .50), 0 6px 16px -8px rgba(0, 0, 0, .60), inset 0 1px 0 rgba(255, 255, 255, .045);
+    --shadow-raised: 0 2px 8px rgba(0, 0, 0, .50), 0 18px 40px -14px rgba(0, 0, 0, .70), inset 0 1px 0 rgba(255, 255, 255, .07);
     --shadow-overlay: 0 28px 70px -20px rgba(0, 0, 0, .80);
     --material: rgba(28, 28, 32, .64);
     --material-strong: rgba(30, 30, 34, .80);
@@ -193,9 +207,23 @@
   --ink: #f2f2f4;
   --muted: #9ba0a6;
   --paper: #0b0b0c;
-  --surface: #141416;
-  --surface-raised: #1a1a1d;
-  --surface-secondary: #1f1f22;
+  --surface: #17181c;
+  --surface-raised: #212228;
+  --surface-secondary: #2a2b31;
+    /* The hero slab inverts in the dark.
+     *
+     * `--slab` is the dark feature panel the session card is built on, and at
+     * :root it is #101114 -- which against a white page is the whole point,
+     * and against this one is nothing at all: the page is #0b0b0c, so the
+     * "dark panel" device lands 6/255 above its own background and the card
+     * reads as a flat rectangle. Its shadow cannot rescue it either, because
+     * a black shadow on a near-black ground draws nothing.
+     *
+     * So in the dark the slab goes the other way: lighter than the page, and
+     * lighter than an ordinary card, which keeps it the most prominent
+     * surface on the screen in both themes. `--on-slab` stays light and still
+     * clears AA against it by a wide margin. */
+    --slab: #212228;
   --line: #34353a;
   --hairline: #26272b;
   --control-fill: #1f1f22;
@@ -210,8 +238,8 @@
   --crit-soft: #2c1512;
   --season-winter: #ff6b60;
   --season-summer: #b78cff;
-  --shadow: 0 1px 2px rgba(0, 0, 0, .50), 0 6px 16px -8px rgba(0, 0, 0, .60);
-  --shadow-raised: 0 2px 8px rgba(0, 0, 0, .50), 0 18px 40px -14px rgba(0, 0, 0, .70);
+  --shadow: 0 1px 2px rgba(0, 0, 0, .50), 0 6px 16px -8px rgba(0, 0, 0, .60), inset 0 1px 0 rgba(255, 255, 255, .045);
+  --shadow-raised: 0 2px 8px rgba(0, 0, 0, .50), 0 18px 40px -14px rgba(0, 0, 0, .70), inset 0 1px 0 rgba(255, 255, 255, .07);
   --shadow-overlay: 0 28px 70px -20px rgba(0, 0, 0, .80);
   --material: rgba(28, 28, 32, .64);
   --material-strong: rgba(30, 30, 34, .80);
@@ -261,6 +289,42 @@
  * clear 4.5:1 on white, the dark ones clear it on #141416, and `--on-accent`
  * is the text colour for a solid accent fill.
  * ------------------------------------------------------------------------- */
+/* -----------------------------------------------------------------------------
+ * Aliases have to re-resolve on the shell, not once at :root.
+ *
+ * A custom property declared as `--blue: var(--accent)` on `:root` is
+ * substituted *there*, against :root's accent, and what inherits down the tree
+ * is the finished colour. So when a club theme re-points `--accent` further
+ * down, the alias does not follow: it is already a navy hex, and re-pointing
+ * the thing it was named after changes nothing.
+ *
+ * That is why five aliases stayed default navy across every screen of both club
+ * themes -- `--blue`, which 63 rules use for the primary button, the active nav
+ * item, the eyebrow, the checked task box and the stage numbers; `--focus`,
+ * which draws every keyboard focus ring; and `--green`/`--lime`/`--lime-dark`,
+ * the legacy names kept pointed at the accent so "there is no green" holds.
+ *
+ * `--team-primary` and `--team-primary-soft` never had the bug because each
+ * theme block re-declares them by hand: the fix was found once, for two tokens,
+ * and never generalised.
+ *
+ * Re-declaring them here fixes all of it at once. The substitution now happens
+ * on `.app-shell`, where `--accent` is whatever the club theme set on that same
+ * element, so the aliases follow the accent by construction rather than by
+ * somebody remembering to add a line to two more theme blocks.
+ * ------------------------------------------------------------------------- */
+.app-shell {
+  --blue: var(--accent);
+  --focus: var(--accent);
+  --green: var(--accent);
+  --lime: var(--accent);
+  --lime-dark: var(--accent-dark);
+  --team-primary: var(--accent);
+  --team-secondary: var(--muted);
+  --team-primary-soft: var(--accent-soft);
+  --team-secondary-soft: var(--surface-secondary);
+}
+
 .app-shell.theme-norths {
   --accent: #c0261c;
   --accent-dark: #8f1c14;
@@ -2929,6 +2993,11 @@ summary:focus-visible {
   border: 1px solid var(--surface);
   border-radius: var(--radius-lg);
   background: var(--slab) !important;
+  /* Paired with the background it overrides. Without it the container keeps
+   * `--ink`, which in the light theme is the same #101114 as the slab -- so
+   * any text put directly in this card, rather than in one of the children
+   * that set their own colour, would be invisible. */
+  color: var(--on-slab);
   box-shadow: var(--shadow-overlay);
 }
 
