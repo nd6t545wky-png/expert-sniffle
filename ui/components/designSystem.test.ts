@@ -259,6 +259,43 @@ describe("design system", () => {
     }
   });
 
+  it("re-resolves every accent alias on the shell, not once at :root", () => {
+    // The bug this exists for: `--blue: var(--accent)` declared on `:root` is
+    // substituted *there*. What inherits down the tree is a finished navy hex,
+    // so a club theme re-pointing `--accent` lower down changes nothing, and
+    // the alias keeps the default accent on every screen of both clubs.
+    //
+    // It is invisible to the test above, which only asks what the theme blocks
+    // set. It shipped: `--blue` (63 rules -- primary button, active nav item,
+    // eyebrow, checked task box, stage numbers), `--focus` (every keyboard
+    // focus ring) and `--green`/`--lime`/`--lime-dark` all stayed navy under
+    // both club themes. `--team-primary` and `--team-primary-soft` escaped only
+    // because each theme block re-declares them by hand.
+    //
+    // The rule that prevents it: an alias of the accent must be declared on
+    // `.app-shell`, where the club theme sets `--accent` on the same element,
+    // so substitution happens against the themed value.
+    const declaredIn = (selector: string) => {
+      const block = STYLES.match(new RegExp(`\\n${selector}\\s*\\{([^}]*)\\}`));
+      return new Set([...(block?.[1] ?? "").matchAll(/(--[a-z-]+)\s*:/g)].map((m) => m[1]));
+    };
+    const onShell = declaredIn("\\.app-shell");
+
+    // Everything on :root that is defined *as* the accent, and so cannot follow it.
+    const rootAliases = [...STYLES.matchAll(/^\s*(--[a-z-]+):\s*var\(--accent[a-z-]*\)/gm)].map(
+      (match) => match[1]
+    );
+    expect(rootAliases.length, "no accent aliases found — has the palette moved?").toBeGreaterThan(3);
+
+    for (const alias of new Set(rootAliases)) {
+      expect(
+        onShell.has(alias),
+        `${alias} is an alias of the accent but is only declared at :root, so it freezes to the ` +
+          `default accent and never follows a club theme. Declare it on .app-shell too.`
+      ).toBe(true);
+    }
+  });
+
   it("has no green, because colour here means attention", () => {
     // `--green` is kept as a name so several hundred call sites keep resolving,
     // and it points at the accent. A real green would reappear as a literal,

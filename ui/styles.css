@@ -261,6 +261,42 @@
  * clear 4.5:1 on white, the dark ones clear it on #141416, and `--on-accent`
  * is the text colour for a solid accent fill.
  * ------------------------------------------------------------------------- */
+/* -----------------------------------------------------------------------------
+ * Aliases have to re-resolve on the shell, not once at :root.
+ *
+ * A custom property declared as `--blue: var(--accent)` on `:root` is
+ * substituted *there*, against :root's accent, and what inherits down the tree
+ * is the finished colour. So when a club theme re-points `--accent` further
+ * down, the alias does not follow: it is already a navy hex, and re-pointing
+ * the thing it was named after changes nothing.
+ *
+ * That is why five aliases stayed default navy across every screen of both club
+ * themes -- `--blue`, which 63 rules use for the primary button, the active nav
+ * item, the eyebrow, the checked task box and the stage numbers; `--focus`,
+ * which draws every keyboard focus ring; and `--green`/`--lime`/`--lime-dark`,
+ * the legacy names kept pointed at the accent so "there is no green" holds.
+ *
+ * `--team-primary` and `--team-primary-soft` never had the bug because each
+ * theme block re-declares them by hand: the fix was found once, for two tokens,
+ * and never generalised.
+ *
+ * Re-declaring them here fixes all of it at once. The substitution now happens
+ * on `.app-shell`, where `--accent` is whatever the club theme set on that same
+ * element, so the aliases follow the accent by construction rather than by
+ * somebody remembering to add a line to two more theme blocks.
+ * ------------------------------------------------------------------------- */
+.app-shell {
+  --blue: var(--accent);
+  --focus: var(--accent);
+  --green: var(--accent);
+  --lime: var(--accent);
+  --lime-dark: var(--accent-dark);
+  --team-primary: var(--accent);
+  --team-secondary: var(--muted);
+  --team-primary-soft: var(--accent-soft);
+  --team-secondary-soft: var(--surface-secondary);
+}
+
 .app-shell.theme-norths {
   --accent: #c0261c;
   --accent-dark: #8f1c14;
