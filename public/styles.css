@@ -115,6 +115,11 @@
   --material: rgba(255, 255, 255, .70);
   --material-strong: rgba(255, 255, 255, .84);
   --material-edge: rgba(255, 255, 255, .68);
+  /* Content glass. Weaker than the chrome material on purpose: a card holds
+   * the numbers you are reading off, so the backdrop shows through it enough
+   * to feel like a layer and not enough to compete with the text. */
+  --glass-card: rgba(255, 255, 255, .72);
+  --glass-slab: rgba(16, 17, 20, .86);
 
   --focus: var(--accent);
   /* An iOS decelerate: things arrive and settle, they do not bounce. */
@@ -160,10 +165,10 @@
   :root:not([data-theme="light"]) {
     --ink: #f2f2f4;
     --muted: #9ba0a6;
-    --paper: #0b0b0c;
-    --surface: #17181c;
-    --surface-raised: #212228;
-    --surface-secondary: #2a2b31;
+    --paper: #000000;
+    --surface: #151515;
+    --surface-raised: #1f1f1f;
+    --surface-secondary: #2a2a2a;
     /* The hero slab inverts in the dark.
      *
      * `--slab` is the dark feature panel the session card is built on, and at
@@ -177,8 +182,8 @@
      * lighter than an ordinary card, which keeps it the most prominent
      * surface on the screen in both themes. `--on-slab` stays light and still
      * clears AA against it by a wide margin. */
-    --slab: #212228;
-    --line: #34353a;
+    --slab: #1f1f1f;
+    --line: #343434;
     --hairline: #26272b;
     --control-fill: #1f1f22;
     --accent: #6e9bff;
@@ -195,9 +200,11 @@
     --shadow: 0 1px 2px rgba(0, 0, 0, .50), 0 6px 16px -8px rgba(0, 0, 0, .60), inset 0 1px 0 rgba(255, 255, 255, .045);
     --shadow-raised: 0 2px 8px rgba(0, 0, 0, .50), 0 18px 40px -14px rgba(0, 0, 0, .70), inset 0 1px 0 rgba(255, 255, 255, .07);
     --shadow-overlay: 0 28px 70px -20px rgba(0, 0, 0, .80);
-    --material: rgba(28, 28, 32, .64);
-    --material-strong: rgba(30, 30, 34, .80);
+    --material: rgba(28, 28, 28, .62);
+    --material-strong: rgba(30, 30, 30, .80);
     --material-edge: rgba(255, 255, 255, .12);
+  --glass-card: rgba(21, 21, 21, .72);
+  --glass-slab: rgba(31, 31, 31, .74);
   }
 }
 
@@ -206,10 +213,10 @@
   color-scheme: dark;
   --ink: #f2f2f4;
   --muted: #9ba0a6;
-  --paper: #0b0b0c;
-  --surface: #17181c;
-  --surface-raised: #212228;
-  --surface-secondary: #2a2b31;
+  --paper: #000000;
+  --surface: #151515;
+  --surface-raised: #1f1f1f;
+  --surface-secondary: #2a2a2a;
     /* The hero slab inverts in the dark.
      *
      * `--slab` is the dark feature panel the session card is built on, and at
@@ -223,8 +230,8 @@
      * lighter than an ordinary card, which keeps it the most prominent
      * surface on the screen in both themes. `--on-slab` stays light and still
      * clears AA against it by a wide margin. */
-    --slab: #212228;
-  --line: #34353a;
+    --slab: #1f1f1f;
+  --line: #343434;
   --hairline: #26272b;
   --control-fill: #1f1f22;
   --accent: #6e9bff;
@@ -241,9 +248,11 @@
   --shadow: 0 1px 2px rgba(0, 0, 0, .50), 0 6px 16px -8px rgba(0, 0, 0, .60), inset 0 1px 0 rgba(255, 255, 255, .045);
   --shadow-raised: 0 2px 8px rgba(0, 0, 0, .50), 0 18px 40px -14px rgba(0, 0, 0, .70), inset 0 1px 0 rgba(255, 255, 255, .07);
   --shadow-overlay: 0 28px 70px -20px rgba(0, 0, 0, .80);
-  --material: rgba(28, 28, 32, .64);
-  --material-strong: rgba(30, 30, 34, .80);
+  --material: rgba(28, 28, 28, .62);
+  --material-strong: rgba(30, 30, 30, .80);
   --material-edge: rgba(255, 255, 255, .12);
+  --glass-card: rgba(21, 21, 21, .72);
+  --glass-slab: rgba(31, 31, 31, .74);
 }
 
 :root[data-theme="light"] {
@@ -513,7 +522,7 @@ h1, h2, h3, h4 { font-family: inherit; letter-spacing: -.035em; }
 .grid.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .grid.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 
-.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); transition: background-color .2s ease, border-color .2s ease; }
+.card { background: var(--glass-card); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); transition: background-color .2s ease, border-color .2s ease; -webkit-backdrop-filter: saturate(var(--glass-saturation)) blur(var(--glass-blur)); backdrop-filter: saturate(var(--glass-saturation)) blur(var(--glass-blur)); }
 .card:hover { border-color: color-mix(in srgb, var(--line) 72%, var(--blue)); }
 .card-pad { padding: 20px; }
 .card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 15px; margin-bottom: 17px; }
@@ -1768,7 +1777,10 @@ html { scrollbar-gutter: stable; }
 
 .card {
   border-color: var(--line);
-  background: var(--surface);
+  /* Glass, matching the base rule. This block used to re-assert an opaque
+   * surface and, being later, silently won -- so the card carried the blur
+   * with nothing translucent for it to blur through. */
+  background: var(--glass-card);
   box-shadow: var(--shadow);
 }
 .card-pad { padding: 22px 24px; }
@@ -2992,11 +3004,18 @@ summary:focus-visible {
   padding: var(--sp-6);
   border: 1px solid var(--surface);
   border-radius: var(--radius-lg);
-  background: var(--slab) !important;
+  /* Glass, not a flat fill. The tint is the slab with the backdrop showing
+   * through it, so the card still reads as the darkest thing on the screen
+   * while the page moves underneath. `!important` stays because an earlier
+   * rule sets a flat slab and this has to win. */
+  background: var(--glass-slab) !important;
+  -webkit-backdrop-filter: saturate(var(--glass-saturation)) blur(var(--glass-blur));
+  backdrop-filter: saturate(var(--glass-saturation)) blur(var(--glass-blur));
+  border: 1px solid var(--material-edge);
   /* Paired with the background it overrides. Without it the container keeps
-   * `--ink`, which in the light theme is the same #101114 as the slab -- so
-   * any text put directly in this card, rather than in one of the children
-   * that set their own colour, would be invisible. */
+   * `--ink`, which in the light theme is the same as the slab -- so any text
+   * put directly in this card, rather than in one of the children that set
+   * their own colour, would be invisible. */
   color: var(--on-slab);
   box-shadow: var(--shadow-overlay);
 }
@@ -3377,9 +3396,19 @@ summary:focus-visible {
   .topbar,
   .bottom-nav,
   .mobile-sheet,
-  .toast {
+  .toast,
+  .card {
     background: var(--surface) !important;
     border-color: var(--line);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+  /* The slab keeps its own colour when it goes opaque -- it is the darkest
+   * surface by design, and handing it `--surface` would flatten it into an
+   * ordinary card for exactly the people who cannot use the blur to tell
+   * them apart. */
+  .hero-session {
+    background: var(--slab) !important;
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
   }
