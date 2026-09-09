@@ -9,7 +9,19 @@
   // token can see, and puts the target account in the same file as the
   // database_id and bucket_name it has to agree with. An account id is an
   // identifier, not a credential.
-  "account_id": "82ca8b56a7488d1cdfac14b5263a4ef0",
+  //
+  // It is this account and not 82ca8b56a7488d1cdfac14b5263a4ef0, the other one
+  // the token can see. That one was tried first and got as far as uploading
+  // all 26 assets before failing on
+  //
+  //   /accounts/82ca.../r2/buckets/pitching-os-private-media
+  //   Please enable R2 through the Cloudflare Dashboard. [code: 10042]
+  //
+  // R2 is not enabled there, so the `pitching-os-private-media` bucket below
+  // cannot exist there either -- and that bucket was already in this file at
+  // the commit production is serving, so a deploy carrying it has succeeded
+  // before. The account it succeeded against is therefore the other one.
+  "account_id": "e54e1c48df5344a4a31c13e057d6e69a",
   "main": "src/index.ts",
   // NOTE: reconstructed from the deployed bundle — confirm this matches
   // whatever compatibility_date the original project actually used.
