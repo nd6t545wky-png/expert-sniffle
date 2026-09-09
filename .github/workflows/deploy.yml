@@ -79,6 +79,43 @@ jobs:
             exit 1
           fi
 
+          # A secret pasted with a trailing newline is stored with it, and
+          # wrangler puts the token straight into an Authorization header,
+          # where a line break is not a legal character. The first real deploy
+          # died on exactly that, and what it printed was
+          #
+          #   ✘ [ERROR] Headers.set: "***" is an invalid header value.
+          #
+          # which names neither the secret nor the whitespace, reads like a
+          # wrangler bug, and sent the first guess at diagnosing it towards
+          # token permissions instead. The deploy step strips the whitespace so
+          # this never fails for that reason again; this step says so, because
+          # silently fixing a malformed secret and never mentioning it is how
+          # the same paste error survives into the next repository.
+          #
+          # Nothing below prints the token: only how many characters were
+          # removed, and whether what is left is the right shape.
+          clean="$(printf '%s' "$CLOUDFLARE_API_TOKEN" | tr -d '[:space:]')"
+          if [ "${#clean}" -eq 0 ]; then
+            echo "::error::CLOUDFLARE_API_TOKEN is entirely whitespace."
+            exit 1
+          fi
+          if [ "${#clean}" -ne "${#CLOUDFLARE_API_TOKEN}" ]; then
+            echo "::warning::CLOUDFLARE_API_TOKEN has $(( ${#CLOUDFLARE_API_TOKEN} - ${#clean} )) whitespace character(s) in it — almost certainly a line break picked up when copying. The deploy strips them, but re-saving the secret cleanly will silence this."
+          fi
+          # A Cloudflare API token is letters, digits, underscores and hyphens.
+          # Anything else — a smart quote, a zero-width space, half of a
+          # different string — cannot go in a header either, and stripping
+          # whitespace will not save it.
+          case "$clean" in
+            *[!A-Za-z0-9_-]*)
+              echo "::error::CLOUDFLARE_API_TOKEN contains characters that cannot appear in an HTTP header."
+              echo "A Cloudflare API token is letters, digits, underscores and hyphens only."
+              echo "Re-copy it from the Cloudflare dashboard and re-save the secret."
+              exit 1
+              ;;
+          esac
+
       # `npm run build` stamps dist/build.json with this commit and a hash of
       # every shipped file. The verify step below reads it back off production.
       - name: Build
@@ -90,7 +127,12 @@ jobs:
           # Only needed when the token can see more than one account; wrangler
           # infers it otherwise, so an unset value is not an error.
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: npx wrangler deploy
+        run: |
+          # Whitespace the paste carried in, removed before it reaches a
+          # header. See the credential check above for what this cost once.
+          export CLOUDFLARE_API_TOKEN="$(printf '%s' "$CLOUDFLARE_API_TOKEN" | tr -d '[:space:]')"
+          export CLOUDFLARE_ACCOUNT_ID="$(printf '%s' "$CLOUDFLARE_ACCOUNT_ID" | tr -d '[:space:]')"
+          npx wrangler deploy
 
       # Cloudflare can return success before the new version is serving every
       # edge, so this is given a few attempts before it is called a failure.
