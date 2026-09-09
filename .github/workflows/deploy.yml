@@ -109,12 +109,31 @@ jobs:
           # whitespace will not save it.
           case "$clean" in
             *[!A-Za-z0-9_-]*)
-              echo "::error::CLOUDFLARE_API_TOKEN contains characters that cannot appear in an HTTP header."
-              echo "A Cloudflare API token is letters, digits, underscores and hyphens only."
-              echo "Re-copy it from the Cloudflare dashboard and re-save the secret."
+              echo "::error::CLOUDFLARE_API_TOKEN is not a bare Cloudflare API token."
+              echo ""
+              echo "After removing whitespace it is ${#clean} characters and still contains"
+              echo "something outside [A-Za-z0-9_-]. A Cloudflare API token is a single"
+              echo "40-character string of letters, digits, underscores and hyphens, with no"
+              echo "spaces, quotes, colons or slashes in it."
+              echo ""
+              echo "So the secret is holding more than the token. The usual causes are pasting"
+              echo "the 'Test this token' curl command Cloudflare shows underneath it, pasting"
+              echo "the whole token-summary block including its permission lines, or pasting a"
+              echo "label such as 'Authorization: Bearer ...' along with the value."
+              echo ""
+              echo "Fix: create or roll the token, copy ONLY the 40-character value, and"
+              echo "re-save the secret under Settings → Secrets and variables → Actions."
               exit 1
               ;;
           esac
+
+          # A well-formed token is exactly 40 characters. A different length is
+          # not fatal — Cloudflare has not promised that forever — but it is
+          # almost always the wrong string, so say so before spending a deploy
+          # finding out from an authentication error.
+          if [ "${#clean}" -ne 40 ]; then
+            echo "::warning::CLOUDFLARE_API_TOKEN is ${#clean} characters; a Cloudflare API token is normally 40. If the deploy fails to authenticate, this is the first thing to check — a 32-character value is usually an Account ID or a Global API Key rather than an API token."
+          fi
 
       # `npm run build` stamps dist/build.json with this commit and a hash of
       # every shipped file. The verify step below reads it back off production.
