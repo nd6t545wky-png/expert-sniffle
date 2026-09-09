@@ -426,6 +426,63 @@ describe("a week's fixtures reaching the intensity policy", () => {
     expect(wednesday(2).some((task) => /pulldown/i.test(task.name))).toBe(false);
   });
 
+  const hinge = (tasks: ReturnType<typeof wednesday>) =>
+    String(tasks.find((task) => /^Trap bar deadlift$/.test(String(task.name)))?.prescription);
+
+  it("cuts the finals Wednesday's hinge volume and leaves the bar alone", () => {
+    // The other half of the same taper. The rebuild block writes the hinge at
+    // 3 × 5, which is the single heaviest item in the week and most of the
+    // reason a week meant to taper carried more tonnage than the last
+    // in-season week. Volume comes off; the percentage does not.
+    expect(hinge(wednesday())).toMatch(/^3 × 5\b/);
+    expect(hinge(wednesday(2))).toMatch(/^2 × 3\b/);
+
+    // Everything after the sets and reps — the relative intensity, and the
+    // load it resolves to — is identical. That is the whole distinction
+    // between a taper and an unload, so it is asserted rather than assumed.
+    const after = (dose: string) => dose.replace(/^\d+ × \d+/, "");
+    expect(after(hinge(wednesday(2)))).toBe(after(hinge(wednesday())));
+  });
+
+  it("does not touch the hinge on an unload week with no game in it", () => {
+    // Weeks 10, 37 and 38 are the genuine unload weeks — no fixture falls in
+    // them, so no game count reaches them and the programme's own rebuild dose
+    // stands. The gate is the fixture rather than the week number: a rebuild
+    // Wednesday that *did* acquire a final would taper like week 9, which is
+    // the point of reading the schedule instead of the phase table.
+    for (const week of [10, 37, 38]) {
+      const tasks = applyBaselineProgramming(buildSession(weekPlan(week), 2), null, 2).tasks;
+      expect(hinge(tasks), `week ${week}`).toMatch(/^\d+ × \d+/);
+      expect(hinge(tasks), `week ${week}`).not.toMatch(/^2 × 3\b/);
+    }
+  });
+
+  it("only ever removes work from the hinge", () => {
+    // A taper that adds sets is not a taper. Across every day of every week,
+    // with a game entered, the prescribed rep total never rises.
+    const reps = (dose: string) => {
+      const shape = dose.match(/^(\d+) × (\d+)/);
+      return shape ? Number(shape[1]) * Number(shape[2]) : null;
+    };
+    for (let week = 1; week <= 52; week += 1) {
+      for (let day = 0; day < 7; day += 1) {
+        const of = (games?: number) =>
+          applyBaselineProgramming(
+            buildSession(weekPlan(week), day, games === undefined ? {} : { weekGames: games }),
+            null,
+            day
+          ).tasks;
+        const plain = hinge(of());
+        const gamed = hinge(of(2));
+        if (plain === "undefined" || gamed === "undefined") continue;
+        const before = reps(plain);
+        const after = reps(gamed);
+        if (before === null || after === null) continue;
+        expect(after, `week ${week} day ${day}`).toBeLessThanOrEqual(before);
+      }
+    }
+  });
+
   it("gives the transition Wednesday's gym its velocity work back", () => {
     // The gym is the half that *should* change. The rebuild block was written
     // for an athlete whose season had ended: it drops the speed squat and the

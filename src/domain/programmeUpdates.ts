@@ -466,6 +466,60 @@ function withTrapBarDose(week: number | null) {
 }
 
 /**
+ * The finals week's hinge, cut to a taper's volume with its load left alone.
+ *
+ * The rebuild Wednesday prescribes the trap bar deadlift at week 9's block
+ * entry, `3 × 5 @ 65%`. That is accumulation work written for an athlete whose
+ * season has ended, and it is the single heaviest item in the week: fifteen
+ * reps at 97.5 kg is 1,463 kg, and it is most of the reason a finals week that
+ * is supposed to be a taper carries *more* tonnage than the last in-season
+ * week rather than less.
+ *
+ * So the sets and reps come down and the bar does not. That is the whole
+ * distinction the rest of this week is built on — a taper cuts volume and
+ * holds intensity, an unload cuts both (Bosquet 2007, Med Sci Sports Exerc
+ * 39(8):1358–65; Mujika & Padilla 2003, 35(7):1182–7) — applied to the one
+ * exercise where the volume actually is. 65% of the training max is not a
+ * stressful intensity to hold two days before a semi-final; five reps a set of
+ * it, three times over, is a stressful volume.
+ *
+ * It only ever removes work. A rebuild week whose block entry is already at or
+ * below this dose keeps what the programme wrote, because a taper that adds
+ * sets is not a taper.
+ */
+const TAPER_SETS = 2;
+const TAPER_REPS = 3;
+const LEADING_SETS_REPS = /^(\d+)\s*×\s*(\d+)/;
+
+function withTaperedHinge(tapering: boolean) {
+  return (task: SessionTask): SessionTask => {
+    if (!tapering) return task;
+    if (!/^Trap bar deadlift$/.test(task.name)) return task;
+
+    const written = String(task.prescription).match(LEADING_SETS_REPS);
+    if (!written) return task;
+    const [, sets, reps] = written;
+    // Never upwards, and never a no-op edit that rewrites the string with the
+    // numbers it already had.
+    if (Number(sets) * Number(reps) <= TAPER_SETS * TAPER_REPS) return task;
+
+    return {
+      ...task,
+      prescription: task.prescription.replace(LEADING_SETS_REPS, `${TAPER_SETS} × ${TAPER_REPS}`),
+      cue: appendOnce(
+        task.cue,
+        "Volume is cut for the game week; the bar is not. Every rep should move like the first one — if it does not, that set is finished."
+      ),
+      evidence:
+        `The block table writes this week as ${sets} × ${reps}, which is the transition block's rebuild dose for a season that has ended. ` +
+        `With a final in the week it is cut to ${TAPER_SETS} × ${TAPER_REPS} at the same load: a taper reduces volume and holds intensity, ` +
+        `and this lift is where the week's volume actually sits (${Number(sets) * Number(reps)} reps down to ${TAPER_SETS * TAPER_REPS}). ` +
+        "Bosquet 2007 and Mujika & Padilla 2003 both put the largest taper effects at a substantial volume cut with intensity and frequency maintained.",
+    };
+  };
+}
+
+/**
  * The second reactive exposure of the week.
  *
  * Reactive strength is the limiter the testing named first — drop-jump RSI
@@ -1148,6 +1202,13 @@ export function applyBaselineProgramming(
   // by most of them.
   const week = weekFromTasks(session.tasks);
 
+  // Declared before the pipeline because one of its steps needs them; the
+  // reasoning for both is at their point of use, below. Read off the session
+  // rather than the filtered list, because the question is what kind of
+  // Wednesday this is, which no filter can change.
+  const rebuildWednesday = session.tasks.some((task) => task.stageTitle === "Whole-Body Rebuild");
+  const tapering = rebuildWednesday && Number(session.gamesThisWeek ?? 0) > 0;
+
   const tasks = session.tasks
     .filter((task) => !isRemovedImplement(task))
     .filter((task) => !isDisplacedByBackSquat(task, day))
@@ -1155,6 +1216,10 @@ export function applyBaselineProgramming(
     .filter((task): task is SessionTask => task !== null)
     .map(withTrapBarDose(week))
     .map(withoutSelfReference)
+    // After the dose, so a summer Wednesday's sets and reps exist to be cut,
+    // and after the self-reference strip, so the prescription starts with the
+    // set count rather than with the exercise's own name.
+    .map(withTaperedHinge(tapering))
     // After the broad jump is split out, so the survivor is named "Trap bar
     // jump" rather than "Broad jump + trap bar jump".
     .map(withJumpPowerLoad)
@@ -1275,14 +1340,14 @@ export function applyBaselineProgramming(
    * the lowest-volume, highest-velocity work in the week (the speed squat is
    * twelve total reps) and not at all on the accumulation work. A taper is the
    * other way round — cut volume, hold intensity (Bosquet 2007; Mujika &
-   * Padilla 2003) — so on a week that actually holds a game the velocity work
-   * goes back in, and only that.
+   * Padilla 2003) — so on a week that actually holds a game this flag does
+   * both halves of that: the velocity work goes back in (`wantsVelocityWork`
+   * and the trap bar jump, below), and the accumulation volume comes off the
+   * hinge at the same load (`withTaperedHinge`, in the pipeline above).
    *
    * Gated on the fixtures rather than on the phase, because weeks 10, 37 and 38
    * are genuine unload weeks with no game in them and have no reason to change.
    */
-  const rebuildWednesday = tasks.some((task) => task.stageTitle === "Whole-Body Rebuild");
-  const tapering = rebuildWednesday && Number(session.gamesThisWeek ?? 0) > 0;
   /**
    * Thursday's microdoses, unless Thursday has become the day before a game.
    *
