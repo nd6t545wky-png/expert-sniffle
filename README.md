@@ -257,7 +257,39 @@ deployed bundle, so they're currently placeholders.
 npm run typecheck   # tsc --noEmit
 npm run test        # vitest, including the design-system rules
 npm run build       # public/ -> dist/, minified
-npm run deploy       # build + wrangler deploy
+npm run deploy      # build + wrangler deploy + verify against production
+npm run verify:live # ask production which commit it is running
 ```
 
 `npm run dev` builds once and runs `wrangler dev` for local iteration.
+
+### Deploying happens on merge
+
+`.github/workflows/deploy.yml` ships the default branch to Cloudflare on every
+push to it, and can be run on demand from the Actions tab (`workflow_dispatch`)
+for a redeploy or a rollback without inventing a commit.
+
+It will not deploy a build that fails `typecheck` or the test suite, and it
+never runs from a pull request — a fork cannot reach production or the
+credentials. After `wrangler deploy` it runs `scripts/verify-deploy.mjs`, which
+asks production which commit it is actually serving and compares it to the one
+just built. That is the difference between "the deploy command exited 0" and
+"the app is the one you think it is": production is a single Worker, the last
+deploy wins silently, and that has already cost this project once.
+
+`.github/workflows/ci.yml` runs the same typecheck and tests on pull requests,
+so the gate means something before the merge rather than after it.
+
+**One-time setup.** The workflow needs a Cloudflare API token in
+**Settings → Secrets and variables → Actions** as `CLOUDFLARE_API_TOKEN`, made
+from Cloudflare's *Edit Cloudflare Workers* template (add D1 and R2 read/write,
+which this Worker binds). Add `CLOUDFLARE_ACCOUNT_ID` too if the token can see
+more than one account. Until the token exists the deploy job fails on its first
+step with a message saying so, rather than part-way through wrangler.
+
+Two things the pipeline deliberately does **not** do: apply D1 migrations
+(`wrangler d1 migrations apply` against the remote database changes athlete
+data and should be a decision, not a side effect of a merge), and run the
+browser audits or the `e2e` suite (both need a served build, a real Chromium
+and a migrated local D1, and a check that fails for unrelated reasons is a
+check people learn to ignore).
