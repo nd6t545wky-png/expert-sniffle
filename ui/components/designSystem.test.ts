@@ -37,7 +37,19 @@ const SHEETS: [string, string][] = [
 ];
 
 /** The selectors allowed to be a translucent material. */
-const CHROME = /\.(sidebar|topbar|bottom-nav|mobile-sheet|toast)\b/;
+/**
+ * Where the material is allowed.
+ *
+ * This started as chrome only, on the argument that text read through a
+ * blurred backdrop does not survive a data-dense screen. The athlete looked
+ * at the result on a phone and asked for the glass back, which settles it:
+ * it is their app, and the call was a judgement rather than a finding.
+ *
+ * So content surfaces are on the list now -- but only these two, named. The
+ * rule still exists, and still fails if blur turns up on a table, a row, a
+ * chip or a run of text, which is the part that was never about taste.
+ */
+const CHROME = /\.(sidebar|topbar|bottom-nav|mobile-sheet|toast|card|hero-session)\b/;
 
 /**
  * Every declaration in the sheet, with the line it starts on, its enclosing
@@ -128,10 +140,10 @@ describe("design system", () => {
     expect(STYLES).toMatch(/--radius-pill:\s*999px/);
   });
 
-  it("blurs the chrome and nothing else", () => {
-    // Content read through a blurred backdrop is the part of this language that
-    // does not survive a data-dense screen. Navigation, sheets and toasts get
-    // the material; cards, tables and text do not.
+  it("keeps the material on the surfaces that are allowed it", () => {
+    // Chrome, cards and the session slab carry the glass. Everything else --
+    // tables, rows, chips, runs of text -- does not, because a blurred backdrop
+    // under dense text is unreadable rather than merely unfashionable.
     const offenders = SHEETS.flatMap(([name, css]) =>
       declarations(css)
         .filter(({ text }) => /^-?(?:webkit-)?backdrop-filter\s*:/.test(text))
