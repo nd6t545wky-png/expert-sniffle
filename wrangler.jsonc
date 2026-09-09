@@ -1,6 +1,15 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "dylan-pitching-os",
+  // Pinned because the deploy token can see two accounts, and wrangler will
+  // not guess between them in CI -- it exits with "More than one account
+  // available but unable to select one in non-interactive mode" and lists
+  // them. Setting it here rather than as a CLOUDFLARE_ACCOUNT_ID secret keeps
+  // the deploy deterministic for any future token regardless of what that
+  // token can see, and puts the target account in the same file as the
+  // database_id and bucket_name it has to agree with. An account id is an
+  // identifier, not a credential.
+  "account_id": "82ca8b56a7488d1cdfac14b5263a4ef0",
   "main": "src/index.ts",
   // NOTE: reconstructed from the deployed bundle — confirm this matches
   // whatever compatibility_date the original project actually used.
