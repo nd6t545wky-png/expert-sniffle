@@ -145,6 +145,60 @@ async function enforceAccountRateLimit(
   return (await overLimit(env, key, limit, period)) ? tooMany : null;
 }
 
+/**
+ * USDA FoodData Central, proxied.
+ *
+ * The Worker holds the key and the browser never sees it. Responses are passed
+ * through as-is: parsing them here would put the provider's vocabulary in two
+ * places, and `fromUsda` in the domain layer is already the one translator.
+ *
+ * A missing key is a 503 with a message that names the fix, not a 500. The
+ * composite provider treats any non-OK response as "no results", so the app
+ * degrades to Open Food Facts alone rather than breaking.
+ */
+const USDA_BASE = "https://api.nal.usda.gov/fdc/v1";
+
+function usdaUnavailable(): Response {
+  return json(
+    { error: "USDA lookup is not configured. Set the USDA_API_KEY secret to enable it." },
+    503
+  );
+}
+
+async function usdaFetch(path: string, env: Env): Promise<Response> {
+  if (!env.USDA_API_KEY) return usdaUnavailable();
+  try {
+    const upstream = await fetch(`${USDA_BASE}${path}&api_key=${encodeURIComponent(env.USDA_API_KEY)}`, {
+      headers: { Accept: "application/json" },
+    });
+    // Pass the status through so the client can tell "no results" from "the
+    // provider is down", but never the body on an error: FDC echoes the API
+    // key back inside some of its error messages.
+    if (!upstream.ok) return json({ error: `USDA responded ${upstream.status}` }, 502);
+    return json(await upstream.json());
+  } catch {
+    return json({ error: "USDA could not be reached." }, 502);
+  }
+}
+
+function usdaSearch(_request: Request, env: Env, url: URL): Promise<Response> {
+  const query = (url.searchParams.get("q") ?? "").trim();
+  if (!query) return Promise.resolve(json({ foods: [] }));
+  // Foundation and SR Legacy are the laboratory-analysed sets, reported per
+  // 100 g. Branded there is per-serving and patchier than Open Food Facts.
+  const path =
+    `/foods/search?query=${encodeURIComponent(query)}&pageSize=20` +
+    `&dataType=${encodeURIComponent("Foundation,SR Legacy")}`;
+  return usdaFetch(path, env);
+}
+
+function usdaBarcode(_request: Request, env: Env, url: URL): Promise<Response> {
+  const code = (url.searchParams.get("code") ?? "").replace(/\D/g, "");
+  if (!code) return Promise.resolve(json({ foods: [] }));
+  const path = `/foods/search?query=${encodeURIComponent(code)}&dataType=${encodeURIComponent("Branded")}&pageSize=5`;
+  return usdaFetch(path, env);
+}
+
 function clientIp(request: Request): string {
   return request.headers.get("CF-Connecting-IP") || "unknown";
 }
@@ -2446,6 +2500,20 @@ async function deleteAccount(request: Request, env: Env, url: URL): Promise<Resp
 // -- Router -------------------------------------------------------------------
 
 async function routeApi(request: Request, env: Env, url: URL): Promise<Response | null> {
+  // Food lookup. Proxied rather than called from the page for two reasons: the
+  // USDA key would otherwise have to ship in the bundle, where it is public by
+  // definition, and FoodData Central sends no CORS headers, so a browser cannot
+  // reach it at all. Rate-limited with the other integrations because it spends
+  // somebody else's quota.
+  if (url.pathname === "/api/food/search" && request.method === "GET") {
+    const limited = await enforceAccountRateLimit(request, env, url, env.INTEGRATION_RATE_LIMITER, "food");
+    return limited ?? usdaSearch(request, env, url);
+  }
+  if (url.pathname === "/api/food/barcode" && request.method === "GET") {
+    const limited = await enforceAccountRateLimit(request, env, url, env.INTEGRATION_RATE_LIMITER, "food");
+    return limited ?? usdaBarcode(request, env, url);
+  }
+
   if (url.pathname === "/api/health" && request.method === "GET") {
     await env.SYNC_DB.prepare("SELECT 1").first();
     // Audit fix: this endpoint is unauthenticated by design (used for uptime

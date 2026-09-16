@@ -123,5 +123,10 @@
 
   // Secrets (set with `wrangler secret put <NAME>`, never committed here):
   //   BETTER_AUTH_SECRET, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET,
-  //   OURA_CLIENT_ID, OURA_CLIENT_SECRET, HEALTH_TOKEN_KEY, WORKSPACE_MASTER_KEY
+  //   OURA_CLIENT_ID, OURA_CLIENT_SECRET, HEALTH_TOKEN_KEY, WORKSPACE_MASTER_KEY,
+  //   USDA_API_KEY
+  //
+  // USDA_API_KEY is free from fdc.nal.usda.gov/api-key-signup and gates rate,
+  // not access. Without it /api/food/* answers 503 and food lookup falls back
+  // to Open Food Facts alone, which needs no key at all.
 }
