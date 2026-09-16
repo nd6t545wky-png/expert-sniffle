@@ -1972,6 +1972,33 @@ interface MealComponent {
 const FDC_IDS = { kcal: 1008, protein: 1003, fat: 1004, carbs: 1005 } as const;
 
 /**
+ * Energy, in the three places FoodData Central keeps it.
+ *
+ * SR Legacy rows carry 1008 ("Energy"). Foundation Foods -- the
+ * laboratory-analysed set, which is the reason to use USDA at all -- often do
+ * not, and report 2048 (Atwater specific factors, food-specific coefficients)
+ * and 2047 (Atwater general factors, the 4/4/9 approximation) instead.
+ *
+ * Reading only 1008 was a real bug, caught against the live API: "Oats, whole
+ * grain, rolled, old fashioned" has no 1008 and would have been rejected, and
+ * because grounding needs every component to resolve, one such food killed
+ * grounding for the whole meal. Silently, and for exactly the whole foods the
+ * database is best at.
+ *
+ * Specific factors are preferred over general where both exist, because they
+ * are measured for that food rather than assumed from its macros.
+ */
+const FDC_ENERGY_IDS = [FDC_IDS.kcal, 2048, 2047] as const;
+
+function energyPer100g(per100: Map<number, number>): number | null {
+  for (const id of FDC_ENERGY_IDS) {
+    const value = per100.get(id);
+    if (Number.isFinite(value)) return value as number;
+  }
+  return null;
+}
+
+/**
  * Look one component up and scale it to the eaten weight.
  *
  * Returns null when nothing usable came back, which the caller reads as "keep
@@ -1995,15 +2022,17 @@ async function groundComponent(name: string, grams: number, env: Env): Promise<M
       const value = Number(nutrient.value);
       if (Number.isFinite(id) && Number.isFinite(value)) per100.set(id, value);
     }
-    // No energy figure means this row cannot carry the item; better to keep the
-    // model's number than to log a food with no calories in it.
-    if (!per100.has(FDC_IDS.kcal)) return null;
+    // No energy figure in any of its three forms means this row cannot carry
+    // the item; better to keep the model's number than to log a food with no
+    // calories in it.
+    const kcal = energyPer100g(per100);
+    if (kcal === null) return null;
 
     const scale = (id: number) => Math.round(((per100.get(id) ?? 0) * grams) / 100);
     return {
       name: String(food.description ?? name).slice(0, 100),
       grams: Math.round(grams),
-      calories: scale(FDC_IDS.kcal),
+      calories: Math.round((kcal * grams) / 100),
       protein: scale(FDC_IDS.protein),
       carbs: scale(FDC_IDS.carbs),
       fat: scale(FDC_IDS.fat),
