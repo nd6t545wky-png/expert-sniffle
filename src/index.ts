@@ -1892,7 +1892,17 @@ interface NutritionEstimate {
   assumptions: string[];
 }
 
-function parseNutritionEstimate(value: unknown): NutritionEstimate {
+/**
+ * Unwrap whatever Workers AI handed back into the JSON object inside it.
+ *
+ * Three shapes turn up depending on model and template: a bare object, one
+ * wrapped in `response`, and an OpenAI-style `choices[0].message.content`
+ * string. Shared rather than duplicated because the component reader below has
+ * to unwrap identically -- when it did not, it silently found no components on
+ * the `choices` shape and every estimate fell back to the model's own macros
+ * while reporting nothing was wrong.
+ */
+function unwrapAiJson(value: unknown): Record<string, unknown> | null {
   let candidate: unknown = value;
   if (candidate && typeof candidate === "object" && !Array.isArray(candidate) && "response" in candidate) {
     candidate = (candidate as Record<string, unknown>).response;
@@ -1904,10 +1914,19 @@ function parseNutritionEstimate(value: unknown): NutritionEstimate {
   }
   if (typeof candidate === "string") {
     const match = candidate.match(/\{[\s\S]*\}/);
-    candidate = match ? JSON.parse(match[0]) : null;
+    try {
+      candidate = match ? JSON.parse(match[0]) : null;
+    } catch {
+      return null;
+    }
   }
-  if (!candidate || typeof candidate !== "object" || Array.isArray(candidate)) throw new Error("The meal estimate could not be read");
-  const record = candidate as Record<string, unknown>;
+  if (!candidate || typeof candidate !== "object" || Array.isArray(candidate)) return null;
+  return candidate as Record<string, unknown>;
+}
+
+function parseNutritionEstimate(value: unknown): NutritionEstimate {
+  const record = unwrapAiJson(value);
+  if (!record) throw new Error("The meal estimate could not be read");
   const confidence = ["low", "medium", "high"].includes(String(record.confidence).toLowerCase()) ? String(record.confidence).toLowerCase() : "low";
   return {
     name: cleanText(typeof record.name === "string" ? record.name : "Meal", 100) || "Meal",
@@ -1921,6 +1940,133 @@ function parseNutritionEstimate(value: unknown): NutritionEstimate {
       ? record.assumptions.filter((item): item is string => typeof item === "string").slice(0, 8).map((item) => cleanText(item, 160))
       : [],
   };
+}
+
+/**
+ * Replace the model's remembered macros with a database's measured ones.
+ *
+ * A vision model asked for calories does two jobs at once: it recognises the
+ * food and portion, which it is genuinely good at, and it recalls a nutrition
+ * table from memory, which it is not. The second job is where the error lives,
+ * and it is the job a database does perfectly.
+ *
+ * So the model is now asked for `components` -- what, and how many grams -- and
+ * the macros are looked up and multiplied here. "180 g grilled chicken breast"
+ * stops being an invented 300 kcal and becomes 180 g times a measured figure.
+ *
+ * Grounding is per-component and best-effort. Anything that cannot be looked up
+ * keeps the model's own share, the response says which is which, and a lookup
+ * being down degrades the estimate rather than failing it.
+ */
+interface MealComponent {
+  name: string;
+  grams: number;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+  source: string;
+}
+
+/** Nutrient ids in FoodData Central. Stable, unlike the display names. */
+const FDC_IDS = { kcal: 1008, protein: 1003, fat: 1004, carbs: 1005 } as const;
+
+/**
+ * Look one component up and scale it to the eaten weight.
+ *
+ * Returns null when nothing usable came back, which the caller reads as "keep
+ * what the model said for this item".
+ */
+async function groundComponent(name: string, grams: number, env: Env): Promise<MealComponent | null> {
+  if (!env.USDA_API_KEY || !name || !(grams > 0)) return null;
+  try {
+    const path =
+      `/foods/search?query=${encodeURIComponent(name)}&pageSize=1` +
+      `&dataType=${encodeURIComponent("Foundation,SR Legacy")}`;
+    const response = await usdaFetch(path, env);
+    if (!response.ok) return null;
+    const body = (await response.json()) as { foods?: Array<{ description?: string; foodNutrients?: Array<{ nutrientId?: number; value?: number }> }> };
+    const food = body.foods?.[0];
+    if (!food) return null;
+
+    const per100 = new Map<number, number>();
+    for (const nutrient of food.foodNutrients ?? []) {
+      const id = Number(nutrient.nutrientId);
+      const value = Number(nutrient.value);
+      if (Number.isFinite(id) && Number.isFinite(value)) per100.set(id, value);
+    }
+    // No energy figure means this row cannot carry the item; better to keep the
+    // model's number than to log a food with no calories in it.
+    if (!per100.has(FDC_IDS.kcal)) return null;
+
+    const scale = (id: number) => Math.round(((per100.get(id) ?? 0) * grams) / 100);
+    return {
+      name: String(food.description ?? name).slice(0, 100),
+      grams: Math.round(grams),
+      calories: scale(FDC_IDS.kcal),
+      protein: scale(FDC_IDS.protein),
+      carbs: scale(FDC_IDS.carbs),
+      fat: scale(FDC_IDS.fat),
+      source: "USDA FoodData Central",
+    };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Ground a whole estimate, and only adopt the result if it is worth adopting.
+ *
+ * The totals are replaced only when *every* component was looked up. A partial
+ * sum is worse than the model's own figure: it silently omits the items that
+ * failed, and a meal missing its rice reads as a light lunch rather than an
+ * error. Partial results are still returned for display, so the athlete can see
+ * the breakdown, but the headline number stays the model's.
+ */
+async function groundEstimate(
+  estimate: NutritionEstimate,
+  components: Array<{ name: string; grams: number }>,
+  env: Env
+): Promise<{ estimate: NutritionEstimate; components: MealComponent[]; basis: "database" | "model" }> {
+  if (!components.length || !env.USDA_API_KEY) {
+    return { estimate, components: [], basis: "model" };
+  }
+
+  // Bounded: a photo of a buffet should not fan out into thirty lookups.
+  const wanted = components.slice(0, 8);
+  const looked = await Promise.all(wanted.map((c) => groundComponent(c.name, c.grams, env)));
+  const grounded = looked.filter((c): c is MealComponent => c !== null);
+
+  if (grounded.length !== wanted.length) {
+    return { estimate, components: grounded, basis: "model" };
+  }
+
+  const sum = (pick: (c: MealComponent) => number) => grounded.reduce((total, c) => total + pick(c), 0);
+  return {
+    estimate: {
+      ...estimate,
+      calories: nutritionNumber(sum((c) => c.calories), 5000),
+      protein: nutritionNumber(sum((c) => c.protein), 500),
+      carbs: nutritionNumber(sum((c) => c.carbs), 800),
+      fat: nutritionNumber(sum((c) => c.fat), 500),
+      // The portion is still the model's guess even when the macros are
+      // measured, so a grounded estimate is never promoted above medium.
+      confidence: estimate.confidence === "high" ? "medium" : estimate.confidence,
+    },
+    components: grounded,
+    basis: "database",
+  };
+}
+
+/** Pull the model's `components` array out, tolerating the shapes it returns. */
+function readComponents(value: unknown): Array<{ name: string; grams: number }> {
+  const record = unwrapAiJson(value);
+  const raw = record ? record.components : null;
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .filter((entry): entry is Record<string, unknown> => !!entry && typeof entry === "object")
+    .map((entry) => ({ name: cleanText(String(entry.name ?? ""), 100), grams: Number(entry.grams) }))
+    .filter((entry) => entry.name.length > 1 && Number.isFinite(entry.grams) && entry.grams > 0 && entry.grams < 3000);
 }
 
 function imageDataUrl(image: ArrayBuffer, contentType: string): string {
@@ -1937,7 +2083,11 @@ async function normalizedMealImage(image: ArrayBuffer, contentType: string, env:
   if (!MEAL_IMAGE_TYPES.has(contentType)) throw new Error("Unsupported meal photo format");
   const source = new Response(image).body;
   if (!source) throw new Error("The iPhone photo could not be read");
-  const transformed = await env.IMAGES.input(source).transform({ width: 768, fit: "scale-down" }).output({ format: "image/jpeg", quality: 78 });
+  // 1280/85 rather than 768/78. Portion size is read off fine detail -- the
+  // grain of the rice, the thickness of the fillet, how full the bowl is -- and
+  // most of that is gone by 768px at quality 78. This is the cheapest accuracy
+  // available: the model cannot estimate what it was never shown.
+  const transformed = await env.IMAGES.input(source).transform({ width: 1280, fit: "scale-down" }).output({ format: "image/jpeg", quality: 85 });
   const response = transformed.response();
   if (!response.ok) throw new Error("The iPhone photo could not be converted");
   const converted = await response.arrayBuffer();
@@ -1966,31 +2116,51 @@ async function analyzeMealPhoto(request: Request, env: Env, url: URL): Promise<R
     messages: [
       {
         role: "system",
-        content: "You estimate food nutrition from a meal photo. Identify only visible foods, use the athlete's notes, estimate portions conservatively, and never claim exact hidden ingredients. Return JSON only.",
+        content:
+          "You estimate food from a meal photo for an athlete's training log. " +
+          "Identify only visible foods and use the athlete's notes. " +
+          // The single biggest lever in photo portion estimation, and it was
+          // missing entirely: without a scale reference the model is guessing
+          // absolute size from an image with no absolute sizes in it.
+          "Judge portion size against the objects around the food: a dinner plate is about 27 cm across, " +
+          "a fork about 19 cm, a teaspoon bowl about 2.5 cm, a standard mug about 8 cm wide. " +
+          "Work out each item's weight in grams from its area on the plate and its depth -- a chicken breast " +
+          "is roughly 2-3 cm thick, cooked rice mounds at about 0.8 g per cubic centimetre. " +
+          "Never claim exact hidden ingredients; cooking oil and sauces are usually invisible and are " +
+          "the most common reason a photo estimate reads low. Return JSON only.",
       },
       {
         role: "user",
         content: [
           {
             type: "text",
-            text: `Analyse this single meal. Athlete notes: ${notes || "none"}. Return {"name":string,"calories":number,"protein":number,"carbs":number,"fat":number,"confidence":"low"|"medium"|"high","items":string[],"assumptions":string[]}. Totals must describe the whole visible meal. List visible items and portion assumptions. Use low confidence when portions, sauces, oils or ingredients are unclear.`,
+            text: `Analyse this single meal. Athlete notes: ${notes || "none"}. Return {"name":string,"calories":number,"protein":number,"carbs":number,"fat":number,"confidence":"low"|"medium"|"high","items":string[],"assumptions":string[],"components":[{"name":string,"grams":number}]}. "components" is the important field: one entry per distinct visible food, named plainly and specifically enough to look up in a nutrition database ("grilled chicken breast, skinless" not "protein"), with your best estimate of its cooked weight in grams. State whether each weight is raw or cooked in "assumptions". Totals must describe the whole visible meal. Use low confidence when portions, sauces, oils or ingredients are unclear.`,
           },
           { type: "image_url", image_url: { url: photo, detail: "auto" } },
         ],
       },
     ],
-    max_completion_tokens: 360,
-    reasoning_effort: "low",
-    chat_template_kwargs: { enable_thinking: false },
+    // Estimating "how much chicken is that" IS a reasoning task: compare against
+    // the plate, infer depth, convert an area to a mass. It was previously told
+    // not to think, and given 360 tokens to return a JSON carrying two arrays.
+    max_completion_tokens: 900,
+    reasoning_effort: "medium",
     temperature: 0,
     response_format: { type: "json_object" },
   } as any);
 
-  const estimate = parseNutritionEstimate(aiReply);
+  const parsed = parseNutritionEstimate(aiReply);
+  const { estimate, components, basis } = await groundEstimate(parsed, readComponents(aiReply), env);
+
   return json({
     estimate,
+    components,
+    basis,
     photoRetained: false,
-    notice: "The photo was processed for this estimate and was not stored. Review portions and edit values before saving.",
+    notice:
+      basis === "database"
+        ? "Portions were read from the photo; the nutrition behind them came from USDA FoodData Central. Check the weights — they are the estimate, and oil in the pan is invisible to a camera."
+        : "The photo was processed for this estimate and was not stored. Review portions and edit values before saving.",
   });
 }
 
@@ -2016,7 +2186,7 @@ async function analyzeMealText(request: Request, env: Env, url: URL): Promise<Re
       },
       {
         role: "user",
-        content: `Log this meal: ${description}. Return {"name":string,"serving":string,"calories":number,"protein":number,"carbs":number,"fat":number,"confidence":"low"|"medium"|"high","items":string[],"assumptions":string[],"brandOrMenuDetected":boolean,"officialMatch":boolean,"sourceUrl":string,"sourceTitle":string,"evidence":string}. Calories and macros must describe the amount eaten. Set officialMatch true only for an exact supported item and serving; otherwise use assumptions and an estimate.`,
+        content: `Log this meal: ${description}. Return {"name":string,"serving":string,"calories":number,"protein":number,"carbs":number,"fat":number,"confidence":"low"|"medium"|"high","items":string[],"assumptions":string[],"components":[{"name":string,"grams":number}],"brandOrMenuDetected":boolean,"officialMatch":boolean,"sourceUrl":string,"sourceTitle":string,"evidence":string}. Calories and macros must describe the amount eaten. "components" breaks the meal into distinct foods with the weight eaten in grams, each named specifically enough to look up in a nutrition database. Set officialMatch true only for an exact supported item and serving; otherwise use assumptions and an estimate.`,
       },
     ],
     max_completion_tokens: 760,
@@ -2062,12 +2232,22 @@ async function analyzeMealText(request: Request, env: Env, url: URL): Promise<Re
     });
   const officialMatch = record.officialMatch === true && citedSource;
 
+  // Ground against the database only when there is no official match. A chain's
+  // own nutrition page for its own burrito beats a generic USDA row for
+  // "burrito" every time -- overriding a cited official source with a database
+  // average would make this less accurate, not more.
+  const grounded = officialMatch
+    ? { estimate, components: [] as MealComponent[], basis: "model" as const }
+    : await groundEstimate(estimate, readComponents(record), env);
+
   return json({
     estimate: {
-      ...estimate,
+      ...grounded.estimate,
       serving: cleanText(typeof record.serving === "string" ? record.serving : "", 100),
-      confidence: officialMatch ? "high" : estimate.confidence,
+      confidence: officialMatch ? "high" : grounded.estimate.confidence,
     },
+    components: grounded.components,
+    basis: officialMatch ? "official" : grounded.basis,
     source: officialMatch ? "official_menu" : "text_ai",
     brandOrMenuDetected: record.brandOrMenuDetected === true,
     officialMatch,
