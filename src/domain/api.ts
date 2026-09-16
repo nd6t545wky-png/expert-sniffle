@@ -441,6 +441,35 @@ export interface NutritionEstimate {
   serving?: string;
 }
 
+/**
+ * One food inside a meal, with its nutrition looked up rather than remembered.
+ *
+ * A vision model asked for calories does two jobs: recognise the food and
+ * portion, which it is good at, and recall a nutrition table, which it is not.
+ * These are the results of handing the second job to a database.
+ */
+export interface MealComponent {
+  name: string;
+  grams: number;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+  source: string;
+}
+
+/**
+ * Where the headline macros came from.
+ *
+ * `database` means every component was looked up and the totals are their sum.
+ * `official` means a brand or chain's own published figures. `model` means the
+ * estimate is the model's own, either because grounding was unavailable or
+ * because only some components could be resolved -- a partial sum would omit
+ * whatever failed, and a meal missing its rice reads as a light lunch rather
+ * than an error.
+ */
+export type EstimateBasis = "database" | "official" | "model";
+
 export interface MealTextResponse {
   estimate: NutritionEstimate;
   source: string;
