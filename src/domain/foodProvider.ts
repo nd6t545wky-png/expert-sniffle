@@ -144,3 +144,255 @@ export function fromOpenFoodFacts(product: OffProduct): FoodItem | null {
     source: "Open Food Facts",
   };
 }
+
+/** USDA FoodData Central, as it spells things. Every field may be absent. */
+interface UsdaNutrient {
+  nutrientId?: number;
+  value?: number;
+}
+interface UsdaFood {
+  fdcId?: number;
+  description?: string;
+  brandOwner?: string;
+  brandName?: string;
+  gtinUpc?: string;
+  servingSize?: number;
+  servingSizeUnit?: string;
+  foodNutrients?: UsdaNutrient[];
+}
+
+/**
+ * FDC nutrient ids. These are stable numbers, and using them rather than the
+ * `nutrientName` strings is deliberate: the names carry qualifiers ("Protein"
+ * vs "Adjusted Protein") that change between data types, while the ids do not.
+ */
+const FDC = Object.freeze({
+  energyKcal: 1008,
+  protein: 1003,
+  fat: 1004,
+  carbs: 1005,
+  fibre: 1079,
+  sodium: 1093,
+  calcium: 1087,
+  iron: 1089,
+  potassium: 1092,
+  magnesium: 1090,
+  zinc: 1095,
+});
+
+/**
+ * USDA FoodData Central to `FoodItem`.
+ *
+ * FDC reports per 100 g for Foundation and SR Legacy foods, which is the bulk
+ * of what it is good for -- whole foods, cuts of meat, raw ingredients. Branded
+ * items there are often per-serving and patchier than Open Food Facts, which is
+ * the division of labour the composite provider below assumes.
+ */
+export function fromUsda(food: UsdaFood): FoodItem | null {
+  const name = String(food.description ?? "").trim();
+  if (!name) return null;
+
+  const by = new Map<number, number>();
+  for (const nutrient of food.foodNutrients ?? []) {
+    const id = Number(nutrient.nutrientId);
+    const value = Number(nutrient.value);
+    if (Number.isFinite(id) && Number.isFinite(value)) by.set(id, value);
+  }
+
+  const micros: MicronutrientAmounts = {};
+  // Absent stays absent, exactly as in the OFF mapper. FDC omits the row
+  // entirely when a nutrient was not measured, which is not the same as zero.
+  if (by.has(FDC.fibre)) micros.fibre = by.get(FDC.fibre);
+  if (by.has(FDC.sodium)) micros.sodium = by.get(FDC.sodium);
+  if (by.has(FDC.calcium)) micros.calcium = by.get(FDC.calcium);
+  if (by.has(FDC.iron)) micros.iron = by.get(FDC.iron);
+  if (by.has(FDC.potassium)) micros.potassium = by.get(FDC.potassium);
+  if (by.has(FDC.magnesium)) micros.magnesium = by.get(FDC.magnesium);
+  if (by.has(FDC.zinc)) micros.zinc = by.get(FDC.zinc);
+
+  // Only trust a declared serving weight when the unit is actually a mass.
+  // FDC records millilitres here for drinks, and treating those as grams is the
+  // silent volume-to-mass guess servingSize.ts exists to refuse.
+  const unit = String(food.servingSizeUnit ?? "").toLowerCase();
+  const servingGrams = unit === "g" || unit === "gram" ? Number(food.servingSize) : undefined;
+
+  return {
+    id: `usda:${food.fdcId ?? name}`,
+    name,
+    brand: (food.brandName || food.brandOwner || "").trim() || undefined,
+    caloriesPer100g: by.get(FDC.energyKcal) ?? 0,
+    proteinPer100g: by.get(FDC.protein) ?? 0,
+    carbsPer100g: by.get(FDC.carbs) ?? 0,
+    fatPer100g: by.get(FDC.fat) ?? 0,
+    gramsPerServing: Number.isFinite(servingGrams) ? servingGrams : undefined,
+    micronutrients: Object.keys(micros).length ? micros : undefined,
+    barcode: food.gtinUpc ? String(food.gtinUpc) : undefined,
+    source: "USDA FoodData Central",
+  };
+}
+
+export type Fetcher = (input: string, init?: RequestInit) => Promise<Response>;
+
+/**
+ * Parse a response body, or give up quietly.
+ *
+ * Both providers answer with an HTML status page when they are having a bad
+ * day. Open Food Facts currently returns 503 for its search endpoint, which
+ * `response.ok` catches -- but a 200 carrying an outage page is a real shape
+ * during partial failures, and `response.json()` throws on it. A search that
+ * returns nothing is a far better outcome than one that rejects on every
+ * keystroke the athlete types.
+ */
+async function parseJson<T>(response: Response): Promise<T | null> {
+  if (!response.ok) return null;
+  try {
+    return (await response.json()) as T;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Two databases that are good at different halves of the problem.
+ *
+ * Open Food Facts is crowd-sourced packaged groceries: excellent barcode
+ * coverage, Australian products included, no key, and nutrition that is only as
+ * careful as the contributor who typed it. USDA FoodData Central is laboratory
+ * analysis of whole foods: chicken breast, rolled oats, a banana -- deeper and
+ * far more trustworthy, with barely any barcodes and almost nothing Australian.
+ *
+ * Running both is not hedging. A day of this athlete's food is roughly half
+ * packaged and half not, and each provider is the right answer for one half.
+ */
+export function composite(providers: readonly FoodProvider[]): FoodProvider {
+  return {
+    name: providers.map((p) => p.name).join(" + "),
+
+    async search(query, signal) {
+      // One provider being down, rate-limited or keyless must not take the
+      // search with it -- `allSettled`, and the survivors are still useful.
+      const settled = await Promise.allSettled(providers.map((p) => p.search(query, signal)));
+      const merged: FoodItem[] = [];
+      for (const outcome of settled) {
+        if (outcome.status === "fulfilled") merged.push(...outcome.value);
+      }
+      return dedupe(merged);
+    },
+
+    async byBarcode(code, signal) {
+      // Sequential, not parallel: the first provider with barcode coverage
+      // almost always answers, and a second network call on every scan is a
+      // cost paid at the till with the phone in one hand.
+      for (const provider of providers) {
+        try {
+          const hit = await provider.byBarcode(code, signal);
+          if (hit) return hit;
+        } catch {
+          // A provider that throws is a provider that did not have it.
+        }
+      }
+      return null;
+    },
+  };
+}
+
+/**
+ * Collapse the same food arriving from two databases.
+ *
+ * Barcode is the only identifier both sides can agree on, so it wins outright.
+ * Failing that, a name-and-brand key catches the obvious duplicates without
+ * pretending to be clever: fuzzy matching here would silently merge "chicken
+ * breast, raw" with "chicken breast, cooked", which differ by about 50% in
+ * calories per 100 g. Two similar rows on screen is a far cheaper mistake.
+ */
+export function dedupe(items: readonly FoodItem[]): FoodItem[] {
+  const seen = new Map<string, FoodItem>();
+  for (const item of items) {
+    const key = item.barcode
+      ? `barcode:${item.barcode}`
+      : `name:${item.name.trim().toLowerCase()}|${(item.brand ?? "").trim().toLowerCase()}`;
+    const existing = seen.get(key);
+    // Keep whichever row actually carries nutrition. A zero-calorie duplicate
+    // is a contributor who left the panel blank, and it should not shadow a
+    // complete row from the other database.
+    if (!existing || (existing.caloriesPer100g === 0 && item.caloriesPer100g > 0)) {
+      seen.set(key, item);
+    }
+  }
+  return [...seen.values()];
+}
+
+const OFF_ENDPOINT = "https://world.openfoodfacts.org";
+const USDA_ENDPOINT = "https://api.nal.usda.gov/fdc/v1";
+
+/** Fields to ask OFF for. Requesting everything returns ~200 KB per product. */
+const OFF_FIELDS = "code,product_name,brands,serving_quantity,nutriments";
+
+/**
+ * Open Food Facts. No key, no account, no quota worth worrying about.
+ *
+ * Their terms ask for a descriptive User-Agent so they can tell apps apart from
+ * scrapers; browsers refuse to let us set that header, so the app identifies
+ * itself in the query string instead, which their docs accept.
+ */
+export function openFoodFacts(fetcher: Fetcher = (...args) => fetch(...args)): FoodProvider {
+  return {
+    name: "Open Food Facts",
+
+    async search(query, signal) {
+      const url =
+        `${OFF_ENDPOINT}/cgi/search.pl?search_terms=${encodeURIComponent(query)}` +
+        `&search_simple=1&action=process&json=1&page_size=20&fields=${OFF_FIELDS}`;
+      const body = await parseJson<{ products?: OffProduct[] }>(await fetcher(url, { signal }));
+      return (body?.products ?? []).map(fromOpenFoodFacts).filter((x): x is FoodItem => x !== null);
+    },
+
+    async byBarcode(code, signal) {
+      const url = `${OFF_ENDPOINT}/api/v2/product/${encodeURIComponent(code)}.json?fields=${OFF_FIELDS}`;
+      const body = await parseJson<{ status?: number; product?: OffProduct }>(await fetcher(url, { signal }));
+      if (!body) return null;
+      // OFF answers 200 with `status: 0` for a barcode it does not hold, so the
+      // HTTP code alone is not the answer to "did you have it".
+      if (body.status !== 1 || !body.product) return null;
+      return fromOpenFoodFacts(body.product);
+    },
+  };
+}
+
+/**
+ * USDA FoodData Central. Needs a free API key from fdc.nal.usda.gov.
+ *
+ * Without one this returns nothing rather than throwing, so the composite keeps
+ * working on Open Food Facts alone until a key is added. A search that quietly
+ * returns fewer results is a much better failure here than a search that errors
+ * every time the athlete types.
+ */
+export function usda(apiKey: string | undefined, fetcher: Fetcher = (...args) => fetch(...args)): FoodProvider {
+  return {
+    name: "USDA FoodData Central",
+
+    async search(query, signal) {
+      if (!apiKey) return [];
+      const url =
+        `${USDA_ENDPOINT}/foods/search?api_key=${encodeURIComponent(apiKey)}` +
+        `&query=${encodeURIComponent(query)}&pageSize=20` +
+        // Foundation and SR Legacy are the laboratory-analysed sets and are
+        // reported per 100 g. Branded is per-serving and patchier than OFF.
+        `&dataType=${encodeURIComponent("Foundation,SR Legacy")}`;
+      const body = await parseJson<{ foods?: UsdaFood[] }>(await fetcher(url, { signal }));
+      return (body?.foods ?? []).map(fromUsda).filter((x): x is FoodItem => x !== null);
+    },
+
+    async byBarcode(code, signal) {
+      if (!apiKey) return null;
+      const url =
+        `${USDA_ENDPOINT}/foods/search?api_key=${encodeURIComponent(apiKey)}` +
+        `&query=${encodeURIComponent(code)}&dataType=${encodeURIComponent("Branded")}&pageSize=5`;
+      const body = await parseJson<{ foods?: UsdaFood[] }>(await fetcher(url, { signal }));
+      // A UPC search is a text search here, so confirm the hit actually carries
+      // the barcode rather than merely mentioning the digits somewhere.
+      const exact = (body?.foods ?? []).find((f) => String(f.gtinUpc ?? "").replace(/^0+/, "") === code.replace(/^0+/, ""));
+      return exact ? fromUsda(exact) : null;
+    },
+  };
+}
