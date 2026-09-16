@@ -166,18 +166,34 @@ describe("the wire", () => {
     await expect(provider.byBarcode("000")).resolves.toBeNull();
   });
 
-  it("stays quiet when USDA has no key, rather than erroring on every keystroke", async () => {
-    const fetcher = vi.fn();
-    const provider = usda(undefined, fetcher as never);
-    await expect(provider.search("oats")).resolves.toEqual([]);
-    await expect(provider.byBarcode("123")).resolves.toBeNull();
-    expect(fetcher, "no key should mean no request at all").not.toHaveBeenCalled();
+  it("asks this app's Worker, never USDA directly", async () => {
+    // The key would be public if it shipped in the bundle, and FoodData Central
+    // sends no CORS headers, so the browser could not reach it anyway.
+    const seen: string[] = [];
+    const fetcher = ((input: string) => {
+      seen.push(input);
+      return json({ foods: [] });
+    }) as never;
+    await usda(fetcher).search("rolled oats");
+    const url = seen[0] ?? "";
+    expect(url).toMatch(/^\/api\/food\/search\?q=/);
+    expect(url).not.toContain("nal.usda.gov");
+    expect(url).not.toContain("api_key");
+  });
+
+  it("degrades to nothing when the Worker says the key is unconfigured", async () => {
+    // The Worker answers 503 with a message naming the fix. The app should fall
+    // back to Open Food Facts alone, not error on every keystroke.
+    const unconfigured = () =>
+      Promise.resolve({ ok: false, status: 503, json: () => Promise.resolve({ error: "not configured" }) } as unknown as Response);
+    await expect(usda(unconfigured).search("oats")).resolves.toEqual([]);
+    await expect(usda(unconfigured).byBarcode("123")).resolves.toBeNull();
   });
 
   it("only accepts a USDA barcode hit that really carries that barcode", async () => {
-    // The UPC lookup is a text search, so a product merely mentioning the digits
-    // must not be returned as a scan match.
-    const provider = usda("key", () =>
+    // The UPC lookup is a text search upstream, so a product merely mentioning
+    // the digits must not be returned as a scan match.
+    const provider = usda(() =>
       json({ foods: [{ fdcId: 1, description: "Not it", gtinUpc: "999", foodNutrients: [] }] })
     );
     await expect(provider.byBarcode("123")).resolves.toBeNull();
@@ -198,6 +214,6 @@ describe("an outage is not an exception", () => {
   it("survives the 503 the search endpoint is returning today", async () => {
     const down = () => Promise.resolve({ ok: false, status: 503, json: () => Promise.reject(new Error()) } as unknown as Response);
     await expect(openFoodFacts(down).search("oats")).resolves.toEqual([]);
-    await expect(usda("key", down).search("oats")).resolves.toEqual([]);
+    await expect(usda(down).search("oats")).resolves.toEqual([]);
   });
 });

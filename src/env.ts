@@ -25,5 +25,9 @@ export interface Env {
   OURA_CLIENT_ID: string;
   OURA_CLIENT_SECRET: string;
   HEALTH_TOKEN_KEY: string;
+  // USDA FoodData Central. Rate-limiting rather than access control -- it gates
+  // 1000 requests/hour, not private data -- but it is still not ours to publish,
+  // and keeping it here means the browser never carries it.
+  USDA_API_KEY: string;
   WORKSPACE_MASTER_KEY: string;
 }

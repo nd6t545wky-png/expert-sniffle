@@ -323,7 +323,6 @@ export function dedupe(items: readonly FoodItem[]): FoodItem[] {
 }
 
 const OFF_ENDPOINT = "https://world.openfoodfacts.org";
-const USDA_ENDPOINT = "https://api.nal.usda.gov/fdc/v1";
 
 /** Fields to ask OFF for. Requesting everything returns ~200 KB per product. */
 const OFF_FIELDS = "code,product_name,brands,serving_quantity,nutriments";
@@ -360,38 +359,38 @@ export function openFoodFacts(fetcher: Fetcher = (...args) => fetch(...args)): F
 }
 
 /**
- * USDA FoodData Central. Needs a free API key from fdc.nal.usda.gov.
+ * USDA FoodData Central, through this app's own Worker.
  *
- * Without one this returns nothing rather than throwing, so the composite keeps
- * working on Open Food Facts alone until a key is added. A search that quietly
- * returns fewer results is a much better failure here than a search that errors
- * every time the athlete types.
+ * Not called directly, for two reasons that both have to hold. The API key
+ * would otherwise ship inside the JavaScript bundle, where it is public by
+ * definition. And FoodData Central sends no CORS headers at all, so a browser
+ * cannot reach it regardless of who holds the key.
+ *
+ * So the client asks `/api/food/*` and the Worker holds the secret. When no key
+ * is configured the Worker answers 503, this returns nothing rather than
+ * throwing, and the composite carries on with Open Food Facts alone.
  */
-export function usda(apiKey: string | undefined, fetcher: Fetcher = (...args) => fetch(...args)): FoodProvider {
+export function usda(fetcher: Fetcher = (...args) => fetch(...args)): FoodProvider {
   return {
     name: "USDA FoodData Central",
 
     async search(query, signal) {
-      if (!apiKey) return [];
-      const url =
-        `${USDA_ENDPOINT}/foods/search?api_key=${encodeURIComponent(apiKey)}` +
-        `&query=${encodeURIComponent(query)}&pageSize=20` +
-        // Foundation and SR Legacy are the laboratory-analysed sets and are
-        // reported per 100 g. Branded is per-serving and patchier than OFF.
-        `&dataType=${encodeURIComponent("Foundation,SR Legacy")}`;
-      const body = await parseJson<{ foods?: UsdaFood[] }>(await fetcher(url, { signal }));
+      const body = await parseJson<{ foods?: UsdaFood[] }>(
+        await fetcher(`/api/food/search?q=${encodeURIComponent(query)}`, { signal })
+      );
       return (body?.foods ?? []).map(fromUsda).filter((x): x is FoodItem => x !== null);
     },
 
     async byBarcode(code, signal) {
-      if (!apiKey) return null;
-      const url =
-        `${USDA_ENDPOINT}/foods/search?api_key=${encodeURIComponent(apiKey)}` +
-        `&query=${encodeURIComponent(code)}&dataType=${encodeURIComponent("Branded")}&pageSize=5`;
-      const body = await parseJson<{ foods?: UsdaFood[] }>(await fetcher(url, { signal }));
-      // A UPC search is a text search here, so confirm the hit actually carries
-      // the barcode rather than merely mentioning the digits somewhere.
-      const exact = (body?.foods ?? []).find((f) => String(f.gtinUpc ?? "").replace(/^0+/, "") === code.replace(/^0+/, ""));
+      const body = await parseJson<{ foods?: UsdaFood[] }>(
+        await fetcher(`/api/food/barcode?code=${encodeURIComponent(code)}`, { signal })
+      );
+      // The UPC lookup is a text search upstream, so confirm the hit actually
+      // carries the barcode rather than merely mentioning the digits.
+      const wanted = code.replace(/^0+/, "");
+      const exact = (body?.foods ?? []).find(
+        (f) => String(f.gtinUpc ?? "").replace(/^0+/, "") === wanted
+      );
       return exact ? fromUsda(exact) : null;
     },
   };
