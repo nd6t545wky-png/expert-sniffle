@@ -2822,9 +2822,25 @@ async function routeApi(request: Request, env: Env, url: URL): Promise<Response 
     const limited = blocked ? null : await enforceAccountRateLimit(request, env, url, env.AI_RATE_LIMITER, "meal-text");
     return blocked || limited || analyzeMealText(request, env, url);
   }
-  if (url.pathname === "/api/nutrition/barcode" && request.method === "GET") return lookupBarcode(request, env, url);
-  if (url.pathname === "/api/nutrition/search" && request.method === "GET") return searchFoodProducts(request, env, url);
-  if (url.pathname === "/api/nutrition/restaurant" && request.method === "GET") return lookupRestaurantNutrition(request, env, url);
+  // These three were the gap in the rate limiting. All are authenticated, which
+  // is why they were easy to miss -- but authentication is not a budget. The two
+  // lookups spend Open Food Facts' capacity, and the restaurant one spends money
+  // on an AI call, which is the same thing /api/nutrition/analyze and
+  // /api/mechanics/analyze are limited for. A loop in the client, or one leaked
+  // sync key, was previously enough to run any of them without bound.
+  if (url.pathname === "/api/nutrition/barcode" && request.method === "GET") {
+    const limited = await enforceAccountRateLimit(request, env, url, env.INTEGRATION_RATE_LIMITER, "food-barcode");
+    return limited ?? lookupBarcode(request, env, url);
+  }
+  if (url.pathname === "/api/nutrition/search" && request.method === "GET") {
+    const limited = await enforceAccountRateLimit(request, env, url, env.INTEGRATION_RATE_LIMITER, "food-search");
+    return limited ?? searchFoodProducts(request, env, url);
+  }
+  if (url.pathname === "/api/nutrition/restaurant" && request.method === "GET") {
+    // AI limiter, not integration: this one runs a model.
+    const limited = await enforceAccountRateLimit(request, env, url, env.AI_RATE_LIMITER, "restaurant");
+    return limited ?? lookupRestaurantNutrition(request, env, url);
+  }
   const nutritionMatch = /^\/api\/nutrition\/photos\/([a-zA-Z0-9_-]{12,80})(?:\/(content))?$/.exec(url.pathname);
   if (nutritionMatch) {
     const id = nutritionMatch[1];
