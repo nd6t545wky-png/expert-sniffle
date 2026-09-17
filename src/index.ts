@@ -556,6 +556,54 @@ function privateMediaBucket(env: Env): R2Bucket {
   return env.PRIVATE_MEDIA;
 }
 
+/**
+ * Remove everything one recovery key owns.
+ *
+ * Workspace deletion and account deletion each used to carry their own
+ * teardown list, and the two drifted apart. Session photos live in R2 under
+ * `${keyHash}/session/${day}` with no database row at all, so a sweep driven
+ * by table rows never saw them; and only one of the two paths revoked physio
+ * share links. One helper, used by both, is the only shape that cannot drift
+ * again. The prefix sweep covers every object the workspace can address,
+ * whether or not a row points at it.
+ */
+async function purgeWorkspace(keyHash: string, env: Env): Promise<void> {
+  const mediaBucket = privateMediaBucket(env);
+  if (mediaBucket) {
+    const mediaRows = await env.SYNC_DB.prepare(
+      `SELECT object_key FROM mechanics_videos WHERE key_hash = ?1
+       UNION ALL
+       SELECT object_key FROM meal_photos WHERE key_hash = ?1`
+    )
+      .bind(keyHash)
+      .all<{ object_key: string }>();
+    if (mediaRows.results?.length) {
+      await mediaBucket.delete(mediaRows.results.map((row) => row.object_key));
+    }
+    let cursor: string | undefined;
+    do {
+      const listed = await mediaBucket.list({ prefix: `${keyHash}/`, limit: 1000, cursor });
+      if (listed.objects.length) {
+        await mediaBucket.delete(listed.objects.map((object) => object.key));
+      }
+      cursor = listed.truncated ? listed.cursor : undefined;
+    } while (cursor);
+  }
+
+  await env.SYNC_DB.batch([
+    env.SYNC_DB.prepare("DELETE FROM sync_snapshots WHERE key_hash = ?1").bind(keyHash),
+    env.SYNC_DB.prepare("DELETE FROM oauth_states WHERE key_hash = ?1").bind(keyHash),
+    env.SYNC_DB.prepare("DELETE FROM oauth_connections WHERE key_hash = ?1").bind(keyHash),
+    env.SYNC_DB.prepare("DELETE FROM apple_health_connections WHERE key_hash = ?1").bind(keyHash),
+    env.SYNC_DB.prepare("DELETE FROM health_daily WHERE key_hash = ?1").bind(keyHash),
+    env.SYNC_DB.prepare("DELETE FROM training_history_events WHERE key_hash = ?1").bind(keyHash),
+    env.SYNC_DB.prepare("DELETE FROM mechanics_videos WHERE key_hash = ?1").bind(keyHash),
+    env.SYNC_DB.prepare("DELETE FROM meal_photos WHERE key_hash = ?1").bind(keyHash),
+    // A revoked workspace must not leave a live physio link behind it.
+    env.SYNC_DB.prepare("DELETE FROM physio_shares WHERE key_hash = ?1").bind(keyHash),
+  ]);
+}
+
 // -- Cloud sync (encrypted client-side blob) --------------------------------
 
 async function handleSync(request: Request, env: Env): Promise<Response> {
@@ -624,29 +672,7 @@ async function handleSync(request: Request, env: Env): Promise<Response> {
   }
 
   if (request.method === "DELETE") {
-    const mediaRows = await env.SYNC_DB.prepare(
-      `SELECT object_key FROM mechanics_videos WHERE key_hash = ?1
-       UNION ALL
-       SELECT object_key FROM meal_photos WHERE key_hash = ?1`
-    )
-      .bind(keyHash)
-      .all<{ object_key: string }>();
-    const mediaBucket = privateMediaBucket(env);
-    if (mediaRows.results?.length && mediaBucket) {
-      await mediaBucket.delete(mediaRows.results.map((row) => row.object_key));
-    }
-    await env.SYNC_DB.batch([
-      env.SYNC_DB.prepare("DELETE FROM sync_snapshots WHERE key_hash = ?1").bind(keyHash),
-      env.SYNC_DB.prepare("DELETE FROM oauth_states WHERE key_hash = ?1").bind(keyHash),
-      env.SYNC_DB.prepare("DELETE FROM oauth_connections WHERE key_hash = ?1").bind(keyHash),
-      env.SYNC_DB.prepare("DELETE FROM apple_health_connections WHERE key_hash = ?1").bind(keyHash),
-      env.SYNC_DB.prepare("DELETE FROM health_daily WHERE key_hash = ?1").bind(keyHash),
-      env.SYNC_DB.prepare("DELETE FROM training_history_events WHERE key_hash = ?1").bind(keyHash),
-      env.SYNC_DB.prepare("DELETE FROM mechanics_videos WHERE key_hash = ?1").bind(keyHash),
-      env.SYNC_DB.prepare("DELETE FROM meal_photos WHERE key_hash = ?1").bind(keyHash),
-      // A revoked workspace must not leave a live physio link behind it.
-      env.SYNC_DB.prepare("DELETE FROM physio_shares WHERE key_hash = ?1").bind(keyHash),
-    ]);
+    await purgeWorkspace(keyHash, env);
     return json({ deleted: true });
   }
 
@@ -2675,26 +2701,7 @@ async function deleteAccount(request: Request, env: Env, url: URL): Promise<Resp
     .bind(session.user.id)
     .first<{ key_hash: string }>();
   if (workspace?.key_hash) {
-    const mediaRows = await env.SYNC_DB.prepare(
-      `SELECT object_key FROM mechanics_videos WHERE key_hash = ?1
-       UNION ALL
-       SELECT object_key FROM meal_photos WHERE key_hash = ?1`
-    )
-      .bind(workspace.key_hash)
-      .all<{ object_key: string }>();
-    if (mediaRows.results?.length) {
-      await privateMediaBucket(env).delete(mediaRows.results.map((row) => row.object_key));
-    }
-    await env.SYNC_DB.batch([
-      env.SYNC_DB.prepare("DELETE FROM sync_snapshots WHERE key_hash = ?1").bind(workspace.key_hash),
-      env.SYNC_DB.prepare("DELETE FROM oauth_states WHERE key_hash = ?1").bind(workspace.key_hash),
-      env.SYNC_DB.prepare("DELETE FROM oauth_connections WHERE key_hash = ?1").bind(workspace.key_hash),
-      env.SYNC_DB.prepare("DELETE FROM apple_health_connections WHERE key_hash = ?1").bind(workspace.key_hash),
-      env.SYNC_DB.prepare("DELETE FROM health_daily WHERE key_hash = ?1").bind(workspace.key_hash),
-      env.SYNC_DB.prepare("DELETE FROM training_history_events WHERE key_hash = ?1").bind(workspace.key_hash),
-      env.SYNC_DB.prepare("DELETE FROM mechanics_videos WHERE key_hash = ?1").bind(workspace.key_hash),
-      env.SYNC_DB.prepare("DELETE FROM meal_photos WHERE key_hash = ?1").bind(workspace.key_hash),
-    ]);
+    await purgeWorkspace(workspace.key_hash, env);
   }
   await env.SYNC_DB.batch([
     env.SYNC_DB.prepare("DELETE FROM passkey WHERE userId = ?1").bind(session.user.id),
@@ -2715,10 +2722,12 @@ async function routeApi(request: Request, env: Env, url: URL): Promise<Response 
   // reach it at all. Rate-limited with the other integrations because it spends
   // somebody else's quota.
   if (url.pathname === "/api/food/search" && request.method === "GET") {
+    if (!(await nutritionKeyHash(request, env, url))) return json({ error: "Sign in again to search food" }, 401);
     const limited = await enforceAccountRateLimit(request, env, url, env.INTEGRATION_RATE_LIMITER, "food");
     return limited ?? usdaSearch(request, env, url);
   }
   if (url.pathname === "/api/food/barcode" && request.method === "GET") {
+    if (!(await nutritionKeyHash(request, env, url))) return json({ error: "Sign in again to look up food" }, 401);
     const limited = await enforceAccountRateLimit(request, env, url, env.INTEGRATION_RATE_LIMITER, "food");
     return limited ?? usdaBarcode(request, env, url);
   }
@@ -2822,9 +2831,25 @@ async function routeApi(request: Request, env: Env, url: URL): Promise<Response 
     const limited = blocked ? null : await enforceAccountRateLimit(request, env, url, env.AI_RATE_LIMITER, "meal-text");
     return blocked || limited || analyzeMealText(request, env, url);
   }
-  if (url.pathname === "/api/nutrition/barcode" && request.method === "GET") return lookupBarcode(request, env, url);
-  if (url.pathname === "/api/nutrition/search" && request.method === "GET") return searchFoodProducts(request, env, url);
-  if (url.pathname === "/api/nutrition/restaurant" && request.method === "GET") return lookupRestaurantNutrition(request, env, url);
+  // These three were the gap in the rate limiting. All are authenticated, which
+  // is why they were easy to miss -- but authentication is not a budget. The two
+  // lookups spend Open Food Facts' capacity, and the restaurant one spends money
+  // on an AI call, which is the same thing /api/nutrition/analyze and
+  // /api/mechanics/analyze are limited for. A loop in the client, or one leaked
+  // sync key, was previously enough to run any of them without bound.
+  if (url.pathname === "/api/nutrition/barcode" && request.method === "GET") {
+    const limited = await enforceAccountRateLimit(request, env, url, env.INTEGRATION_RATE_LIMITER, "food-barcode");
+    return limited ?? lookupBarcode(request, env, url);
+  }
+  if (url.pathname === "/api/nutrition/search" && request.method === "GET") {
+    const limited = await enforceAccountRateLimit(request, env, url, env.INTEGRATION_RATE_LIMITER, "food-search");
+    return limited ?? searchFoodProducts(request, env, url);
+  }
+  if (url.pathname === "/api/nutrition/restaurant" && request.method === "GET") {
+    // AI limiter, not integration: this one runs a model.
+    const limited = await enforceAccountRateLimit(request, env, url, env.AI_RATE_LIMITER, "restaurant");
+    return limited ?? lookupRestaurantNutrition(request, env, url);
+  }
   const nutritionMatch = /^\/api\/nutrition\/photos\/([a-zA-Z0-9_-]{12,80})(?:\/(content))?$/.exec(url.pathname);
   if (nutritionMatch) {
     const id = nutritionMatch[1];
