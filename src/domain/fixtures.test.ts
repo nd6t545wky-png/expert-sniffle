@@ -59,8 +59,8 @@ describe("finding a fixture", () => {
     expect(next.every((fixture) => fixture.date >= "2026-08-19")).toBe(true);
   });
 
-  it("returns nothing once the season is over", () => {
-    expect(upcomingFixtures("2027-01-01")).toEqual([]);
+  it("returns nothing once the last summer round has been played", () => {
+    expect(upcomingFixtures("2027-03-08")).toEqual([]);
   });
 
   it("counts the days to one, and past it", () => {
@@ -111,7 +111,7 @@ describe("the rest of the season, entered by the athlete", () => {
   it("is visible to fixtureOn and upcomingFixtures once merged", () => {
     const merged = allFixtures(entry);
     expect(fixtureOn("2026-09-19" as never, merged)?.label).toBe("Grand final");
-    // The built-in semi-finals come first and the Cubs opener is still ahead of
+    // The built-in semi-finals come first and summer Round 1 is still ahead of
     // it, so the entered final takes its place in the run rather than being the
     // whole of it.
     expect(upcomingFixtures("2026-09-06" as never, 5, merged).map((f) => f.date)).toEqual([
@@ -119,7 +119,38 @@ describe("the rest of the season, entered by the athlete", () => {
       "2026-09-12",
       "2026-09-19",
       "2026-10-02",
+      "2026-10-04",
     ]);
+  });
+});
+
+describe("the 26/27 summer draw", () => {
+  const summer = FIXTURES.filter((fixture) => fixture.team === "Coomera Cubs");
+
+  it("plays each of the eighteen rounds twice, Friday and Sunday", () => {
+    expect(summer).toHaveLength(36);
+    for (const fixture of summer) {
+      const weekday = new Date(`${fixture.date}T00:00:00.000Z`).getUTCDay();
+      expect([0, 5], `${fixture.id} ${fixture.date}`).toContain(weekday);
+    }
+  });
+
+  it("opens on the Friday the athlete gave and breaks six weeks for Christmas", () => {
+    const on = (id: string) => summer.find((fixture) => fixture.id === id)?.date;
+    expect(on("cubs-2026-27-r1-fri")).toBe("2026-10-02");
+    expect(on("cubs-2026-27-r1-sun")).toBe("2026-10-04");
+    expect(on("cubs-2026-27-r10-fri")).toBe("2026-12-04");
+    // Six weeks on from Round 10, where every other gap is one.
+    expect(on("cubs-2026-27-r11-fri")).toBe("2027-01-15");
+    expect(on("cubs-2026-27-r18-sun")).toBe("2027-03-07");
+  });
+
+  it("says who and where, and mirrors the two halves of the draw", () => {
+    const label = (id: string) => summer.find((fixture) => fixture.id === id)?.label;
+    expect(label("cubs-2026-27-r1-fri")).toBe("Summer Round 1 at Pine Hills (Friday)");
+    expect(label("cubs-2026-27-r2-sun")).toBe("Summer Round 2 vs Redcliffe (Sunday)");
+    // Round 11 is the return fixture of Round 2: same opponent, other ground.
+    expect(label("cubs-2026-27-r11-fri")).toBe("Summer Round 11 at Redcliffe (Friday)");
   });
 });
 

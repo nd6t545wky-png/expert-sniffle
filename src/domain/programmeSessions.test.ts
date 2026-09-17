@@ -445,12 +445,12 @@ describe("a week's fixtures reaching the intensity policy", () => {
   });
 
   it("does not touch the hinge on an unload week with no game in it", () => {
-    // Weeks 10, 37 and 38 are the genuine unload weeks — no fixture falls in
+    // Weeks 10, 35 and 36 are the genuine unload weeks — no fixture falls in
     // them, so no game count reaches them and the programme's own rebuild dose
     // stands. The gate is the fixture rather than the week number: a rebuild
     // Wednesday that *did* acquire a final would taper like week 9, which is
     // the point of reading the schedule instead of the phase table.
-    for (const week of [10, 37, 38]) {
+    for (const week of [10, 35, 36]) {
       const tasks = applyBaselineProgramming(buildSession(weekPlan(week), 2), null, 2).tasks;
       expect(hinge(tasks), `week ${week}`).toMatch(/^\d+ × \d+/);
       expect(hinge(tasks), `week ${week}`).not.toMatch(/^2 × 3\b/);
@@ -497,9 +497,9 @@ describe("a week's fixtures reaching the intensity policy", () => {
   });
 
   it("leaves an unload Wednesday with no game in it exactly as it was", () => {
-    // Weeks 10, 37 and 38 are genuine unload weeks. The rebuild block is right
+    // Weeks 10, 35 and 36 are genuine unload weeks. The rebuild block is right
     // for them and nothing here has a reason to touch it.
-    for (const week of [10, 37, 38]) {
+    for (const week of [10, 35, 36]) {
       const tasks = applyBaselineProgramming(buildSession(weekPlan(week), 2), null, 2).tasks;
       expect(tasks.some((task) => /Speed squat/.test(String(task.name))), `week ${week}`).toBe(false);
       expect(tasks.some((task) => /Trap bar jump/.test(String(task.name))), `week ${week}`).toBe(false);

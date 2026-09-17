@@ -75,35 +75,35 @@ const LEGACY_PHASE_TABLE = [
   {
     id: "summer_first",
     name: "GBL Summer · Term 4",
-    weeks: [12, 22],
+    weeks: [12, 21],
     color: "#5b2e91",
-    summary: "Coomera Cubs competition begins Friday 2 October: training Tuesday/Thursday, games Friday/Sunday, and Wednesday whole-body strength maintenance."
+    summary: "Rounds 1 to 10 of the Cubs' 26/27 draw, beginning Friday 2 October: training Tuesday/Thursday, games Friday/Sunday, and Wednesday whole-body strength maintenance."
   },
   {
     id: "summer_break",
     name: "GBL Christmas Break",
-    weeks: [23, 28],
+    weeks: [22, 26],
     color: "#149ca5",
-    summary: "No assumed league games: recover first, then rebuild throwing and strength before Term 1 competition."
+    summary: "The six weeks the draw leaves between Round 10 and Round 11: recover first, then rebuild throwing and strength before Term 1 competition."
   },
   {
     id: "summer_second",
     name: "GBL Summer · Term 1",
-    weeks: [29, 36],
+    weeks: [27, 34],
     color: "#5b2e91",
-    summary: "Return to the Friday/Sunday competition rhythm and taper into the last pre-Easter weekend."
+    summary: "Rounds 11 to 18: back to the Friday/Sunday rhythm, opening with a taper week into the return round."
   },
   {
     id: "transition_summer",
     name: "Post-Summer Transition",
-    weeks: [37, 38],
+    weeks: [35, 36],
     color: "#149ca5",
-    summary: "Two lower-stress weeks after the GBL planning window before the next winter build."
+    summary: "Two lower-stress weeks after the last summer round, before the next winter build."
   },
   {
     id: "winter_next",
     name: "FNCBA Winter 2027 · Planning",
-    weeks: [39, 52],
+    weeks: [37, 52],
     color: "#e52b21",
     summary: "Provisional Saturday competition rhythm based on the 2026 draw; replace with the official 2027 fixture when published."
   }
@@ -255,8 +255,8 @@ function getWeekPlan(week, pbs = null) {
     data = ["GBL team-rhythm re-entry", "Trap bar deadlift 4 × 3 @ RPE 6–7", "One controlled Wednesday intent exposure; team training rhythm Tue/Thu", "Prepare for Coomera Cubs' athlete-provided Friday 2 October opener"];
   }
   if (isSummerCompetitionPhase(phase.id)) {
-    const index = phase.id === "summer_first" ? week - 12 : 11 + (week - 29);
-    const deload = [3, 7, 14, 18].includes(index);
+    const index = phase.id === "summer_first" ? week - 12 : 10 + (week - 27);
+    const deload = [3, 7, 13, 17].includes(index);
     data = [
       summerFocus[index],
       deload ? "Wednesday full body 2–3 sets @ RPE 6" : "Wednesday full body 3–4 sets @ RPE 6–7",
@@ -265,7 +265,7 @@ function getWeekPlan(week, pbs = null) {
     ];
   }
   if (phase.id === "summer_break") {
-    const index = week - 23;
+    const index = week - 22;
     const breakData = [
       ["Christmas unload", "Trap bar deadlift 3 × 5 @ RPE 6", "Throwing volume down 45–55%; no game assumptions", "Restore after the first GBL block"],
       ["Movement rebuild", "Trap bar deadlift 4 × 5 @ RPE 6–7", "Easy catch plus one controlled mound touch", "No back-to-back intent"],
@@ -276,9 +276,9 @@ function getWeekPlan(week, pbs = null) {
     ];
     data = breakData[index];
   }
-  if (phase.id === "transition_summer") data = transitionWeeks[week - 37];
+  if (phase.id === "transition_summer") data = transitionWeeks[week - 35];
   if (phase.id === "winter_next") {
-    const index = (week - 39) % winterWeeks.length;
+    const index = (week - 37) % winterWeeks.length;
     const base = winterWeeks[index];
     data = [`2027 winter planning · ${base[0]}`, base[1], base[2], "Saturday rhythm is provisional until FNCBA publishes the 2027 draw"];
   }
