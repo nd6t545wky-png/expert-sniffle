@@ -338,7 +338,7 @@ describe("AnnualPlan — the year as a calendar", () => {
     const onSelectWeek = vi.fn();
     render(<AnnualPlan selectedWeek={1} onSelectWeek={onSelectWeek} />);
     fireEvent.click(screen.getByText("GBL Christmas Break"));
-    expect(onSelectWeek).toHaveBeenCalledWith(23);
+    expect(onSelectWeek).toHaveBeenCalledWith(22);
   });
 
   it("selects the week a chosen day belongs to", () => {

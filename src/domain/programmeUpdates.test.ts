@@ -1016,7 +1016,7 @@ describe("every task names something to do", () => {
   /**
    * The prescriptions that legitimately carry no number.
    *
-   * All nine come from the written programme and all nine are honest: the dose
+   * All eight come from the written programme and all eight are honest: the dose
    * is set by the coach on the day, or the instruction is genuinely
    * qualitative. Held as an explicit list rather than a pattern so that any
    * *new* number-free prescription fails this test and has to be justified —
@@ -1031,7 +1031,6 @@ describe("every task names something to do", () => {
     "Complete assigned baseball work; record session duration and RPE",
     "Keep conditioning and extra throwing low volume",
     "Easy catch plus one controlled mound touch",
-    "Short competitive bullpen; no fatigue chase",
   ]);
 
   it("carries a dose on every task the overlay produces", () => {
