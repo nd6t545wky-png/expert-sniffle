@@ -2311,8 +2311,8 @@ function summerSession(week, day) {
       duration: "Team session dependent",
       stress: isThursday ? "Low–moderate" : "Moderate",
       description: isThursday
-        ? "Thursday volume is capped so it does not become a third high-stress day before Friday and Sunday games."
-        : "Tuesday is the higher-volume team practice window. Wednesday remains the main strength day.",
+        ? "Thursday volume is capped so it does not become a third high-stress day before Friday and Sunday games. The microdose that finishes it — reactive pogos, a hinge and a calf dose — is added by the overlay rather than written here, because it is dropped automatically whenever Thursday becomes a game eve."
+        : "Tuesday is the higher-volume team practice window, and the day the week leaves without a gym exposure — Monday and Wednesday lift, Thursday microdoses. Add nothing here.",
       tasks: [
         ...basePrep(p, "team practice"),
         plyoTask(p, 1, "Plyo Ball Reverse Throw — 1,000 g", "1 × 5", isThursday ? 50 : 60, "Smooth patterning."),
@@ -2428,8 +2428,8 @@ function summerSession(week, day) {
       task(`${p}-catch`, 3, "Throw", "Keep the arm moving without a high-intent exposure.", "Primer catch", "20–25 throws · 60–75 ft · 50–60%", "No pulldowns and no game-speed finish.", {
         setup: "Relaxed catch partner.", execution: "Finish while fresh.", rest: "Natural.", stop: "End as soon as it feels like work."
       }),
-      task(`${p}-primer`, 4, "Microdose", "Fast and minimal.", "Med-ball scoop toss + pogo", "Scoop toss 2 × 3/side · pogo 2 × 8", "Crisp output only.", {
-        setup: "2 kg medicine ball and flat surface.", execution: "Full reset.", rest: "45 seconds.", stop: "Stop on output drop."
+      task(`${p}-primer`, 4, "Microdose", "Fast and minimal.", "Med-ball scoop toss + pogo + landmine push press", "Scoop toss 2 × 3/side · pogo 2 × 8 · landmine push press 2 × 3/side @ RPE 5–6", "Crisp output only.", {
+        setup: "2 kg medicine ball, flat surface and a secure landmine attachment.", execution: "Full reset between movements; the press is a speed exposure, not a load exposure.", rest: "45 seconds.", stop: "Stop on output drop."
       }),
       ...armCare(p, "low"),
       ...recoveryTasks(p)
