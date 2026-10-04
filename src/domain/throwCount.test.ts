@@ -94,7 +94,7 @@ describe("reading a volume off the prescription", () => {
     expect(throwsPrescribed(task("Throw", "Pregame catch", "Close catch → 60 → 90 → 120 ft · 25–40 throws"))).toBe(25);
   });
 
-  it("reads a dose off all but four of the programme's throwing tasks", () => {
+  it("reads a dose off all but three of the programme's throwing tasks", () => {
     const throwing = ALL_TASKS.filter(isThrowingTask);
     expect(throwing.length).toBeGreaterThan(100);
     const unread = new Set(
@@ -103,7 +103,6 @@ describe("reading a volume off the prescription", () => {
     expect([...unread].sort()).toEqual([
       "Easy catch plus one controlled mound touch",
       "One controlled Wednesday intent exposure; team training rhythm Tue/Thu",
-      "Short competitive bullpen; no fatigue chase",
       "Throwing volume down 45–55%; no game assumptions",
     ]);
   });

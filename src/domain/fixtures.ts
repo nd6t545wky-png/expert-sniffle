@@ -15,6 +15,7 @@
  * clash, not used to move a session on their own.
  */
 
+import { addDays } from "./calendar";
 import { IsoDate } from "./state";
 
 export type FixtureSource = "official" | "athlete-provided";
@@ -58,6 +59,64 @@ const FNCBA_SEMIS: Array<[game: number, date: IsoDate]> = [
   [2, "2026-09-12"],
 ];
 
+// --- The 26/27 summer draw ---------------------------------------------------
+
+/**
+ * The Cubs' 26/27 summer season, as the athlete gave it.
+ *
+ * The draw arrived as eighteen rounds with opponents and home/away and no
+ * dates, so the dates here are derived from two things the athlete stated: the
+ * season opens Friday 2 October 2026 — the date already held for the Cubs
+ * opener, which this list replaces — and each round is played twice, Friday
+ * and the Sunday after it. Rounds run weekly, with a six-week Christmas break
+ * between Round 10 and Round 11.
+ *
+ * Derived dates are still athlete-provided, not official: nothing was read off
+ * a published draw, so a rescheduled round will be wrong here until it is
+ * corrected through `readAthleteFixtures`, which replaces any of these by id.
+ */
+const SUMMER_OPENER: IsoDate = "2026-10-02";
+const SUMMER_BREAK_AFTER_ROUND = 10;
+/** Six weeks between Round 10 and Round 11 where every other gap is one. */
+const SUMMER_BREAK_EXTRA_DAYS = 35;
+
+const SUMMER_ROUNDS: Array<[round: number, opponent: string, home: boolean]> = [
+  [1, "Pine Hills", false],
+  [2, "Redcliffe", true],
+  [3, "Beenleigh", true],
+  [4, "Redlands", false],
+  [5, "Carina", true],
+  [6, "Narangba", false],
+  [7, "Windsor", true],
+  [8, "Wests", false],
+  [9, "Surfers", true],
+  [10, "Pine Hills", true],
+  [11, "Redcliffe", false],
+  [12, "Beenleigh", false],
+  [13, "Redlands", true],
+  [14, "Carina", false],
+  [15, "Narangba", true],
+  [16, "Windsor", false],
+  [17, "Wests", true],
+  [18, "Surfers", false],
+];
+
+function summerRoundFriday(round: number): IsoDate {
+  const weeks = round - 1;
+  const extra = round > SUMMER_BREAK_AFTER_ROUND ? SUMMER_BREAK_EXTRA_DAYS : 0;
+  return addDays(SUMMER_OPENER, weeks * 7 + extra);
+}
+
+const SUMMER_FIXTURES: readonly Fixture[] = SUMMER_ROUNDS.flatMap(([round, opponent, home]) =>
+  [0, 2].map((offset) => ({
+    id: `cubs-2026-27-r${round}-${offset === 0 ? "fri" : "sun"}`,
+    date: addDays(summerRoundFriday(round), offset),
+    team: "Coomera Cubs",
+    label: `Summer Round ${round} ${home ? "vs" : "at"} ${opponent} (${offset === 0 ? "Friday" : "Sunday"})`,
+    source: "athlete-provided" as const,
+  }))
+);
+
 export const FIXTURES: readonly Fixture[] = Object.freeze([
   ...FNCBA_ROUNDS.map(([round, date]) => ({
     id: `fncba-2026-r${round}`,
@@ -73,13 +132,7 @@ export const FIXTURES: readonly Fixture[] = Object.freeze([
     label: `FNCBA Division 1 semi-final ${game} vs Redbirds`,
     source: "athlete-provided" as const,
   })),
-  {
-    id: "coomera-cubs-2026-10-02",
-    date: "2026-10-02",
-    team: "Coomera Cubs",
-    label: "Coomera Cubs opening game",
-    source: "athlete-provided" as const,
-  },
+  ...SUMMER_FIXTURES,
 ]);
 
 // --- What the athlete adds --------------------------------------------------

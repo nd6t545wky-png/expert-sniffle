@@ -75,35 +75,35 @@ const LEGACY_PHASE_TABLE = [
   {
     id: "summer_first",
     name: "GBL Summer · Term 4",
-    weeks: [12, 22],
+    weeks: [12, 21],
     color: "#5b2e91",
-    summary: "Coomera Cubs competition begins Friday 2 October: training Tuesday/Thursday, games Friday/Sunday, and Wednesday whole-body strength maintenance."
+    summary: "Rounds 1 to 10 of the Cubs' 26/27 draw, beginning Friday 2 October: training Tuesday/Thursday, games Friday/Sunday, and Wednesday whole-body strength maintenance."
   },
   {
     id: "summer_break",
     name: "GBL Christmas Break",
-    weeks: [23, 28],
+    weeks: [22, 26],
     color: "#149ca5",
-    summary: "No assumed league games: recover first, then rebuild throwing and strength before Term 1 competition."
+    summary: "The six weeks the draw leaves between Round 10 and Round 11: recover first, then rebuild throwing and strength before Term 1 competition."
   },
   {
     id: "summer_second",
     name: "GBL Summer · Term 1",
-    weeks: [29, 36],
+    weeks: [27, 34],
     color: "#5b2e91",
-    summary: "Return to the Friday/Sunday competition rhythm and taper into the last pre-Easter weekend."
+    summary: "Rounds 11 to 18: back to the Friday/Sunday rhythm, opening with a taper week into the return round."
   },
   {
     id: "transition_summer",
     name: "Post-Summer Transition",
-    weeks: [37, 38],
+    weeks: [35, 36],
     color: "#149ca5",
-    summary: "Two lower-stress weeks after the GBL planning window before the next winter build."
+    summary: "Two lower-stress weeks after the last summer round, before the next winter build."
   },
   {
     id: "winter_next",
     name: "FNCBA Winter 2027 · Planning",
-    weeks: [39, 52],
+    weeks: [37, 52],
     color: "#e52b21",
     summary: "Provisional Saturday competition rhythm based on the 2026 draw; replace with the official 2027 fixture when published."
   }
@@ -255,17 +255,17 @@ function getWeekPlan(week, pbs = null) {
     data = ["GBL team-rhythm re-entry", "Trap bar deadlift 4 × 3 @ RPE 6–7", "One controlled Wednesday intent exposure; team training rhythm Tue/Thu", "Prepare for Coomera Cubs' athlete-provided Friday 2 October opener"];
   }
   if (isSummerCompetitionPhase(phase.id)) {
-    const index = phase.id === "summer_first" ? week - 12 : 11 + (week - 29);
-    const deload = [3, 7, 14, 18].includes(index);
+    const index = phase.id === "summer_first" ? week - 12 : 10 + (week - 27);
+    const deload = [3, 7, 13, 17].includes(index);
     data = [
       summerFocus[index],
       deload ? "Wednesday full body 2–3 sets @ RPE 6" : "Wednesday full body 3–4 sets @ RPE 6–7",
-      "Training Tue/Thu; games Fri/Sun; no separate velocity day",
+      "Gym Mon/Wed; training Tue/Thu; games Fri/Sun; no separate velocity day",
       deload ? "Reduce non-game work 25% and review appearance load" : "Friday workload determines Saturday recovery or primer"
     ];
   }
   if (phase.id === "summer_break") {
-    const index = week - 23;
+    const index = week - 22;
     const breakData = [
       ["Christmas unload", "Trap bar deadlift 3 × 5 @ RPE 6", "Throwing volume down 45–55%; no game assumptions", "Restore after the first GBL block"],
       ["Movement rebuild", "Trap bar deadlift 4 × 5 @ RPE 6–7", "Easy catch plus one controlled mound touch", "No back-to-back intent"],
@@ -276,9 +276,9 @@ function getWeekPlan(week, pbs = null) {
     ];
     data = breakData[index];
   }
-  if (phase.id === "transition_summer") data = transitionWeeks[week - 37];
+  if (phase.id === "transition_summer") data = transitionWeeks[week - 35];
   if (phase.id === "winter_next") {
-    const index = (week - 39) % winterWeeks.length;
+    const index = (week - 37) % winterWeeks.length;
     const base = winterWeeks[index];
     data = [`2027 winter planning · ${base[0]}`, base[1], base[2], "Saturday rhythm is provisional until FNCBA publishes the 2027 draw"];
   }
@@ -318,7 +318,7 @@ function plannedDayLabel(phaseId, day) {
     ["Primer catch", "Primer"], ["Game", "Compete"], ["Off", "Recover"]
   ];
   if (isSummerCompetitionPhase(phaseId)) return [
-    ["Post-game recovery", "Restore"], ["Team training", "Practice"], ["Strength + catch", "Maintain"], ["Team training", "Prepare"],
+    ["Recovery + strength", "Maintain"], ["Team training", "Practice"], ["Strength + catch", "Maintain"], ["Team training", "Prepare"],
     ["Game", "Compete"], ["Recovery / primer", "Role-aware"], ["Game", "Compete"]
   ][day];
   if (isTransitionPhase(phaseId)) return [
@@ -689,11 +689,11 @@ function summerSession(week, day) {
 
   if (day === 0) {
     return {
-      title: "Monday · Post-Game Recovery",
-      focus: "Restore after Sunday competition",
-      duration: "35–55 min",
-      stress: "Low",
-      description: "Summer Monday is no longer the heavy force day. Sunday game workload gets first priority.",
+      title: "Monday · Recovery + Strength Maintenance",
+      focus: "Restore the arm, then hold strength",
+      duration: "60–80 min",
+      stress: "Low–moderate",
+      description: "Throwing stays recovery-only, but Monday carries the week's second gym exposure. There is no hinge and no pressing here — those are Wednesday's — so this block is unilateral legs, upper-body pulling and posterior-chain work at submaximal effort, four days out from Friday.",
       tasks: [
         ...basePrep(p, "post-game recovery"),
         plyoTask(p, 1, "Plyo Ball Reverse Throw — 1,000 g", "1 × 5", 45, "Only if the arm feels better as the warm-up progresses."),
@@ -701,7 +701,16 @@ function summerSession(week, day) {
         task(`${p}-catch`, 3, "Throw", "Sunday workload determines whether catch is useful.", "Optional recovery catch", "20–35 throws · 45–60 ft · 45–55%", "If you pitched Sunday, use team recovery guidance; complete rest may be more appropriate.", {
           setup: "Begin close with a relaxed partner.", execution: "Easy arc only.", rest: "Natural rhythm.", stop: "Stop if the arm does not loosen."
         }),
-        task(`${p}-aerobic`, 4, "Restore", "Optional low-intensity movement after Sunday competition.", "Optional easy aerobic work", "12–20 minutes bike or walk · RPE 2–3/10", "Keep the talk test comfortable. Active recovery has inconsistent performance benefits, so omit it if complete rest feels better.", {
+        task(`${p}-split`, 4, "Strength Maintenance", "Unilateral legs and upper-body pulling; no hinge and no pressing before Wednesday.", "Rear-foot-elevated split squat", "3 × 6/leg @ RPE 6–7 · straps allowed", "Keep soreness cost low; this maintains single-leg strength through the season.", {
+          setup: "Rear foot on a low bench with the front foot far enough forward to keep the whole foot down.", execution: "Lower in 2–3 seconds, stay stacked over the front leg, then drive up without bouncing.", rest: "90 seconds between legs/sets.", stop: "Reduce load if balance or front-foot pressure is the limiter, and skip the day entirely if Sunday's legs have not recovered."
+        }),
+        task(`${p}-pull`, 4, "Strength Maintenance", "Unilateral legs and upper-body pulling; no hinge and no pressing before Wednesday.", "Chin-up + chest-supported row", "Chin-up 2 × 5 · row 3 × 8 @ RPE 7", "Pulling volume is safe the day after pitching; pressing is not, so it waits for Wednesday.", {
+          setup: "Natural chin-up grip and an incline bench with the chest fully supported.", execution: "Pull smoothly from an active shoulder, row toward the lower ribs and control every return.", rest: "90 seconds.", stop: "Use assistance when the last chin-up slows, and reduce row load if the upper trap dominates."
+        }),
+        task(`${p}-posterior`, 4, "Strength Maintenance", "Unilateral legs and upper-body pulling; no hinge and no pressing before Wednesday.", "Nordic hamstring curl + Pallof press", "Nordic 2 × 4 with a 3–4 second eccentric · Pallof press 2 × 8/side", "Hamstring eccentrics and anti-rotation work keep the cheapest injury insurance in the week.", {
+          setup: "Secure the ankles with a pad or partner; cable or band at sternum height for the Pallof press.", execution: "Lower only as far as you can control and use the hands to assist the return. Press without letting the trunk shift.", rest: "90 seconds after Nordics; 45 seconds on the Pallof press.", stop: "Stop for hamstring cramping or any loss of hip position."
+        }),
+        task(`${p}-aerobic`, 5, "Condition", "Optional low-intensity movement after Sunday competition.", "Optional easy aerobic work", "12–20 minutes bike or walk · RPE 2–3/10", "Keep the talk test comfortable. Active recovery has inconsistent performance benefits, so omit it if complete rest feels better.", {
           setup: "Choose a low-impact mode only after the arm and legs pass the daily check-in.", execution: "Use a steady easy pace and finish before fatigue accumulates.", rest: "Continuous.", stop: "Stop if fatigue or soreness rises."
         }),
         ...armCare(p, "low"),
@@ -718,8 +727,8 @@ function summerSession(week, day) {
       duration: "Team session dependent",
       stress: isThursday ? "Low–moderate" : "Moderate",
       description: isThursday
-        ? "Thursday volume is capped so it does not become a third high-stress day before Friday and Sunday games."
-        : "Tuesday is the higher-volume team practice window. Wednesday remains the main strength day.",
+        ? "Thursday volume is capped so it does not become a third high-stress day before Friday and Sunday games. The microdose that finishes it — reactive pogos, a hinge and a calf dose — is added by the overlay rather than written here, because it is dropped automatically whenever Thursday becomes a game eve."
+        : "Tuesday is the higher-volume team practice window, and the day the week leaves without a gym exposure — Monday and Wednesday lift, Thursday microdoses. Add nothing here.",
       tasks: [
         ...basePrep(p, "team practice"),
         plyoTask(p, 1, "Plyo Ball Reverse Throw — 1,000 g", "1 × 5", isThursday ? 50 : 60, "Smooth patterning."),
@@ -742,9 +751,9 @@ function summerSession(week, day) {
     return {
       title: "Wednesday · Whole-Body Strength Maintenance",
       focus: "Main summer gym exposure",
-      duration: "60–75 min",
+      duration: "70–85 min",
       stress: "Moderate",
-      description: "One concise mid-week whole-body exposure maintains power and strength between Tuesday/Thursday team training and Friday/Sunday games. Power comes first, followed by one primary lift, unilateral work, push/pull and trunk.",
+      description: "The heavier of the week's two gym days, and the only one with a hinge and a press. Power comes first, followed by the primary lift, unilateral work, push/pull and trunk at the three sets the week plan prescribes.",
       tasks: [
         ...basePrep(p, "strength training"),
         task(`${p}-catch`, 2, "Throw", "Keep this exposure low-to-moderate between team practices.", "Easy catch", "30–45 throws · 60–90 ft · 50–65%", "No pulldowns and no true long toss during two-game summer weeks.", {
@@ -756,14 +765,14 @@ function summerSession(week, day) {
         task(`${p}-deadlift`, 3, "Whole-Body Gym", "Fast outputs occur before strength work.", "Trap bar deadlift", week.mondayLift, "Maintain strength without grinding.", {
           setup: "Use progressive warm-up sets.", execution: "Crisp reps at RPE 6–7.", rest: "2.5–3 minutes.", stop: "End sets before bar speed or position degrades."
         }),
-        task(`${p}-split`, 3, "Whole-Body Gym", "Fast outputs occur before strength work.", "Rear-foot-elevated split squat", "2 × 5/leg @ RPE 6–7 · straps allowed", "Maintain single-leg strength with low soreness cost.", {
+        task(`${p}-split`, 3, "Whole-Body Gym", "Fast outputs occur before strength work.", "Rear-foot-elevated split squat", "3 × 5/leg @ RPE 6–7 · straps allowed", "Maintain single-leg strength with low soreness cost.", {
           setup: "Low rear-foot support and stable front foot.", execution: "Controlled descent and crisp drive.", rest: "90 seconds.", stop: "Reduce load if balance is the limiter."
         }),
-        task(`${p}-upper`, 3, "Whole-Body Gym", "Fast outputs occur before strength work.", "Bench press + chest-supported row", `${strengthPrescription("benchPress", 2, 5, 67, "Bench 2 × 5 @ RPE 6–7")} · row 2 × 8 @ RPE 7`, "Pair the lifts without rushing; shoulder comfort governs pressing range.", {
+        task(`${p}-upper`, 3, "Whole-Body Gym", "Fast outputs occur before strength work.", "Bench press + chest-supported row", `${strengthPrescription("benchPress", 3, 5, 67, "Bench 3 × 5 @ RPE 6–7")} · row 3 × 8 @ RPE 7`, "Pair the lifts without rushing; shoulder comfort governs pressing range.", {
           setup: "Use safeties for bench and a supported row bench.", execution: "Smooth, submaximal reps.", rest: "75–90 seconds between exercises.", stop: "Stop pressing for shoulder or biceps symptoms."
         }),
-        task(`${p}-trunk`, 3, "Whole-Body Gym", "Fast outputs occur before strength work.", "Pallof press", "2 × 8/side", "Resist rotation and breathe behind the brace.", {
-          setup: "Cable or band at sternum height.", execution: "Press without trunk shift.", rest: "30–45 seconds.", stop: "Reduce tension if posture changes."
+        task(`${p}-trunk`, 3, "Whole-Body Gym", "Fast outputs occur before strength work.", "Pallof press + farmer carry", "Pallof press 3 × 8/side · farmer carry 2 × 20 m (no straps)", "Resist rotation and breathe behind the brace; carry tall and controlled.", {
+          setup: "Cable or band at sternum height with carry space clear.", execution: "Press without trunk shift, then carry as deliberate grip work rather than a max test.", rest: "30–45 seconds.", stop: "Reduce tension if posture changes, and end the carry before posture or grip fails."
         }),
         ...armCare(p, "low"),
         ...recoveryTasks(p)
@@ -835,8 +844,8 @@ function summerSession(week, day) {
       task(`${p}-catch`, 3, "Throw", "Keep the arm moving without a high-intent exposure.", "Primer catch", "20–25 throws · 60–75 ft · 50–60%", "No pulldowns and no game-speed finish.", {
         setup: "Relaxed catch partner.", execution: "Finish while fresh.", rest: "Natural.", stop: "End as soon as it feels like work."
       }),
-      task(`${p}-primer`, 4, "Microdose", "Fast and minimal.", "Med-ball scoop toss + pogo", "Scoop toss 2 × 3/side · pogo 2 × 8", "Crisp output only.", {
-        setup: "2 kg medicine ball and flat surface.", execution: "Full reset.", rest: "45 seconds.", stop: "Stop on output drop."
+      task(`${p}-primer`, 4, "Microdose", "Fast and minimal.", "Med-ball scoop toss + pogo + landmine push press", "Scoop toss 2 × 3/side · pogo 2 × 8 · landmine push press 2 × 3/side @ RPE 5–6", "Crisp output only.", {
+        setup: "2 kg medicine ball, flat surface and a secure landmine attachment.", execution: "Full reset between movements; the press is a speed exposure, not a load exposure.", rest: "45 seconds.", stop: "Stop on output drop."
       }),
       ...armCare(p, "low"),
       ...recoveryTasks(p)
