@@ -97,6 +97,9 @@ import { SorenessCard } from "./components/SorenessCard";
 import { PhysioShare, publishShare, readStoredShare } from "./components/PhysioShare";
 
 import { Integrations } from "./components/Integrations";
+import { TrainingHistoryCard } from "./components/TrainingHistoryCard";
+import { pullRemoteHistory, pushPendingHistory } from "../src/domain/historySync";
+import { mergeTrainingHistories, pendingHistoryEvents } from "../src/domain/trainingHistory";
 import { Mechanics } from "./components/Mechanics";
 import { Meal, Nutrition, NutritionTargets } from "./components/Nutrition";
 
@@ -107,6 +110,17 @@ const PAGE_STORAGE = "dylan-pitching-os-page-v1";
 
 /** Quiet period after the last change before autosave uploads. */
 const AUTOSAVE_DELAY_MS = 1500;
+const HISTORY_RETRY_MS = 60_000;
+
+/**
+ * What the snapshot autosave compares. The training history is uploaded on
+ * its own route and excluded from the snapshot, so marking an event uploaded
+ * must not look like a change worth re-sending the snapshot for.
+ */
+function snapshotFingerprint(state: AppState): string {
+  const { trainingHistory: _history, ...rest } = state;
+  return JSON.stringify(rest);
+}
 
 /** How often a live physio link re-publishes itself, at most. */
 const SHARE_REFRESH_MS = 15 * 60 * 1000;
@@ -1087,7 +1101,7 @@ export function App() {
       setSyncStatus(`Sync failed: ${outcome.message}`);
       return;
     }
-    if (outcome.changed) update(() => outcome.state);
+    if (outcome.changed) update(() => outcome.state, { record: false });
     setSyncStatus(
       outcome.status === "conflict-resolved"
         ? "Merged with another device's newer data."
@@ -1112,7 +1126,7 @@ export function App() {
 
   useEffect(() => {
     if (!state || !isValidSyncKey(syncKey)) return;
-    const fingerprint = JSON.stringify(state);
+    const fingerprint = snapshotFingerprint(state);
     if (fingerprint === lastSynced.current || syncing.current) return;
 
     const timer = window.setTimeout(async () => {
@@ -1128,8 +1142,8 @@ export function App() {
         // does not immediately look like a fresh local change.
         lastSynced.current = fingerprint;
         if (outcome.changed) {
-          lastSynced.current = JSON.stringify(outcome.state);
-          update(() => outcome.state);
+          lastSynced.current = snapshotFingerprint(outcome.state);
+          update(() => outcome.state, { record: false });
         }
         setSyncStatus(
           outcome.status === "conflict-resolved"
@@ -1139,6 +1153,56 @@ export function App() {
       } finally {
         syncing.current = false;
       }
+    }, AUTOSAVE_DELAY_MS);
+
+    return () => window.clearTimeout(timer);
+  }, [api, state, syncKey, update]);
+
+  // --- Training history ----------------------------------------------------
+  //
+  // Every local change is appended to `trainingHistory` by `update`; this is
+  // what gets it off the device. On first run with a key it reads the
+  // server's copy (so a second device, or one that used the prototype, shows
+  // the full record), then uploads whatever is pending. Uploads are
+  // idempotent server-side, so a retry after a lost response is harmless.
+  //
+  // A failure backs off for a minute rather than retrying on every keystroke;
+  // the events stay pending and the card says so.
+  const historyPulledFor = useRef("");
+  const historyBusy = useRef(false);
+  const historyFailedAt = useRef(0);
+  const [historyStatus, setHistoryStatus] = useState("");
+
+  useEffect(() => {
+    if (!state || !isValidSyncKey(syncKey) || historyBusy.current) return;
+    if (Date.now() - historyFailedAt.current < HISTORY_RETRY_MS) return;
+    const needsPull = historyPulledFor.current !== syncKey;
+    if (!needsPull && !pendingHistoryEvents(state.trainingHistory).length) return;
+
+    const timer = window.setTimeout(async () => {
+      historyBusy.current = true;
+      const deps = { api, syncKey };
+      let history: unknown = state.trainingHistory;
+      let error = "";
+      try {
+        if (needsPull) {
+          history = await pullRemoteHistory(deps, history);
+          historyPulledFor.current = syncKey;
+        }
+        const pushed = await pushPendingHistory(deps, history);
+        history = pushed.history;
+        error = pushed.error ?? "";
+      } catch (caught) {
+        error = caught instanceof Error ? caught.message : String(caught);
+      } finally {
+        historyBusy.current = false;
+      }
+      historyFailedAt.current = error ? Date.now() : 0;
+      setHistoryStatus(error ? `Upload failed: ${error}` : "");
+      update(
+        (draft) => ({ ...draft, trainingHistory: mergeTrainingHistories(draft.trainingHistory, history) }),
+        { record: false }
+      );
     }, AUTOSAVE_DELAY_MS);
 
     return () => window.clearTimeout(timer);
@@ -1756,6 +1820,14 @@ export function App() {
       )}
 
       {page === "profile" && (
+        <TrainingHistoryCard
+          history={state?.trainingHistory}
+          hasSyncKey={isValidSyncKey(syncKey)}
+          status={historyStatus}
+        />
+      )}
+
+      {page === "profile" && (
         <Account
           api={api}
           syncKey={syncKey}
@@ -1763,7 +1835,7 @@ export function App() {
           onSyncNow={handleSyncNow}
           syncStatus={syncStatus}
           state={state}
-          onReplaceState={(next) => update(() => next)}
+          onReplaceState={(next) => update(() => next, { record: false })}
         />
       )}
     </Shell>

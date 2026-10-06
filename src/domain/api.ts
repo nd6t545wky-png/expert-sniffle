@@ -321,11 +321,17 @@ export class PitchingOsApi {
 
   // --- training history ------------------------------------------------------
 
-  getHistory(params: { start?: IsoDate; end?: IsoDate; limit?: number } = {}) {
+  getHistory(
+    params: { start?: IsoDate; end?: IsoDate; limit?: number; after?: { occurredAt: string; id: string } } = {}
+  ) {
     const query = new URLSearchParams();
     if (params.start) query.set("start", params.start);
     if (params.end) query.set("end", params.end);
     if (params.limit) query.set("limit", String(params.limit));
+    if (params.after) {
+      query.set("after", params.after.occurredAt);
+      query.set("afterId", params.after.id);
+    }
     return this.request<{ events: HistoryEvent[]; limit: number; nextCursor: unknown }>(`/api/history?${query}`);
   }
 
