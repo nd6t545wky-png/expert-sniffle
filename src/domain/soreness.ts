@@ -109,6 +109,7 @@ export type BodyRegion =
   | "lat_teres"
   | "low_back"
   | "hip_groin"
+  | "glute_piriformis"
   | "knee"
   | "ankle_foot"
   | "other";
@@ -125,6 +126,7 @@ export const REGION_LABELS: Record<BodyRegion, string> = {
   lat_teres: "Lat / under the armpit",
   low_back: "Lower back",
   hip_groin: "Hip or groin",
+  glute_piriformis: "Buttock / back of hip",
   knee: "Knee",
   ankle_foot: "Ankle or foot",
   other: "Somewhere else",
@@ -138,6 +140,8 @@ export const REGION_HINTS: Partial<Record<BodyRegion, string>> = {
   shoulder_front: "Anterior — biceps tendon, front of the joint.",
   shoulder_back: "Posterior cuff, behind the joint.",
   shoulder_top: "The AC joint, on top of the shoulder.",
+  hip_groin: "Front of the hip or the inner thigh.",
+  glute_piriformis: "Deep in the buttock, behind the hip — the piriformis. Pick this even if it spreads down the back of the leg.",
 };
 
 /** Regions that carry the throwing arm, and therefore gate throwing. */
@@ -154,6 +158,16 @@ export const ARM_REGIONS: readonly BodyRegion[] = Object.freeze([
 ]);
 
 /**
+ * Regions whose pain throwing itself provokes, and so whose triage caps it.
+ *
+ * The arm, plus the deep hip rotators. The drive leg's hip rotates the pelvis
+ * on every pitch, so a sore piriformis that flares during throwing is
+ * aggravated by the throwing, not by the lifting around it — and a plan that
+ * rests the region while leaving the bullpen in has rested nothing.
+ */
+export const THROWING_REGIONS: readonly BodyRegion[] = Object.freeze([...ARM_REGIONS, "glute_piriformis"]);
+
+/**
  * What the pain feels like.
  *
  * Quality is not decoration. Sharp, burning and pins-and-needles describe
@@ -161,13 +175,14 @@ export const ARM_REGIONS: readonly BodyRegion[] = Object.freeze([
  * to, and "it gave way" describes instability. Those route to the physio
  * rather than to a prescription.
  */
-export type PainQuality = "ache" | "stiff" | "sharp" | "burning" | "pinching" | "giving_way";
+export type PainQuality = "ache" | "stiff" | "sharp" | "burning" | "radiating" | "pinching" | "giving_way";
 
 export const QUALITY_LABELS: Record<PainQuality, string> = {
   ache: "Dull ache",
   stiff: "Stiff or tight",
   sharp: "Sharp or stabbing",
   burning: "Burning, pins and needles, or numb",
+  radiating: "Spreads down the leg or arm",
   pinching: "Pinching at end of range",
   giving_way: "Weak, unstable, or it gave way",
 };
@@ -251,7 +266,7 @@ export const HOLD_SEVERITY = 6;
 export const MONITOR_SEVERITY = 3;
 
 /** Qualities that are a referral on their own, at any severity. */
-const RED_FLAG_QUALITIES: readonly PainQuality[] = Object.freeze(["burning", "giving_way"]);
+const RED_FLAG_QUALITIES: readonly PainQuality[] = Object.freeze(["burning", "radiating", "giving_way"]);
 
 /** Timings that are a referral on their own. */
 const RED_FLAG_TIMINGS: readonly PainTiming[] = Object.freeze(["at_night"]);
@@ -305,7 +320,9 @@ export function triageReport(report: SorenessReport, daysRunning = 0): Triage {
     referral =
       report.quality === "burning"
         ? "Burning, pins and needles or numbness is a nerve description, not a load description. Load management is not the answer to it."
-        : "Weakness, instability or a joint giving way needs examining before it is loaded again.";
+        : report.quality === "radiating"
+          ? "Pain that travels down a limb usually means a nerve is involved — from the buttock, often the sciatic nerve where it passes the piriformis, or from the lower back. Which one decides the treatment, so it needs examining rather than training around, and stretching into it tends to make it worse."
+          : "Weakness, instability or a joint giving way needs examining before it is loaded again.";
     reasons.push(`Reported as ${QUALITY_LABELS[report.quality].toLowerCase()}.`);
   }
 
@@ -371,8 +388,8 @@ export function triageReport(report: SorenessReport, daysRunning = 0): Triage {
   }
 
   const tier = ORDER[level];
-  const arm = ARM_REGIONS.includes(report.region);
-  const throwingCapPercent = !arm
+  const throwingLoaded = THROWING_REGIONS.includes(report.region);
+  const throwingCapPercent = !throwingLoaded
     ? null
     : tier === "monitor"
       ? null
@@ -907,6 +924,56 @@ export const REGION_PLAYBOOK: Record<BodyRegion, RegionPlaybook> = {
         "Adductor squeeze isometric",
         "Ball between the knees, pain-free effort, held.",
         "Loads the groin without a single step or change of direction."
+      ),
+    ],
+  },
+
+  /**
+   * Deep gluteal pain — the piriformis and the rotators under it.
+   *
+   * Out: what loads the hip rotators fast or under stretch. Sprinting and
+   * depth jumps are fast hip extension; the RDL and the Nordic stretch the
+   * posterior hip and pull on the sciatic nerve that runs past the piriformis,
+   * and the Nordic loads the proximal hamstring, which is the commonest thing
+   * deep buttock pain turns out to be instead. The rotational med-ball throw is
+   * the pitching pattern itself, at speed. Throwing is capped through
+   * `THROWING_REGIONS`, not listed here.
+   *
+   * In: isometrics, for the reason they are used everywhere else in this file —
+   * load without the motion that provokes. Deliberately no piriformis stretch.
+   * When the pain spreads down the leg the nerve is part of it, and a stretch
+   * that pulls on an irritated nerve is the commonest way this gets worse.
+   */
+  glute_piriformis: {
+    avoid: [
+      /Sprint/i,
+      /Acceleration quality/i,
+      /Depth jump/i,
+      /Romanian deadlift/i,
+      /Nordic/i,
+      /Rotational med-ball/i,
+    ],
+    swaps: [],
+    modify: [
+      isometric(
+        "glute-bridge-iso",
+        "Glute bridge isometric hold",
+        "On your back, knees bent, feet flat. Lift to a straight line from knee to shoulder and hold — squeeze the glutes, do not arch the lower back.",
+        "Loads the glutes in hip extension with no hip rotation and no stretch on the back of the hip, which is the position deep buttock pain tolerates best."
+      ),
+      isometric(
+        "hip-er-iso",
+        "Side-lying hip external rotation isometric",
+        "Lie on the good side, knees bent to 45°, a band just above the knees. Lift the top knee a few centimetres and hold — feet together, pelvis still.",
+        "The piriformis is a hip external rotator. Holding it short and under light load works it without the deep flexion and internal rotation that compress it."
+      ),
+    ],
+    hold: [
+      isometric(
+        "glute-bridge-iso",
+        "Glute bridge isometric hold",
+        "Both feet down, a height that does not provoke. Pain-free effort, held.",
+        "Keeps the glutes loaded on a rest day without rotating or stretching the hip."
       ),
     ],
   },

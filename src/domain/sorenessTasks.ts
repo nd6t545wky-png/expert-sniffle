@@ -35,6 +35,7 @@ import {
   REGION_LABELS,
   REGION_PLAYBOOK,
   ARM_REGIONS,
+  THROWING_REGIONS,
   BodyRegion,
   throwingCap,
   worstTier,
@@ -201,7 +202,7 @@ export function applySorenessProtocol(session: Session, active: ActiveReport[]):
   const cap = throwingCap(live);
   if (cap !== null) {
     const armRegion =
-      live.find((entry) => ARM_REGIONS.includes(entry.report.region))?.report.region ?? "other";
+      live.find((entry) => THROWING_REGIONS.includes(entry.report.region))?.report.region ?? "other";
 
     tasks = tasks.flatMap((task) => {
       // Practice is attended either way; what changes is what he does there.

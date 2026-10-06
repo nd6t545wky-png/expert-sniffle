@@ -457,3 +457,27 @@ describe("the playbook", () => {
     }
   });
 });
+
+describe("deep buttock pain and pain that spreads", () => {
+  it("refers pain that spreads down a limb, at any severity", () => {
+    const triage = triageReport(report({ region: "glute_piriformis", quality: "radiating", severity: 2 }));
+    expect(triage.tier).toBe("refer");
+    expect(triage.referral).toMatch(/nerve/);
+    expect(triage.referral).toMatch(/stretching/);
+  });
+
+  it("caps throwing for the buttock, because the drive leg rotates on every pitch", () => {
+    expect(triageReport(report({ region: "glute_piriformis", severity: 8, timing: "during" })).throwingCapPercent).toBe(0);
+    expect(triageReport(report({ region: "glute_piriformis", severity: 4, timing: "during" })).throwingCapPercent).toBe(60);
+  });
+
+  it("still leaves throwing alone for the groin", () => {
+    expect(triageReport(report({ region: "hip_groin", severity: 8 })).throwingCapPercent).toBeNull();
+  });
+
+  it("prescribes no piriformis stretch", () => {
+    const rx = [...REGION_PLAYBOOK.glute_piriformis.modify, ...REGION_PLAYBOOK.glute_piriformis.hold];
+    expect(rx.length).toBeGreaterThan(0);
+    for (const item of rx) expect(item.name).not.toMatch(/stretch/i);
+  });
+});

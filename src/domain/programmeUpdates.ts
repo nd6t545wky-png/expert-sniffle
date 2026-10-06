@@ -1032,6 +1032,15 @@ function forearmPrepTask(prefix: string): SessionTask {
  *
  * Deliberately no end-range adductor loading. The flow's adductor rock covers
  * that gently, and a Cossack squat in a warm-up is where a groin gets pulled.
+ *
+ * The side-lying clamshell is there for the deep rotators. The block worked
+ * the hip flexor, internal rotation and the lateral hip, and nothing asked the
+ * external rotators — the piriformis among them — to do anything before the
+ * drive leg rotated the pelvis at full speed. It goes before the band walk so
+ * the rotators are awake before the lateral hip is asked to work around them.
+ * Deliberately a short hold rather than a piriformis stretch: a stretched,
+ * irritated piriformis presses on the sciatic nerve, and a warm-up should not
+ * be the thing that starts that.
  */
 function hipPrepTask(prefix: string): SessionTask {
   return {
@@ -1041,16 +1050,63 @@ function hipPrepTask(prefix: string): SessionTask {
     stageDescription: "Raise temperature before mobility or throwing.",
     name: "Hip prep — rotation and glutes",
     prescription:
-      "Half-kneeling hip flexor with posterior tilt 2 × 20 s/side · 90/90 internal rotation lift-off 6/side · lateral band walk 10 steps each way · single-leg glute bridge 8/side",
+      "Half-kneeling hip flexor with posterior tilt 2 × 20 s/side · 90/90 internal rotation lift-off 6/side · side-lying clamshell 10/side, 3 s hold at the top · lateral band walk 10 steps each way · single-leg glute bridge 8/side",
     cue: "Own the range rather than sink into it. Every rep is your own muscle moving the joint, not gravity. The lift-off uses the same 90/90 position as the switch in the flow above and does the opposite job: that one moves you through the range, this one makes you hold the end of it under your own power.",
     setup:
       "A mat or soft surface for the kneeling and bridging work, and a light band above the knees for the walks.",
     execution:
-      "Half-kneeling hip flexor: back knee down, tuck the tailbone under until you feel the front of the hip, then stay tall — do not arch to get deeper. 90/90 lift-off: sit in the 90/90 position and lift the back shin off the floor without leaning, hold a second, lower under control. Lateral band walk: knees out, feet quiet, small steps. Single-leg glute bridge: drive through the heel, keep the pelvis level, no arch through the lower back.",
+      "Half-kneeling hip flexor: back knee down, tuck the tailbone under until you feel the front of the hip, then stay tall — do not arch to get deeper. 90/90 lift-off: sit in the 90/90 position and lift the back shin off the floor without leaning, hold a second, lower under control. Side-lying clamshell: band above the knees, hips stacked, feet together; open the top knee without rolling the pelvis back, hold three seconds, lower slowly — the deep rotators should be doing it, so it is a small range. Lateral band walk: knees out, feet quiet, small steps. Single-leg glute bridge: drive through the heel, keep the pelvis level, no arch through the lower back.",
     rest: "Straight through — this is a warm-up, not a set.",
-    stop: "Stop for groin or front-of-hip pinching. Pinching at end of range means less range today, not more effort.",
+    stop: "Stop for groin or front-of-hip pinching. Pinching at end of range means less range today, not more effort. Deep buttock pain, or anything that runs down the leg, means stop and log it on the soreness card rather than stretching into it.",
     evidence:
       "Robb 2010, Am J Sports Med — 19 professional pitchers, fluid goniometry with 3-D motion analysis. Total rotation arc of the non-dominant (lead) hip correlated with ball velocity, r = 0.50; the non-dominant hip had less passive range than the dominant one in every direction measured. Correlational, and small.",
+  };
+}
+
+/**
+ * Hip rotation strength, for the drive leg most of all.
+ *
+ * The warm-up wakes the hip rotators up; this is what makes them able to take
+ * the load. The drive leg rotates the pelvis on every pitch, and deep buttock
+ * soreness that keeps coming back after throwing is a tissue being asked for
+ * more than it has been trained to tolerate. Warming it up better does not
+ * change that capacity. Strengthening it does.
+ *
+ * Two movements. The hip airplane is single-leg pelvic rotation under control
+ * — the drive leg's job in the delivery, slowed down. The side-lying hip
+ * abduction in slight extension is the strengthening dose for the lateral and
+ * posterior hip that hold the pelvis while it turns. An extra set on the
+ * drive leg because that is the side that keeps breaking down.
+ *
+ * Placed with the accessories at the end of the gym stage, so it cannot
+ * fatigue the hip before the lifts that need it.
+ *
+ * Honest about the evidence: management of deep gluteal pain leans on hip
+ * abductor and external-rotator strengthening, but the trials behind it are
+ * small and mostly case series. It is in because it is low-cost and aimed at
+ * the right tissue, not because it has been shown to prevent recurrence.
+ */
+function hipRotationStrengthTask(
+  prefix: string,
+  stageTitle: string,
+  stageDescription: string
+): SessionTask {
+  return {
+    id: `${prefix}-hip-rotation-strength`,
+    stage: 4,
+    stageTitle,
+    stageDescription,
+    name: "Hip rotation strength — drive leg",
+    prescription:
+      "Hip airplane 3 × 5/side, slow · side-lying hip abduction in slight extension 3 × 12/side · one extra set of each on the drive leg",
+    cue: "Slow and owned. The pelvis turns over a still standing leg; if the knee caves or the foot rolls, the range is too big.",
+    setup: "A wall or rack within reach for the airplane. A mat for the abduction; ankle weight or band optional once 12 is easy.",
+    execution:
+      "Hip airplane: stand on one leg, hinge until the trunk is near horizontal, then rotate the pelvis open toward the ceiling and back closed toward the floor, the standing knee soft and pointing forward. Touch the wall when you need to. Side-lying abduction: bottom knee bent, top leg straight and slightly behind the body, toes pointing forward; lift to about 30°, pause, lower over two seconds.",
+    rest: "60 seconds between rounds.",
+    stop: "Stop for deep buttock pain above 3/10 or anything that runs down the leg — log it on the soreness card. Burning in the side of the hip by the end of a set is the muscle working and is fine.",
+    evidence:
+      "Deep gluteal syndrome is usually managed with hip abductor and external-rotator strengthening (Tonley 2010, JOSPT 40(2):103–111, case report; Hopayian 2018, Br J Pain, review). The evidence is low-grade: small studies and case series, not prevention trials.",
   };
 }
 
@@ -1433,11 +1489,17 @@ export function applyBaselineProgramming(
 
   // The hinge, then the calf. Both are microdoses and neither competes with
   // the other: one is a posterior-chain lift, the other is local ankle work.
-  const late = (
-    onThursday
+  // The hip rotation work goes on every real gym day — Monday and Wednesday in
+  // winter, the single Wednesday in summer — and never on Thursday's
+  // synthesised microdose, which exists to stay cheap.
+  const late = [
+    ...(onThursday
       ? [rdlTask(prefix, stageTitle, stageDescription), soleusTask(prefix, stageTitle, stageDescription)]
-      : []
-  )
+      : []),
+    // Keyed on Thursday as well as on `synthesised`: a second pass over a
+    // Thursday finds the stage the first pass built and would otherwise add it.
+    ...(!synthesised && !onThursday ? [hipRotationStrengthTask(prefix, stageTitle, stageDescription)] : []),
+  ]
     .map(intoStage)
     .filter((addition) => !tasks.some((task) => task.id === addition.id));
 

@@ -627,3 +627,18 @@ describe("the soleus microdose and a sore ankle", () => {
     }
   });
 });
+
+describe("a sore piriformis", () => {
+  it("takes out the hip-stretching and fast hip work, and the bullpen, but keeps the warm-up", () => {
+    const entry = dayWith(/Romanian deadlift/i);
+    const base = applyBaselineProgramming(buildSession(weekPlan(entry.week, PBS), entry.day), null, entry.day);
+    const result = apply(base, entry.date, [
+      reportOn(entry.date, { region: "glute_piriformis", severity: 7, timing: "during" }),
+    ]);
+    const after = names_(result);
+    expect(after.some((name) => /Romanian deadlift|Nordic|Depth jump|Rotational med-ball/i.test(name))).toBe(false);
+    expect(after.some((name) => /Glute bridge isometric/i.test(name))).toBe(true);
+    expect(after).toContain("Raise tissue temperature");
+    expect(result.changes.some((change) => change.kind === "capped" || change.kind === "removed")).toBe(true);
+  });
+});

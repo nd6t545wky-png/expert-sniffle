@@ -1197,3 +1197,36 @@ describe("soleus microdose", () => {
     expect(twice.tasks.filter((task) => /Seated calf raise/.test(task.name))).toHaveLength(1);
   });
 });
+
+describe("hip rotation work for the drive leg", () => {
+  const tasksOn = (week: number, day: number) =>
+    applyBaselineProgramming(buildSession(weekPlan(week), day), null, day).tasks;
+
+  it("puts the clamshell in the warm-up's hip block", () => {
+    const hip = tasksOn(6, 0).find((task) => /Hip prep/.test(task.name));
+    expect(hip?.prescription).toMatch(/clamshell/i);
+  });
+
+  it("adds the strength piece to every real gym day and never to Thursday's microdose", () => {
+    for (let week = 1; week <= PROGRAMME_WEEK_COUNT; week += 1) {
+      for (let day = 0; day < 7; day += 1) {
+        const tasks = tasksOn(week, day);
+        const has = tasks.some((task) => /Hip rotation strength/.test(task.name));
+        if (day === 3) expect(has, `week ${week} Thursday`).toBe(false);
+        const realGym = tasks.some(
+          (task) => /^Whole-Body (Force|Power|Gym|Rebuild)$/.test(String(task.stageTitle)) && !/hip-rotation-strength/.test(task.id)
+        );
+        if (day !== 3 && realGym) expect(has, `week ${week} day ${day}`).toBe(true);
+        if (has) expect(tasks.filter((task) => /Hip rotation strength/.test(task.name))).toHaveLength(1);
+      }
+    }
+  });
+
+  it("sits at the end of the gym stage, after the lifts", () => {
+    const tasks = tasksOn(6, 0);
+    const at = tasks.findIndex((task) => /Hip rotation strength/.test(task.name));
+    const gymStage = tasks[at].stageTitle;
+    const lastOfStage = tasks.map((task) => task.stageTitle).lastIndexOf(gymStage);
+    expect(at).toBe(lastOfStage);
+  });
+});
