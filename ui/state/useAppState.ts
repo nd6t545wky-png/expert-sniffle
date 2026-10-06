@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { AppState, IsoDate } from "../../src/domain/state";
 import { LoadResult, loadAppState, migrateIfNeeded, saveAppState } from "../../src/domain/storage";
 import { ReadinessSubmission, PlanState, planStateForDate } from "../../src/domain/session";
+import { mergeTrainingHistories, recordStateChanges } from "../../src/domain/trainingHistory";
 
 /**
  * Bridges the pure storage layer to React.
@@ -22,9 +23,18 @@ export interface AppStateHandle {
   state: AppState | null;
   /** Set when stored data could not be read; the original is backed up. */
   load: LoadResult | null;
-  update: (mutate: (draft: AppState) => AppState) => void;
+  /**
+   * Apply a change. By default it is also appended to the training history;
+   * pass `{ record: false }` for state that arrived from elsewhere — a sync
+   * merge or a restored backup — which this device did not do.
+   */
+  update: (mutate: (draft: AppState) => AppState, options?: UpdateOptions) => void;
   submissions: Record<IsoDate, ReadinessSubmission | undefined>;
   planFor: (date: IsoDate) => PlanState;
+}
+
+export interface UpdateOptions {
+  record?: boolean;
 }
 
 export function useAppState(): AppStateHandle {
@@ -40,10 +50,17 @@ export function useAppState(): AppStateHandle {
     setState(result.state);
   }, []);
 
-  const update = useCallback((mutate: (draft: AppState) => AppState) => {
+  const update = useCallback((mutate: (draft: AppState) => AppState, options: UpdateOptions = {}) => {
     setState((current) => {
       if (!current) return current;
-      const next = mutate(current);
+      let next = mutate(current);
+      // The history is append-only. A mutation that builds a fresh state — a
+      // sync merge computed from an older copy, an import — must not be able
+      // to drop events by omission, so the two copies are unioned.
+      if (next !== current && next.trainingHistory !== current.trainingHistory && current.trainingHistory !== undefined) {
+        next = { ...next, trainingHistory: mergeTrainingHistories(current.trainingHistory, next.trainingHistory) };
+      }
+      if (options.record !== false) next = recordStateChanges(current, next);
       try {
         saveAppState(browserStorage(), next);
       } catch (error) {
