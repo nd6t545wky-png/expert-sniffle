@@ -608,6 +608,7 @@ describe("hip and trunk warm-up", () => {
       "Raise tissue temperature",
       "Dynamic mobility flow",
       "Hip prep — rotation and glutes",
+      "Hamstring activation",
       "Trunk and spine prep",
       "Scapular and cuff activation",
       "Ankle stiffness pogos",
@@ -780,7 +781,8 @@ describe("the real warm-up, every day of the year", () => {
       const flow = names.indexOf("Dynamic mobility flow");
       expect(flow, label).toBeGreaterThan(0);
       expect(names.indexOf("Hip prep — rotation and glutes"), label).toBe(flow + 1);
-      expect(names.indexOf("Trunk and spine prep"), label).toBe(flow + 2);
+      expect(names.indexOf("Hamstring activation"), label).toBe(flow + 2);
+      expect(names.indexOf("Trunk and spine prep"), label).toBe(flow + 3);
     }
   });
 
@@ -1228,5 +1230,27 @@ describe("hip rotation work for the drive leg", () => {
     const gymStage = tasks[at].stageTitle;
     const lastOfStage = tasks.map((task) => task.stageTitle).lastIndexOf(gymStage);
     expect(at).toBe(lastOfStage);
+  });
+});
+
+describe("hamstring activation in the warm-up", () => {
+  it("sits between the hip and trunk blocks on every day with a warm-up", () => {
+    for (let week = 1; week <= PROGRAMME_WEEK_COUNT; week += 1) {
+      for (let day = 0; day < 7; day += 1) {
+        const names = applyBaselineProgramming(buildSession(weekPlan(week), day), null, day).tasks.map((t) => t.name);
+        const hip = names.findIndex((n) => /^Hip prep/.test(n));
+        if (hip === -1) continue;
+        const ham = names.indexOf("Hamstring activation");
+        expect(ham, `week ${week} day ${day}`).toBe(hip + 1);
+        expect(names[ham + 1], `week ${week} day ${day}`).toMatch(/^Trunk and spine prep/);
+        expect(names.filter((n) => n === "Hamstring activation")).toHaveLength(1);
+      }
+    }
+  });
+
+  it("does not stretch the nerve: no leg swings or straight-leg stretches", () => {
+    const task = applyBaselineProgramming(buildSession(weekPlan(6), 0), null, 0).tasks.find((t) => t.name === "Hamstring activation");
+    expect(task?.prescription).not.toMatch(/swing|straight-leg|stretch/i);
+    expect(task?.stop).toMatch(/down the leg/);
   });
 });

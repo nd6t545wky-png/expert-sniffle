@@ -1111,6 +1111,42 @@ function hipRotationStrengthTask(
 }
 
 /**
+ * Hamstring activation, which the warm-up did not have.
+ *
+ * The hip block works the glutes and rotators and the trunk block the
+ * lumbopelvic control, but nothing asked the hamstrings to contract before the
+ * first sprint, jump or drive off the rubber. The Nordic on Monday is the
+ * training dose; this only switches the hamstrings on.
+ *
+ * Chosen to load the hamstrings without tensioning the sciatic nerve. Deep
+ * buttock pain that runs down the leg is a nerve sign, and straight-leg swings
+ * and long-lever stretches pull on exactly that nerve. So the first two drills
+ * are knee-bent, hip-extended contractions, which shorten the hamstring and
+ * leave the nerve slack. The single-leg reach is the only lengthening drill,
+ * and it stops at a mild stretch.
+ *
+ * Placed straight after the hip block: the glute bridge that ends it is the
+ * set-up for the heel digs.
+ */
+function hamstringPrepTask(prefix: string): SessionTask {
+  return {
+    id: `${prefix}-hamstring-prep`,
+    stage: 1,
+    stageTitle: "Prepare",
+    stageDescription: "Raise temperature before mobility or throwing.",
+    name: "Hamstring activation",
+    prescription:
+      "Bridge heel digs 2 × 5, 5 s hold · hamstring bridge walk-out 2 × 4 · bodyweight single-leg RDL reach 5/side, slow",
+    cue: "Feel it in the back of the thigh, not the lower back. Contract, don't stretch.",
+    setup: "A mat. A wall or post within reach for the single-leg reach.",
+    execution:
+      "Bridge heel digs: on your back, knees bent to about 90°, lift into a bridge and drive your heels down and back toward your hips as if dragging the floor — hold five seconds. Bridge walk-out: from the top of a bridge, walk the heels out in small steps until the knees are nearly straight, then walk them back in without dropping the hips. Single-leg RDL reach: stand on one leg, knee soft, hinge forward reaching toward the floor until you feel a mild pull, then drive the hip forward to stand.",
+    rest: "Straight through — this is a warm-up, not a set.",
+    stop: "Stop for a cramp-like grab, or any pain or tingling that runs down the leg. On the reach, stop short of a pull behind the knee or into the calf; that is the nerve, not the hamstring.",
+  };
+}
+
+/**
  * Trunk and spine preparation, and the one drill here with real evidence
  * behind it.
  *
@@ -1291,7 +1327,7 @@ export function applyBaselineProgramming(
   if (prepEnd !== -1) {
     const prepPrefix = String(tasks[0].id).split("-").slice(0, 2).join("-");
     const absent = (addition: SessionTask) => !tasks.some((task) => task.id === addition.id);
-    const regional = [hipPrepTask(prepPrefix), trunkPrepTask(prepPrefix)].filter(absent);
+    const regional = [hipPrepTask(prepPrefix), hamstringPrepTask(prepPrefix), trunkPrepTask(prepPrefix)].filter(absent);
     // The warm-up ends with whatever prepares the stage that follows it. That
     // is the arm on every day except the speed day, where the sprinting comes
     // first and the drills belong last instead.
@@ -1322,7 +1358,7 @@ export function applyBaselineProgramming(
     // Two inserts rather than one, later index first so the earlier splice
     // does not shift it:
     //
-    //   raise → general mobility → hips → trunk → cuff → ankle → forearm
+    //   raise → general mobility → hips → hamstrings → trunk → cuff → ankle → forearm
     tasks.splice(prepEnd + 1, 0, ...tail);
 
     const flowIndex = tasks.findIndex(
