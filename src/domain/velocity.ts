@@ -177,14 +177,16 @@ interface BlockRange {
  *
  * The boundaries are not invented here — every one of them is where the
  * programme's own phase table or week plan already changes character. Weeks
- * 25–27 are the block's "Strength rebuild / Force emphasis / Strength-speed"
- * weeks, which is where the programme itself puts pulldowns and the mound
- * conversion. Weeks 23–24 are its "Christmas unload" and "Movement rebuild".
- * Week 28 is its "Term 1 re-entry taper". This table renames what is already
- * there and then makes the intent match the name.
+ * 22–23 are the break's "Christmas unload" and "Movement rebuild"; 24–25 are
+ * its "Force emphasis" and "Strength-speed", which is where the programme
+ * itself puts pulldowns and the mound conversion. Week 26 is Round 11, the
+ * Term 1 return. This table renames what is already there and then makes the
+ * intent match the name.
  *
  * The uncomfortable finding, stated plainly rather than hidden in a constant:
- * **three weeks of the fifty-two can carry a genuine velocity block.** The
+ * **two weeks of the fifty-two can carry a genuine velocity block.** It was
+ * three while the break was assumed to be six weeks; the published draw makes
+ * it four, with Round 11 on Wednesday 6 January. The
  * calendar runs FNCBA winter into GBL summer into GBL summer again, and the
  * only real gap is the Christmas break. That is a reason to protect those
  * three weeks and to stop the in-season light-ball work from competing with
@@ -235,43 +237,43 @@ const BLOCKS: readonly BlockRange[] = [
     plyoCeiling: "hybrid_b",
     velocityDay: false,
     highEffortThrows: 10,
-    note: "Two weeks to unload and rebuild before the velocity block, starting the week after Round 10. Tread's on-ramp is four weeks off a genuine layoff; this is two, because the arm comes straight out of ten rounds of two-game weeks rather than off the couch.",
+    note: "Two weeks to unload and rebuild before the velocity block, starting the week after Round 10 (4–6 December). Tread's on-ramp is four weeks off a genuine layoff; this is two, because the arm comes straight out of ten rounds of two-game weeks rather than off the couch. The on-ramp is kept at two even though the break is only four weeks: shortening it to buy a third velocity week would put maximal intent on an arm one week out of the season.",
   },
   {
     from: 24,
-    to: 26,
+    to: 25,
     block: "develop",
     plyoCeiling: "hybrid_a",
     velocityDay: true,
     highEffortThrows: 20,
-    note: "The one genuine velocity block in the year. It sits inside the six-week Christmas break the draw leaves between Round 10 and Round 11, which is the only stretch that can carry maximal-intent throwing without a fixture three days later. Intent goes up to hybrid A and volume comes down to match — twenty high-effort throws in the session, which is Tread's published dose for a high-intensity phase.",
+    note: "The one genuine velocity block in the year. It sits inside the four-week Christmas break between Round 10 and Round 11, which is the only stretch that can carry maximal-intent throwing without a fixture three days later. Intent goes up to hybrid A and volume comes down to match — twenty high-effort throws in the session, which is Tread's published dose for a high-intensity phase.",
   },
   {
-    from: 27,
-    to: 27,
+    from: 26,
+    to: 26,
     block: "taper",
     plyoCeiling: "hybrid_b",
     velocityDay: false,
     highEffortThrows: 10,
-    note: "The week Round 11 is played. Intent comes off out of the velocity block so the first weekend back is not the first fatigued weekend — a taper, which is why the volume drops and the games stay.",
+    note: "The week Round 11 is played: Wednesday 6 January and Sunday 10 January. Intent comes off out of the velocity block so the first games back are not the first fatigued games — a taper, which is why the volume drops and the games stay. The Wednesday game is a week after the velocity block's last high-intent Wednesday, with the New Year weekend between them.",
   },
   {
-    from: 28,
-    to: 34,
+    from: 27,
+    to: 33,
     block: "two_game",
     plyoCeiling: "hybrid_b",
     velocityDay: false,
     highEffortThrows: null,
-    note: "GBL Term 1: Rounds 12 to 18, Friday and Sunday again, and the same conclusion. Maintain, do not build.",
+    note: "GBL Term 1: Rounds 12 to 18, 15 January to 28 February, Friday and Sunday again, and the same conclusion. Maintain, do not build.",
   },
   {
-    from: 35,
+    from: 34,
     to: 36,
     block: "restore",
     plyoCeiling: "recovery",
     velocityDay: false,
     highEffortThrows: 0,
-    note: "Two lower-stress weeks after the last summer round. The deepest unload of the year, and the platform the winter build stands on.",
+    note: "Three lower-stress weeks after the last summer round on 28 February. The deepest unload of the year, and the platform the winter build stands on.",
   },
   {
     from: 37,

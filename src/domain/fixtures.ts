@@ -7,15 +7,15 @@
  * recovering before the archive went.
  *
  * They are a *provenance-labelled* list, not a truth. Eight of them were
- * marked in that build as the official FNCBA Division 1 draw; the rest — the
- * Cubs opener and the two semi-finals — came from the athlete. Both labels
+ * marked in that build as the official FNCBA Division 1 draw, the two winter
+ * semi-finals came from the athlete, and the GBL summer season is the
+ * published Division 1 draw (see below). Both labels
  * travel with the fixture and are shown, because a draw can be rescheduled and
  * a date read out of a bundle is a copy of a copy. Nothing in the programme is
  * driven off these — they are shown against the plan so the athlete can see a
  * clash, not used to move a session on their own.
  */
 
-import { addDays } from "./calendar";
 import { IsoDate } from "./state";
 
 export type FixtureSource = "official" | "athlete-provided";
@@ -62,58 +62,66 @@ const FNCBA_SEMIS: Array<[game: number, date: IsoDate]> = [
 // --- The 26/27 summer draw ---------------------------------------------------
 
 /**
- * The Cubs' 26/27 summer season, as the athlete gave it.
+ * The Cubs' 26/27 GBL Division 1 season, from the published schedule.
  *
- * The draw arrived as eighteen rounds with opponents and home/away and no
- * dates, so the dates here are derived from two things the athlete stated: the
- * season opens Friday 2 October 2026 — the date already held for the Cubs
- * opener, which this list replaces — and each round is played twice, Friday
- * and the Sunday after it. Rounds run weekly, with a six-week Christmas break
- * between Round 10 and Round 11.
+ * Read off the league's Division 1 schedule on Ballclubz
+ * (ballclubz.com/gbld1/schedule, linked from Baseball Queensland's GBL page)
+ * on 7 October 2026. It replaces a list that was *derived* — eighteen rounds
+ * of opponents with dates calculated from an assumed weekly rhythm and an
+ * assumed six-week Christmas break. Against the published draw that list had
+ * the wrong opponent in every round, the wrong home/away in most, a break two
+ * weeks too long, and every Term 1 date a week late.
  *
- * Derived dates are still athlete-provided, not official: nothing was read off
- * a published draw, so a rescheduled round will be wrong here until it is
- * corrected through `readAthleteFixtures`, which replaces any of these by id.
+ * What the published draw says that the derived one could not:
+ *
+ *   - Nine opponents, each played in two rounds, home once and away once.
+ *   - Round 11 is **Wednesday 6 January** and Sunday 10 January. Every other
+ *     round is Friday and the Sunday after it.
+ *   - The last round is 26–28 February, not 5–7 March.
+ *
+ * "Home" means the Cubs' ground (Wakerley Park on Fridays, Gambamora Park on
+ * Sundays). A rescheduled game is corrected through `readAthleteFixtures`,
+ * which replaces any of these by id. Finals are not published yet.
  */
-const SUMMER_OPENER: IsoDate = "2026-10-02";
-const SUMMER_BREAK_AFTER_ROUND = 10;
-/** Six weeks between Round 10 and Round 11 where every other gap is one. */
-const SUMMER_BREAK_EXTRA_DAYS = 35;
-
-const SUMMER_ROUNDS: Array<[round: number, opponent: string, home: boolean]> = [
-  [1, "Pine Hills", false],
-  [2, "Redcliffe", true],
-  [3, "Beenleigh", true],
-  [4, "Redlands", false],
-  [5, "Carina", true],
-  [6, "Narangba", false],
-  [7, "Windsor", true],
-  [8, "Wests", false],
-  [9, "Surfers", true],
-  [10, "Pine Hills", true],
-  [11, "Redcliffe", false],
-  [12, "Beenleigh", false],
-  [13, "Redlands", true],
-  [14, "Carina", false],
-  [15, "Narangba", true],
-  [16, "Windsor", false],
-  [17, "Wests", true],
-  [18, "Surfers", false],
+const SUMMER_ROUNDS: Array<[round: number, opponent: string, home: boolean, first: IsoDate, second: IsoDate]> = [
+  [1, "Surfers Paradise", true, "2026-10-02", "2026-10-04"],
+  [2, "Carina Red Sox", false, "2026-10-09", "2026-10-11"],
+  [3, "Narangba Demons", true, "2026-10-16", "2026-10-18"],
+  [4, "Windsor Royals", false, "2026-10-23", "2026-10-25"],
+  [5, "Redcliffe Padres", false, "2026-10-30", "2026-11-01"],
+  [6, "Beenleigh Hawks", true, "2026-11-06", "2026-11-08"],
+  [7, "Pine Hills Lightning", false, "2026-11-13", "2026-11-15"],
+  [8, "Redlands Rays", true, "2026-11-20", "2026-11-22"],
+  [9, "Wests Bulldogs", false, "2026-11-27", "2026-11-29"],
+  [10, "Surfers Paradise", false, "2026-12-04", "2026-12-06"],
+  [11, "Carina Red Sox", true, "2027-01-06", "2027-01-10"],
+  [12, "Narangba Demons", false, "2027-01-15", "2027-01-17"],
+  [13, "Windsor Royals", true, "2027-01-22", "2027-01-24"],
+  [14, "Redcliffe Padres", true, "2027-01-29", "2027-01-31"],
+  [15, "Beenleigh Hawks", false, "2027-02-05", "2027-02-07"],
+  [16, "Pine Hills Lightning", true, "2027-02-12", "2027-02-14"],
+  [17, "Redlands Rays", false, "2027-02-19", "2027-02-21"],
+  [18, "Wests Bulldogs", true, "2027-02-26", "2027-02-28"],
 ];
 
-function summerRoundFriday(round: number): IsoDate {
-  const weeks = round - 1;
-  const extra = round > SUMMER_BREAK_AFTER_ROUND ? SUMMER_BREAK_EXTRA_DAYS : 0;
-  return addDays(SUMMER_OPENER, weeks * 7 + extra);
-}
+/** The published draw, for the programme's week plans to name each round. */
+export const GBL_ROUNDS_2026_27 = Object.freeze(
+  SUMMER_ROUNDS.map(([round, opponent, home, first, second]) => Object.freeze({ round, opponent, home, dates: [first, second] as const }))
+);
 
-const SUMMER_FIXTURES: readonly Fixture[] = SUMMER_ROUNDS.flatMap(([round, opponent, home]) =>
-  [0, 2].map((offset) => ({
-    id: `cubs-2026-27-r${round}-${offset === 0 ? "fri" : "sun"}`,
-    date: addDays(summerRoundFriday(round), offset),
+const WEEKDAY = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+const weekday = (date: IsoDate) => WEEKDAY[new Date(`${date}T00:00:00Z`).getUTCDay()];
+
+const SUMMER_FIXTURES: readonly Fixture[] = SUMMER_ROUNDS.flatMap(([round, opponent, home, first, second]) =>
+  [first, second].map((date, game) => ({
+    // The ids keep the old fri/sun suffixes so an athlete correction saved
+    // against the derived list still replaces the right game. Round 11's
+    // first game is a Wednesday but keeps the "fri" id for that reason.
+    id: `cubs-2026-27-r${round}-${game === 0 ? "fri" : "sun"}`,
+    date,
     team: "Coomera Cubs",
-    label: `Summer Round ${round} ${home ? "vs" : "at"} ${opponent} (${offset === 0 ? "Friday" : "Sunday"})`,
-    source: "athlete-provided" as const,
+    label: `Summer Round ${round} ${home ? "vs" : "at"} ${opponent} (${weekday(date)})`,
+    source: "official" as const,
   }))
 );
 
