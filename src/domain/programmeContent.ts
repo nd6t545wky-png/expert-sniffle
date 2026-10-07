@@ -771,25 +771,29 @@ function summerSession(week, day) {
       description: "Bullpen day, then the heavier of the week's two gym days. The bullpen is the week's one throwing session between starts — two days clear of Friday — and it goes first, while the arm is fresh. The gym follows: the only session with a hinge and a press, power first, then the primary lift, unilateral work, push/pull and trunk at the three sets the week plan prescribes.",
       tasks: [
         ...basePrep(p, "bullpen"),
-        task(`${p}-bullpen-catch`, 2, "Throw", "Bullpen between starts, two days clear of Friday.", "Bullpen catch build", "15–25 throws · build to 90–120 ft · 50–70%", "Just enough to get loose for the mound. No long toss and no pulldowns.", {
+        plyoTask(p, 1, "Plyo Ball Reverse Throw — 1,000 g", "1 × 5", 60, "Organise the body before the mound."),
+        plyoTask(p, 2, "Plyo Ball Roll-In Throw — 450 g", "1 × 5", 65, "Crisp lead-leg timing."),
+        plyoTask(p, 3, "Plyo Ball Rocker Throw — 225 g", "1 × 4", 70, "Finish balanced."),
+        plyoTask(p, 4, "Plyo Ball Walking Windup — 150 g", "1 × 3", 70, "Rhythm into the pen; no radar chase."),
+        task(`${p}-bullpen-catch`, 3, "Throw", "Bullpen between starts, two days clear of Friday.", "Bullpen catch build", "15–25 throws · build to 90–120 ft · 50–70%", "Just enough to get loose for the mound. No long toss and no pulldowns.", {
           setup: "A relaxed partner, then straight to the mound.", execution: "Build distance smoothly and come back in before moving to the mound.", rest: "Natural rhythm.", stop: "Stop and skip the bullpen if the arm has not recovered from the weekend."
         }),
-        task(`${p}-bullpen`, 2, "Throw", "Bullpen between starts, two days clear of Friday.", "Bullpen", "25–35 pitches · 75–85% · fastball command first, then secondaries", "Command, not velocity. Work both sides with the fastball, then the secondaries in game counts. Stop at 35 even if it feels good.", {
+        task(`${p}-bullpen`, 3, "Throw", "Bullpen between starts, two days clear of Friday.", "Bullpen", "25–35 pitches · 75–85% · fastball command first, then secondaries", "Command, not velocity. Work both sides with the fastball, then the secondaries in game counts. Stop at 35 even if it feels good.", {
           setup: "Full mound, a catcher, and a pitch count. Log the count in the session report.", execution: "Roughly half fastballs to both sides, the rest secondaries. Finish on a quality fastball rather than chasing a last good one.", rest: "Work at game tempo with a short break every 10–12 pitches.", stop: "Stop for arm pain, a drop in command you cannot get back, or any medial elbow symptoms. Pain here means Friday needs reviewing."
         }),
-        task(`${p}-power`, 3, "Whole-Body Gym", "Fast outputs occur before strength work.", "Med-ball shot put + broad jump", "Shot put 2 × 3/side · broad jump 2 × 2", "Full reset; every rep fast and clean.", {
+        task(`${p}-power`, 4, "Whole-Body Gym", "Fast outputs occur before strength work.", "Med-ball shot put + broad jump", "Shot put 2 × 3/side · broad jump 2 × 2", "Full reset; every rep fast and clean.", {
           setup: "2–3 kg ball and clear jump area.", execution: "Throw and jump with full intent but minimal volume.", rest: "60 seconds.", stop: "Stop on output drop."
         }),
-        task(`${p}-deadlift`, 3, "Whole-Body Gym", "Fast outputs occur before strength work.", "Trap bar deadlift", week.mondayLift, "Maintain strength without grinding.", {
+        task(`${p}-deadlift`, 4, "Whole-Body Gym", "Fast outputs occur before strength work.", "Trap bar deadlift", week.mondayLift, "Maintain strength without grinding.", {
           setup: "Use progressive warm-up sets.", execution: "Crisp reps at RPE 6–7.", rest: "2.5–3 minutes.", stop: "End sets before bar speed or position degrades."
         }),
-        task(`${p}-split`, 3, "Whole-Body Gym", "Fast outputs occur before strength work.", "Rear-foot-elevated split squat", "3 × 5/leg @ RPE 6–7 · straps allowed", "Maintain single-leg strength with low soreness cost.", {
+        task(`${p}-split`, 4, "Whole-Body Gym", "Fast outputs occur before strength work.", "Rear-foot-elevated split squat", "3 × 5/leg @ RPE 6–7 · straps allowed", "Maintain single-leg strength with low soreness cost.", {
           setup: "Low rear-foot support and stable front foot.", execution: "Controlled descent and crisp drive.", rest: "90 seconds.", stop: "Reduce load if balance is the limiter."
         }),
-        task(`${p}-upper`, 3, "Whole-Body Gym", "Fast outputs occur before strength work.", "Bench press + chest-supported row", `${strengthPrescription("benchPress", 3, 5, 67, "Bench 3 × 5 @ RPE 6–7")} · row 3 × 8 @ RPE 7`, "Pair the lifts without rushing; shoulder comfort governs pressing range.", {
+        task(`${p}-upper`, 4, "Whole-Body Gym", "Fast outputs occur before strength work.", "Bench press + chest-supported row", `${strengthPrescription("benchPress", 3, 5, 67, "Bench 3 × 5 @ RPE 6–7")} · row 3 × 8 @ RPE 7`, "Pair the lifts without rushing; shoulder comfort governs pressing range.", {
           setup: "Use safeties for bench and a supported row bench.", execution: "Smooth, submaximal reps.", rest: "75–90 seconds between exercises.", stop: "Stop pressing for shoulder or biceps symptoms."
         }),
-        task(`${p}-trunk`, 3, "Whole-Body Gym", "Fast outputs occur before strength work.", "Pallof press + farmer carry", "Pallof press 3 × 8/side · farmer carry 2 × 20 m (no straps)", "Resist rotation and breathe behind the brace; carry tall and controlled.", {
+        task(`${p}-trunk`, 4, "Whole-Body Gym", "Fast outputs occur before strength work.", "Pallof press + farmer carry", "Pallof press 3 × 8/side · farmer carry 2 × 20 m (no straps)", "Resist rotation and breathe behind the brace; carry tall and controlled.", {
           setup: "Cable or band at sternum height with carry space clear.", execution: "Press without trunk shift, then carry as deliberate grip work rather than a max test.", rest: "30–45 seconds.", stop: "Reduce tension if posture changes, and end the carry before posture or grip fails."
         }),
         ...armCare(p, "low"),
