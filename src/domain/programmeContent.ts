@@ -709,14 +709,9 @@ function summerSession(week, day) {
       focus: "Restore the arm, then hold strength",
       duration: "60–80 min",
       stress: "Low–moderate",
-      description: "Throwing stays recovery-only, but Monday carries the week's second gym exposure. There is no hinge and no pressing here — those are Wednesday's — so this block is unilateral legs, upper-body pulling and posterior-chain work at submaximal effort, four days out from Friday.",
+      description: "No throwing: Monday is the arm's day off after Sunday's game, on the athlete's own week — off Monday, nothing at Tuesday practice unless the arm needs a recovery catch, bullpen Wednesday, light catch Thursday, game Friday, primer Saturday, game Sunday. Monday still carries the week's second gym exposure. There is no hinge and no pressing here — those are Wednesday's — so this block is unilateral legs, upper-body pulling and posterior-chain work at submaximal effort, four days out from Friday.",
       tasks: [
         ...basePrep(p, "post-game recovery"),
-        plyoTask(p, 1, "Plyo Ball Reverse Throw — 1,000 g", "1 × 5", 45, "Only if the arm feels better as the warm-up progresses."),
-        plyoTask(p, 2, "Plyo Ball Roll-In Throw — 450 g", "1 × 4", 50, "Easy rhythm; no underload balls today."),
-        task(`${p}-catch`, 3, "Throw", "Sunday workload determines whether catch is useful.", "Optional recovery catch", "20–35 throws · 45–60 ft · 45–55%", "If you pitched Sunday, use team recovery guidance; complete rest may be more appropriate.", {
-          setup: "Begin close with a relaxed partner.", execution: "Easy arc only.", rest: "Natural rhythm.", stop: "Stop if the arm does not loosen."
-        }),
         task(`${p}-split`, 4, "Strength Maintenance", "Unilateral legs and upper-body pulling; no hinge and no pressing before Wednesday.", "Rear-foot-elevated split squat", "3 × 6/leg @ RPE 6–7 · straps allowed", "Keep soreness cost low; this maintains single-leg strength through the season.", {
           setup: "Rear foot on a low bench with the front foot far enough forward to keep the whole foot down.", execution: "Lower in 2–3 seconds, stay stacked over the front leg, then drive up without bouncing.", rest: "90 seconds between legs/sets.", stop: "Reduce load if balance or front-foot pressure is the limiter, and skip the day entirely if Sunday's legs have not recovered."
         }),
@@ -744,17 +739,21 @@ function summerSession(week, day) {
       stress: isThursday ? "Low–moderate" : "Moderate",
       description: isThursday
         ? "Thursday volume is capped so it does not become a third high-stress day before Friday and Sunday games. The microdose that finishes it — reactive pogos, a hinge and a calf dose — is added by the overlay rather than written here, because it is dropped automatically whenever Thursday becomes a game eve."
-        : "Tuesday is the higher-volume team practice window, and the day the week leaves without a gym exposure — Monday and Wednesday lift, Thursday microdoses. Add nothing here.",
+        : "Tuesday is the higher-volume team practice window, and the day the week leaves without a gym exposure — Monday and Wednesday lift, Thursday microdoses. No throwing at practice: the arm's work this week is Wednesday's bullpen, so Tuesday is recovery catch only, and only if the arm asks for it after Sunday.",
       tasks: [
         ...basePrep(p, "team practice"),
-        plyoTask(p, 1, "Plyo Ball Reverse Throw — 1,000 g", "1 × 5", isThursday ? 50 : 60, "Smooth patterning."),
-        plyoTask(p, 2, "Plyo Ball Roll-In Throw — 450 g", "1 × 5", isThursday ? 55 : 65, "Organize the lead leg and stay directional."),
-        plyoTask(p, 3, "Plyo Ball Rocker Throw — 225 g", "1 × 4", isThursday ? 60 : 70, "Finish under control."),
-        plyoTask(p, 4, "Plyo Ball Walking Windup — 150 g", isThursday ? "1 × 2" : "2 × 3", isThursday ? 60 : 70, "Rhythm only; no radar chase."),
-        task(`${p}-practice-throw`, 3, "Team Throwing", "Record team throwing and any mound work accurately.", isThursday ? "Pregame practice throwing" : "Team practice throwing", isThursday ? "25–40 throws · 60–90 ft · mostly 50–70%" : "40–60 throws · distance and intensity set by team plan", isThursday ? "Finish feeling fresh for Friday. No extra pulldowns." : "Do not add unscheduled high-intent throws after practice.", {
-          setup: "Confirm the day's team throwing and field-work plan.", execution: "Tag mound throws, long toss and high-effort throws separately in the post form.", rest: "Team dependent.", stop: "Tell the coach if arm status differs from the pre-session check-in."
-        }),
-        task(`${p}-team`, 4, "Team Practice", "Practice volume includes fielding, conditioning and any bullpen work.", "Complete team training", isThursday ? "Keep conditioning and extra throwing low volume" : "Complete assigned baseball work; record session duration and RPE", "The team plan takes priority; this dashboard records rather than duplicates it.", {
+        ...(isThursday
+          ? [
+              task(`${p}-practice-throw`, 3, "Team Throwing", "Record team throwing and any mound work accurately.", "Light catch", "20–30 throws · 45–90 ft · 50–60%", "Loose and easy the day after the bullpen and the day before Friday. No mound, no long toss, no pulldowns.", {
+                setup: "A relaxed partner at practice.", execution: "Build distance only as far as feels loose, then come back in. Count the throws.", rest: "Natural rhythm.", stop: "Stop if the arm has not bounced back from Wednesday's bullpen, and say so on the plan."
+              })
+            ]
+          : [
+              task(`${p}-practice-throw`, 3, "Team Throwing", "No throwing at practice unless the arm needs a recovery catch.", "Recovery catch only — optional", "None, or 15–25 throws · 45–60 ft · 45–50% if the arm wants it after Sunday", "Tuesday is not a throwing day. Field, hit and do the team's work without throwing; take this catch only if the arm feels better moving.", {
+                setup: "Begin close with a relaxed partner.", execution: "Easy arc only, short distance.", rest: "Natural rhythm.", stop: "Stop if the arm does not loosen. Skipping it entirely is the default, not a miss."
+              })
+            ]),
+        task(`${p}-team`, 4, "Team Practice", "Practice volume includes fielding, conditioning and any bullpen work.", "Complete team training", isThursday ? "Keep conditioning and extra throwing low volume" : "Complete assigned baseball work; record session duration and RPE", isThursday ? "The team plan takes priority; this dashboard records rather than duplicates it." : "The team plan takes priority, without the throwing: field, hit and do the team's work, and leave the arm for Wednesday's bullpen.", {
           setup: "Review practice schedule before starting.", execution: "Avoid unlogged extra throwing.", rest: "Team dependent.", stop: "Medical or coaching restrictions override the session."
         }),
         ...armCare(p, "low"),
@@ -765,15 +764,18 @@ function summerSession(week, day) {
 
   if (day === 2) {
     return {
-      title: "Wednesday · Whole-Body Strength Maintenance",
+      title: "Wednesday · Bullpen + Whole-Body Strength",
       focus: "Main summer gym exposure",
       duration: "70–85 min",
       stress: "Moderate",
-      description: "The heavier of the week's two gym days, and the only one with a hinge and a press. Power comes first, followed by the primary lift, unilateral work, push/pull and trunk at the three sets the week plan prescribes.",
+      description: "Bullpen day, then the heavier of the week's two gym days. The bullpen is the week's one throwing session between starts — two days clear of Friday — and it goes first, while the arm is fresh. The gym follows: the only session with a hinge and a press, power first, then the primary lift, unilateral work, push/pull and trunk at the three sets the week plan prescribes.",
       tasks: [
-        ...basePrep(p, "strength training"),
-        task(`${p}-catch`, 2, "Throw", "Keep this exposure low-to-moderate between team practices.", "Easy catch", "30–45 throws · 60–90 ft · 50–65%", "No pulldowns and no true long toss during two-game summer weeks.", {
-          setup: "Use a relaxed catch partner.", execution: "Build only to the distance needed to feel loose.", rest: "Natural rhythm.", stop: "Stop if Tuesday workload has not recovered."
+        ...basePrep(p, "bullpen"),
+        task(`${p}-bullpen-catch`, 2, "Throw", "Bullpen between starts, two days clear of Friday.", "Bullpen catch build", "15–25 throws · build to 90–120 ft · 50–70%", "Just enough to get loose for the mound. No long toss and no pulldowns.", {
+          setup: "A relaxed partner, then straight to the mound.", execution: "Build distance smoothly and come back in before moving to the mound.", rest: "Natural rhythm.", stop: "Stop and skip the bullpen if the arm has not recovered from the weekend."
+        }),
+        task(`${p}-bullpen`, 2, "Throw", "Bullpen between starts, two days clear of Friday.", "Bullpen", "25–35 pitches · 75–85% · fastball command first, then secondaries", "Command, not velocity. Work both sides with the fastball, then the secondaries in game counts. Stop at 35 even if it feels good.", {
+          setup: "Full mound, a catcher, and a pitch count. Log the count in the session report.", execution: "Roughly half fastballs to both sides, the rest secondaries. Finish on a quality fastball rather than chasing a last good one.", rest: "Work at game tempo with a short break every 10–12 pitches.", stop: "Stop for arm pain, a drop in command you cannot get back, or any medial elbow symptoms. Pain here means Friday needs reviewing."
         }),
         task(`${p}-power`, 3, "Whole-Body Gym", "Fast outputs occur before strength work.", "Med-ball shot put + broad jump", "Shot put 2 × 3/side · broad jump 2 × 2", "Full reset; every rep fast and clean.", {
           setup: "2–3 kg ball and clear jump area.", execution: "Throw and jump with full intent but minimal volume.", rest: "60 seconds.", stop: "Stop on output drop."

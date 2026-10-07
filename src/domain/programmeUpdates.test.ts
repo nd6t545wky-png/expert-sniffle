@@ -788,8 +788,10 @@ describe("the real warm-up, every day of the year", () => {
 
   it("always finishes with whatever prepares the stage that follows it", () => {
     for (const { label, names, next } of WARM_UPS) {
-      // Whatever follows the warm-up is throwing or running, never more prep.
-      expect(["Plyo Ball Preparation", "Speed", "High-Intent Prep", "Game Warm-up", "Throw", "Compete", null], label)
+      // Whatever follows the warm-up is throwing or running, never more prep —
+      // or, on the summer Monday (no throwing) and Tuesday (practice without
+      // throwing), the gym or the team session.
+      expect(["Plyo Ball Preparation", "Speed", "High-Intent Prep", "Game Warm-up", "Throw", "Compete", "Team Throwing", "Strength Maintenance", null], label)
         .toContain(next);
       // On the speed day the sprinting comes first, so the drills go last.
       // Every other day it is the arm, because the next thing is a throw.
@@ -1252,5 +1254,46 @@ describe("hamstring activation in the warm-up", () => {
     const task = applyBaselineProgramming(buildSession(weekPlan(6), 0), null, 0).tasks.find((t) => t.name === "Hamstring activation");
     expect(task?.prescription).not.toMatch(/swing|straight-leg|stretch/i);
     expect(task?.stop).toMatch(/down the leg/);
+  });
+});
+
+describe("the summer throwing week", () => {
+  // The athlete's week: off Monday, no throwing at Tuesday practice unless it
+  // is a recovery catch, bullpen Wednesday, light catch Thursday, game Friday,
+  // primer Saturday, game Sunday. The strength work is unchanged.
+  const THROWING = /throw|catch|bullpen|pulldown|mound|long toss/i;
+  const day = (week: number, d: number) => applyBaselineProgramming(buildSession(weekPlan(week), d), null, d).tasks;
+  const throwing = (tasks: SessionTask[]) =>
+    tasks.filter((t) => THROWING.test(String(t.name)) && !/arm-care|med-ball|shot put/i.test(String(t.name)));
+
+  it("has no throwing on Monday, and keeps the gym", () => {
+    const monday = day(14, 0);
+    expect(throwing(monday)).toEqual([]);
+    expect(monday.some((t) => t.stageTitle === "Strength Maintenance")).toBe(true);
+  });
+
+  it("throws on Tuesday only as an optional recovery catch", () => {
+    expect(throwing(day(14, 1)).map((t) => t.name)).toEqual(["Recovery catch only — optional"]);
+  });
+
+  it("puts the bullpen on Wednesday, ahead of the unchanged gym session", () => {
+    const wednesday = day(14, 2);
+    const pen = wednesday.find((t) => t.name === "Bullpen");
+    expect(pen?.prescription).toMatch(/25–35 pitches · 75–85%/);
+    const gym = wednesday.findIndex((t) => t.stageTitle === "Whole-Body Gym");
+    expect(gym).toBeGreaterThan(wednesday.indexOf(pen!));
+    expect(wednesday.some((t) => /Trap bar deadlift/.test(String(t.name)))).toBe(true);
+  });
+
+  it("is light catch on Thursday, with nothing heavier", () => {
+    expect(throwing(day(14, 3)).map((t) => t.name)).toEqual(["Light catch"]);
+  });
+
+  it("covers every summer competition week, and leaves winter alone", () => {
+    for (const week of [12, 21, 27, 33]) {
+      expect(day(week, 2).some((t) => t.name === "Bullpen"), `week ${week}`).toBe(true);
+      expect(throwing(day(week, 0)), `week ${week}`).toEqual([]);
+    }
+    expect(day(3, 2).some((t) => t.name === "Bullpen")).toBe(false);
   });
 });
