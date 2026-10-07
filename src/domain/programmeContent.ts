@@ -715,11 +715,17 @@ function summerSession(week, day) {
         task(`${p}-split`, 4, "Strength Maintenance", "Unilateral legs and upper-body pulling; no hinge and no pressing before Wednesday.", "Rear-foot-elevated split squat", "3 × 6/leg @ RPE 6–7 · straps allowed", "Keep soreness cost low; this maintains single-leg strength through the season.", {
           setup: "Rear foot on a low bench with the front foot far enough forward to keep the whole foot down.", execution: "Lower in 2–3 seconds, stay stacked over the front leg, then drive up without bouncing.", rest: "90 seconds between legs/sets.", stop: "Reduce load if balance or front-foot pressure is the limiter, and skip the day entirely if Sunday's legs have not recovered."
         }),
-        task(`${p}-pull`, 4, "Strength Maintenance", "Unilateral legs and upper-body pulling; no hinge and no pressing before Wednesday.", "Chin-up + chest-supported row", "Chin-up 2 × 5 · row 3 × 8 @ RPE 7", "Pulling volume is safe the day after pitching; pressing is not, so it waits for Wednesday.", {
-          setup: "Natural chin-up grip and an incline bench with the chest fully supported.", execution: "Pull smoothly from an active shoulder, row toward the lower ribs and control every return.", rest: "90 seconds.", stop: "Use assistance when the last chin-up slows, and reduce row load if the upper trap dominates."
+        task(`${p}-pull`, 4, "Strength Maintenance", "Unilateral legs and upper-body pulling; no hinge and no pressing before Wednesday.", "Chin-up", "2 × 5", "Pulling volume is safe the day after pitching; pressing is not, so it waits for Wednesday.", {
+          setup: "Natural chin-up grip.", execution: "Pull smoothly from an active shoulder and control every return.", rest: "No rest — go straight into the chest-supported row.", stop: "Use assistance when the last chin-up slows.", superset: "A1", supersetOf: 2
         }),
-        task(`${p}-posterior`, 4, "Strength Maintenance", "Unilateral legs and upper-body pulling; no hinge and no pressing before Wednesday.", "Nordic hamstring curl + Pallof press", "Nordic 2 × 4 with a 3–4 second eccentric · Pallof press 2 × 8/side", "Hamstring eccentrics and anti-rotation work keep the cheapest injury insurance in the week.", {
-          setup: "Secure the ankles with a pad or partner; cable or band at sternum height for the Pallof press.", execution: "Lower only as far as you can control and use the hands to assist the return. Press without letting the trunk shift.", rest: "90 seconds after Nordics; 45 seconds on the Pallof press.", stop: "Stop for hamstring cramping or any loss of hip position."
+        task(`${p}-pull-row`, 4, "Strength Maintenance", "Unilateral legs and upper-body pulling; no hinge and no pressing before Wednesday.", "Chest-supported row", "3 × 8 @ RPE 7", "Row toward the lower ribs with the chest fully supported.", {
+          setup: "An incline bench with the chest fully supported.", execution: "Row toward the lower ribs and control every return.", rest: "90 seconds, then back to the chin-up for the next round.", stop: "Reduce row load if the upper trap dominates.", superset: "A2", supersetOf: 2
+        }),
+        task(`${p}-posterior`, 4, "Strength Maintenance", "Unilateral legs and upper-body pulling; no hinge and no pressing before Wednesday.", "Nordic hamstring curl", "2 × 4 with a 3–4 second eccentric", "Hamstring eccentrics keep the cheapest injury insurance in the week.", {
+          setup: "Secure the ankles with a pad or partner.", execution: "Lower only as far as you can control and use the hands to assist the return.", rest: "90 seconds after Nordics.", stop: "Stop for hamstring cramping."
+        }),
+        task(`${p}-posterior-pallof`, 4, "Strength Maintenance", "Unilateral legs and upper-body pulling; no hinge and no pressing before Wednesday.", "Pallof press", "2 × 8/side", "Anti-rotation work: press without letting the trunk shift.", {
+          setup: "Cable or band at sternum height.", execution: "Press out and hold briefly without letting the trunk shift.", rest: "45 seconds.", stop: "Stop for any loss of hip position."
         }),
         task(`${p}-aerobic`, 5, "Condition", "Optional low-intensity movement after Sunday competition.", "Optional easy aerobic work", "12–20 minutes bike or walk · RPE 2–3/10", "Keep the talk test comfortable. Active recovery has inconsistent performance benefits, so omit it if complete rest feels better.", {
           setup: "Choose a low-impact mode only after the arm and legs pass the daily check-in.", execution: "Use a steady easy pace and finish before fatigue accumulates.", rest: "Continuous.", stop: "Stop if fatigue or soreness rises."
@@ -790,11 +796,17 @@ function summerSession(week, day) {
         task(`${p}-split`, 4, "Whole-Body Gym", "Fast outputs occur before strength work.", "Rear-foot-elevated split squat", "3 × 5/leg @ RPE 6–7 · straps allowed", "Maintain single-leg strength with low soreness cost.", {
           setup: "Low rear-foot support and stable front foot.", execution: "Controlled descent and crisp drive.", rest: "90 seconds.", stop: "Reduce load if balance is the limiter."
         }),
-        task(`${p}-upper`, 4, "Whole-Body Gym", "Fast outputs occur before strength work.", "Bench press + chest-supported row", `${strengthPrescription("benchPress", 3, 5, 67, "Bench 3 × 5 @ RPE 6–7")} · row 3 × 8 @ RPE 7`, "Pair the lifts without rushing; shoulder comfort governs pressing range.", {
-          setup: "Use safeties for bench and a supported row bench.", execution: "Smooth, submaximal reps.", rest: "75–90 seconds between exercises.", stop: "Stop pressing for shoulder or biceps symptoms."
+        task(`${p}-upper`, 4, "Whole-Body Gym", "Fast outputs occur before strength work.", "Bench press", strengthPrescription("benchPress", 3, 5, 67, "3 × 5 @ RPE 6–7"), "Shoulder comfort governs pressing range.", {
+          setup: "Use safeties.", execution: "Smooth, submaximal reps.", rest: "No rest — go straight into the chest-supported row.", stop: "Stop pressing for shoulder or biceps symptoms.", superset: "A1", supersetOf: 2
         }),
-        task(`${p}-trunk`, 4, "Whole-Body Gym", "Fast outputs occur before strength work.", "Pallof press + farmer carry", "Pallof press 3 × 8/side · farmer carry 2 × 20 m (no straps)", "Resist rotation and breathe behind the brace; carry tall and controlled.", {
-          setup: "Cable or band at sternum height with carry space clear.", execution: "Press without trunk shift, then carry as deliberate grip work rather than a max test.", rest: "30–45 seconds.", stop: "Reduce tension if posture changes, and end the carry before posture or grip fails."
+        task(`${p}-upper-row`, 4, "Whole-Body Gym", "Fast outputs occur before strength work.", "Chest-supported row", "3 × 8 @ RPE 7", "Pair with the bench without rushing either lift.", {
+          setup: "A supported row bench.", execution: "Smooth, submaximal reps toward the lower ribs.", rest: "75–90 seconds, then back to the bench for the next round.", stop: "Reduce load if the upper trap dominates.", superset: "A2", supersetOf: 2
+        }),
+        task(`${p}-trunk`, 4, "Whole-Body Gym", "Fast outputs occur before strength work.", "Pallof press", "3 × 8/side", "Resist rotation and breathe behind the brace.", {
+          setup: "Cable or band at sternum height.", execution: "Press without trunk shift.", rest: "No rest — go straight into the farmer carry.", stop: "Reduce tension if posture changes.", superset: "B1", supersetOf: 2
+        }),
+        task(`${p}-trunk-carry`, 4, "Whole-Body Gym", "Fast outputs occur before strength work.", "Farmer carry", "2 × 20 m (no straps)", "Carry tall and controlled, as deliberate grip work rather than a max test.", {
+          setup: "Carry space clear.", execution: "Walk tall with the shoulders set; no straps.", rest: "30–45 seconds, then back to the Pallof press for the next round.", stop: "End the carry before posture or grip fails.", superset: "B2", supersetOf: 2
         }),
         ...armCare(p, "low"),
         ...recoveryTasks(p)
@@ -897,8 +909,11 @@ function transitionWednesdaySession(week) {
       task(`${p}-deadlift`, 4, "Whole-Body Rebuild", "Retain strength at a low fatigue cost.", "Trap bar deadlift", week.mondayLift, "Crisp technique and at least three reps in reserve.", {
         setup: "Complete progressive warm-up sets.", execution: "Brace, drive the floor away and finish tall.", rest: "2.5–3 minutes.", stop: "Stop for position loss or RPE above 7."
       }),
-      task(`${p}-secondary`, 4, "Whole-Body Rebuild", "Keep the session balanced without chasing soreness.", "Split squat + chest-supported row", "2 × 6/leg @ RPE 6 · row 2 × 8 @ RPE 6–7", "Use straps on split squats if grip limits the legs.", {
-        setup: "Stable front foot and supported row bench.", execution: "Controlled reps with no grinders.", rest: "75–90 seconds.", stop: "Reduce load for balance loss or shoulder symptoms."
+      task(`${p}-secondary`, 4, "Whole-Body Rebuild", "Keep the session balanced without chasing soreness.", "Split squat", "2 × 6/leg @ RPE 6", "Use straps if grip limits the legs.", {
+        setup: "Stable front foot.", execution: "Controlled reps with no grinders.", rest: "No rest — go straight into the chest-supported row.", stop: "Reduce load for balance loss.", superset: "A1", supersetOf: 2
+      }),
+      task(`${p}-secondary-row`, 4, "Whole-Body Rebuild", "Keep the session balanced without chasing soreness.", "Chest-supported row", "2 × 8 @ RPE 6–7", "Controlled reps with no grinders.", {
+        setup: "Supported row bench.", execution: "Row toward the lower ribs and control the return.", rest: "75–90 seconds, then back to the split squat for the next round.", stop: "Reduce load for shoulder symptoms.", superset: "A2", supersetOf: 2
       }),
       ...armCare(p, "low"),
       ...recoveryTasks(p)
