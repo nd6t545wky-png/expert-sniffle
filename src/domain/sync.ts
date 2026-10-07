@@ -105,11 +105,82 @@ export async function encryptCloudSnapshot(state: AppState, syncKey: string, sub
 }
 
 export async function decryptCloudSnapshot(payload: string, syncKey: string, subtle?: SubtleCrypto): Promise<Record<string, unknown>> {
-  const parsed = (await decryptJsonEnvelope(payload, syncKey, subtle)) as Record<string, unknown> | null;
+  const decrypted = (await decryptJsonEnvelope(payload, syncKey, subtle)) as Record<string, unknown> | null;
+  const parsed = decrypted && decrypted.version === 2 ? snapshotFromV2(decrypted) : decrypted;
   if (!parsed || parsed.version !== 1 || typeof parsed.pre !== "object" || typeof parsed.post !== "object") {
     throw new Error("Invalid cloud backup");
   }
   return parsed;
+}
+
+// --- The v61 format ------------------------------------------------------------
+
+type AnyRecord = Record<string, unknown>;
+
+function asRecord(value: unknown): AnyRecord {
+  return value && typeof value === "object" && !Array.isArray(value) ? (value as AnyRecord) : {};
+}
+
+/**
+ * Read a snapshot written by the v61 build.
+ *
+ * That build was deployed over this repository for a while and saved cloud
+ * snapshots as `version: 2`. Every reader here accepts only version 1, so an
+ * athlete whose last save came from v61 got "Invalid cloud backup" on every
+ * device, with all of their data sitting intact behind it.
+ *
+ * Version 2 is version 1 with one structural change: the three task maps —
+ * `completedTasks`, `skippedTasks` and `taskCompletionUpdatedAt` — were folded
+ * into `sessions[date].taskStates`, one record per task with a status. This
+ * unfolds them again:
+ *
+ *   - `completed` and `modified` count as done (v61 treated both as done);
+ *   - `skipped` becomes a skip with its reason, notes and timestamp;
+ *   - `not-attempted` is simply absent, as it always was in version 1;
+ *   - the day's completion time is the latest task timestamp.
+ *
+ * Nothing is dropped. `sessions` itself rides along as an unknown field — the
+ * state layer carries those through verbatim — so the dated plans and any
+ * modification notes are still there.
+ */
+export function snapshotFromV2(v2: AnyRecord): AnyRecord {
+  const completedTasks: Record<string, string[]> = { ...(asRecord(v2.completedTasks) as Record<string, string[]>) };
+  const skippedTasks: Record<string, AnyRecord> = { ...(asRecord(v2.skippedTasks) as Record<string, AnyRecord>) };
+  const taskCompletionUpdatedAt: Record<string, string> = {
+    ...(asRecord(v2.taskCompletionUpdatedAt) as Record<string, string>),
+  };
+
+  for (const [date, session] of Object.entries(asRecord(v2.sessions))) {
+    const done: string[] = [];
+    const skipped: AnyRecord = {};
+    let latest = "";
+    for (const [taskId, raw] of Object.entries(asRecord(asRecord(session).taskStates))) {
+      const state = asRecord(raw);
+      const updatedAt = typeof state.updatedAt === "string" ? state.updatedAt : "";
+      if (state.status === "completed" || state.status === "modified") done.push(taskId);
+      else if (state.status === "skipped") {
+        skipped[taskId] = {
+          reason: typeof state.reason === "string" && state.reason.trim() ? state.reason : "Skipped",
+          ...(typeof state.notes === "string" && state.notes ? { notes: state.notes } : {}),
+          ...(updatedAt ? { updatedAt } : {}),
+        };
+      } else continue;
+      if (updatedAt > latest) latest = updatedAt;
+    }
+    if (done.length) completedTasks[date] = [...new Set([...(completedTasks[date] ?? []), ...done])];
+    if (Object.keys(skipped).length) skippedTasks[date] = { ...asRecord(skippedTasks[date]), ...skipped };
+    if (latest && !(taskCompletionUpdatedAt[date] > latest)) taskCompletionUpdatedAt[date] = latest;
+  }
+
+  return {
+    ...v2,
+    version: 1,
+    pre: asRecord(v2.pre),
+    post: asRecord(v2.post),
+    completedTasks,
+    skippedTasks,
+    taskCompletionUpdatedAt,
+  };
 }
 
 // --- Merge ------------------------------------------------------------------

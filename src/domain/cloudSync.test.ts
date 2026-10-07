@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { webcrypto } from "node:crypto";
 import { PitchingOsApi } from "./api";
 import { AppState } from "./state";
-import { encryptCloudSnapshot } from "./sync";
+import { decryptCloudSnapshot, encryptCloudSnapshot, encryptJsonEnvelope } from "./sync";
 import { pullAndMerge, pushState, syncNow } from "./cloudSync";
 
 const subtle = (webcrypto as unknown as Crypto).subtle;
@@ -176,5 +176,61 @@ describe("syncNow", () => {
     const local = state({ pre: { a: { x: 1 }, b: { x: 2 } } });
     const result = await syncNow({ api, syncKey: KEY, subtle }, local);
     expect(Object.keys(result.state.pre).sort()).toEqual(["a", "b"]);
+  });
+});
+
+describe("a backup saved by the v61 build (version 2)", () => {
+  const v2 = {
+    version: 2,
+    onboardingComplete: true,
+    syncUpdatedAt: "2026-09-01T10:00:00.000Z",
+    pre: { "2026-08-31": { score: 82, updatedAt: "2026-08-31T07:00:00.000Z" } },
+    post: { "2026-08-31": { armFeel: 8, updatedAt: "2026-08-31T19:00:00.000Z" } },
+    bullpens: { "2026-08-31": { throws: 35 } },
+    healthPrefill: {},
+    pulseImports: {},
+    weeklyReviews: {},
+    profile: { name: "Athlete" },
+    sessions: {
+      "2026-08-31": {
+        id: "session:2026-08-31:r1",
+        date: "2026-08-31",
+        taskStates: {
+          warmup: { taskId: "warmup", status: "completed", reason: "", notes: "", updatedAt: "2026-08-31T08:00:00.000Z" },
+          lift: { taskId: "lift", status: "modified", reason: "", modification: "lighter", notes: "", updatedAt: "2026-08-31T09:00:00.000Z" },
+          sprint: { taskId: "sprint", status: "skipped", reason: "Hamstring tight", notes: "", updatedAt: "2026-08-31T09:30:00.000Z" },
+          cooldown: { taskId: "cooldown", status: "not-attempted", reason: "", notes: "", updatedAt: "" },
+        },
+      },
+    },
+  };
+
+  it("is read instead of being rejected as invalid", async () => {
+    const payload = await encryptJsonEnvelope(v2, KEY, subtle);
+    const snapshot = await decryptCloudSnapshot(payload, KEY, subtle);
+    expect(snapshot.version).toBe(1);
+    expect((snapshot.pre as Record<string, { score: number }>)["2026-08-31"].score).toBe(82);
+    expect((snapshot.completedTasks as Record<string, string[]>)["2026-08-31"].sort()).toEqual(["lift", "warmup"]);
+    expect((snapshot.skippedTasks as Record<string, Record<string, { reason: string }>>)["2026-08-31"].sprint.reason).toBe("Hamstring tight");
+    expect((snapshot.taskCompletionUpdatedAt as Record<string, string>)["2026-08-31"]).toBe("2026-08-31T09:30:00.000Z");
+    // Nothing dropped: the dated sessions ride along.
+    expect(snapshot.sessions).toEqual(v2.sessions);
+  });
+
+  it("merges into a device and is written back as version 1", async () => {
+    const payload = await encryptJsonEnvelope(v2, KEY, subtle);
+    const server = fakeServer({ payload, revision: 3 });
+    const api = server.api;
+    const outcome = await syncNow({ api, syncKey: KEY, subtle }, state());
+    expect(outcome.status).toBe("synced");
+    expect((outcome.state.post as Record<string, { armFeel: number }>)["2026-08-31"].armFeel).toBe(8);
+    expect((outcome.state.completedTasks as Record<string, string[]>)["2026-08-31"]).toContain("warmup");
+    const written = await decryptCloudSnapshot(server.store.payload!, KEY, subtle);
+    expect(written.version).toBe(1);
+  });
+
+  it("still rejects a backup that is genuinely not a state", async () => {
+    const payload = await encryptJsonEnvelope({ hello: "world" }, KEY, subtle);
+    await expect(decryptCloudSnapshot(payload, KEY, subtle)).rejects.toThrow(/Invalid cloud backup/);
   });
 });
