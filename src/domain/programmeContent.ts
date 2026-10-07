@@ -631,14 +631,20 @@ function standardSession(week, day) {
         task(`${p}-medball`, 4, "Whole-Body Primer", "Fast, low-volume outputs precede light activation.", "Med-ball scoop toss", "2 × 2/side · 2 kg", "Full reset and maximum crispness without straining.", {
           setup: "Use a light medicine ball and stable wall.", execution: "Quick hip turn and balanced finish.", rest: "45–60 seconds.", stop: "Stop after any slower rep."
         }),
-        task(`${p}-jump`, 4, "Whole-Body Primer", "Fast, low-volume outputs precede light activation.", "Pogo + vertical jump", "Pogo 2 × 6 · vertical jump 2 × 2", "Stiff, quiet contacts on pogos; full recovery before jumps.", {
-          setup: "Flat, forgiving surface.", execution: "Keep contacts short and jumps crisp.", rest: "45–60 seconds.", stop: "Stop for calf or Achilles tightness."
+        task(`${p}-jump`, 4, "Whole-Body Primer", "Fast, low-volume outputs precede light activation.", "Pogo", "2 × 6", "Stiff, quiet contacts.", {
+          setup: "Flat, forgiving surface.", execution: "Keep contacts short.", rest: "Full recovery before the vertical jumps.", stop: "Stop for calf or Achilles tightness."
+        }),
+        task(`${p}-jump-vertical`, 4, "Whole-Body Primer", "Fast, low-volume outputs precede light activation.", "Vertical jump", "2 × 2", "Full recovery between jumps; every one crisp.", {
+          setup: "Flat, forgiving surface.", execution: "Jump for height and land quietly.", rest: "45–60 seconds.", stop: "Stop for calf or Achilles tightness."
         }),
         task(`${p}-landmine`, 4, "Whole-Body Primer", "Fast, low-volume outputs precede light activation.", "Half-kneeling landmine push press", "2 × 3/side @ RPE 5–6", "Accelerate the bar and leave plenty in reserve.", {
           setup: "Use a secure landmine attachment and staggered half-kneeling stance.", execution: "Short dip, drive and smooth return.", rest: "60 seconds.", stop: "Reduce load if bar speed is not obvious."
         }),
-        task(`${p}-iso`, 4, "Whole-Body Primer", "Fast, low-volume outputs precede light activation.", "Split-squat isometric + band row", "Split-squat iso 1 × 15 sec/side · band row 2 × 6 fast", "Create tension without shaking; rows stay snappy.", {
-          setup: "Choose a mid-range split-squat position and medium band.", execution: "Hold stable posture, then perform fast but controlled rows.", rest: "45 seconds.", stop: "End before fatigue or tremor increases."
+        task(`${p}-iso`, 4, "Whole-Body Primer", "Fast, low-volume outputs precede light activation.", "Split-squat isometric", "1 × 15 sec/side", "Create tension without shaking.", {
+          setup: "Choose a mid-range split-squat position.", execution: "Hold a stable posture.", rest: "No rest — go straight into the band row.", stop: "End before fatigue or tremor increases.", superset: "A1", supersetOf: 2
+        }),
+        task(`${p}-iso-row`, 4, "Whole-Body Primer", "Fast, low-volume outputs precede light activation.", "Band row", "2 × 6 fast", "Rows stay snappy.", {
+          setup: "A medium band.", execution: "Fast but controlled rows.", rest: "45 seconds.", stop: "End before fatigue increases.", superset: "A2", supersetOf: 2
         }),
         ...armCare(p, "low"),
         ...recoveryTasks(p)
@@ -878,8 +884,14 @@ function summerSession(week, day) {
       task(`${p}-catch`, 3, "Throw", "Keep the arm moving without a high-intent exposure.", "Primer catch", "20–25 throws · 60–75 ft · 50–60%", "No pulldowns and no game-speed finish.", {
         setup: "Relaxed catch partner.", execution: "Finish while fresh.", rest: "Natural.", stop: "End as soon as it feels like work."
       }),
-      task(`${p}-primer`, 4, "Microdose", "Fast and minimal.", "Med-ball scoop toss + pogo + landmine push press", "Scoop toss 2 × 3/side · pogo 2 × 8 · landmine push press 2 × 3/side @ RPE 5–6", "Crisp output only.", {
-        setup: "2 kg medicine ball, flat surface and a secure landmine attachment.", execution: "Full reset between movements; the press is a speed exposure, not a load exposure.", rest: "45 seconds.", stop: "Stop on output drop."
+      task(`${p}-primer`, 4, "Microdose", "Fast and minimal.", "Med-ball scoop toss", "2 × 3/side · 2 kg", "Crisp output only.", {
+        setup: "2 kg medicine ball.", execution: "Full reset between reps.", rest: "45 seconds.", stop: "Stop on output drop."
+      }),
+      task(`${p}-primer-pogo`, 4, "Microdose", "Fast and minimal.", "Pogo", "2 × 8", "Stiff, quiet contacts.", {
+        setup: "Flat surface.", execution: "Short contacts, full reset between sets.", rest: "45 seconds.", stop: "Stop on output drop."
+      }),
+      task(`${p}-primer-landmine`, 4, "Microdose", "Fast and minimal.", "Landmine push press", "2 × 3/side @ RPE 5–6", "A speed exposure, not a load exposure.", {
+        setup: "A secure landmine attachment.", execution: "Short dip, drive and smooth return.", rest: "45 seconds.", stop: "Stop on output drop."
       }),
       ...armCare(p, "low"),
       ...recoveryTasks(p)

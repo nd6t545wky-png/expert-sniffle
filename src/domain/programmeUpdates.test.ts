@@ -1315,7 +1315,9 @@ describe("the summer throwing week", () => {
 describe("every gym exercise logs on its own", () => {
   // A task named "Bench press + chest-supported row" takes one log for two
   // lifts. Pairs are supersets of separate tasks, never one combined task.
-  const GYM = /^(Strength Maintenance|Whole-Body (Force|Power|Gym|Rebuild))$/;
+  // Every stage where weights or reps get logged — the gym sessions, the
+  // game-day primer and the Saturday microdose.
+  const GYM = /^(Strength Maintenance|Microdose|Whole-Body (Force|Power|Gym|Rebuild|Primer))$/;
 
   it("has no combined exercise in any gym stage, all year", () => {
     for (let week = 1; week <= PROGRAMME_WEEK_COUNT; week += 1) {
