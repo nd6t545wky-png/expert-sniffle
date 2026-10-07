@@ -54,34 +54,34 @@ export const LEGACY_PHASES: readonly LegacyPhase[] = Object.freeze([
     endWeek: 21,
     color: "#5b2e91",
     summary:
-      "Rounds 1 to 10 of the Cubs' 26/27 draw, beginning Friday 2 October: training Tuesday/Thursday, games Friday/Sunday, and Wednesday whole-body strength maintenance.",
+      "Rounds 1 to 10 of the published GBL Division 1 draw, Friday 2 October to Sunday 6 December: training Tuesday/Thursday, games Friday/Sunday, and Wednesday whole-body strength maintenance.",
   },
   {
     id: "summer_break",
     name: "GBL Christmas Break",
     startWeek: 22,
-    endWeek: 26,
+    endWeek: 25,
     color: "#149ca5",
     summary:
-      "The six weeks the draw leaves between Round 10 and Round 11: recover first, then rebuild throwing and strength before Term 1 competition.",
+      "The four weeks between Round 10 (4–6 December) and Round 11 (Wednesday 6 January): recover first, then rebuild throwing and strength, and get back on the mound before Term 1 competition.",
   },
   {
     id: "summer_second",
     name: "GBL Summer · Term 1",
-    startWeek: 27,
-    endWeek: 34,
+    startWeek: 26,
+    endWeek: 33,
     color: "#5b2e91",
     summary:
-      "Rounds 11 to 18: back to the Friday/Sunday rhythm, opening with a taper week into the return round.",
+      "Rounds 11 to 18, Wednesday 6 January to Sunday 28 February. Round 11 is Wednesday and Sunday; every round after it is Friday and Sunday. The return week is a taper.",
   },
   {
     id: "transition_summer",
     name: "Post-Summer Transition",
-    startWeek: 35,
+    startWeek: 34,
     endWeek: 36,
     color: "#149ca5",
     summary:
-      "Two lower-stress weeks after the last summer round, before the next winter build.",
+      "Three lower-stress weeks after the last summer round on 28 February, before the next winter build.",
   },
   {
     id: "winter_next",

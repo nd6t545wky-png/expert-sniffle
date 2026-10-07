@@ -9,7 +9,8 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { FIXTURES, allFixtures, daysUntil, fixtureOn, readAthleteFixtures, scheduleClash, upcomingFixtures } from "./fixtures";
+import { FIXTURES, GBL_ROUNDS_2026_27, allFixtures, daysUntil, fixtureOn, readAthleteFixtures, scheduleClash, upcomingFixtures } from "./fixtures";
+import { phaseForProgrammeWeek } from "./programmeSessions";
 import { isIsoDate } from "./state";
 
 describe("the fixture list", () => {
@@ -126,31 +127,53 @@ describe("the rest of the season, entered by the athlete", () => {
 
 describe("the 26/27 summer draw", () => {
   const summer = FIXTURES.filter((fixture) => fixture.team === "Coomera Cubs");
+  const on = (id: string) => summer.find((fixture) => fixture.id === id);
 
-  it("plays each of the eighteen rounds twice, Friday and Sunday", () => {
+  it("is the published draw: eighteen rounds, two games each", () => {
     expect(summer).toHaveLength(36);
+    expect(summer.every((fixture) => fixture.source === "official")).toBe(true);
+  });
+
+  it("plays Friday and Sunday, except Round 11, which opens on a Wednesday", () => {
     for (const fixture of summer) {
       const weekday = new Date(`${fixture.date}T00:00:00.000Z`).getUTCDay();
-      expect([0, 5], `${fixture.id} ${fixture.date}`).toContain(weekday);
+      const allowed = fixture.id === "cubs-2026-27-r11-fri" ? [3] : [0, 5];
+      expect(allowed, `${fixture.id} ${fixture.date}`).toContain(weekday);
+    }
+    expect(on("cubs-2026-27-r11-fri")?.label).toBe("Summer Round 11 vs Carina Red Sox (Wednesday)");
+  });
+
+  it("opens 2 October, breaks after 6 December, returns 6 January and ends 28 February", () => {
+    expect(on("cubs-2026-27-r1-fri")?.date).toBe("2026-10-02");
+    expect(on("cubs-2026-27-r10-sun")?.date).toBe("2026-12-06");
+    expect(on("cubs-2026-27-r11-fri")?.date).toBe("2027-01-06");
+    expect(on("cubs-2026-27-r11-sun")?.date).toBe("2027-01-10");
+    expect(on("cubs-2026-27-r18-sun")?.date).toBe("2027-02-28");
+  });
+
+  it("plays each of the nine opponents twice, home once and away once", () => {
+    const byOpponent = new Map<string, boolean[]>();
+    for (const round of GBL_ROUNDS_2026_27) {
+      byOpponent.set(round.opponent, [...(byOpponent.get(round.opponent) ?? []), round.home]);
+    }
+    expect(byOpponent.size).toBe(9);
+    for (const [opponent, homes] of byOpponent) {
+      expect(homes.sort(), opponent).toEqual([false, true]);
     }
   });
 
-  it("opens on the Friday the athlete gave and breaks six weeks for Christmas", () => {
-    const on = (id: string) => summer.find((fixture) => fixture.id === id)?.date;
-    expect(on("cubs-2026-27-r1-fri")).toBe("2026-10-02");
-    expect(on("cubs-2026-27-r1-sun")).toBe("2026-10-04");
-    expect(on("cubs-2026-27-r10-fri")).toBe("2026-12-04");
-    // Six weeks on from Round 10, where every other gap is one.
-    expect(on("cubs-2026-27-r11-fri")).toBe("2027-01-15");
-    expect(on("cubs-2026-27-r18-sun")).toBe("2027-03-07");
+  it("names the opponent and ground the schedule gives", () => {
+    expect(on("cubs-2026-27-r1-fri")?.label).toBe("Summer Round 1 vs Surfers Paradise (Friday)");
+    expect(on("cubs-2026-27-r2-sun")?.label).toBe("Summer Round 2 at Carina Red Sox (Sunday)");
+    expect(on("cubs-2026-27-r18-fri")?.label).toBe("Summer Round 18 vs Wests Bulldogs (Friday)");
   });
 
-  it("says who and where, and mirrors the two halves of the draw", () => {
-    const label = (id: string) => summer.find((fixture) => fixture.id === id)?.label;
-    expect(label("cubs-2026-27-r1-fri")).toBe("Summer Round 1 at Pine Hills (Friday)");
-    expect(label("cubs-2026-27-r2-sun")).toBe("Summer Round 2 vs Redcliffe (Sunday)");
-    // Round 11 is the return fixture of Round 2: same opponent, other ground.
-    expect(label("cubs-2026-27-r11-fri")).toBe("Summer Round 11 at Redcliffe (Friday)");
+  it("puts every game in a week the programme plans as competition", () => {
+    for (const fixture of summer) {
+      const week = Math.floor((Date.parse(fixture.date) - Date.parse("2026-07-13")) / 86_400_000 / 7) + 1;
+      const phase = phaseForProgrammeWeek(week)?.id;
+      expect(["summer_first", "summer_second"], `${fixture.id} week ${week}`).toContain(phase);
+    }
   });
 });
 

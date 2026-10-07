@@ -30,6 +30,8 @@
  * this module in a typed API, and behaviour is pinned by tests.
  */
 
+import { GBL_ROUNDS_2026_27 } from "./fixtures";
+
 export interface ProgrammeContext {
   pbs?: { trainingMaxes?: { lifts?: Record<string, { value: number; kind?: string }> } };
   /** Post-session reports, keyed by ISO date. Friday's game pitch count
@@ -46,7 +48,6 @@ export function setProgrammeContext(next: ProgrammeContext): void {
 
 const ANNUAL_START = "2026-07-13";
 
-const SUMMER_FIRST_GAME = "2026-10-02";
 
 const DAY_NAMES = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
@@ -70,35 +71,35 @@ const LEGACY_PHASE_TABLE = [
     name: "GBL Preseason",
     weeks: [11, 11],
     color: "#5b2e91",
-    summary: "Rebuild the Tuesday/Thursday team rhythm and prepare for Coomera Cubs' athlete-provided Friday 2 October opener."
+    summary: "Rebuild the Tuesday/Thursday team rhythm and prepare for Coomera Cubs' Friday 2 October opener."
   },
   {
     id: "summer_first",
     name: "GBL Summer · Term 4",
     weeks: [12, 21],
     color: "#5b2e91",
-    summary: "Rounds 1 to 10 of the Cubs' 26/27 draw, beginning Friday 2 October: training Tuesday/Thursday, games Friday/Sunday, and Wednesday whole-body strength maintenance."
+    summary: "Rounds 1 to 10 of the published GBL Division 1 draw, Friday 2 October to Sunday 6 December: training Tuesday/Thursday, games Friday/Sunday, and Wednesday whole-body strength maintenance."
   },
   {
     id: "summer_break",
     name: "GBL Christmas Break",
-    weeks: [22, 26],
+    weeks: [22, 25],
     color: "#149ca5",
-    summary: "The six weeks the draw leaves between Round 10 and Round 11: recover first, then rebuild throwing and strength before Term 1 competition."
+    summary: "The four weeks between Round 10 (4–6 December) and Round 11 (Wednesday 6 January): recover first, then rebuild throwing and strength, and get back on the mound before Term 1 competition."
   },
   {
     id: "summer_second",
     name: "GBL Summer · Term 1",
-    weeks: [27, 34],
+    weeks: [26, 33],
     color: "#5b2e91",
-    summary: "Rounds 11 to 18: back to the Friday/Sunday rhythm, opening with a taper week into the return round."
+    summary: "Rounds 11 to 18, Wednesday 6 January to Sunday 28 February. Round 11 is Wednesday and Sunday; every round after it is Friday and Sunday. The return week is a taper."
   },
   {
     id: "transition_summer",
     name: "Post-Summer Transition",
-    weeks: [35, 36],
+    weeks: [34, 36],
     color: "#149ca5",
-    summary: "Two lower-stress weeks after the last summer round, before the next winter build."
+    summary: "Three lower-stress weeks after the last summer round on 28 February, before the next winter build."
   },
   {
     id: "winter_next",
@@ -133,7 +134,8 @@ const winterWeeks = [
 
 const transitionWeeks = [
   ["Unload and restore", "Trap bar deadlift 3 × 5 @ RPE 6", "No pulldowns; easy catch only", "Throwing volume down 45–55%"],
-  ["Rebuild movement", "Trap bar deadlift 3 × 4 @ RPE 6–7", "Moderate catch; one controlled mound touch", "Finish every session fresh"]
+  ["Rebuild movement", "Trap bar deadlift 3 × 4 @ RPE 6–7", "Moderate catch; one controlled mound touch", "Finish every session fresh"],
+  ["Re-entry", "Trap bar deadlift 4 × 4 @ RPE 6–7", "Long-toss foundation; one controlled mound touch", "Build back toward the winter rhythm"]
 ];
 
 const summerFocus = [
@@ -141,7 +143,7 @@ const summerFocus = [
   "Build appearance consistency", "Protect high-effort throw spacing", "Maintain power microdose", "Term 4 deload",
   "Late-Term 4 performance", "Hold Term 4 workload", "Christmas-break entry", "Term 1 return", "Re-establish game rhythm",
   "Command under game fatigue", "Maintain bodyweight and speed", "Late-season deload", "Performance push",
-  "Hold velocity deeper", "Pre-Easter taper"
+  "Hold velocity deeper", "Final-round taper"
 ];
 
 const TRAP_BAR_WEEK_SPECS = {
@@ -150,10 +152,12 @@ const TRAP_BAR_WEEK_SPECS = {
   9: [3, 5, 65], 10: [3, 4, 70], 11: [4, 3, 75], 12: [3, 2, 70],
   13: [3, 3, 75], 14: [3, 3, 77], 15: [3, 3, 78], 16: [2, 3, 70],
   17: [3, 3, 77], 18: [3, 2, 80], 19: [3, 3, 75], 20: [2, 3, 70],
-  21: [3, 2, 78], 22: [2, 2, 70], 23: [3, 5, 70], 24: [4, 5, 75],
-  25: [4, 4, 78], 26: [5, 3, 82], 27: [5, 3, 85], 28: [3, 3, 70],
-  29: [3, 3, 75], 30: [3, 3, 77], 31: [3, 2, 80], 32: [2, 3, 70],
-  33: [3, 3, 77], 34: [3, 2, 80], 35: [2, 2, 72], 36: [2, 2, 67],
+  // 22–25 are the Christmas break; 26 is Round 11, with a Wednesday game, so
+  // it tapers rather than peaking; 27–33 are Rounds 12–18; 34–36 transition.
+  21: [3, 2, 78], 22: [2, 2, 70], 23: [3, 5, 70], 24: [4, 5, 78],
+  25: [5, 3, 82], 26: [3, 3, 70], 27: [3, 3, 72],
+  28: [3, 3, 75], 29: [3, 3, 77], 30: [3, 2, 80], 31: [2, 3, 70],
+  32: [3, 3, 77], 33: [3, 2, 80], 34: [2, 2, 72], 35: [2, 2, 67], 36: [2, 3, 65],
   37: [3, 5, 60], 38: [3, 4, 65], 39: [4, 5, 78], 40: [4, 5, 80],
   41: [5, 3, 83], 42: [5, 3, 85], 43: [6, 2, 78], 44: [6, 2, 80],
   45: [6, 2, 82], 46: [4, 2, 72], 47: [4, 3, 75], 48: [4, 3, 77],
@@ -237,6 +241,13 @@ function isWinterCompetitionPhase(phaseId) {
   return phaseId === "winter" || phaseId === "winter_next";
 }
 
+/** The published GBL round whose first game falls in this week, if any. */
+function gblRoundForRange(start, end) {
+  const startIso = isoDate(start);
+  const endIso = isoDate(end);
+  return GBL_ROUNDS_2026_27.find((item) => item.dates[0] >= startIso && item.dates[0] <= endIso) || null;
+}
+
 function fncRoundForRange(start, end) {
   const startIso = isoDate(start);
   const endIso = isoDate(end);
@@ -248,15 +259,18 @@ function getWeekPlan(week, pbs = null) {
   const start = addDays(ANNUAL_START, (week - 1) * 7);
   const end = addDays(start, 6);
   const fncRound = fncRoundForRange(start, end);
+  const gblRound = gblRoundForRange(start, end);
   let data;
   if (phase.id === "winter") data = winterWeeks[week - 1];
   if (phase.id === "transition") data = transitionWeeks[week - 9];
   if (phase.id === "preseason") {
-    data = ["GBL team-rhythm re-entry", "Trap bar deadlift 4 × 3 @ RPE 6–7", "One controlled Wednesday intent exposure; team training rhythm Tue/Thu", "Prepare for Coomera Cubs' athlete-provided Friday 2 October opener"];
+    data = ["GBL team-rhythm re-entry", "Trap bar deadlift 4 × 3 @ RPE 6–7", "One controlled Wednesday intent exposure; team training rhythm Tue/Thu", "Prepare for Coomera Cubs' Friday 2 October opener"];
   }
   if (isSummerCompetitionPhase(phase.id)) {
-    const index = phase.id === "summer_first" ? week - 12 : 10 + (week - 27);
-    const deload = [3, 7, 13, 17].includes(index);
+    // Rounds 1–10 are indices 0–9 and Rounds 11–18 are 11–18; index 10
+    // ("Christmas-break entry") belongs to the break, not to Round 11.
+    const index = phase.id === "summer_first" ? week - 12 : 11 + (week - 26);
+    const deload = [3, 7, 15, 18].includes(index);
     data = [
       summerFocus[index],
       deload ? "Wednesday full body 2–3 sets @ RPE 6" : "Wednesday full body 3–4 sets @ RPE 6–7",
@@ -265,7 +279,9 @@ function getWeekPlan(week, pbs = null) {
     ];
   }
   if (phase.id === "summer_break") {
-    const index = week - 22;
+    // Four weeks. The rebuild skips "Strength rebuild" and ends on the mound
+    // conversion, because Round 11 is the Wednesday straight after.
+    const index = [0, 1, 3, 4][week - 22];
     const breakData = [
       ["Christmas unload", "Trap bar deadlift 3 × 5 @ RPE 6", "Throwing volume down 45–55%; no game assumptions", "Restore after the first GBL block"],
       ["Movement rebuild", "Trap bar deadlift 4 × 5 @ RPE 6–7", "Easy catch plus one controlled mound touch", "No back-to-back intent"],
@@ -276,25 +292,25 @@ function getWeekPlan(week, pbs = null) {
     ];
     data = breakData[index];
   }
-  if (phase.id === "transition_summer") data = transitionWeeks[week - 35];
+  if (phase.id === "transition_summer") data = transitionWeeks[week - 34];
   if (phase.id === "winter_next") {
     const index = (week - 37) % winterWeeks.length;
     const base = winterWeeks[index];
     data = [`2027 winter planning · ${base[0]}`, base[1], base[2], "Saturday rhythm is provisional until FNCBA publishes the 2027 draw"];
   }
   if (!data) data = ["Training continuity", "Trap bar deadlift at RPE 6–7", "Quality throwing only", "Review the published competition calendar"];
-  const includesSummerOpener = SUMMER_FIRST_GAME >= isoDate(start) && SUMMER_FIRST_GAME <= isoDate(end);
+  const gameDay = (date) => formatDate(date, { weekday: "short", day: "numeric", month: "short" });
   const competition = fncRound
-    ? `FNCBA Division 1 · Round ${fncRound.round} · ${formatDate(fncRound.date, { weekday: "short", day: "numeric", month: "short" })}`
-    : includesSummerOpener
-      ? `Coomera Cubs opening game · ${formatDate(SUMMER_FIRST_GAME, { weekday: "short", day: "numeric", month: "short", year: "numeric" })} · athlete provided`
-      : isSummerCompetitionPhase(phase.id)
-        ? "GBL Friday/Sunday planning window · later 2026/27 fixtures pending"
+    ? `FNCBA Division 1 · Round ${fncRound.round} · ${gameDay(fncRound.date)}`
+    : gblRound
+      ? `GBL Division 1 · Round ${gblRound.round} ${gblRound.home ? "vs" : "at"} ${gblRound.opponent} · ${gameDay(gblRound.dates[0])} & ${gameDay(gblRound.dates[1])}`
+      : phase.id === "summer_break"
+        ? "GBL Christmas break · Round 11 is Wed 6 Jan"
       : phase.id === "winter_next"
         ? "FNCBA 2027 Saturday rhythm · exact draw pending"
         : "No league game assumed";
-  const scheduleStatus = fncRound ? "Confirmed draw" : includesSummerOpener ? "Athlete-provided" : "Planning";
-  const scheduleTone = fncRound ? "official" : includesSummerOpener ? "derived" : "pending";
+  const scheduleStatus = fncRound || gblRound ? "Confirmed draw" : "Planning";
+  const scheduleTone = fncRound || gblRound ? "official" : "pending";
   return {
     week,
     phase,
@@ -888,7 +904,8 @@ function nonCompetitionSaturdaySession(week) {
   const day = 5;
   const p = `w${week.week}-d${day}-development`;
   const transition = isTransitionPhase(week.phase.id);
-  const breakWeek = week.phase.id === "summer_break" ? week.week - 23 : -1;
+  // The last week of the break is back on the mound before Round 11.
+  const breakWeek = week.phase.id === "summer_break" ? week.week - 22 : -1;
   const moundBuild = week.phase.id === "preseason" || breakWeek >= 3;
   const throwingName = moundBuild ? "Controlled mound build" : transition ? "Optional recovery catch" : "Distance catch build";
   const throwingDose = moundBuild
