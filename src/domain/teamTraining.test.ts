@@ -153,7 +153,7 @@ describe("the days it must not touch", () => {
     // one would double the day just as surely.
     const summer = fold(15, TUESDAY);
     expect(summer.note).toBeNull();
-    expect(names(summer.session).filter((name) => /practice throwing/i.test(name))).toHaveLength(1);
+    expect(summer.session.tasks.filter((task) => task.stageTitle === "Team Throwing")).toHaveLength(1);
     expect(summer.session.tasks.filter((task) => task.stageTitle === "Team Practice")).toHaveLength(1);
   });
 
