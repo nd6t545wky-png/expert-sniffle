@@ -687,12 +687,6 @@ export const REGION_PLAYBOOK: Record<BodyRegion, RegionPlaybook> = {
         prescription: "As programmed for the bench press, from the floor. Stop when the upper arms touch down.",
         why: "The floor caps how far the shoulder can extend behind the body, which is the position that provokes an irritable anterior shoulder — the pressing stimulus is otherwise unchanged.",
       },
-      {
-        match: /Bench press \+ chest-supported row/i,
-        name: "Floor press + chest-supported row",
-        prescription: "As programmed, pressing from the floor rather than a bench. Row unchanged.",
-        why: "Same reason as the floor press: the row was never the problem.",
-      },
     ],
     modify: [
       isometric(

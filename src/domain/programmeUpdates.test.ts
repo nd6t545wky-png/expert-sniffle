@@ -1215,23 +1215,25 @@ describe("hip rotation work for the drive leg", () => {
     for (let week = 1; week <= PROGRAMME_WEEK_COUNT; week += 1) {
       for (let day = 0; day < 7; day += 1) {
         const tasks = tasksOn(week, day);
-        const has = tasks.some((task) => /Hip rotation strength/.test(task.name));
+        const has = tasks.some((task) => /Hip airplane — drive leg/.test(task.name));
         if (day === 3) expect(has, `week ${week} Thursday`).toBe(false);
         const realGym = tasks.some(
-          (task) => /^Whole-Body (Force|Power|Gym|Rebuild)$/.test(String(task.stageTitle)) && !/hip-rotation-strength/.test(task.id)
+          (task) => /^Whole-Body (Force|Power|Gym|Rebuild)$/.test(String(task.stageTitle)) && !/hip-(rotation|abduction)-strength/.test(task.id)
         );
         if (day !== 3 && realGym) expect(has, `week ${week} day ${day}`).toBe(true);
-        if (has) expect(tasks.filter((task) => /Hip rotation strength/.test(task.name))).toHaveLength(1);
+        if (has) expect(tasks.filter((task) => /Hip airplane — drive leg/.test(task.name))).toHaveLength(1);
+        if (has) expect(tasks.filter((task) => /Side-lying hip abduction — drive leg/.test(task.name))).toHaveLength(1);
       }
     }
   });
 
   it("sits at the end of the gym stage, after the lifts", () => {
     const tasks = tasksOn(6, 0);
-    const at = tasks.findIndex((task) => /Hip rotation strength/.test(task.name));
+    const at = tasks.findIndex((task) => /Side-lying hip abduction — drive leg/.test(task.name));
     const gymStage = tasks[at].stageTitle;
     const lastOfStage = tasks.map((task) => task.stageTitle).lastIndexOf(gymStage);
     expect(at).toBe(lastOfStage);
+    expect(tasks[at - 1].name).toBe("Hip airplane — drive leg");
   });
 });
 
@@ -1307,5 +1309,45 @@ describe("the summer throwing week", () => {
       expect(throwing(day(week, 0)), `week ${week}`).toEqual([]);
     }
     expect(day(3, 2).some((t) => t.name === "Bullpen")).toBe(false);
+  });
+});
+
+describe("every gym exercise logs on its own", () => {
+  // A task named "Bench press + chest-supported row" takes one log for two
+  // lifts. Pairs are supersets of separate tasks, never one combined task.
+  const GYM = /^(Strength Maintenance|Whole-Body (Force|Power|Gym|Rebuild))$/;
+
+  it("has no combined exercise in any gym stage, all year", () => {
+    for (let week = 1; week <= PROGRAMME_WEEK_COUNT; week += 1) {
+      for (let day = 0; day < 7; day += 1) {
+        for (const task of applyBaselineProgramming(buildSession(weekPlan(week), day), null, day).tasks) {
+          if (!GYM.test(String(task.stageTitle))) continue;
+          expect(task.name, `week ${week} day ${day}`).not.toMatch(/ \+ /);
+        }
+      }
+    }
+  });
+
+  it("gives every superset all of its partners, in order", () => {
+    for (let week = 1; week <= PROGRAMME_WEEK_COUNT; week += 1) {
+      for (let day = 0; day < 7; day += 1) {
+        const tasks = applyBaselineProgramming(buildSession(weekPlan(week), day), null, day).tasks as (SessionTask & {
+          superset?: string;
+          supersetOf?: number;
+        })[];
+        const groups = new Map<string, number[]>();
+        for (const task of tasks) {
+          if (!task.superset) continue;
+          const letter = task.superset.charAt(0);
+          groups.set(letter, [...(groups.get(letter) ?? []), Number(task.superset.slice(1))]);
+        }
+        for (const [letter, positions] of groups) {
+          const of = tasks.find((t) => t.superset?.startsWith(letter))?.supersetOf;
+          expect(positions, `week ${week} day ${day} group ${letter}`).toEqual(
+            Array.from({ length: Number(of) }, (_, i) => i + 1)
+          );
+        }
+      }
+    }
   });
 });

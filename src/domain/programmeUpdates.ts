@@ -922,6 +922,14 @@ const SUPERSET_RULES: { day: number; group: string; members: RegExp[] }[] = [
   },
 ];
 
+/** The first superset letter the session has not used yet. */
+function nextSupersetGroup(tasks: SessionTask[]): string {
+  const used = new Set(
+    tasks.map((task) => String((task as { superset?: unknown }).superset ?? "").charAt(0)).filter(Boolean)
+  );
+  return "ABCDEFGH".split("").find((letter) => !used.has(letter)) ?? "Z";
+}
+
 /** Movements that must never be paired, whatever else is going on. */
 const NEVER_SUPERSET = [/Back squat/, /Speed squat/, /Depth jump/, /Trap bar/];
 
@@ -1086,28 +1094,49 @@ function hipPrepTask(prefix: string): SessionTask {
  * small and mostly case series. It is in because it is low-cost and aimed at
  * the right tissue, not because it has been shown to prevent recurrence.
  */
-function hipRotationStrengthTask(
+function hipRotationStrengthTasks(
   prefix: string,
   stageTitle: string,
-  stageDescription: string
-): SessionTask {
-  return {
-    id: `${prefix}-hip-rotation-strength`,
+  stageDescription: string,
+  group: string
+): SessionTask[] {
+  // Two exercises run as a superset, each with its own log: one combined task
+  // could not record the airplane and the abduction separately.
+  const shared = {
     stage: 4,
     stageTitle,
     stageDescription,
-    name: "Hip rotation strength — drive leg",
-    prescription:
-      "Hip airplane 3 × 5/side, slow · side-lying hip abduction in slight extension 3 × 12/side · one extra set of each on the drive leg",
-    cue: "Slow and owned. The pelvis turns over a still standing leg; if the knee caves or the foot rolls, the range is too big.",
-    setup: "A wall or rack within reach for the airplane. A mat for the abduction; ankle weight or band optional once 12 is easy.",
-    execution:
-      "Hip airplane: stand on one leg, hinge until the trunk is near horizontal, then rotate the pelvis open toward the ceiling and back closed toward the floor, the standing knee soft and pointing forward. Touch the wall when you need to. Side-lying abduction: bottom knee bent, top leg straight and slightly behind the body, toes pointing forward; lift to about 30°, pause, lower over two seconds.",
-    rest: "60 seconds between rounds.",
-    stop: "Stop for deep buttock pain above 3/10 or anything that runs down the leg — log it on the soreness card. Burning in the side of the hip by the end of a set is the muscle working and is fine.",
+    supersetOf: 2,
     evidence:
       "Deep gluteal syndrome is usually managed with hip abductor and external-rotator strengthening (Tonley 2010, JOSPT 40(2):103–111, case report; Hopayian 2018, Br J Pain, review). The evidence is low-grade: small studies and case series, not prevention trials.",
   };
+  return [
+    {
+      ...shared,
+      id: `${prefix}-hip-rotation-strength`,
+      name: "Hip airplane — drive leg",
+      prescription: "3 × 5/side, slow · one extra set on the drive leg",
+      cue: "Slow and owned. The pelvis turns over a still standing leg; if the knee caves or the foot rolls, the range is too big.",
+      setup: "A wall or rack within reach.",
+      execution:
+        "Stand on one leg, hinge until the trunk is near horizontal, then rotate the pelvis open toward the ceiling and back closed toward the floor, the standing knee soft and pointing forward. Touch the wall when you need to.",
+      rest: "No rest — go straight into the side-lying abduction.",
+      stop: "Stop for deep buttock pain above 3/10 or anything that runs down the leg — log it on the soreness card.",
+      superset: `${group}1`,
+    },
+    {
+      ...shared,
+      id: `${prefix}-hip-abduction-strength`,
+      name: "Side-lying hip abduction — drive leg",
+      prescription: "3 × 12/side · one extra set on the drive leg",
+      cue: "Top leg straight and slightly behind the body, toes forward. The side of the hip should do it, not the lower back.",
+      setup: "A mat; ankle weight or band optional once 12 is easy.",
+      execution: "Bottom knee bent, top leg straight and slightly behind the body; lift to about 30°, pause, lower over two seconds.",
+      rest: "60 seconds, then back to the airplane for the next round.",
+      stop: "Stop for deep buttock pain above 3/10 or anything that runs down the leg. Burning in the side of the hip by the end of a set is the muscle working and is fine.",
+      superset: `${group}2`,
+    },
+  ];
 }
 
 /**
@@ -1534,7 +1563,9 @@ export function applyBaselineProgramming(
       : []),
     // Keyed on Thursday as well as on `synthesised`: a second pass over a
     // Thursday finds the stage the first pass built and would otherwise add it.
-    ...(!synthesised && !onThursday ? [hipRotationStrengthTask(prefix, stageTitle, stageDescription)] : []),
+    ...(!synthesised && !onThursday
+      ? hipRotationStrengthTasks(prefix, stageTitle, stageDescription, nextSupersetGroup(tasks))
+      : []),
   ]
     .map(intoStage)
     .filter((addition) => !tasks.some((task) => task.id === addition.id));
