@@ -1285,6 +1285,18 @@ describe("the summer throwing week", () => {
     expect(wednesday.some((t) => /Trap bar deadlift/.test(String(t.name)))).toBe(true);
   });
 
+  it("primes the bullpen with plyos, as a game day does", () => {
+    const wednesday = day(14, 2);
+    const plyos = wednesday.filter((t) => t.stageTitle === "Plyo Ball Preparation");
+    expect(plyos.length).toBeGreaterThanOrEqual(4);
+    const pen = wednesday.findIndex((t) => t.name === "Bullpen");
+    expect(wednesday.findIndex((t) => t.stageTitle === "Plyo Ball Preparation")).toBeLessThan(pen);
+    // Stages run in order: plyos, then the pen, then the gym.
+    const stage = (title: string) => Number(wednesday.find((t) => t.stageTitle === title)?.stage);
+    expect(stage("Plyo Ball Preparation")).toBeLessThan(stage("Throw"));
+    expect(stage("Throw")).toBeLessThan(stage("Whole-Body Gym"));
+  });
+
   it("is light catch on Thursday, with nothing heavier", () => {
     expect(throwing(day(14, 3)).map((t) => t.name)).toEqual(["Light catch"]);
   });
