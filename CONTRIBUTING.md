@@ -73,6 +73,21 @@ from React.
 This is what makes the rebuild safe: the calculations are verified
 independently of whatever renders them.
 
+## Programme rule: one exercise, one log
+
+Every exercise the athlete can log is its own task. Never write two lifts as
+one task ("Bench press + chest-supported row"): one log then has to cover two
+exercises, and the progression and tonnage for both are wrong.
+
+Exercises that belong together are written as separate tasks and marked as a
+superset with `superset: "A1"`, `"A2"` … and `supersetOf: <count>`. The first
+says to go straight into the next; the rest goes on the last one in the round.
+
+This holds in every stage where anything is logged — the gym sessions, the
+game-day primer and the Saturday microdose. `programmeUpdates.test.ts` fails the
+build if a combined name (" + ") appears in any of those stages in any week, or
+if a superset is missing a partner.
+
 ## Data safety
 
 `src/domain/storage.ts` and `importExport.ts` enforce **no silent data
