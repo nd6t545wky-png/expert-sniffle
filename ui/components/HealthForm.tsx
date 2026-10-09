@@ -13,7 +13,9 @@ import {
   sourceNames,
   wearableInputs,
 } from "../../src/domain/healthPrefill";
+import { GameRole } from "../../src/domain/programmeSessions";
 import { Alert } from "./Page";
+import { GameRoleField } from "./GameRole";
 import { RangeField } from "./RangeField";
 
 /**
@@ -75,7 +77,12 @@ export interface HealthFormProps {
   onSubmitted: (
     submission: ReturnType<typeof computeReadiness>,
     date: IsoDate,
-    detail: { inputs: ReadinessInputs; sources: ReturnType<typeof metricSources>; bodyweightKg: number | null }
+    detail: {
+      inputs: ReadinessInputs;
+      sources: ReturnType<typeof metricSources>;
+      bodyweightKg: number | null;
+      gameRole: GameRole | null;
+    }
   ) => void;
   api: PitchingOsApi;
   /** `state.healthPrefill` — every date's fetched payload. */
@@ -83,6 +90,8 @@ export interface HealthFormProps {
   onPrefill: (date: IsoDate, record: HealthPrefillRecord) => void;
   /** Without a sync key there is no account to read connected data from. */
   hasSyncKey: boolean;
+  /** A game day asks whether the athlete is playing. */
+  gameDay?: boolean;
 }
 
 export function HealthForm({
@@ -94,8 +103,10 @@ export function HealthForm({
   prefill,
   onPrefill,
   hasSyncKey,
+  gameDay = false,
 }: HealthFormProps) {
   const [manual, setManual] = useState<Partial<ReadinessInputs>>({});
+  const [gameRole, setGameRole] = useState<GameRole | null>(null);
   const [notes, setNotes] = useState("");
   const [error, setError] = useState<string>("");
   const [loading, setLoading] = useState(false);
@@ -134,6 +145,7 @@ export function HealthForm({
   // blank form would be worse than a default.
   useEffect(() => {
     setManual({});
+    setGameRole(null);
     setNotes("");
     setError("");
   }, [date]);
@@ -154,6 +166,10 @@ export function HealthForm({
   function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
     setError("");
+    if (gameDay && !gameRole) {
+      setError("Say whether you are playing today — it decides the game-day plan.");
+      return;
+    }
     // Duplicate protection lives in the domain layer, not in a disabled button.
     const outcome = submitReadiness(existing, date, preview);
     if (!outcome.ok) {
@@ -163,7 +179,12 @@ export function HealthForm({
     // The inputs travel with the submission because the rolling HRV and
     // resting-heart-rate baselines are built from prior check-ins. A record
     // that keeps only its score can never contribute to tomorrow's median.
-    onSubmitted(preview, date, { inputs: values, sources: metricSources(health), bodyweightKg });
+    onSubmitted(preview, date, {
+      inputs: values,
+      sources: metricSources(health),
+      bodyweightKg,
+      gameRole: gameDay ? gameRole : null,
+    });
   }
 
   return (
@@ -186,6 +207,8 @@ export function HealthForm({
         />
 
         <form id="pre-form" className="form-grid" data-date={date} onSubmit={handleSubmit}>
+          {gameDay && <GameRoleField value={gameRole} onChange={setGameRole} />}
+
           <div className="field">
             <label htmlFor="sleepHours">Sleep duration</label>
             <input

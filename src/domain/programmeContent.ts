@@ -703,13 +703,114 @@ function standardSession(week, day) {
   };
 }
 
+/**
+ * The published GBL round whose first game is a Wednesday, if this week has one.
+ *
+ * Every round of the 26/27 draw is Friday and Sunday except Round 11, which
+ * is Wednesday 6 January (7 pm) and Sunday 10 January. A week built on the
+ * Friday template would show a game on a Friday with nothing on it and a
+ * bullpen on the night of the real game.
+ */
+function midweekGblRound(week) {
+  const round = gblRoundForRange(week.start, week.end);
+  return round && new Date(`${round.dates[0]}T00:00:00Z`).getUTCDay() === 3 ? round : null;
+}
+
+/**
+ * Which ordinary-week day each day of a Wednesday-game week is built from.
+ *
+ * The athlete's week is light catch the day before a game, the game, a
+ * recovery-catch day, then the bullpen with the main gym session two days
+ * before the next game. With the first game on Wednesday that whole run moves
+ * two days earlier: Tuesday is Thursday's light catch, Wednesday is the game,
+ * Thursday is Tuesday's recovery-catch practice, Friday is Wednesday's bullpen
+ * and gym. Monday, Saturday and Sunday are unchanged.
+ */
+const MIDWEEK_SLOTS = { 1: 3, 2: 4, 3: 1, 4: 2 };
+
+/** Swap text in every string of a session's tasks, for a day built from another day's template. */
+function retext(tasks, pairs) {
+  const swap = (value) => {
+    if (typeof value === "string") return pairs.reduce((text, [from, to]) => text.split(from).join(to), value);
+    if (Array.isArray(value)) return value.map(swap);
+    if (value && typeof value === "object") return Object.fromEntries(Object.entries(value).map(([key, inner]) => [key, key === "id" ? inner : swap(inner)]));
+    return value;
+  };
+  return tasks.map(swap);
+}
+
 function summerSession(week, day) {
+  const midweek = midweekGblRound(week);
+  const session = summerWeekday(week, day, midweek);
+  // A Wednesday-and-Sunday week is shaped like every other two-game week —
+  // one gym day between the games — whatever its velocity block is called, so
+  // the overlay gives its lifts the two-game budget.
+  return midweek ? { ...session, twoGameWeek: true } : session;
+}
+
+function summerWeekday(week, day, midweek) {
+  if (!midweek || !(day in MIDWEEK_SLOTS)) {
+    const session = summerSlot(week, day, day);
+    // Thursday's light catch and Saturday's primer are this programme's own
+    // day-before-a-game sessions. Marked so the fixture list does not swap
+    // them for the generic primer when it sees a game tomorrow.
+    return day === 3 || day === 5 ? { ...session, preGame: true } : session;
+  }
+  const session = summerSlot(week, day, MIDWEEK_SLOTS[day]);
+  const game = `Round ${midweek.round} ${midweek.home ? "vs" : "at"} ${midweek.opponent}`;
+  const rhythm = `${game} is a Wednesday-night game, so this week's rhythm moves two days earlier: light catch Tuesday, game Wednesday, recovery catch Thursday, bullpen and the main gym session Friday, primer Saturday, game Sunday.`;
+  if (day === 1) {
+    return {
+      ...session,
+      preGame: true,
+      title: "Tuesday · Team Training",
+      focus: "Prepare for Wednesday's game",
+      description: `${rhythm} Today is the light catch the day before a game — the job Thursday does in a Friday week. No gym and no microdose.`,
+      tasks: retext(session.tasks, [
+        ["the day after the bullpen and the day before Friday", "the day before Wednesday's game"],
+        ["if the arm has not bounced back from Wednesday's bullpen", "if the arm has not bounced back from Sunday's game"],
+      ]),
+    };
+  }
+  if (day === 2) {
+    return {
+      ...session,
+      title: "Wednesday · Game Day",
+      description: `${rhythm} Your actual appearance tonight decides how Thursday goes.`,
+    };
+  }
+  if (day === 3) {
+    return {
+      ...session,
+      postGame: true,
+      title: "Thursday · Team Training",
+      focus: "Recover from Wednesday's game",
+      description: `${rhythm} Today is the day after the game: no throwing at practice beyond a recovery catch if the arm asks for it, and no microdose — Friday carries the bullpen and the gym.`,
+      tasks: retext(session.tasks, [
+        ["if the arm wants it after Sunday", "if the arm wants it after Wednesday's game"],
+        ["Tuesday is not a throwing day.", "Today is not a throwing day."],
+        ["Wednesday's bullpen", "Friday's bullpen"],
+      ]),
+    };
+  }
+  return {
+    ...session,
+    title: "Friday · Bullpen + Whole-Body Strength",
+    description: `${rhythm} The bullpen moves here from Wednesday: two days after Wednesday's game and two days clear of Sunday. It goes first, while the arm is fresh, then the week's heavier gym session.`,
+    tasks: retext(session.tasks, [
+      ["two days clear of Friday", "two days clear of Sunday"],
+      ["Pain here means Friday needs reviewing", "Pain here means Sunday needs reviewing"],
+    ]),
+  };
+}
+
+function summerSlot(week, day, slot) {
   const p = `w${week.week}-d${day}-summer`;
   const fridayDate = isoDate(addDays(week.start, 4));
   const fridayPitches = Number((ctx.post ?? {})[fridayDate]?.gamePitches || 0);
   const appearedFriday = fridayPitches > 0;
 
-  if (day === 0) {
+  if (slot === 0) {
     return {
       title: "Monday · Recovery + Strength Maintenance",
       focus: "Restore the arm, then hold strength",
@@ -742,10 +843,10 @@ function summerSession(week, day) {
     };
   }
 
-  if (day === 1 || day === 3) {
-    const isThursday = day === 3;
+  if (slot === 1 || slot === 3) {
+    const isThursday = slot === 3;
     return {
-      title: `${DAY_NAMES[day]} · Team Training`,
+      title: `${DAY_NAMES[slot]} · Team Training`,
       focus: isThursday ? "Prepare for Friday game" : "Practice quality",
       duration: "Team session dependent",
       stress: isThursday ? "Low–moderate" : "Moderate",
@@ -774,7 +875,7 @@ function summerSession(week, day) {
     };
   }
 
-  if (day === 2) {
+  if (slot === 2) {
     return {
       title: "Wednesday · Bullpen + Whole-Body Strength",
       focus: "Main summer gym exposure",
@@ -820,14 +921,14 @@ function summerSession(week, day) {
     };
   }
 
-  if (day === 4 || day === 6) {
-    const gameName = day === 4 ? "Friday" : "Sunday";
+  if (slot === 4 || slot === 6) {
+    const gameName = slot === 4 ? "Friday" : "Sunday";
     return {
       title: `${gameName} · Game Day`,
       focus: "Compete and log actual workload",
       duration: "Game dependent",
       stress: "Very high",
-      description: day === 4 ? "Friday is the first weekly game window. Your actual appearance determines Saturday." : "Sunday is the second game window; Monday becomes recovery-first.",
+      description: slot === 4 ? "Friday is the first weekly game window. Your actual appearance determines Saturday." : "Sunday is the second game window; Monday becomes recovery-first.",
       tasks: [
         ...basePrep(p, "game performance"),
         task(`${p}-builds`, 2, "Game Warm-up", "Build speed without fatigue.", "Sprint build-ups", "2 × 10 m · 2 × 20 m progressive", "Last rep about 90%; full recovery.", {
