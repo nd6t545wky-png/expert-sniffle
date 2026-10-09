@@ -652,7 +652,7 @@ describe("the day before a game the athlete entered", () => {
   });
 
   it("leaves the Thursday microdoses alone on an ordinary Thursday", () => {
-    for (const week of [3, 15, 26]) {
+    for (const week of [3, 15, 27]) {
       const tasks = applyBaselineProgramming(buildSession(weekPlan(week), 3), null, 3).tasks;
       expect(
         tasks.some((task) => /microdose/i.test(String(task.name))),

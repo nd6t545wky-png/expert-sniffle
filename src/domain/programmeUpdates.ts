@@ -1368,7 +1368,9 @@ export function applyBaselineProgramming(
     // at all. See `primerToday` below.
     const primerDay = tasks.some((task) => task.stageTitle === PRIMER_STAGE);
     const tail = [
-      ...(day === DAY_THURSDAY && !primerDay ? [] : [ankleStiffnessTask(prepPrefix)]),
+      ...(day === DAY_THURSDAY && !primerDay && !(session as { postGame?: boolean }).postGame
+        ? []
+        : [ankleStiffnessTask(prepPrefix)]),
       forearmPrepTask(prepPrefix),
       ...(needsSprintDrills(tasks) ? [sprintPrepTask(prepPrefix)] : []),
     ].filter(absent);
@@ -1408,7 +1410,9 @@ export function applyBaselineProgramming(
   // and no reps. There was never a second thing to do: the hinge below is the
   // microdose, and it now says so itself.
   const synthesised = gymIndex === -1;
-  if (synthesised && day !== DAY_THURSDAY) return withVelocityPolicy(session, tasks, level);
+  // The Thursday after a Wednesday-night game is a recovery day and gets none.
+  const afterGame = Boolean((session as { postGame?: boolean }).postGame);
+  if (synthesised && (day !== DAY_THURSDAY || afterGame)) return withVelocityPolicy(session, tasks, level);
 
   /**
    * The stage *number* the additions join, which is not always four.
@@ -1485,7 +1489,8 @@ export function applyBaselineProgramming(
    * finish fresher than it started, and duplicating the pogos already in it.
    */
   const primerToday = tasks.some((task) => task.stageTitle === PRIMER_STAGE);
-  const onThursday = (day === null || day === DAY_THURSDAY) && !primerToday;
+  // Nor the Thursday after a Wednesday-night game, which is a recovery day.
+  const onThursday = (day === null || day === DAY_THURSDAY) && !primerToday && !afterGame;
 
   /**
    * A week with a game on Friday *and* on Sunday.
@@ -1503,7 +1508,10 @@ export function applyBaselineProgramming(
   // shape of the summer block rather than about intensity — a winter finals
   // week resolving to "two_game" for intent reasons has a full winter gym week
   // underneath it and must not be handed the summer week's exercise budget.
-  const twoGameWeek = week !== null && velocityPolicy(week).block === "two_game";
+  const twoGameWeek =
+    (week !== null && velocityPolicy(week).block === "two_game") ||
+    // Round 11's Wednesday-and-Sunday week: a taper by intent, two games by shape.
+    Boolean((session as { twoGameWeek?: boolean }).twoGameWeek);
 
   /**
    * Reactive work goes wherever the week's lift is, not only on Monday.

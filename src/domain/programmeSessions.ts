@@ -197,6 +197,86 @@ function primerFor(week: WeekPlan, day: number): unknown {
   };
 }
 
+/**
+ * Whether the athlete is playing, answered at the game-day check-in.
+ *
+ * The fixture list knows a game is on; it cannot know whether this pitcher is
+ * in it. A scheduled start, a day in the field or the dugout, and a day off
+ * the team sheet are three different days for the arm.
+ */
+export type GameRole = "pitching" | "playing" | "not_playing";
+
+export const GAME_ROLES: readonly { value: GameRole; label: string; help: string }[] = [
+  { value: "pitching", label: "Pitching", help: "Starting or scheduled to pitch — the full game-day plan." },
+  { value: "playing", label: "Playing, not pitching", help: "In the game but not on the mound — catch only, no pregame bullpen." },
+  { value: "not_playing", label: "Not playing", help: "Not in the game — a light catch and recovery instead." },
+];
+
+export function readGameRole(value: unknown): GameRole | null {
+  return GAME_ROLES.some((role) => role.value === value) ? (value as GameRole) : null;
+}
+
+/** A game day reshaped to what the athlete said they are doing in it. */
+function withGameRole(session: Session, role: GameRole, day: number): Session {
+  if (role === "pitching") return session;
+  const pregame = (task: SessionTask) => /pregame/i.test(String(task.name));
+  if (role === "playing") {
+    return {
+      ...session,
+      focus: "Playing, not pitching — keep the arm game-ready without a bullpen",
+      tasks: session.tasks
+        // A separate pregame bullpen goes; a combined catch-and-bullpen keeps its catch.
+        .filter((task) => !/^pregame bullpen$/i.test(String(task.name)))
+        .map((task) => {
+          if (pregame(task)) {
+            return {
+              ...task,
+              name: "Pregame catch",
+              prescription: "25–40 throws · build to game distance · no bullpen",
+              cue: "Not pitching today, so no pregame bullpen. Catch to stay ready to throw from your position.",
+            };
+          }
+          if (task.stageTitle === "Compete") {
+            return {
+              ...task,
+              prescription: "Not scheduled to pitch — log 0, or the real count if you are called in",
+              cue: "If you do end up on the mound, log the pitches: tomorrow's plan reads them.",
+            };
+          }
+          return task;
+        }),
+    };
+  }
+  const compete = session.tasks.find((task) => task.stageTitle === "Compete");
+  const tasks = session.tasks.filter(
+    (task) => task.stageTitle !== "Compete" && !pregame(task) && !/sprint build/i.test(String(task.name))
+  );
+  const catchTask: SessionTask = {
+    id: `${compete?.id ?? `d${day}-game`}-not-playing-catch`,
+    stage: 3,
+    stageTitle: "Throw",
+    stageDescription: "Not in today's game: keep the arm moving without a game's worth of stress.",
+    name: "Light catch",
+    prescription: "20–30 throws · 45–90 ft · 50–60%",
+    cue: "Loose and easy. No mound, no long toss, no pulldowns.",
+    setup: "A relaxed partner — at the ground before the game is fine.",
+    execution: "Build distance only as far as feels loose, then come back in. Count the throws.",
+    rest: "Natural rhythm.",
+    stop: "Stop if the arm does not loosen.",
+  };
+  // Where the game's throwing was — ahead of arm care and recovery — so the stages stay in order.
+  const after = tasks.findIndex((task) => Number(task.stage) > catchTask.stage);
+  const insertAt = after < 0 ? tasks.length : after;
+  return {
+    ...session,
+    title: `${DAY_NAMES[day] ?? "Game day"} · Not Playing`,
+    focus: "Not in the game — light catch and recovery",
+    stress: "Low",
+    description: `You said you are not playing today, so the game day's sprints, pregame throwing and game appearance are replaced by a light catch. ${session.description ?? ""}`.trim(),
+    tasks: [...tasks.slice(0, insertAt), catchTask, ...tasks.slice(insertAt)],
+  };
+}
+
 const DAY_NAMES = [
   "Monday",
   "Tuesday",
@@ -250,6 +330,8 @@ export function buildSession(
     gameTomorrow?: boolean;
     /** Fixtures in this whole week, for the week-level intensity policy. */
     weekGames?: number;
+    /** What the athlete said at the check-in about today's game, if it is one. */
+    role?: GameRole | null;
   } = {}
 ): Session {
   const stamp = (built: Session): Session =>
@@ -276,12 +358,20 @@ export function buildSession(
   } else if (
     options.gameTomorrow &&
     !sessionHasGame(session as Session) &&
-    !sessionIsPrimer(session as Session)
+    !sessionIsPrimer(session as Session) &&
+    // The summer block writes its own day-before-a-game sessions — Thursday's
+    // light catch, Saturday's primer or post-appearance recovery — and the
+    // athlete set that rhythm. The generic primer is for games it did not plan.
+    !(session as { preGame?: boolean }).preGame
   ) {
     // A game day is never demoted to a primer: on a finals weekend Friday is
     // both a game and the day before one, and it stays a game day. Nor is a day
     // the programme already primes primed twice.
     session = primerFor(week, day);
+  }
+
+  if (options.role && sessionHasGame(session as Session)) {
+    session = withGameRole(session as Session, options.role, day);
   }
 
   return stamp(

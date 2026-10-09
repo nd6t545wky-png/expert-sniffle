@@ -9,6 +9,7 @@
  */
 
 import { IsoDate, isIsoDate } from "./state";
+import type { GameRole } from "./programmeSessions";
 import {
   MetricSource,
   PlanLevel,
@@ -74,6 +75,8 @@ export interface ReadinessSubmission {
   restingHeartRateSource?: MetricSource;
   sleepSource?: MetricSource;
   bodyweightKg?: number;
+  /** On a game day: pitching, playing but not pitching, or not playing. */
+  gameRole?: GameRole;
 }
 
 export interface ManualOverride {

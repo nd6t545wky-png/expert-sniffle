@@ -35,6 +35,9 @@ import {
   buildSession,
   currentSelection,
   dateForWeekDay,
+  GameRole,
+  readGameRole,
+  sessionHasGame,
   setProgrammeContext,
   weekPlan,
 } from "../src/domain/programmeSessions";
@@ -49,6 +52,7 @@ import { PageId, Shell } from "./components/Shell";
 import { DailyPlan, PlanTask } from "./components/DailyPlan";
 import { DayTab, dayStatus } from "./components/DayTabs";
 import { HealthForm } from "./components/HealthForm";
+import { GameRoleCard } from "./components/GameRole";
 import { Workload, ThrowingEntry } from "./components/Workload";
 import { Tracking } from "./components/Tracking";
 import { ProgressSpec } from "./components/ProgressTrends";
@@ -278,6 +282,7 @@ export function App() {
 
   const plan = planFor(date);
   const submission = submissions[date];
+  const gameRole = readGameRole(submission?.gameRole);
 
   const throwingEntries = useMemo<ThrowingEntry[]>(() => {
     const bullpens = (state?.bullpens ?? {}) as Record<IsoDate, ThrowingEntry | undefined>;
@@ -414,6 +419,22 @@ export function App() {
       plan ? fixturesBetween(dateForWeekDay(plan, 0), dateForWeekDay(plan, 6), fixtures).length : 0,
     [fixtures]
   );
+
+  /**
+   * Whether the selected day is a game day, before any answer reshapes it —
+   * the programme's own game days and any fixture the athlete entered. Game
+   * days ask "are you playing?" at the check-in.
+   */
+  const isGameDay = useMemo(() => {
+    if (!selectedWeekPlan) return false;
+    try {
+      return sessionHasGame(
+        buildSession(selectedWeekPlan, selectedDay, { game: gameOn(date), gameTomorrow: gameOn(addDays(date, 1)) })
+      );
+    } catch {
+      return false;
+    }
+  }, [selectedWeekPlan, selectedDay, date, gameOn]);
   const retests = useMemo(
     () => readRetests((state?.profile as { retests?: unknown } | undefined)?.retests),
     [state]
@@ -536,6 +557,7 @@ export function App() {
               game: gameOn(on),
               gameTomorrow: gameOn(addDays(on, 1)),
               weekGames: gamesInWeekOf(plan),
+              role: readGameRole(submissions[on]?.gameRole),
             }).tasks;
           }
         }
@@ -544,7 +566,7 @@ export function App() {
       }
       return [];
     },
-    [state, gameOn, gamesInWeekOf]
+    [state, gameOn, gamesInWeekOf, submissions]
   );
 
   const resolvedOn = useCallback(
@@ -585,6 +607,7 @@ export function App() {
           game: gameOn(date),
           gameTomorrow: gameOn(addDays(date, 1)),
           weekGames: gamesInWeekOf(selectedWeekPlan),
+          role: gameRole,
         }),
         level,
         selectedDay
@@ -1267,6 +1290,7 @@ export function App() {
       inputs: ReadinessInputs;
       sources: { hrvSource?: MetricSource; restingHeartRateSource?: MetricSource; sleepSource?: MetricSource };
       bodyweightKg: number | null;
+      gameRole: GameRole | null;
     }
   ) {
     update((draft) => {
@@ -1284,6 +1308,7 @@ export function App() {
         inputs: detail.inputs,
         ...detail.sources,
         ...(detail.bodyweightKg !== null ? { bodyweightKg: detail.bodyweightKg } : {}),
+        ...(detail.gameRole ? { gameRole: detail.gameRole } : {}),
       };
       return { ...draft, pre: { ...draft.pre, [forDate]: next } };
     });
@@ -1427,6 +1452,19 @@ export function App() {
         />
       )}
 
+      {page === "session" && isGameDay && submission && (
+        <GameRoleCard
+          value={gameRole}
+          onChange={(role) =>
+            update((draft) => {
+              const current = draft.pre[date] as ReadinessSubmission | undefined;
+              if (!current) return draft;
+              return { ...draft, pre: { ...draft.pre, [date]: { ...current, gameRole: role } } };
+            })
+          }
+        />
+      )}
+
       {page === "session" && (
         <DailyPlan
           date={date}
@@ -1529,6 +1567,7 @@ export function App() {
           prefill={state.healthPrefill}
           onPrefill={handleHealthPrefill}
           hasSyncKey={isValidSyncKey(syncKey)}
+          gameDay={isGameDay}
         />
       )}
 
