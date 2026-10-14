@@ -3,6 +3,7 @@ import { AppState, IsoDate } from "../../src/domain/state";
 import { LoadResult, loadAppState, migrateIfNeeded, saveAppState } from "../../src/domain/storage";
 import { ReadinessSubmission, PlanState, planStateForDate } from "../../src/domain/session";
 import { mergeTrainingHistories, recordStateChanges } from "../../src/domain/trainingHistory";
+import { stampChangedFields } from "../../src/domain/sync";
 
 /**
  * Bridges the pure storage layer to React.
@@ -60,7 +61,11 @@ export function useAppState(): AppStateHandle {
       if (next !== current && next.trainingHistory !== current.trainingHistory && current.trainingHistory !== undefined) {
         next = { ...next, trainingHistory: mergeTrainingHistories(current.trainingHistory, next.trainingHistory) };
       }
-      if (options.record !== false) next = recordStateChanges(current, next);
+      if (options.record !== false) {
+        next = recordStateChanges(current, next);
+        // So the next sync keeps this change instead of the cloud's older copy.
+        next = stampChangedFields(current, next);
+      }
       try {
         saveAppState(browserStorage(), next);
       } catch (error) {

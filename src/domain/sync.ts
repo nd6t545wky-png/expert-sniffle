@@ -11,7 +11,7 @@
  * become unreadable.
  */
 
-import { AppState, EPHEMERAL_KEYS } from "./state";
+import { AppState, DATE_KEYED_FIELDS, EPHEMERAL_KEYS } from "./state";
 
 export const SYNC_KEY_PATTERN = /^[a-f0-9]{64}$/i;
 
@@ -295,7 +295,7 @@ export function mergeCloudSnapshot(remote: Record<string, unknown>, local: AppSt
 
   return {
     ...local,
-    ...remote,
+    ...mergeWholeFields(remote, local),
     version: local.version,
     pre: mergeRecordMaps(remote.pre as AnyMap, local.pre, remoteFallback, localFallback),
     post: mergeRecordMaps(remote.post as AnyMap, local.post, remoteFallback, localFallback),
@@ -316,7 +316,86 @@ export function mergeCloudSnapshot(remote: Record<string, unknown>, local: AppSt
     skippedTasks: mergeRecordMaps(remote.skippedTasks as AnyMap, local.skippedTasks, remoteFallback, localFallback),
     ...mergeIdArrays(remote, local, remoteFallback, localFallback),
     syncUpdatedAt: new Date(Math.max(remoteFallback, localFallback) || Date.now()).toISOString(),
+    [FIELD_STAMPS]: mergeStamps(readStamps(remote[FIELD_STAMPS]), readStamps(local[FIELD_STAMPS])),
   } as AppState;
+}
+
+// --- Whole fields --------------------------------------------------------------
+
+/**
+ * When each top-level field was last changed on a device.
+ *
+ * Fields the merge above has no record-level rule for — the set logs, the
+ * profile, nutrition, training maxes and the rest — used to go through a bare
+ * `...remote` spread, so the cloud copy won outright. Autosave pulls and merges
+ * before every push, which made that spread revert every such change about a
+ * second after it was made: log three sets, autosave fetches the copy uploaded
+ * before them, and the sets are gone, locally and in the cloud.
+ *
+ * Each field now carries the time it last changed, and the newer side wins.
+ * A field neither side has stamped (data written before this existed, or by the
+ * prototype) keeps the old rule, so the cloud still fills in a second device.
+ */
+export const FIELD_STAMPS = "fieldUpdatedAt";
+
+/** Fields merged record by record elsewhere, or not shared at all. */
+const RECORD_MERGED_FIELDS = new Set<string>([
+  ...DATE_KEYED_FIELDS,
+  "games",
+  "armExams",
+  "kinematics",
+  "soreness",
+  "version",
+  "syncUpdatedAt",
+  FIELD_STAMPS,
+  ...EPHEMERAL_KEYS,
+  "editingPost",
+  "trainingHistory",
+]);
+
+function readStamps(value: unknown): Record<string, string> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  return Object.fromEntries(
+    Object.entries(value as Record<string, unknown>).filter((entry): entry is [string, string] => typeof entry[1] === "string")
+  );
+}
+
+const stampTime = (stamps: Record<string, string>, key: string) => Date.parse(stamps[key] ?? "") || 0;
+
+function mergeStamps(remote: Record<string, string>, local: Record<string, string>): Record<string, string> {
+  const merged: Record<string, string> = { ...remote };
+  for (const [key, at] of Object.entries(local)) {
+    if (stampTime(local, key) >= stampTime(merged, key)) merged[key] = at;
+  }
+  return merged;
+}
+
+function mergeWholeFields(remote: Record<string, unknown>, local: AppState): Record<string, unknown> {
+  const remoteStamps = readStamps(remote[FIELD_STAMPS]);
+  const localStamps = readStamps(local[FIELD_STAMPS]);
+  const merged: Record<string, unknown> = {};
+  for (const key of Object.keys(remote)) {
+    if (RECORD_MERGED_FIELDS.has(key)) continue;
+    const localIsNewer = key in local && stampTime(localStamps, key) > stampTime(remoteStamps, key);
+    merged[key] = localIsNewer ? local[key] : remote[key];
+  }
+  return merged;
+}
+
+/**
+ * Stamp the top-level fields a local change touched, for `mergeWholeFields`.
+ *
+ * Called on every change the athlete makes. Not on a sync merge being applied:
+ * that would make the cloud's copy look like a fresh local edit.
+ */
+export function stampChangedFields(before: AppState, after: AppState, at: string = new Date().toISOString()): AppState {
+  const changed = [...new Set([...Object.keys(before), ...Object.keys(after)])].filter(
+    (key) => key !== FIELD_STAMPS && !EPHEMERAL_KEYS.includes(key) && before[key] !== after[key]
+  );
+  if (!changed.length) return after;
+  const stamps = { ...readStamps(after[FIELD_STAMPS]) };
+  for (const key of changed) stamps[key] = at;
+  return { ...after, [FIELD_STAMPS]: stamps };
 }
 
 /**
