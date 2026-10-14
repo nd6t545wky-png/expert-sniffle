@@ -14,6 +14,16 @@ html,
 body {
   max-width: 100%;
   overflow-x: hidden;
+  /*
+   * `clip`, not `hidden`, wherever it is supported (iOS 16+). `hidden` on
+   * both html and body is the iOS Safari bug that leaves the fixed bottom nav
+   * stranded mid-screen after a momentum scroll or the toolbar collapsing:
+   * it makes the page a scroll container of its own, so "fixed" stops meaning
+   * fixed to the screen. `clip` cuts off sideways overflow the same way
+   * without creating a scroll container. Browsers that do not know `clip`
+   * drop this line and keep `hidden` above.
+   */
+  overflow-x: clip;
 }
 
 /* ---------------------------------------------------------------------------
