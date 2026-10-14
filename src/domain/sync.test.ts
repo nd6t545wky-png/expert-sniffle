@@ -19,6 +19,7 @@ import {
   mergeTimestampMaps,
   normalizeSyncKey,
   recordTimestamp,
+  stampChangedFields,
 } from "./sync";
 
 // jsdom does not provide SubtleCrypto; Node's does.
@@ -241,6 +242,61 @@ describe("mergeCloudSnapshot", () => {
     const local = state({ pre: { "2026-08-05": { score: 90 } }, syncUpdatedAt: "2026-08-05T00:00:00Z" });
     const merged = mergeCloudSnapshot(remote, local);
     expect(merged.pre["2026-08-05"]).toBeDefined();
+  });
+});
+
+/**
+ * Fields the merge has no record-level rule for — set logs, profile,
+ * nutrition. They used to be taken from the cloud whole, so autosave (which
+ * pulls and merges before every push) reverted each change a second after it
+ * was made.
+ */
+describe("mergeCloudSnapshot — whole fields", () => {
+  const SETS = { "2026-10-14": { "w14-d2-summer-deadlift": [{ reps: 3, kg: 112.5 }] } };
+
+  it("keeps sets logged since the last upload", () => {
+    // What autosave pulls: the copy this device pushed before the sets.
+    const before = state({ setLogs: {} });
+    const remote = cloudSnapshot(before);
+    const logged = stampChangedFields(before, { ...before, setLogs: SETS }, "2026-10-14T05:00:00.000Z");
+
+    const merged = mergeCloudSnapshot(remote, logged);
+    expect(merged.setLogs).toEqual(SETS);
+  });
+
+  it("keeps a cleared log cleared", () => {
+    const before = stampChangedFields(state(), state({ setLogs: SETS }), "2026-10-14T05:00:00.000Z");
+    const remote = cloudSnapshot(before);
+    const cleared = stampChangedFields(before, { ...before, setLogs: {} }, "2026-10-14T05:01:00.000Z");
+    expect(mergeCloudSnapshot(remote, cleared).setLogs).toEqual({});
+  });
+
+  it("takes another device's newer change", () => {
+    const local = stampChangedFields(state(), state({ profile: { name: "old" } }), "2026-10-14T05:00:00.000Z");
+    const remote = cloudSnapshot(
+      stampChangedFields(local, { ...local, profile: { name: "new" } }, "2026-10-14T06:00:00.000Z")
+    );
+    const merged = mergeCloudSnapshot(remote, local);
+    expect(merged.profile).toEqual({ name: "new" });
+    expect((merged.fieldUpdatedAt as Record<string, string>).profile).toBe("2026-10-14T06:00:00.000Z");
+  });
+
+  it("still fills in a device that has never stamped anything", () => {
+    // A fresh second device, or data written before stamps existed.
+    const merged = mergeCloudSnapshot({ version: 1, pre: {}, post: {}, nutrition: { meals: [1] } }, state({ nutrition: {} }));
+    expect(merged.nutrition).toEqual({ meals: [1] });
+  });
+
+  it("keeps a local field the cloud does not have", () => {
+    const merged = mergeCloudSnapshot({ version: 1, pre: {}, post: {} }, state({ setLogs: SETS }));
+    expect(merged.setLogs).toEqual(SETS);
+  });
+
+  it("stamps only what changed", () => {
+    const before = state({ profile: { a: 1 } });
+    const after = stampChangedFields(before, { ...before, setLogs: SETS }, "2026-10-14T05:00:00.000Z");
+    expect(after.fieldUpdatedAt).toEqual({ setLogs: "2026-10-14T05:00:00.000Z" });
+    expect(stampChangedFields(after, after)).toBe(after);
   });
 });
 
