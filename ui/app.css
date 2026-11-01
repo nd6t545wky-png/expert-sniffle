@@ -3126,3 +3126,6 @@ h1, h2, h3, h4 { font-weight: 600; }
 .task-movements-toggle > summary { cursor: pointer; color: var(--muted); font-size: 12px; font-weight: 700; padding: 2px 0; }
 .task-movements-toggle[open] > summary { margin-bottom: 4px; }
 .game-role-card .field { margin: 0; }
+.stage-extra { padding: 0 14px 14px; }
+.stage-extra .card { margin: 0 0 10px; box-shadow: none; }
+.checkout-throws { margin-bottom: 12px; }

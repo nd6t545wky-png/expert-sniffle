@@ -28,6 +28,12 @@ export interface FixtureSettingsProps {
   onChange: (next: Fixture[]) => void;
   /** Jump the plan to the week a fixture falls in. */
   onSelectWeek?: (week: number) => void;
+  /**
+   * This week, and the week picked on the calendar. With both, the list shows
+   * this week and next — or, once a different week is picked, that week.
+   */
+  currentWeek?: number;
+  selectedWeek?: number;
 }
 
 const format = (date: string) =>
@@ -41,7 +47,14 @@ const format = (date: string) =>
 
 const NEXT_FEW = 4;
 
-export function FixtureSettings({ fixtures, today, onChange, onSelectWeek }: FixtureSettingsProps) {
+export function FixtureSettings({
+  fixtures,
+  today,
+  onChange,
+  onSelectWeek,
+  currentWeek,
+  selectedWeek,
+}: FixtureSettingsProps) {
   const [date, setDate] = useState("");
   const [label, setLabel] = useState("");
   const [team, setTeam] = useState("Norths");
@@ -49,8 +62,26 @@ export function FixtureSettings({ fixtures, today, onChange, onSelectWeek }: Fix
 
   const everything = allFixtures(fixtures);
   const ahead = everything.filter((fixture) => fixture.date >= today);
-  // The next few, with the rest a tap away: the whole draw is thirty-odd rows.
-  const upcoming = showAll ? ahead : ahead.slice(0, NEXT_FEW);
+  // This week and next by default; a week picked on the calendar outside
+  // those two shows that week instead. The rest of the season is a tap away.
+  const pickedOther =
+    currentWeek !== undefined &&
+    selectedWeek !== undefined &&
+    selectedWeek !== currentWeek &&
+    selectedWeek !== currentWeek + 1;
+  const weeks =
+    currentWeek === undefined ? null : pickedOther ? [selectedWeek as number] : [currentWeek, currentWeek + 1];
+  const inWeeks = weeks
+    ? (pickedOther ? everything : ahead).filter((fixture) => weeks.includes(programmeWeekFor(fixture.date) ?? -1))
+    : ahead.slice(0, NEXT_FEW);
+  const upcoming = showAll ? ahead : inWeeks;
+  const heading = showAll
+    ? "All upcoming games"
+    : weeks === null
+      ? "Upcoming games"
+      : pickedOther
+        ? `Games in week ${selectedWeek}`
+        : "Games this week and next";
 
   function add() {
     if (!date) return;
@@ -63,11 +94,13 @@ export function FixtureSettings({ fixtures, today, onChange, onSelectWeek }: Fix
   return (
     <Card>
       <CardHead
-        title="Upcoming games"
+        title={heading}
         detail="Add finals or a rescheduled game below and that day is built as a game day."
       />
 
-      {upcoming.length === 0 ? (
+      {upcoming.length === 0 && ahead.length > 0 ? (
+        <p className="recovery-caveat">No games {pickedOther ? "that week" : "this week or next"}.</p>
+      ) : upcoming.length === 0 ? (
         <p className="recovery-caveat">
           Nothing left on the calendar. If your season is not over, add the remaining games below —
           otherwise the plan will treat the coming weeks as an off-season unload.
@@ -117,7 +150,7 @@ export function FixtureSettings({ fixtures, today, onChange, onSelectWeek }: Fix
           })}
         </ul>
       )}
-      {ahead.length > NEXT_FEW && (
+      {ahead.length > inWeeks.length && (
         <button className="text-button" type="button" onClick={() => setShowAll((open) => !open)}>
           {showAll ? "Show fewer" : `Show all ${ahead.length} games`}
         </button>

@@ -129,6 +129,8 @@ export interface DailyPlanProps {
    * score is one line above the workout.
    */
   sidePanel?: boolean;
+  /** Extra content inside a workout stage, keyed by stage title. */
+  stageExtras?: Record<string, React.ReactNode>;
 }
 
 const GUARDRAILS: [string, string][] = [
@@ -175,6 +177,7 @@ export function DailyPlan({
   checkOut,
   beforeWorkout,
   sidePanel = true,
+  stageExtras,
 }: DailyPlanProps) {
   const [error, setError] = useState("");
   const [reason, setReason] = useState("");
@@ -420,6 +423,7 @@ export function DailyPlan({
               onUndoSkip={(task) => onSkipTask(date, undoSkipTask(skipped, date, task.id))}
               progression={progression}
               showCues={sidePanel}
+              stageExtras={stageExtras}
             />
           </section>
 

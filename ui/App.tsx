@@ -61,6 +61,7 @@ import { BaselineTesting } from "./components/BaselineTesting";
 import { ArmCare } from "./components/ArmCare";
 import { Card, CardHead, PageHead, Segments } from "./components/Page";
 import { ThrowCountCard } from "./components/ThrowCountCard";
+import { GameLog } from "./components/GameLog";
 import { VelocityBlock } from "./components/VelocityBlock";
 import { weekFromTasks } from "../src/domain/velocity";
 import { formatIsoDate } from "./state/formatDate";
@@ -1396,6 +1397,7 @@ export function App() {
   // to carry: it tallies from ticked tasks and can be overridden by hand.
   const throwCard = (
     <ThrowCountCard
+      alwaysShow
       tally={throwTally ?? null}
       entry={throwEntry ?? null}
       onSave={(entry) =>
@@ -1446,6 +1448,21 @@ export function App() {
       {view === "session" && (
         <DailyPlan
           sidePanel={false}
+          // The game log lives in the game day's Compete stage: log the outing
+          // where the outing is on the plan.
+          stageExtras={{
+            Compete: (
+              <GameLog
+                compact
+                date={date}
+                games={games}
+                onSave={(game: Game) => update((draft) => ({ ...draft, games: [...readGames(draft.games), game] }))}
+                onRemove={(id: string) =>
+                  update((draft) => ({ ...draft, games: readGames(draft.games).filter((game) => game.id !== id) }))
+                }
+              />
+            ),
+          }}
           checkIn={
             <HealthForm
               date={date}
@@ -1462,6 +1479,7 @@ export function App() {
           checkOut={
             <Tracking
               mode="checkout"
+              throwLog={throwCard}
               date={date}
               plan={plan}
               reports={reports}
@@ -1647,9 +1665,7 @@ export function App() {
           ) : (
             <Workload
               section={throwingTab}
-              // The card hides itself until there is a count or an entry, and
-              // the form is then the only way to enter one.
-              throwCard={throwTally || throwEntry ? throwCard : undefined}
+              throwCard={throwCard}
               date={date}
               plan={plan}
               entries={throwingEntries}
@@ -1813,6 +1829,8 @@ export function App() {
           {/* Adding a game belongs on the page the season is read from.
               Entering one here rebuilds that day as a game day straight away. */}
           <FixtureSettings
+            currentWeek={today.selectedWeek}
+            selectedWeek={selectedWeek}
             fixtures={athleteFixtures}
             today={today.openDate}
             onSelectWeek={setSelectedWeek}

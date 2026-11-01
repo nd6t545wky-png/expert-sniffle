@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { ReactNode, useState } from "react";
 import { SessionTask } from "../../src/domain/programmeSessions";
 import { SkippedTask, UNSKIPPABLE_STAGE } from "../../src/domain/session";
 import { DaySetLog, LoggedSet, bestOneRepMax, isLoggable, prescribedSets, setUnit } from "../../src/domain/setLog";
@@ -39,6 +39,8 @@ export interface TaskStagesProps {
    * Details, so the workout reads as a list instead of a page of text.
    */
   showCues?: boolean;
+  /** Extra content inside a stage, keyed by stage title — the game log in Compete. */
+  stageExtras?: Record<string, ReactNode>;
 }
 
 /**
@@ -286,6 +288,7 @@ export function TaskStages({
   onLogSets,
   progression,
   showCues = true,
+  stageExtras,
 }: TaskStagesProps) {
   const done = new Set(completed);
   const isResolved = (task: SessionTask) => done.has(task.id) || Boolean(skipped[task.id]);
@@ -434,6 +437,7 @@ export function TaskStages({
                 );
               })}
             </div>
+            {stageExtras?.[first.stageTitle] && <div className="stage-extra">{stageExtras[first.stageTitle]}</div>}
           </details>
         );
       })}

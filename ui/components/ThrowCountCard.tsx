@@ -46,9 +46,15 @@ export interface ThrowCountCardProps {
   onSave: (entry: { throws: number; intent: ThrowIntent }) => void;
   /** Drop back to the automatic count. */
   onUseAuto: () => void;
+  /**
+   * Show the card even with nothing counted yet, so there is somewhere to
+   * enter throws — the check-out, where a day with no throwing tasks still
+   * gets asked.
+   */
+  alwaysShow?: boolean;
 }
 
-export function ThrowCountCard({ tally, entry, onSave, onUseAuto }: ThrowCountCardProps) {
+export function ThrowCountCard({ tally, entry, onSave, onUseAuto, alwaysShow = false }: ThrowCountCardProps) {
   const edited = entry?.source === "manual" || (entry != null && entry.source == null);
   const shown = entry?.throws ?? tally?.throws ?? 0;
   const intent = entry?.intent ?? tally?.intent ?? "low";
@@ -66,7 +72,7 @@ export function ThrowCountCard({ tally, entry, onSave, onUseAuto }: ThrowCountCa
     }
   }, [open, shown, intent]);
 
-  if (!tally && !entry) return null;
+  if (!tally && !entry && !alwaysShow) return null;
 
   const differs = edited && tally != null && tally.throws !== entry?.throws;
 
@@ -76,8 +82,9 @@ export function ThrowCountCard({ tally, entry, onSave, onUseAuto }: ThrowCountCa
         <div>
           <h3>Throws today</h3>
           <p>
-            {edited ? "Your count" : "From the session, as you tick it"} ·{" "}
-            {INTENT_LABEL[intent]}
+            {!tally && !entry
+              ? "Nothing logged yet"
+              : `${edited ? "Your count" : "From the session, as you tick it"} · ${INTENT_LABEL[intent]}`}
           </p>
         </div>
         <strong>{shown}</strong>
@@ -112,7 +119,7 @@ export function ThrowCountCard({ tally, entry, onSave, onUseAuto }: ThrowCountCa
 
           <div className="setlog-actions">
             <button className="text-button" type="button" onClick={() => setOpen(true)}>
-              {edited ? "Edit count" : "Threw more than this?"}
+              {edited ? "Edit count" : tally ? "Threw more than this?" : "Log throws"}
             </button>
             {differs && (
               <button className="text-button" type="button" onClick={onUseAuto}>

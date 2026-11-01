@@ -52,6 +52,8 @@ export interface TrackingProps {
    * Both by default, so a caller that has not chosen sees what it always did.
    */
   mode?: "all" | "checkout" | "history";
+  /** Today's throw count, logged as part of the check-out. */
+  throwLog?: React.ReactNode;
 }
 
 /**
@@ -165,6 +167,7 @@ export function Tracking({
   progress,
   loggedGamePitches,
   mode = "all",
+  throwLog,
 }: TrackingProps) {
   const [perceivedExertion, setPerceivedExertion] = useState(6);
   const [armFeel, setArmFeel] = useState(8);
@@ -223,6 +226,8 @@ export function Tracking({
   return (
     <>
       {mode === "all" && <PageHead eyebrow="Progress" title="How did that go?" intro={formatIsoDate(date)} />}
+
+      {showCheckout && throwLog && <div className="checkout-throws">{throwLog}</div>}
 
       {!showCheckout ? null : existing ? (
         <Alert>
