@@ -18,6 +18,8 @@ import {
   teamFixtures,
 } from "./domain/ballclubz";
 import { GBL_LEAGUE, gblTeam } from "./domain/athleteProfile";
+import { leagueTeam, mlbStatsScheduleUrl, parseMlbStatsSchedule } from "./domain/leagues";
+import type { IsoDate } from "./domain/state";
 import type { Env } from "./env";
 
 const MAX_PAYLOAD_BYTES = 750_000;
@@ -2925,6 +2927,39 @@ async function withBoxScore(
   return line ? { ...outing, ...line } : outing;
 }
 
+/**
+ * A team's draw from whichever league it plays in — and, where the league's
+ * source has player pages, that player's own page — for the team and name a
+ * new account gave. See src/domain/leagues.ts for the leagues followed.
+ */
+async function leagueTeamDraw(url: URL): Promise<Response> {
+  const found = leagueTeam(url.searchParams.get("team") ?? "");
+  if (!found) return json({ error: "That team is not in a league the app follows" }, 400);
+  const { league, team } = found;
+  if (league.source.kind === "ballclubz") return ballclubzTeam(url);
+  // MLB Stats API: the season either side of today.
+  const now = new Date();
+  const start = new Date(now.getTime() - 60 * 864e5).toISOString().slice(0, 10) as IsoDate;
+  const end = new Date(now.getTime() + 240 * 864e5).toISOString().slice(0, 10) as IsoDate;
+  try {
+    const response = await fetch(mlbStatsScheduleUrl(league.source, team.id, start, end), {
+      headers: { Accept: "application/json" },
+      cf: { cacheTtl: 3600, cacheEverything: true },
+    } as RequestInit);
+    if (!response.ok) return json({ error: `${league.short} schedule could not be reached` }, 502);
+    const body = await response.json();
+    return json({
+      team: team.name,
+      league: league.id,
+      fixtures: parseMlbStatsSchedule(body, team),
+      playerPage: null,
+      fetchedAt: now.toISOString(),
+    });
+  } catch {
+    return json({ error: `${league.short} schedule could not be reached` }, 502);
+  }
+}
+
 async function ballclubzTeam(url: URL): Promise<Response> {
   const team = gblTeam(url.searchParams.get("team") ?? "");
   if (!team) return json({ error: "Not a GBL Division 1 team" }, 400);
@@ -2992,10 +3027,10 @@ async function routeApi(request: Request, env: Env, url: URL): Promise<Response 
   // fetched — the URL is rebuilt from validated parts, never passed through.
   // A GBL team's draw and, when a name is given, that player's own page on
   // the team roster — what a new account's team and name hook up to.
-  if (url.pathname === "/api/ballclubz/team" && request.method === "GET") {
-    if (!(await nutritionKeyHash(request, env, url))) return json({ error: "Turn on cloud autosave to read Ballclubz" }, 401);
+  if ((url.pathname === "/api/league/team" || url.pathname === "/api/ballclubz/team") && request.method === "GET") {
+    if (!(await nutritionKeyHash(request, env, url))) return json({ error: "Sign in to bring in your team's draw" }, 401);
     const limited = await enforceAccountRateLimit(request, env, url, env.INTEGRATION_RATE_LIMITER, "ballclubz");
-    return limited ?? ballclubzTeam(url);
+    return limited ?? leagueTeamDraw(url);
   }
   if (url.pathname === "/api/ballclubz/pitching" && request.method === "GET") {
     if (!(await nutritionKeyHash(request, env, url))) return json({ error: "Turn on cloud autosave to read Ballclubz" }, 401);

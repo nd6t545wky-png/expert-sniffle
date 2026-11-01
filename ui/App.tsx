@@ -69,7 +69,8 @@ import { asPositionPlayer } from "../src/domain/positionPlayer";
 import { readSchedule } from "../src/domain/weeklySchedule";
 import { HittingGame, readHittingGames } from "../src/domain/hitting";
 import { BattingLine } from "../src/domain/ballclubz";
-import { AthleteProfile, gblTeam, hits as roleHits, pitches as rolePitches, profileComplete, readAthleteProfile, winterClubOf } from "../src/domain/athleteProfile";
+import { leagueTeam } from "../src/domain/leagues";
+import { AthleteProfile, hits as roleHits, pitches as rolePitches, profileComplete, readAthleteProfile, winterClubOf } from "../src/domain/athleteProfile";
 import { mergeBallclubzOutings } from "../src/domain/ballclubz";
 import { VelocityBlock } from "./components/VelocityBlock";
 import { weekFromTasks } from "../src/domain/velocity";
@@ -502,6 +503,30 @@ export function App() {
   );
 
   /**
+   * The athlete's week for a given programme week.
+   *
+   * A team in a league the app follows (other than the Cubs, whose draw the
+   * programme was written around) has its real games for that week read off
+   * the imported draw: a Wednesday round, a four-game ABL series, or a bye.
+   * Anyone else keeps the usual days they gave at sign-up.
+   */
+  const followsDraw = useMemo(() => {
+    const team = readAthleteProfile(state?.profile).team;
+    const draw = (state?.profile as { teamDraw?: { team?: string; games?: unknown[] } } | undefined)?.teamDraw;
+    return Boolean(
+      team && team !== "Coomera Cubs" && leagueTeam(team) && draw?.team === team && Array.isArray(draw.games) && draw.games.length
+    );
+  }, [state?.profile]);
+  const scheduleForWeek = useCallback(
+    (plan: WeekPlan | null) => {
+      if (!schedule || !plan || !followsDraw) return schedule;
+      const games = [0, 1, 2, 3, 4, 5, 6].filter((day) => fixtureOn(dateForWeekDay(plan, day), fixtures) !== null);
+      return { ...schedule, games, fromDraw: true };
+    },
+    [schedule, followsDraw, fixtures]
+  );
+
+  /**
    * Whether the selected day is a game day, before any answer reshapes it —
    * the programme's own game days and any fixture the athlete entered. Game
    * days ask "are you playing?" at the check-in.
@@ -513,13 +538,13 @@ export function App() {
         buildSession(selectedWeekPlan, selectedDay, {
           game: gameOn(date),
           gameTomorrow: gameOn(addDays(date, 1)),
-          schedule,
+          schedule: scheduleForWeek(selectedWeekPlan),
         })
       );
     } catch {
       return false;
     }
-  }, [selectedWeekPlan, selectedDay, date, gameOn, schedule]);
+  }, [selectedWeekPlan, selectedDay, date, gameOn, scheduleForWeek]);
   const retests = useMemo(
     () => readRetests((state?.profile as { retests?: unknown } | undefined)?.retests),
     [state]
@@ -643,7 +668,7 @@ export function App() {
               gameTomorrow: gameOn(addDays(on, 1)),
               weekGames: gamesInWeekOf(plan),
               role: readGameRole(submissions[on]?.gameRole),
-              schedule,
+              schedule: scheduleForWeek(plan),
             }).tasks;
           }
         }
@@ -652,7 +677,7 @@ export function App() {
       }
       return [];
     },
-    [state, gameOn, gamesInWeekOf, submissions, schedule]
+    [state, gameOn, gamesInWeekOf, submissions, scheduleForWeek]
   );
 
   const resolvedOn = useCallback(
@@ -698,7 +723,7 @@ export function App() {
           gameTomorrow: gameOn(addDays(date, 1)),
           weekGames: gamesInWeekOf(selectedWeekPlan),
           role: gameRole,
-          schedule,
+          schedule: scheduleForWeek(selectedWeekPlan),
         }),
         level,
         selectedDay
@@ -783,7 +808,7 @@ export function App() {
     gameOn,
     gamesInWeekOf,
     playerRole,
-    schedule,
+    scheduleForWeek,
   ]);
 
   const session = sessionWithRecovery.session;
@@ -1388,7 +1413,8 @@ export function App() {
     }
   }, [api, ballclubzUrl, games, update]);
 
-  // A GBL club's draw, and this player's page on its roster: refreshed once a
+  // The team's draw from its league (GBL, ABL — see leagues.ts), and where the
+  // league has player pages, this player's page on its roster: refreshed once a
   // session (and again whenever the team or name changes). The draw becomes the
   // athlete's fixtures; the page link, the first time it is found, becomes the
   // Ballclubz link above — never overwriting one the athlete set themselves.
@@ -1396,13 +1422,13 @@ export function App() {
   useEffect(() => {
     if (!state || !isValidSyncKey(syncKey)) return;
     const athlete = readAthleteProfile(state.profile);
-    const club = gblTeam(athlete.team);
-    if (!club || club.name === "Coomera Cubs" && !athlete.playerType) return;
+    const club = leagueTeam(athlete.team)?.team;
+    if (!club || (club.name === "Coomera Cubs" && !athlete.playerType)) return;
     const key = `${club.name}|${athlete.name ?? ""}`;
     if (teamChecked.current === key) return;
     teamChecked.current = key;
     api
-      .ballclubzTeam(club.name, athlete.name ?? "")
+      .leagueTeam(club.name, athlete.name ?? "")
       .then((result) =>
         update(
           (draft) => {

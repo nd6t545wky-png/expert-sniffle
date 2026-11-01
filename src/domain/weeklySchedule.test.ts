@@ -112,3 +112,33 @@ describe("a bullpen on a club night", () => {
     expect(note).toMatch(/bullpen stays/);
   });
 });
+
+describe("a week read off the team's draw", () => {
+  it("builds an ABL series week: day off Monday, bullpen Tuesday, catch Wednesday", () => {
+    const schedule = { training: [1], games: [3, 4, 5, 6], winterGames: [], fromDraw: true };
+    const titles = Array.from({ length: 7 }, (_, d) => day(SUMMER_WEEK, d, schedule).title);
+    expect(titles[0]).toMatch(/^Monday · Recovery/);
+    expect(titles[1]).toMatch(/^Tuesday · Bullpen/);
+    expect(titles[2]).toBe("Wednesday · Light Catch");
+    expect(titles.slice(3).every((title) => / · Game Day$/.test(title))).toBe(true);
+  });
+
+  it("plays a bye week with no game day", () => {
+    const schedule = { training: [1, 3], games: [], winterGames: [], fromDraw: true };
+    const sessions = Array.from({ length: 7 }, (_, d) => day(SUMMER_WEEK, d, schedule));
+    expect(sessions.some((s) => sessionHasGame(s))).toBe(false);
+    expect(sessions[2].title).toBe("Wednesday · Bullpen + Whole-Body Strength");
+    expect(sessions[1].title).toBe("Tuesday · Team Training");
+    expect(sessions.every((s) => /^No game for your team this week/.test(String(s.description)))).toBe(true);
+    for (const [d, s] of sessions.entries()) for (const task of s.tasks) expect(task.id).toMatch(new RegExp(`^w${SUMMER_WEEK}-d${d}-`));
+  });
+
+  it("plays the draw's games over the programme's Christmas break", () => {
+    const breakWeek = 23;
+    expect(week(breakWeek).phase.id).toBe("summer_break");
+    const schedule = { training: [], games: [4, 5], winterGames: [], fromDraw: true };
+    expect(sessionHasGame(day(breakWeek, 4, schedule))).toBe(true);
+    // Without a draw, the break stays a break.
+    expect(sessionHasGame(day(breakWeek, 4, { ...schedule, fromDraw: false }))).toBe(false);
+  });
+});

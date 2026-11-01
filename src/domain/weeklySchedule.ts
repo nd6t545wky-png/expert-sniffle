@@ -24,6 +24,12 @@ export interface WeeklySchedule {
   games: number[];
   /** Weekdays with winter-ball games; empty when the athlete plays no winter ball. */
   winterGames: number[];
+  /**
+   * Set when `games` is this particular week's games, read off the team's
+   * imported draw, rather than the athlete's usual days. A draw week with no
+   * games is a bye.
+   */
+  fromDraw?: boolean;
 }
 
 export const DAY_NAMES = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"] as const;
@@ -167,10 +173,41 @@ function lastGame(roles: DayRole[], day: number): number {
 
 const TEAM_STAGES = new Set(["Team Practice", "Team Throwing"]);
 
+/**
+ * A week the team's draw has no game in. The arm still needs its one bullpen
+ * and the week its two gym days; everything else is a catch or team training.
+ */
+function byeWeekDay(week: WeekPlan, day: number, schedule: WeeklySchedule): Session {
+  const slot = day === 0 ? 0 : day === 2 ? 2 : 1;
+  const built = summerSlot(week, day, slot) as Session;
+  const training = schedule.training.includes(day);
+  let tasks = built.tasks.filter((task) => !/after Sunday competition/i.test(String(task.stageDescription)));
+  if (!training) {
+    tasks = tasks
+      .filter((task) => task.stageTitle !== "Team Practice")
+      .map((task) => (TEAM_STAGES.has(task.stageTitle) ? { ...task, stageTitle: "Throw" } : task));
+  }
+  const name = DAY_NAMES[day];
+  const job =
+    slot === 0
+      ? { title: "Strength Maintenance", text: "The lighter of the week's two gym days, with no throwing." }
+      : slot === 2
+        ? { title: "Bullpen + Whole-Body Strength", text: "The week's bullpen keeps the arm on its rhythm, then the heavier gym session." }
+        : training
+          ? { title: "Team Training", text: "Team training. No extra throwing beyond what practice asks." }
+          : { title: "Recovery Catch", text: "An optional easy catch if the arm wants it." };
+  return {
+    ...built,
+    title: `${name} · ${job.title}`,
+    description: `No game for your team this week. ${job.text}`,
+    tasks: rehome(renameDays(tasks, new Map([[DAY_NAMES[slot], name]])) as SessionTask[], slot, day),
+  };
+}
+
 /** A summer-season day laid over the athlete's own week. */
 export function personalSummerDay(week: WeekPlan, day: number, schedule: WeeklySchedule): Session | null {
   const roles = dayRoles(schedule.games);
-  if (!roles) return null;
+  if (!roles) return schedule.fromDraw ? byeWeekDay(week, day, schedule) : null;
   const slots = roles.map((_, index) => summerSlotFor(roles, index));
   const slot = slots[day];
   const firstGame = slots.findIndex((candidate) => candidate === 4);
@@ -262,7 +299,9 @@ export function personalWinterDay(week: WeekPlan, day: number, schedule: WeeklyS
 }
 
 export function isProgrammeSummerWeek(schedule: WeeklySchedule): boolean {
-  return same(schedule.games, PROGRAMME_WEEK.games) && same(schedule.training, PROGRAMME_WEEK.training);
+  return (
+    !schedule.fromDraw && same(schedule.games, PROGRAMME_WEEK.games) && same(schedule.training, PROGRAMME_WEEK.training)
+  );
 }
 export function isProgrammeWinterWeek(schedule: WeeklySchedule): boolean {
   return same(schedule.winterGames.slice(0, 1), PROGRAMME_WEEK.winterGames);

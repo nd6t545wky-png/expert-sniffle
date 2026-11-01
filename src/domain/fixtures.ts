@@ -301,13 +301,19 @@ export function builtInFixturesFor(
   const summer =
     team === "Coomera Cubs"
       ? FIXTURES.filter((fixture) => fixture.team === "Coomera Cubs")
-      : teamDraw.map((game) => ({
-          id: `draw-${(team ?? "team").toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${game.date}`,
-          date: game.date,
-          team: team ?? "My team",
-          label: `${game.home ? "vs" : "at"} ${game.opponent} (${weekday(game.date)})`,
-          source: "official" as const,
-        }));
+      : teamDraw
+          // A doubleheader is two games on one date; the plan has one game day.
+          .filter((game, index) => teamDraw.findIndex((other) => other.date === game.date) === index)
+          .map((game) => {
+            const doubleheader = teamDraw.filter((other) => other.date === game.date).length > 1;
+            return {
+              id: `draw-${(team ?? "team").toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${game.date}`,
+              date: game.date,
+              team: team ?? "My team",
+              label: `${game.home ? "vs" : "at"} ${game.opponent} (${weekday(game.date)}${doubleheader ? ", doubleheader" : ""})`,
+              source: "official" as const,
+            };
+          });
   const winter = winterClub === "Norths" ? FIXTURES.filter((fixture) => fixture.team === "Norths") : [];
   return [...winter, ...summer];
 }
