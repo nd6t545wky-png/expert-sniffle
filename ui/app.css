@@ -3254,3 +3254,9 @@ h1, h2, h3, h4 { font-weight: 600; }
 .app-shell.theme-coomera .velocity-band.ceiling * {
   color: var(--on-accent-fill);
 }
+/* The check-in sliders' filled track and thumb are a fill too: the deep
+   purple in both modes. Set on the input so its track and thumb inherit it. */
+.app-shell.theme-coomera .range-wrap input[type="range"] {
+  --blue: var(--accent-fill);
+  --team-primary: var(--accent-fill);
+}
