@@ -8,9 +8,10 @@
  * export, no file, no typing — so the app reads it and files each outing in
  * the game log by itself.
  *
- * What it does not carry is strikes or first-pitch strikes. Those stay absent
- * (null) rather than zero: a zero would read as "no strikes thrown" and drag
- * every strike rate to nothing.
+ * The page itself stops at the pitch count. Strikes, batters faced and
+ * first-pitch strikes come from each game's box score (below). Where a box
+ * score cannot be read they stay absent (null) rather than zero: a zero would
+ * read as "no strikes thrown" and drag every strike rate to nothing.
  *
  * Pure: the Worker fetches the page (Ballclubz sends no CORS headers, so the
  * browser cannot), and both halves call into here.
@@ -61,6 +62,10 @@ export interface BallclubzOuting {
   walks: number;
   hitBatters: number;
   pitches: number;
+  /** From the game's box score, when it could be read. */
+  strikes?: number;
+  battersFaced?: number;
+  firstPitchStrikes?: number;
 }
 
 const ENTITIES: Record<string, string> = { amp: "&", lt: "<", gt: ">", quot: '"', apos: "'", nbsp: " " };
@@ -207,22 +212,158 @@ export function mergeBallclubzOutings(
         id,
         ...outing,
         competition: "GBL",
-        // Not on the page. Absent, not zero — see the module comment.
-        battersFaced: null as unknown as number,
-        strikes: null as unknown as number,
-        firstPitchStrikes: null as unknown as number,
+        // When the box score could not be read these stay absent, not zero —
+        // see the module comment.
+        battersFaced: (outing.battersFaced ?? null) as number,
+        strikes: (outing.strikes ?? null) as number,
+        firstPitchStrikes: (outing.firstPitchStrikes ?? null) as number,
       });
       added += 1;
       continue;
     }
     const current = next[index];
     if (!current.id.startsWith(BALLCLUBZ_ID_PREFIX)) continue;
-    const refreshed: Game = { ...current, ...outing, id: current.id };
-    const changed = (Object.keys(outing) as (keyof BallclubzOuting)[]).some((key) => current[key] !== outing[key]);
+    // Fields the box score could not supply this time are left as they are.
+    const supplied = Object.fromEntries(
+      Object.entries(outing).filter(([, value]) => value !== undefined && value !== null)
+    ) as Partial<BallclubzOuting>;
+    const refreshed: Game = { ...current, ...supplied, id: current.id };
+    const changed = (Object.keys(supplied) as (keyof BallclubzOuting)[]).some((key) => current[key] !== supplied[key]);
     if (changed) {
       next[index] = refreshed;
       updated += 1;
     }
   }
   return { games: next, added, updated };
+}
+
+// --- Box scores: strikes, batters faced, first-pitch strikes -------------------
+//
+// The player page stops at the pitch count, but every game on the schedule has
+// a scorer's file behind its box score, and that file has the rest: the
+// official strike count on the pitcher's line, and a play-by-play from which
+// batters faced and first-pitch strikes follow. Checked against the official
+// totals on the 1 November game: for all nine pitchers, the pitches and
+// strikes counted from the plays match the line exactly.
+
+/** The pitcher's name and team, from the player page header. */
+export function parsePlayerHeader(html: string): { name: string; team: string } | null {
+  const match = /<h2>([^<]+)<\/h2>\s*<a [^>]*>([^<]+)<\/a>/i.exec(html.slice(html.search(/bz-roster-header-player-info/i)));
+  if (!match) return null;
+  return { name: text(match[1]), team: text(match[2]) };
+}
+
+export interface ScheduleGame {
+  /** "11/01", as the schedule writes the day. */
+  monthDay: string;
+  /** "/gbld1/live/2ceff3f". */
+  path: string;
+  /** The box's text — venue, teams, score. */
+  text: string;
+}
+
+/** Every game on the schedule page, with the day it sits under. */
+export function parseScheduleGames(html: string): ScheduleGame[] {
+  const games: ScheduleGame[] = [];
+  let monthDay = "";
+  const pattern =
+    /class="bz-schedule-separator"[^>]*>\s*[A-Za-z]{3}\s+(\d{1,2})\/(\d{1,2})\s*<|class="bz-game-box(?:\s[^"]*)?"\s+data-href="(\/[a-z0-9]{2,40}\/live\/[0-9a-f]{1,16})"([\s\S]*?)(?=class="bz-game-box(?:\s[^"]*)?"\s+data-href|class="bz-schedule-separator"|<\/ul>|$)/gi;
+  for (const match of html.matchAll(pattern)) {
+    if (match[1]) {
+      monthDay = `${match[1].padStart(2, "0")}/${match[2].padStart(2, "0")}`;
+    } else if (monthDay) {
+      games.push({ monthDay, path: match[3], text: text(`<x ${match[4]}`) });
+    }
+  }
+  return games;
+}
+
+/** The schedule game an outing was pitched in: same day, both teams in the box. */
+export function gameForOuting(games: readonly ScheduleGame[], outing: BallclubzOuting, team: string): ScheduleGame | null {
+  const monthDay = `${outing.date.slice(5, 7)}/${outing.date.slice(8, 10)}`;
+  const has = (game: ScheduleGame, name: string) => game.text.toLowerCase().includes(name.toLowerCase());
+  return games.find((game) => game.monthDay === monthDay && has(game, team) && has(game, outing.opponent)) ?? null;
+}
+
+/** The scorer's file a box-score page loads: `LoadLiveGame('343943', '…')`. */
+export function parseLiveGameRef(html: string): { id: string; code: string } | null {
+  const match = /LoadLiveGame\(\s*'(\d{1,12})'\s*,\s*'([0-9a-f]{8,64})'\s*\)/i.exec(html);
+  return match ? { id: match[1], code: match[2] } : null;
+}
+
+export function liveGameFileUrl(ref: { id: string; code: string }): string {
+  return `https://game.ballclubz.com/${ref.id}/${ref.code}.json`;
+}
+
+export interface BoxScoreLine {
+  pitches: number;
+  strikes: number;
+  battersFaced: number;
+  firstPitchStrikes: number;
+}
+
+interface Play {
+  /** Plate appearance. */
+  a?: number;
+  /** Batter and pitcher lineup slots. */
+  b?: number;
+  pi?: number;
+  /** Kind: 4 a pitch, 5–6 a pitch with a base-running event, 7 the plate appearance's result. */
+  g?: number;
+  /** Outcome. On a pitch: -2 ball, -4 called strike, -5 swinging strike, -6 foul. */
+  r?: number;
+}
+
+const STRIKE_PITCH = new Set([-4, -5, -6]);
+/** Results whose last pitch was not a strike: walk, intentional walk, hit by pitch. */
+const BALL_RESULT = new Set([13, 14, 15]);
+const INTENTIONAL_WALK = 14;
+
+const isPitch = (play: Play) =>
+  play.g === 4 || play.g === 5 || play.g === 6 || (play.g === 7 && play.r !== INTENTIONAL_WALK);
+const isStrike = (play: Play) =>
+  play.g === 7 ? !BALL_RESULT.has(Number(play.r)) : STRIKE_PITCH.has(Number(play.r));
+
+/**
+ * A pitcher's line out of the scorer's file, found by name.
+ *
+ * Pitches and strikes are the official figures on the line where the file
+ * has them; batters faced and first-pitch strikes are counted from the plays,
+ * because the line does not carry them. Null when the pitcher is not in the
+ * file, so a game that cannot be read is left as it was rather than zeroed.
+ */
+export function pitchingFromGameFile(file: unknown, name: string): BoxScoreLine | null {
+  if (!file || typeof file !== "object") return null;
+  const { lineup, plays } = file as { lineup?: Record<string, Record<string, unknown>>; plays?: Play[] };
+  if (!lineup || !Array.isArray(plays)) return null;
+  const wanted = name.trim().toLowerCase().replace(/\s+/g, " ");
+  const entry = Object.entries(lineup).find(
+    ([, person]) =>
+      person &&
+      "pitch_pitches" in person &&
+      `${person.firstname ?? ""} ${person.lastname ?? ""}`.trim().toLowerCase().replace(/\s+/g, " ") === wanted
+  );
+  if (!entry) return null;
+  const slot = Number(entry[0]);
+  const line = entry[1];
+
+  const mine = plays.filter((play) => play && play.pi === slot);
+  const pitches = mine.filter(isPitch);
+  const results = mine.filter((play) => play.g === 7);
+  let firstPitchStrikes = 0;
+  for (const appearance of new Set(results.map((play) => play.a))) {
+    const first = mine.find((play) => play.a === appearance && isPitch(play));
+    if (first && isStrike(first)) firstPitchStrikes += 1;
+  }
+
+  const official = (key: string, fallback: number) => {
+    const value = Number(line[key]);
+    return Number.isFinite(value) && value >= 0 ? value : fallback;
+  };
+  return {
+    pitches: official("pitch_pitches", pitches.length),
+    strikes: official("pitch_strikes", pitches.filter(isStrike).length),
+    battersFaced: results.length,
+    firstPitchStrikes,
+  };
 }

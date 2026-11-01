@@ -33,7 +33,7 @@ export function BallclubzCard({
     <Card aria-label="Ballclubz game log">
       <CardHead
         title="League games from Ballclubz"
-        detail="Your GBL pitching lines come in by themselves when the app opens — pitch count, innings, hits, walks, strikeouts. Strikes aren't published there; add them to a game if you want strike rate."
+        detail="Your GBL pitching lines come in by themselves when the app opens — pitches, strikes, batters faced, first-pitch strikes, innings, hits, walks and strikeouts, read from each game's box score."
       />
       <div className="form-grid">
         <div className="field full">

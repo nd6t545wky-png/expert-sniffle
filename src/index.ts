@@ -1,6 +1,17 @@
 import { createAuth } from "./auth";
 import { isEmptyPayload, readApplePayload, suppliedFields } from "./domain/appleHealth";
-import { parsePitchingGameLog, parsePlayerPageUrl, playerPageUrl } from "./domain/ballclubz";
+import {
+  type BallclubzOuting,
+  gameForOuting,
+  liveGameFileUrl,
+  parseLiveGameRef,
+  parsePitchingGameLog,
+  parsePlayerHeader,
+  parsePlayerPageUrl,
+  parseScheduleGames,
+  pitchingFromGameFile,
+  playerPageUrl,
+} from "./domain/ballclubz";
 import type { Env } from "./env";
 
 const MAX_PAYLOAD_BYTES = 750_000;
@@ -2716,27 +2727,75 @@ async function deleteAccount(request: Request, env: Env, url: URL): Promise<Resp
 
 // -- Ballclubz -------------------------------------------------------------------
 
-const BALLCLUBZ_MAX_BYTES = 2_000_000;
+const BALLCLUBZ_MAX_BYTES = 5_000_000;
+/** A season is at most a few dozen outings; this only bounds a strange page. */
+const BALLCLUBZ_MAX_BOX_SCORES = 40;
+const BALLCLUBZ_AGENT = "DylanPitchingOS/1 (one player's own training log)";
+
+/** GET a Ballclubz page or file through the edge cache. Null on any failure. */
+async function ballclubzFetch(target: string, cacheTtl: number): Promise<string | null> {
+  try {
+    const response = await fetch(target, {
+      headers: { "User-Agent": BALLCLUBZ_AGENT },
+      cf: { cacheTtl, cacheEverything: true },
+    } as RequestInit);
+    if (!response.ok) return null;
+    const body = await response.text();
+    return body.length > BALLCLUBZ_MAX_BYTES ? null : body;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Strikes, batters faced and first-pitch strikes for one outing, from the
+ * game's box score: schedule → box-score page → the scorer's file. Any step
+ * that fails leaves the outing as the player page had it.
+ */
+async function withBoxScore(
+  outing: BallclubzOuting,
+  schedule: ReturnType<typeof parseScheduleGames>,
+  player: { name: string; team: string }
+): Promise<BallclubzOuting> {
+  const game = gameForOuting(schedule, outing, player.team);
+  if (!game) return outing;
+  // A finished game's file does not change; an hour keeps a same-day
+  // correction from being missed for long.
+  const page = await ballclubzFetch(`https://ballclubz.com${game.path}`, 3600);
+  const ref = page ? parseLiveGameRef(page) : null;
+  if (!ref) return outing;
+  const raw = await ballclubzFetch(liveGameFileUrl(ref), 3600);
+  if (!raw) return outing;
+  let file: unknown;
+  try {
+    file = JSON.parse(raw);
+  } catch {
+    return outing;
+  }
+  const line = pitchingFromGameFile(file, player.name);
+  return line ? { ...outing, ...line } : outing;
+}
 
 async function ballclubzPitching(url: URL): Promise<Response> {
   const page = parsePlayerPageUrl(url.searchParams.get("page") ?? "");
   if (!page) return json({ error: "That is not a Ballclubz player page link" }, 400);
   const source = playerPageUrl(page);
-  let response: Response;
-  try {
-    response = await fetch(source, {
-      headers: { "User-Agent": "DylanPitchingOS/1 (one player's own training log)" },
-      // A league page changes a few times a week; fifteen minutes is plenty
-      // fresh and keeps repeat opens off their server.
-      cf: { cacheTtl: 900, cacheEverything: true },
-    } as RequestInit);
-  } catch {
-    return json({ error: "Ballclubz could not be reached" }, 502);
+  // A league page changes a few times a week; fifteen minutes is plenty fresh
+  // and keeps repeat opens off their server.
+  const html = await ballclubzFetch(source, 900);
+  if (html === null) return json({ error: "Ballclubz could not be reached" }, 502);
+  let outings = parsePitchingGameLog(html);
+
+  const player = parsePlayerHeader(html);
+  if (player && outings.length) {
+    const scheduleHtml = await ballclubzFetch(`https://ballclubz.com/${page.league}/schedule`, 900);
+    const schedule = scheduleHtml ? parseScheduleGames(scheduleHtml) : [];
+    if (schedule.length) {
+      const head = outings.slice(0, BALLCLUBZ_MAX_BOX_SCORES);
+      const enriched = await Promise.all(head.map((outing) => withBoxScore(outing, schedule, player)));
+      outings = [...enriched, ...outings.slice(BALLCLUBZ_MAX_BOX_SCORES)];
+    }
   }
-  if (!response.ok) return json({ error: `Ballclubz returned ${response.status}` }, 502);
-  const html = await response.text();
-  if (html.length > BALLCLUBZ_MAX_BYTES) return json({ error: "Ballclubz page was unexpectedly large" }, 502);
-  const outings = parsePitchingGameLog(html);
   return json({ page: source, outings, fetchedAt: new Date().toISOString() });
 }
 

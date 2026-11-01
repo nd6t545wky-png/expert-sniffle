@@ -1,7 +1,18 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { mergeBallclubzOutings, parsePitchingGameLog, parsePlayerPageUrl, playerPageUrl } from "./ballclubz";
+import {
+  gameForOuting,
+  liveGameFileUrl,
+  mergeBallclubzOutings,
+  parseLiveGameRef,
+  parsePitchingGameLog,
+  parsePlayerHeader,
+  parsePlayerPageUrl,
+  parseScheduleGames,
+  pitchingFromGameFile,
+  playerPageUrl,
+} from "./ballclubz";
 import { Game, seasonRates, seasonTotals } from "./gameLog";
 
 // The real page, trimmed to its title and the game log (1 Nov 2026).
@@ -104,5 +115,69 @@ describe("mergeBallclubzOutings", () => {
     const strike = seasonRates(seasonTotals(games)).find((rate) => rate.id === "strikePct");
     expect(strike).toBeDefined();
     expect(strike!.value).toBeNull();
+  });
+});
+
+describe("box scores", () => {
+  const SCHEDULE = readFileSync(join(__dirname, "fixtures", "ballclubzSchedule.html"), "utf8");
+  const LIVE = readFileSync(join(__dirname, "fixtures", "ballclubzLive.html"), "utf8");
+  const FILE = JSON.parse(readFileSync(join(__dirname, "fixtures", "ballclubzGame.json"), "utf8"));
+  const outings = parsePitchingGameLog(PAGE, NOW);
+
+  it("reads the pitcher's name and team off the player page", () => {
+    expect(parsePlayerHeader(PAGE)).toEqual({ name: "Dylan Sippel", team: "Coomera Cubs" });
+  });
+
+  it("finds the game each outing was pitched in", () => {
+    const games = parseScheduleGames(SCHEDULE);
+    expect(games.length).toBeGreaterThan(80);
+    const redcliffe = outings.find((outing) => outing.date === "2026-11-01")!;
+    expect(gameForOuting(games, redcliffe, "Coomera Cubs")?.path).toBe("/gbld1/live/2ceff3f");
+    // Every one of this season's outings has a box score to read.
+    expect(outings.every((outing) => gameForOuting(games, outing, "Coomera Cubs") !== null)).toBe(true);
+  });
+
+  it("reads the scorer's file reference off the box-score page", () => {
+    const ref = parseLiveGameRef(LIVE);
+    expect(ref).toEqual({ id: "343943", code: "ba3a9e9ca7ddc1985678062d8eb1d492" });
+    expect(liveGameFileUrl(ref!)).toBe("https://game.ballclubz.com/343943/ba3a9e9ca7ddc1985678062d8eb1d492.json");
+  });
+
+  it("gets strikes, batters faced and first-pitch strikes", () => {
+    expect(pitchingFromGameFile(FILE, "Dylan Sippel")).toEqual({
+      pitches: 42,
+      strikes: 19,
+      battersFaced: 9,
+      firstPitchStrikes: 7,
+    });
+  });
+
+  it("counts from the plays exactly what the official line says", () => {
+    // Strip the official figures and the play-by-play must reproduce them.
+    for (const [slot, person] of Object.entries(FILE.lineup as Record<string, Record<string, unknown>>)) {
+      if (!("pitch_pitches" in person)) continue;
+      const bare = {
+        ...FILE,
+        lineup: { [slot]: { ...person, pitch_pitches: undefined, pitch_strikes: undefined } },
+      };
+      const counted = pitchingFromGameFile(bare, `${person.firstname} ${person.lastname}`)!;
+      expect([counted.pitches, counted.strikes], String(person.lastname)).toEqual([
+        person.pitch_pitches,
+        person.pitch_strikes,
+      ]);
+    }
+  });
+
+  it("returns null for someone not in the game", () => {
+    expect(pitchingFromGameFile(FILE, "Nobody Here")).toBeNull();
+    expect(pitchingFromGameFile({}, "Dylan Sippel")).toBeNull();
+  });
+
+  it("files the box-score numbers with the outing", () => {
+    const enriched = outings.map((outing) =>
+      outing.date === "2026-11-01" ? { ...outing, ...pitchingFromGameFile(FILE, "Dylan Sippel")! } : outing
+    );
+    const game = mergeBallclubzOutings([], enriched).games.find((g) => g.date === "2026-11-01")!;
+    expect(game).toMatchObject({ pitches: 42, strikes: 19, battersFaced: 9, firstPitchStrikes: 7 });
   });
 });
