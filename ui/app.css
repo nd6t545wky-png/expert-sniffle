@@ -3129,3 +3129,51 @@ h1, h2, h3, h4 { font-weight: 600; }
 .stage-extra { padding: 0 14px 14px; }
 .stage-extra .card { margin: 0 0 10px; box-shadow: none; }
 .checkout-throws { margin-bottom: 12px; }
+
+/* ---------------------------------------------------------------------------
+ * Phones: no zoom on focus, and a bottom bar that stays at the bottom.
+ *
+ * iOS Safari zooms the page whenever a text field under 16px gets focus, and
+ * every field here inherited the 14px body size — so logging a set zoomed in.
+ * Coming back out of that zoom (and out of the keyboard) is what left the
+ * fixed bottom bar stranded halfway up the screen with blank space below it.
+ * At 16px Safari does not zoom. Touch screens only: a desktop keeps the
+ * smaller fields.
+ *
+ * `--nav-shift` is set by the shell from the visual viewport, so if the page
+ * still ends up out of step with the screen the bar is moved back down to
+ * where the screen's bottom actually is.
+ * ------------------------------------------------------------------------- */
+@media (hover: none) and (pointer: coarse) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}
+.bottom-nav { translate: 0 var(--nav-shift, 0px); }
+.app-shell.keyboard-open .bottom-nav { display: none; }
+
+/* ---------------------------------------------------------------------------
+ * Phone tab bar: docked to the bottom edge, collapsing while scrolling.
+ *
+ * It floated 10px clear of the screen edges; it now sits flush along the
+ * bottom with the home-indicator inset as padding, like a native tab bar.
+ * Scrolling down collapses it to its icons (`nav-condensed`, set by the
+ * shell); scrolling up, or reaching the top, brings the labels back.
+ * ------------------------------------------------------------------------- */
+@media (max-width: 820px) {
+  .app-shell .bottom-nav,
+  .app-shell.nav-condensed .bottom-nav {
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border-width: 1px 0 0;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    padding-bottom: calc(var(--sp-1) + env(safe-area-inset-bottom));
+  }
+  .app-shell.nav-condensed .bottom-nav { min-height: 0; padding-top: 2px; }
+  .app-shell.nav-condensed .bottom-nav button { min-height: 36px; padding-block: 2px; }
+  .app-shell.nav-condensed .bottom-nav button.active::after { bottom: 1px; }
+  .app-shell .mobile-sheet { bottom: calc(76px + env(safe-area-inset-bottom)); }
+}
