@@ -3153,3 +3153,27 @@ h1, h2, h3, h4 { font-weight: 600; }
 }
 .bottom-nav { translate: 0 var(--nav-shift, 0px); }
 .app-shell.keyboard-open .bottom-nav { display: none; }
+
+/* ---------------------------------------------------------------------------
+ * Phone tab bar: docked to the bottom edge, collapsing while scrolling.
+ *
+ * It floated 10px clear of the screen edges; it now sits flush along the
+ * bottom with the home-indicator inset as padding, like a native tab bar.
+ * Scrolling down collapses it to its icons (`nav-condensed`, set by the
+ * shell); scrolling up, or reaching the top, brings the labels back.
+ * ------------------------------------------------------------------------- */
+@media (max-width: 820px) {
+  .app-shell .bottom-nav,
+  .app-shell.nav-condensed .bottom-nav {
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border-width: 1px 0 0;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    padding-bottom: calc(var(--sp-1) + env(safe-area-inset-bottom));
+  }
+  .app-shell.nav-condensed .bottom-nav { min-height: 0; padding-top: 2px; }
+  .app-shell.nav-condensed .bottom-nav button { min-height: 36px; padding-block: 2px; }
+  .app-shell.nav-condensed .bottom-nav button.active::after { bottom: 1px; }
+  .app-shell .mobile-sheet { bottom: calc(76px + env(safe-area-inset-bottom)); }
+}

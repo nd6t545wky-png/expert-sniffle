@@ -225,6 +225,37 @@ function useBottomNavPinned() {
   return { navRef, keyboardOpen };
 }
 
+/**
+ * True while the athlete is scrolling down the page, false when they scroll
+ * back up or are near the top. Drives `nav-condensed`, which shrinks the tab
+ * bar to its icons and the top bar to its title so the workout gets the room.
+ */
+function useCondensedOnScroll(): boolean {
+  const [condensed, setCondensed] = useState(false);
+  useEffect(() => {
+    let last = window.scrollY;
+    let frame = 0;
+    const onScroll = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        const y = window.scrollY;
+        // A few pixels of slack so a finger resting on the glass does not
+        // make the bar flicker between states.
+        if (y < 48) setCondensed(false);
+        else if (y > last + 6) setCondensed(true);
+        else if (y < last - 6) setCondensed(false);
+        last = y;
+      });
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener("scroll", onScroll);
+    };
+  }, []);
+  return condensed;
+}
+
 function isTyping(): boolean {
   const active = document.activeElement;
   if (!active) return false;
@@ -273,6 +304,7 @@ export function Shell({
 }: ShellProps) {
   const [moreOpen, setMoreOpen] = useState(false);
   const { navRef, keyboardOpen } = useBottomNavPinned();
+  const condensed = useCondensedOnScroll();
 
   // Pages without a tab of their own light up the tab they live under.
   const activeNav: PageId =
@@ -287,7 +319,7 @@ export function Shell({
             : page;
 
   return (
-    <div className={`app-shell ${theme}${keyboardOpen ? " keyboard-open" : ""}`}>
+    <div className={`app-shell ${theme}${keyboardOpen ? " keyboard-open" : ""}${condensed ? " nav-condensed" : ""}`}>
       <aside className="sidebar">
         <div className="brand">
           <img className="brand-mark" src="/mark.svg" alt="" />
