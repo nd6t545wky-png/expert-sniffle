@@ -129,6 +129,8 @@ export interface DailyPlanProps {
    * score is one line above the workout.
    */
   sidePanel?: boolean;
+  /** The club's badge and name, shown at the head of Today. */
+  team?: { name: string; logo: string; alt: string };
   /** Extra content inside a workout stage, keyed by stage title. */
   stageExtras?: Record<string, React.ReactNode>;
 }
@@ -177,6 +179,7 @@ export function DailyPlan({
   checkOut,
   beforeWorkout,
   sidePanel = true,
+  team,
   stageExtras,
 }: DailyPlanProps) {
   const [error, setError] = useState("");
@@ -331,12 +334,22 @@ export function DailyPlan({
 
       {!sidePanel && (
         <section className="today-head">
-          <p className="eyebrow">
-            {formatIsoDate(date)}
-            {day && isHighIntentDay(day) ? " · High-intent day" : ""}
-          </p>
-          <h2>{(sessionTitle || "Today's session").replace(/^[A-Za-z]+ · /, "")}</h2>
-          {sessionDescription && <p>{sessionDescription}</p>}
+          <div className="dashboard-heading">
+            {team && (
+              <div className="team-logo-wrap">
+                <img src={team.logo} alt={team.alt} />
+              </div>
+            )}
+            <div>
+              <p className="eyebrow">
+                {formatIsoDate(date)}
+                {day && isHighIntentDay(day) ? " · High-intent day" : ""}
+              </p>
+              <h2>{(sessionTitle || "Today's session").replace(/^[A-Za-z]+ · /, "")}</h2>
+              {team && <span className="team-wordmark">{team.name}</span>}
+            </div>
+          </div>
+          {sessionDescription && <p className="today-blurb">{sessionDescription}</p>}
         </section>
       )}
     </>

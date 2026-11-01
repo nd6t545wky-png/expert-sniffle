@@ -3183,3 +3183,33 @@ h1, h2, h3, h4 { font-weight: 600; }
 /* Throws today, the session's headline numbers. */
 .app-shell .card-head > strong { color: var(--team-secondary); }
 .app-shell .status.green { color: var(--team-on-secondary); background: var(--team-secondary); }
+
+/* ---------------------------------------------------------------------------
+ * Today's head and the tasks-done bar.
+ * ------------------------------------------------------------------------- */
+.today-head .dashboard-heading { margin-bottom: 8px; }
+.today-head .team-wordmark { margin-top: 6px; }
+.today-head .today-blurb { margin: 6px 0 0; color: var(--muted); font-size: 13px; line-height: 1.45; }
+.app-shell .team-wordmark::before { background: var(--team-secondary); }
+
+/* The tasks-done bar: thicker, on a teal-tinted track, with the count in teal. */
+.app-shell .today-progress .session-progress {
+  height: 12px;
+  background: var(--team-secondary-soft);
+}
+.app-shell .today-progress > span:last-child { color: var(--team-secondary); font-weight: 800; }
+
+/* A stage's count turns teal once the stage is done. */
+.app-shell .task-stage.stage-complete .stage-progress strong { color: var(--team-secondary); }
+/* Today's tab in the week strip carries a teal rule along its foot. */
+.app-shell .day-tab.active { position: relative; }
+.app-shell .day-tab.active::before {
+  content: "";
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  bottom: 5px;
+  height: 3px;
+  border-radius: var(--radius-sm);
+  background: var(--team-secondary);
+}

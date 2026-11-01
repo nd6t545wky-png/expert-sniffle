@@ -1510,6 +1510,7 @@ export function App() {
       {view === "session" && (
         <DailyPlan
           sidePanel={false}
+          team={{ name: team.name, logo: team.logo, alt: team.alt }}
           // The game log lives in the game day's Compete stage: log the outing
           // where the outing is on the plan.
           stageExtras={{
