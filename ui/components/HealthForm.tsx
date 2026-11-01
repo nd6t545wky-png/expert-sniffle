@@ -53,12 +53,22 @@ const DEFAULTS: ReadinessInputs = {
   previousSessionResponse: "as_expected",
 };
 
+/** Asked only when the athlete says something is sore or not right. */
+const FOLLOW_UP_FIELDS = [
+  "shoulder",
+  "elbow",
+  "forearm",
+  "lat",
+  "lower",
+  "warningSigns",
+  "previousSessionResponse",
+] as const;
+
 const SLEEP_QUALITY_LABELS = ["", "Poor", "Below average", "Average", "Good", "Excellent"];
 
 /** name, label, min, max, helper — verbatim from the prototype's rangeField calls. */
 const SCALE_FIELDS = [
   ["energy", "Energy", 1, 5, "1 empty · 5 energised"],
-  ["mood", "Mood / motivation", 1, 5, "1 low · 5 excellent"],
   ["stress", "Life stress", 1, 5, "1 low · 5 very high"],
 ] as const;
 
@@ -107,6 +117,8 @@ export function HealthForm({
 }: HealthFormProps) {
   const [manual, setManual] = useState<Partial<ReadinessInputs>>({});
   const [gameRole, setGameRole] = useState<GameRole | null>(null);
+  /** "Anything sore or not right?" — the pain questions only appear on a yes. */
+  const [sore, setSore] = useState(false);
   const [notes, setNotes] = useState("");
   const [error, setError] = useState<string>("");
   const [loading, setLoading] = useState(false);
@@ -146,6 +158,7 @@ export function HealthForm({
   useEffect(() => {
     setManual({});
     setGameRole(null);
+    setSore(false);
     setNotes("");
     setError("");
   }, [date]);
@@ -155,7 +168,13 @@ export function HealthForm({
   }, [date, hasSyncKey]);
 
   // Defaults, then the devices, then the athlete. Nothing typed is ever lost.
-  const values: ReadinessInputs = { ...DEFAULTS, ...wearableInputs(health), ...manual };
+  const answered: ReadinessInputs = { ...DEFAULTS, ...wearableInputs(health), ...manual };
+  const values: ReadinessInputs = sore
+    ? answered
+    : {
+        ...answered,
+        ...Object.fromEntries(FOLLOW_UP_FIELDS.map((key) => [key, DEFAULTS[key]])),
+      };
   const preview = computeReadiness(values, readinessContextFor(existing, health, date));
   const bodyweightKg = importedBodyweight(health);
 
@@ -193,11 +212,8 @@ export function HealthForm({
 
       <article className="card gate">
         <div className="gate-icon">♡</div>
-        <h3>Complete the health check-in</h3>
-        <p>
-          The daily plan stays hidden until this quick check is submitted. Your answers set today's
-          training level.
-        </p>
+        <h3>Morning check-in</h3>
+        <p>Six quick questions. Your answers set today's workout.</p>
 
         <PrefillBanner
           health={health}
@@ -281,54 +297,72 @@ export function HealthForm({
           ))}
 
           <div className="field">
-            <label htmlFor="previousSessionResponse">Response to last session</label>
+            <label htmlFor="sore">Anything sore or not right?</label>
             <select
-              id="previousSessionResponse"
-              name="previousSessionResponse"
-              value={values.previousSessionResponse}
-              onChange={(event) => set("previousSessionResponse", event.target.value as never)}
-              required
+              id="sore"
+              name="sore"
+              value={sore ? "yes" : "no"}
+              onChange={(event) => setSore(event.target.value === "yes")}
             >
-              <option value="better">Better than expected</option>
-              <option value="as_expected">As expected</option>
-              <option value="worse">Worse than expected</option>
-              <option value="much_worse">Much worse than expected</option>
+              <option value="no">No — all good</option>
+              <option value="yes">Yes</option>
             </select>
+            <small>Arm, body, or how you pulled up from the last session</small>
           </div>
 
-          <div className="field warning-field">
-            <label htmlFor="warningSigns">New warning signs?</label>
-            <select
-              id="warningSigns"
-              name="warningSigns"
-              value={values.warningSigns}
-              onChange={(event) => set("warningSigns", event.target.value as "yes" | "no")}
-              required
-            >
-              <option value="no">No</option>
-              <option value="yes">Yes — hold today's plan</option>
-            </select>
-            <small>
-              New sharp or worsening pain, weakness, numbness, or symptoms changing your throwing
-              mechanics
-            </small>
-          </div>
+          {sore && (
+            <div className="checkin-followup">
+              <div className="field warning-field">
+                <label htmlFor="warningSigns">New warning signs?</label>
+                <select
+                  id="warningSigns"
+                  name="warningSigns"
+                  value={values.warningSigns}
+                  onChange={(event) => set("warningSigns", event.target.value as "yes" | "no")}
+                  required
+                >
+                  <option value="no">No</option>
+                  <option value="yes">Yes — hold today's plan</option>
+                </select>
+                <small>
+                  New sharp or worsening pain, weakness, numbness, or symptoms changing your throwing
+                  mechanics
+                </small>
+              </div>
 
-          {PAIN_FIELDS.map(([key, label]) => (
-            <RangeField
-              key={key}
-              name={key}
-              label={label}
-              min={0}
-              max={10}
-              help="0 none · 10 severe"
-              value={values[key] as number}
-              onChange={(value) => set(key, value as never)}
-            />
-          ))}
+              {PAIN_FIELDS.map(([key, label]) => (
+                <RangeField
+                  key={key}
+                  name={key}
+                  label={label}
+                  min={0}
+                  max={10}
+                  help="0 none · 10 severe"
+                  value={values[key] as number}
+                  onChange={(value) => set(key, value as never)}
+                />
+              ))}
+
+              <div className="field">
+                <label htmlFor="previousSessionResponse">Response to last session</label>
+                <select
+                  id="previousSessionResponse"
+                  name="previousSessionResponse"
+                  value={values.previousSessionResponse}
+                  onChange={(event) => set("previousSessionResponse", event.target.value as never)}
+                  required
+                >
+                  <option value="better">Better than expected</option>
+                  <option value="as_expected">As expected</option>
+                  <option value="worse">Worse than expected</option>
+                  <option value="much_worse">Much worse than expected</option>
+                </select>
+              </div>
+            </div>
+          )}
 
           <div className="field">
-            <label htmlFor="illness">Illness symptoms</label>
+            <label htmlFor="illness">Feeling sick?</label>
             <select
               id="illness"
               name="illness"
@@ -341,16 +375,30 @@ export function HealthForm({
             <small>Fever, infection symptoms or unusual malaise</small>
           </div>
 
-          <div className="field full">
-            <label htmlFor="preNotes">Notes</label>
-            <textarea
-              id="preNotes"
-              name="notes"
-              placeholder="Anything affecting today's plan?"
-              value={notes}
-              onChange={(event) => setNotes(event.target.value)}
+          {/* Optional, and closed by default: neither changes much on an
+              ordinary day, and an open box reads as one more thing to fill in. */}
+          <details className="field full checkin-more">
+            <summary>Add mood or a note (optional)</summary>
+            <RangeField
+              name="mood"
+              label="Mood / motivation"
+              min={1}
+              max={5}
+              help="1 low · 5 excellent"
+              value={values.mood}
+              onChange={(value) => set("mood", value)}
             />
-          </div>
+            <div className="field full">
+              <label htmlFor="preNotes">Notes</label>
+              <textarea
+                id="preNotes"
+                name="notes"
+                placeholder="Anything affecting today's plan?"
+                value={notes}
+                onChange={(event) => setNotes(event.target.value)}
+              />
+            </div>
+          </details>
 
           <div className="form-actions">
             <button className="btn btn-dark" type="submit">
@@ -359,12 +407,13 @@ export function HealthForm({
           </div>
         </form>
 
-        <p className="fineprint">
-          <strong>What this does:</strong> Pitching OS applies a transparent planning heuristic to
+        <details className="fineprint">
+          <summary>What this does</summary>
+          Pitching OS applies a transparent planning heuristic to
           the information above and returns 100%, 75%, 50% or a hold. This is not diagnosis or
           medical clearance. New or worsening pain, illness, weakness, numbness or altered mechanics
           needs qualified clinical or coaching review.
-        </p>
+        </details>
       </article>
 
       <ReadinessPreview result={preview} />

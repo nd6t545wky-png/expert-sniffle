@@ -263,3 +263,37 @@ export function Alert({
     </div>
   );
 }
+
+/**
+ * Tabs inside a page, so a page that used to stack eight cards shows one
+ * section at a time. Horizontal-scrolling on a narrow phone rather than
+ * wrapping, so the row never pushes the content down.
+ */
+export function Segments<T extends string>({
+  label,
+  options,
+  value,
+  onChange,
+}: {
+  label: string;
+  options: readonly { value: T; label: string }[];
+  value: T;
+  onChange: (value: T) => void;
+}) {
+  return (
+    <div className="segments" role="tablist" aria-label={label}>
+      {options.map((option) => (
+        <button
+          key={option.value}
+          type="button"
+          role="tab"
+          aria-selected={value === option.value}
+          className={`segment ${value === option.value ? "active" : ""}`.trim()}
+          onClick={() => onChange(option.value)}
+        >
+          {option.label}
+        </button>
+      ))}
+    </div>
+  );
+}

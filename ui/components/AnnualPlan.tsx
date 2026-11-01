@@ -60,6 +60,8 @@ export interface AnnualPlanProps {
   onSelectWeek: (week: number) => void;
   /** Today, so the calendar can mark it. */
   today?: IsoDate;
+  /** Which view opens first. The app opens on the month: twelve stacked grids is a long scroll on a phone. */
+  initialView?: View;
 }
 
 /*
@@ -72,8 +74,8 @@ export interface AnnualPlanProps {
 
 type View = "year" | "month";
 
-export function AnnualPlan({ selectedWeek, onSelectWeek, today }: AnnualPlanProps) {
-  const [view, setView] = useState<View>("year");
+export function AnnualPlan({ selectedWeek, onSelectWeek, today, initialView = "year" }: AnnualPlanProps) {
+  const [view, setView] = useState<View>(initialView);
   const [monthKey, setMonthKey] = useState(() => monthContaining(weekStart(selectedWeek)).key);
 
   const months = programmeMonths();

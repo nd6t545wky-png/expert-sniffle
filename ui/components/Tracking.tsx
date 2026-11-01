@@ -46,6 +46,14 @@ export interface TrackingProps {
    * following whichever was typed second.
    */
   loggedGamePitches?: number | null;
+  /**
+   * Which half to show. The check-out form belongs at the end of the day's
+   * workout on Today; the history and the trends are what Progress is for.
+   * Both by default, so a caller that has not chosen sees what it always did.
+   */
+  mode?: "all" | "checkout" | "history";
+  /** Today's throw count, logged as part of the check-out. */
+  throwLog?: React.ReactNode;
 }
 
 /**
@@ -158,6 +166,8 @@ export function Tracking({
   onToggleRecapStat,
   progress,
   loggedGamePitches,
+  mode = "all",
+  throwLog,
 }: TrackingProps) {
   const [perceivedExertion, setPerceivedExertion] = useState(6);
   const [armFeel, setArmFeel] = useState(8);
@@ -210,11 +220,16 @@ export function Tracking({
     onReport(outcome.report);
   }
 
+  const showCheckout = mode !== "history";
+  const showHistory = mode !== "checkout";
+
   return (
     <>
-      <PageHead eyebrow="Progress" title="How did that go?" intro={formatIsoDate(date)} />
+      {mode === "all" && <PageHead eyebrow="Progress" title="How did that go?" intro={formatIsoDate(date)} />}
 
-      {existing ? (
+      {showCheckout && throwLog && <div className="checkout-throws">{throwLog}</div>}
+
+      {!showCheckout ? null : existing ? (
         <Alert>
           Reported: RPE {existing.perceivedExertion}, arm {existing.armFeel}/10.
         </Alert>
@@ -223,7 +238,7 @@ export function Tracking({
         // heading, explanation, then the form.
         <article className="card gate" id="post-card">
           <div className="gate-icon">✓</div>
-          <h3>Plan resolved—check out</h3>
+          <h3>{mode === "checkout" ? "How did that go?" : "Plan resolved—check out"}</h3>
           <p>Record what actually happened.</p>
 
           <form id="post-form" className="form-grid" data-date={date} onSubmit={handleSubmit}>
@@ -322,7 +337,7 @@ export function Tracking({
         </Alert>
       )}
 
-      {recent.length === 0 ? (
+      {!showHistory ? null : recent.length === 0 ? (
         <EmptyState title="No sessions reported yet" detail="Reports appear here once you log one." />
       ) : (
         <Card>
@@ -353,7 +368,7 @@ export function Tracking({
         </Card>
       )}
 
-      {recap && api && (
+      {showCheckout && existing && recap && api && (
         <SessionRecap
           date={date}
           recap={recap}
@@ -366,9 +381,9 @@ export function Tracking({
         />
       )}
 
-      <ProgressTrends specs={progress ?? []} />
+      {showHistory && <ProgressTrends specs={progress ?? []} />}
 
-      <OuraTrends days={trendDays} />
+      {showHistory && <OuraTrends days={trendDays} />}
     </>
   );
 }

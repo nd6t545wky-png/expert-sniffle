@@ -47,7 +47,6 @@ import { readTrainingMaxes, setTrainingMax } from "../src/domain/trainingMaxes";
 import { TrainingMaxes } from "./components/TrainingMaxes";
 import { useAppState } from "./state/useAppState";
 import { useAppearance } from "./state/useAppearance";
-import { Dashboard } from "./components/Dashboard";
 import { PageId, Shell } from "./components/Shell";
 import { DailyPlan, PlanTask } from "./components/DailyPlan";
 import { DayTab, dayStatus } from "./components/DayTabs";
@@ -60,7 +59,12 @@ import { AnnualPlan } from "./components/AnnualPlan";
 import { Account } from "./components/Account";
 import { BaselineTesting } from "./components/BaselineTesting";
 import { ArmCare } from "./components/ArmCare";
-import { Card, CardHead } from "./components/Page";
+import { Card, CardHead, PageHead, Segments } from "./components/Page";
+import { ThrowCountCard } from "./components/ThrowCountCard";
+import { GameLog } from "./components/GameLog";
+import { VelocityBlock } from "./components/VelocityBlock";
+import { weekFromTasks } from "../src/domain/velocity";
+import { formatIsoDate } from "./state/formatDate";
 import { addDays, programmeWeekFor } from "../src/domain/calendar";
 import {
   BFR_BLOCK,
@@ -143,17 +147,33 @@ const TODAY_PAGES: Page[] = ["dashboard", "nutrition"];
 /** The topbar's short context line on a phone, as v60's PAGE_TITLES. */
 const PAGE_TITLES: Record<Page, string> = {
   dashboard: "Today",
-  session: "Daily plan",
-  readiness: "Health check-in",
-  workload: "Throwing workload",
+  session: "Today",
+  readiness: "Today",
+  workload: "Throwing",
   tracking: "Progress",
-  annual: "Annual plan",
-  nutrition: "Nutrition",
+  annual: "Season",
+  nutrition: "Food",
   mechanics: "Biomechanics",
   bloods: "Bloods",
   integrations: "Connections",
-  profile: "Athlete",
+  profile: "Settings",
+  account: "Account & backup",
 };
+
+const THROWING_TABS = [
+  { value: "today", label: "Today" },
+  { value: "pitches", label: "Pitches" },
+  { value: "games", label: "Games" },
+  { value: "mechanics", label: "Mechanics" },
+] as const;
+type ThrowingTab = (typeof THROWING_TABS)[number]["value"];
+
+const PROGRESS_TABS = [
+  { value: "trends", label: "Trends" },
+  { value: "testing", label: "Testing & maxes" },
+  { value: "bloods", label: "Bloods" },
+] as const;
+type ProgressTab = (typeof PROGRESS_TABS)[number]["value"];
 
 const PAGE_IDS: Page[] = [
   "dashboard",
@@ -167,6 +187,7 @@ const PAGE_IDS: Page[] = [
   "bloods",
   "integrations",
   "profile",
+  "account",
 ];
 
 const DEFAULT_TARGETS: NutritionTargets = { calories: 0, protein: 0, carbs: 0, fat: 0, fluid: 0 };
@@ -189,11 +210,16 @@ export function App() {
       const requested = new URLSearchParams(window.location.search).get("page");
       if (requested && PAGE_IDS.includes(requested as Page)) return requested as Page;
       const stored = window.sessionStorage.getItem(PAGE_STORAGE);
-      return stored && PAGE_IDS.includes(stored as Page) ? (stored as Page) : "dashboard";
+      return stored && PAGE_IDS.includes(stored as Page) ? (stored as Page) : "session";
     } catch {
-      return "dashboard";
+      return "session";
     }
   });
+  // The old summary page and the separate check-in page are both part of
+  // Today now. A stored or linked id for either still lands somewhere real.
+  const view: Page = page === "dashboard" || page === "readiness" ? "session" : page;
+  const [throwingTab, setThrowingTab] = useState<ThrowingTab>("today");
+  const [progressTab, setProgressTab] = useState<ProgressTab>("trends");
 
   useEffect(() => {
     try {
@@ -1367,6 +1393,29 @@ export function App() {
     // every `var(--team-primary)` in the app resolving to nothing at all.
     : { name: profile.summerTeam || "Coomera Cubs", logo: "/assets/coomera-cubs-logo.png", alt: "Coomera Cubs Baseball Club logo", theme: "theme-coomera" };
 
+  // Today's throw count, on the Throwing tab. The same card the workout used
+  // to carry: it tallies from ticked tasks and can be overridden by hand.
+  const throwCard = (
+    <ThrowCountCard
+      alwaysShow
+      tally={throwTally ?? null}
+      entry={throwEntry ?? null}
+      onSave={(entry) =>
+        update((draft) => ({
+          ...draft,
+          bullpens: { ...draft.bullpens, [date]: { date, ...entry, source: "manual" } },
+        }))
+      }
+      onUseAuto={() =>
+        update((draft) => {
+          const bullpens = { ...((draft.bullpens ?? {}) as Record<string, ThrowingRecord | undefined>) };
+          delete bullpens[date];
+          return reconcileThrows({ ...draft, bullpens }, date, completed[date] ?? []);
+        })
+      }
+    />
+  );
+
   return (
     <Shell
       theme={team.theme}
@@ -1394,79 +1443,106 @@ export function App() {
       onNavigate={setPage}
       onOpenPlan={() => setPage(plan.status === "locked" ? "readiness" : "session")}
     >
-      {page === "dashboard" && (
-        <Dashboard
-          date={date}
-          plan={plan}
-          submission={submission}
-          health={readPrefill(state.healthPrefill, date)}
-          eyebrow={weekMeta.eyebrow}
-          heading={weekMeta.heading}
-          focus={weekMeta.focus}
-          teamName={team.name}
-          teamLogo={team.logo}
-          teamLogoAlt={team.alt}
-          sessionTitle={String(session?.title ?? "").replace(/^[A-Za-z]+ · /, "") || "Session"}
-          sessionDescription={String(session?.description ?? "")}
-          sessionDuration={String(session?.duration ?? "—")}
-          sessionStress={String(session?.stress ?? "—")}
-          taskCount={tasks.length}
-          completedCount={(completed[date] ?? []).length}
-          weekLoad={weekLoad}
-          hydrationLitres={hydrationLitres}
-          fluidTarget={targets.fluid}
-          // The dashboard is about today, so what it sends you to is today —
-          // otherwise "check-in required" would open the check-in for a week
-          // left open on the annual plan.
-          onNavigate={goToToday}
-          onOpenPlan={() => goToToday(plan.status === "locked" ? "readiness" : "session")}
-        />
-      )}
-      {/* Above the plan, because on a day something hurts this is the first
-          thing to do and everything below it is downstream of the answer. */}
-      {page === "session" && (
-        <SorenessCard
-          date={date}
-          active={soreness}
-          changes={sessionWithRecovery.changes}
-          referral={sessionWithRecovery.referral}
-          onOpenShare={() => setPage("profile")}
-          onReport={(report) =>
-            update((draft) => ({
-              ...draft,
-              soreness: [...readReports(draft.soreness), report],
-            }))
-          }
-          onResolve={(region, on) =>
-            update((draft) => ({
-              ...draft,
-              // Stamped onto every unresolved report for the region rather than
-              // deleting them: the history is what the physio reads, and an
-              // elbow that flared three times is a different story from one
-              // that flared once.
-              soreness: readReports(draft.soreness).map((report) =>
-                report.region === region && !report.resolvedOn ? { ...report, resolvedOn: on } : report
-              ),
-            }))
-          }
-        />
-      )}
-
-      {page === "session" && isGameDay && submission && (
-        <GameRoleCard
-          value={gameRole}
-          onChange={(role) =>
-            update((draft) => {
-              const current = draft.pre[date] as ReadinessSubmission | undefined;
-              if (!current) return draft;
-              return { ...draft, pre: { ...draft.pre, [date]: { ...current, gameRole: role } } };
-            })
-          }
-        />
-      )}
-
-      {page === "session" && (
+      {/* Today: the week strip, then check-in → workout → check-out, all on
+          one screen. Dashboard and the separate check-in page fold into it. */}
+      {view === "session" && (
         <DailyPlan
+          sidePanel={false}
+          // The game log lives in the game day's Compete stage: log the outing
+          // where the outing is on the plan.
+          stageExtras={{
+            Compete: (
+              <GameLog
+                compact
+                date={date}
+                games={games}
+                onSave={(game: Game) => update((draft) => ({ ...draft, games: [...readGames(draft.games), game] }))}
+                onRemove={(id: string) =>
+                  update((draft) => ({ ...draft, games: readGames(draft.games).filter((game) => game.id !== id) }))
+                }
+              />
+            ),
+          }}
+          checkIn={
+            <HealthForm
+              date={date}
+              plan={plan}
+              existing={state.pre}
+              onSubmitted={handleReadinessSubmitted}
+              api={api}
+              prefill={state.healthPrefill}
+              onPrefill={handleHealthPrefill}
+              hasSyncKey={isValidSyncKey(syncKey)}
+              gameDay={isGameDay}
+            />
+          }
+          checkOut={
+            <Tracking
+              mode="checkout"
+              throwLog={throwCard}
+              date={date}
+              plan={plan}
+              reports={reports}
+              onReport={(report) => update((draft) => ({ ...draft, post: { ...draft.post, [report.date]: report } }))}
+              healthPrefill={state.healthPrefill}
+              submissions={state.pre}
+              loggedGamePitches={games.find((game) => game.date === date && Number(game.pitches) > 0)?.pitches ?? null}
+              recap={recap}
+              api={api}
+              hasSyncKey={isValidSyncKey(syncKey)}
+              recapCaption={recapCaption}
+              recapStats={recapStats}
+              onToggleRecapStat={toggleRecapStat}
+              progress={progress}
+              onRecapCaption={(caption) =>
+                update((draft) => ({
+                  ...draft,
+                  recapCaptions: { ...(draft.recapCaptions as Record<string, string>), [date]: caption },
+                }))
+              }
+            />
+          }
+          beforeWorkout={
+            <>
+              <SorenessCard
+                date={date}
+                active={soreness}
+                changes={sessionWithRecovery.changes}
+                referral={sessionWithRecovery.referral}
+                onOpenShare={() => setPage("profile")}
+                onReport={(report) =>
+                  update((draft) => ({
+                    ...draft,
+                    soreness: [...readReports(draft.soreness), report],
+                  }))
+                }
+                onResolve={(region, on) =>
+                  update((draft) => ({
+                    ...draft,
+                    // Stamped onto every unresolved report for the region rather than
+                    // deleting them: the history is what the physio reads, and an
+                    // elbow that flared three times is a different story from one
+                    // that flared once.
+                    soreness: readReports(draft.soreness).map((report) =>
+                      report.region === region && !report.resolvedOn ? { ...report, resolvedOn: on } : report,
+                    ),
+                  }))
+                }
+              />
+              {isGameDay && submission && (
+                <GameRoleCard
+                  value={gameRole}
+                  onChange={(role) =>
+                    update((draft) => {
+                      const current = draft.pre[date] as ReadinessSubmission | undefined;
+                      if (!current) return draft;
+                      return { ...draft, pre: { ...draft.pre, [date]: { ...current, gameRole: role } } };
+                    })
+                  }
+                />
+              )}
+            </>
+          }
           date={date}
           plan={plan}
           submission={submission}
@@ -1524,8 +1600,8 @@ export function App() {
                   },
                 },
                 forDate,
-                next
-              )
+                next,
+              ),
             )
           }
           throwTally={throwTally}
@@ -1557,106 +1633,218 @@ export function App() {
         />
       )}
 
-      {page === "readiness" && (
-        <HealthForm
-          date={date}
-          plan={plan}
-          existing={state.pre}
-          onSubmitted={handleReadinessSubmitted}
+      {view === "workload" && (
+        <>
+          <PageHead eyebrow="Throwing" title="Your arm's work." intro={formatIsoDate(date)} />
+          <Segments label="Throwing sections" options={THROWING_TABS} value={throwingTab} onChange={setThrowingTab} />
+          {throwingTab === "today" && weekFromTasks(tasks) !== null && (
+            <VelocityBlock week={weekFromTasks(tasks) as number} games={gamesInWeekOf(selectedWeekPlan)} />
+          )}
+          {throwingTab === "mechanics" ? (
+            <Mechanics
+              api={api}
+              date={date}
+              hasSyncKey={isValidSyncKey(syncKey)}
+              captures={captures}
+              throws={
+                (state.profile as { throwingHand?: string } | undefined)?.throwingHand === "Left" ? "left" : "right"
+              }
+              onSaveCapture={(capture) =>
+                update((draft) => ({
+                  ...draft,
+                  kinematics: [...readCaptures(draft.kinematics), capture],
+                }))
+              }
+              onRemoveCapture={(id) =>
+                update((draft) => ({
+                  ...draft,
+                  kinematics: readCaptures(draft.kinematics).filter((capture) => capture.id !== id),
+                }))
+              }
+            />
+          ) : (
+            <Workload
+              section={throwingTab}
+              throwCard={throwCard}
+              date={date}
+              plan={plan}
+              entries={throwingEntries}
+              intentPercent={intentPercent}
+              gameDay={gameOn(date)}
+              onLog={(entry) =>
+                // Logged here by hand, so it is stamped as the athlete's and the
+                // session's automatic count will not overwrite it.
+                update((draft) => ({
+                  ...draft,
+                  bullpens: { ...draft.bullpens, [entry.date]: { ...entry, source: "manual" } },
+                }))
+              }
+              pitches={pitches}
+              priorPitches={priorPitches}
+              games={games}
+              onSaveGame={(game: Game) => update((draft) => ({ ...draft, games: [...readGames(draft.games), game] }))}
+              onRemoveGame={(id: string) =>
+                update((draft) => ({
+                  ...draft,
+                  games: readGames(draft.games).filter((game) => game.id !== id),
+                }))
+              }
+              onImportPitches={(imported) => setPitches((current) => [...current, ...imported])}
+              onAddPitch={(pitch) => setPitches((current) => [...current, pitch])}
+              onRemovePitch={(id) => setPitches((current) => current.filter((p) => p.id !== id))}
+            />
+          )}
+        </>
+      )}
+
+      {view === "mechanics" && (
+        <Mechanics
           api={api}
-          prefill={state.healthPrefill}
-          onPrefill={handleHealthPrefill}
-          hasSyncKey={isValidSyncKey(syncKey)}
-          gameDay={isGameDay}
-        />
-      )}
-
-      {page === "workload" && (
-        <Workload
           date={date}
-          plan={plan}
-          entries={throwingEntries}
-          intentPercent={intentPercent}
-          gameDay={gameOn(date)}
-          onLog={(entry) =>
-            // Logged here by hand, so it is stamped as the athlete's and the
-            // session's automatic count will not overwrite it.
-            update((draft) => ({
-              ...draft,
-              bullpens: { ...draft.bullpens, [entry.date]: { ...entry, source: "manual" } },
-            }))
-          }
-          pitches={pitches}
-          priorPitches={priorPitches}
-          games={games}
-          onSaveGame={(game: Game) =>
-            update((draft) => ({ ...draft, games: [...readGames(draft.games), game] }))
-          }
-          onRemoveGame={(id: string) =>
-            update((draft) => ({
-              ...draft,
-              games: readGames(draft.games).filter((game) => game.id !== id),
-            }))
-          }
-          onImportPitches={(imported) => setPitches((current) => [...current, ...imported])}
-          onAddPitch={(pitch) => setPitches((current) => [...current, pitch])}
-          onRemovePitch={(id) => setPitches((current) => current.filter((p) => p.id !== id))}
-        />
-      )}
-
-      {page === "tracking" && (
-        <Tracking
-          date={date}
-          plan={plan}
-          reports={reports}
-          onReport={(report) => update((draft) => ({ ...draft, post: { ...draft.post, [report.date]: report } }))}
-          healthPrefill={state.healthPrefill}
-          submissions={state.pre}
-          loggedGamePitches={
-            games.find((game) => game.date === date && Number(game.pitches) > 0)?.pitches ?? null
-          }
-          recap={recap}
-          api={api}
           hasSyncKey={isValidSyncKey(syncKey)}
-          recapCaption={recapCaption}
-          recapStats={recapStats}
-          onToggleRecapStat={toggleRecapStat}
-          progress={progress}
-          onRecapCaption={(caption) =>
+          captures={captures}
+          throws={(state.profile as { throwingHand?: string } | undefined)?.throwingHand === "Left" ? "left" : "right"}
+          onSaveCapture={(capture) =>
             update((draft) => ({
               ...draft,
-              recapCaptions: { ...(draft.recapCaptions as Record<string, string>), [date]: caption },
+              kinematics: [...readCaptures(draft.kinematics), capture],
+            }))
+          }
+          onRemoveCapture={(id) =>
+            update((draft) => ({
+              ...draft,
+              kinematics: readCaptures(draft.kinematics).filter((capture) => capture.id !== id),
             }))
           }
         />
       )}
 
-      {page === "annual" && (
-        <AnnualPlan
-          selectedWeek={selectedWeek}
-          onSelectWeek={setSelectedWeek}
-          today={today.openDate}
-        />
+      {view === "tracking" && (
+        <>
+          <PageHead eyebrow="Progress" title="What's changing." intro="Trends, testing and bloods over time." />
+          <Segments label="Progress sections" options={PROGRESS_TABS} value={progressTab} onChange={setProgressTab} />
+          {progressTab === "trends" && (
+            <Tracking
+              mode="history"
+              date={date}
+              plan={plan}
+              reports={reports}
+              onReport={(report) => update((draft) => ({ ...draft, post: { ...draft.post, [report.date]: report } }))}
+              healthPrefill={state.healthPrefill}
+              submissions={state.pre}
+              loggedGamePitches={games.find((game) => game.date === date && Number(game.pitches) > 0)?.pitches ?? null}
+              recap={recap}
+              api={api}
+              hasSyncKey={isValidSyncKey(syncKey)}
+              recapCaption={recapCaption}
+              recapStats={recapStats}
+              onToggleRecapStat={toggleRecapStat}
+              progress={progress}
+              onRecapCaption={(caption) =>
+                update((draft) => ({
+                  ...draft,
+                  recapCaptions: { ...(draft.recapCaptions as Record<string, string>), [date]: caption },
+                }))
+              }
+            />
+          )}
+          {progressTab === "testing" && (
+            <>
+              <TrainingMaxes
+                maxes={readTrainingMaxes(state?.pbs)}
+                onChange={(key, value) =>
+                  update((draft) => ({ ...draft, pbs: setTrainingMax(draft.pbs, key, value) as never }))
+                }
+              />
+              <ArmCare
+                date={date}
+                exams={armExams}
+                bodyweightKg={knownBodyweight}
+                onSave={(armExam) =>
+                  update((draft) => ({
+                    ...draft,
+                    armExams: [...readExams(draft.armExams), armExam],
+                  }))
+                }
+                onRemove={(id) =>
+                  update((draft) => ({
+                    ...draft,
+                    armExams: readExams(draft.armExams).filter((item) => item.id !== id),
+                  }))
+                }
+              />
+              <RetestSheet
+                entries={retests}
+                today={today.openDate}
+                week={selectedWeek}
+                onChange={(next) =>
+                  update((draft) => ({
+                    ...draft,
+                    profile: { ...(draft.profile ?? {}), retests: next },
+                  }))
+                }
+              />
+              <BaselineTesting />
+              <TransferCard transfer={transfer} />
+            </>
+          )}
+          {progressTab === "bloods" && (
+            <Bloods
+              panels={bloodPanels}
+              today={today.openDate}
+              contextFor={bloodContext}
+              onChange={(next) =>
+                update((draft) => ({
+                  ...draft,
+                  profile: { ...(draft.profile ?? {}), bloodPanels: next },
+                }))
+              }
+            />
+          )}
+        </>
       )}
 
-      {/* Adding a game belongs on the page the season is read from, not three
-          taps away under the profile. Entering one here rebuilds that day as a
-          game day straight away. */}
-      {page === "annual" && (
-        <FixtureSettings
-          fixtures={athleteFixtures}
+      {view === "bloods" && (
+        <Bloods
+          panels={bloodPanels}
           today={today.openDate}
-          onSelectWeek={setSelectedWeek}
+          contextFor={bloodContext}
           onChange={(next) =>
             update((draft) => ({
               ...draft,
-              profile: { ...(draft.profile ?? {}), fixtures: next },
+              profile: { ...(draft.profile ?? {}), bloodPanels: next },
             }))
           }
         />
       )}
 
-      {page === "nutrition" && (
+      {view === "annual" && (
+        <>
+          <AnnualPlan
+            initialView="month"
+            selectedWeek={selectedWeek}
+            onSelectWeek={setSelectedWeek}
+            today={today.openDate}
+          />
+          {/* Adding a game belongs on the page the season is read from.
+              Entering one here rebuilds that day as a game day straight away. */}
+          <FixtureSettings
+            currentWeek={today.selectedWeek}
+            selectedWeek={selectedWeek}
+            fixtures={athleteFixtures}
+            today={today.openDate}
+            onSelectWeek={setSelectedWeek}
+            onChange={(next) =>
+              update((draft) => ({
+                ...draft,
+                profile: { ...(draft.profile ?? {}), fixtures: next },
+              }))
+            }
+          />
+        </>
+      )}
+
+      {view === "nutrition" && (
         <Nutrition
           api={api}
           date={date}
@@ -1700,182 +1888,85 @@ export function App() {
                 // Removing more than was logged clears the day rather than
                 // storing a negative volume.
                 [date]:
-                  litres === "reset"
-                    ? 0
-                    : Math.max(0, Number(((current.hydration?.[date] ?? 0) + litres).toFixed(2))),
+                  litres === "reset" ? 0 : Math.max(0, Number(((current.hydration?.[date] ?? 0) + litres).toFixed(2))),
               },
             }))
           }
         />
       )}
 
-      {page === "mechanics" && (
-        <Mechanics
-          api={api}
-          date={date}
-          hasSyncKey={isValidSyncKey(syncKey)}
-          captures={captures}
-          throws={
-            (state.profile as { throwingHand?: string } | undefined)?.throwingHand === "Left"
-              ? "left"
-              : "right"
-          }
-          onSaveCapture={(capture) =>
-            update((draft) => ({
-              ...draft,
-              kinematics: [...readCaptures(draft.kinematics), capture],
-            }))
-          }
-          onRemoveCapture={(id) =>
-            update((draft) => ({
-              ...draft,
-              kinematics: readCaptures(draft.kinematics).filter((capture) => capture.id !== id),
-            }))
-          }
-        />
+      {view === "integrations" && <Integrations api={api} hasSyncKey={isValidSyncKey(syncKey)} />}
+
+      {/* Settings: how the programme fits your week and your kit, and who
+          you share it with. Testing data moved to Progress; account and
+          backup have their own page. */}
+      {view === "profile" && (
+        <>
+          <PageHead eyebrow="Settings" title="Your programme." intro="Club nights, recovery kit, sharing." />
+          <RecoverySettings
+            equipment={recoveryEquipment}
+            intentPercent={intentPercent}
+            teamTraining={teamTraining}
+            onTeamTraining={(next) =>
+              update((draft) => ({
+                ...draft,
+                profile: { ...(draft.profile ?? {}), teamTraining: next },
+              }))
+            }
+            onEquipment={(next) =>
+              update((draft) => ({
+                ...draft,
+                profile: { ...(draft.profile as object), recoveryEquipment: next },
+              }))
+            }
+            onIntentPercent={(next) =>
+              update((draft) => ({
+                ...draft,
+                profile: { ...(draft.profile as object), intentPercent: next },
+              }))
+            }
+          />
+          <PhysioShare
+            api={api}
+            hasSyncKey={isValidSyncKey(syncKey)}
+            buildSummary={buildPhysioSummaryNow}
+            hasBloods={bloodPanels.length > 0}
+          />
+          {/* The BFR cuff block: reference rather than a daily task — twice a
+              week, and it depends on equipment the athlete may not have. */}
+          <Card>
+            <CardHead title={BFR_BLOCK.name} detail="Twice a week, throwing arm only." />
+            <p className="recovery-prescription">{BFR_BLOCK.prescription}</p>
+            <p className="recovery-caveat">{BFR_BLOCK.guardrail}</p>
+            <details className="recovery-why">
+              <summary>Why</summary>
+              <p>{BFR_BLOCK.why}</p>
+              <p className="recovery-citation">
+                <strong>{BFR_BLOCK.citation.key}</strong> — {BFR_BLOCK.citation.detail}
+              </p>
+              <p>{BFR_BLOCK.experimentalNote}</p>
+            </details>
+          </Card>
+        </>
       )}
 
-      {page === "integrations" && <Integrations api={api} hasSyncKey={isValidSyncKey(syncKey)} />}
-
-      {/* The sections the five-item bottom nav cannot hold are reached through
-          the shell's "More" sheet, as in the prototype — not through a nav list
-          rendered into the page body. */}
-      {page === "profile" && <BaselineTesting />}
-
-      {/* The BFR cuff block, beside the arm screen because that is where arm
-          strength work lives. Reference rather than a daily task: it is a
-          twice-weekly programme, and it depends on equipment the athlete may
-          not have — which the guardrail says plainly. */}
-      {page === "profile" && (
-        <Card>
-          <CardHead title={BFR_BLOCK.name} detail="Twice a week, throwing arm only." />
-          <p className="recovery-prescription">{BFR_BLOCK.prescription}</p>
-          <p className="recovery-caveat">{BFR_BLOCK.guardrail}</p>
-          <details className="recovery-why">
-            <summary>Why</summary>
-            <p>{BFR_BLOCK.why}</p>
-            <p className="recovery-citation">
-              <strong>{BFR_BLOCK.citation.key}</strong> — {BFR_BLOCK.citation.detail}
-            </p>
-            <p>{BFR_BLOCK.experimentalNote}</p>
-          </details>
-        </Card>
-      )}
-
-      {page === "profile" && (
-        <ArmCare
-          date={date}
-          exams={armExams}
-          bodyweightKg={knownBodyweight}
-          onSave={(armExam) =>
-            update((draft) => ({
-              ...draft,
-              armExams: [...readExams(draft.armExams), armExam],
-            }))
-          }
-          onRemove={(id) =>
-            update((draft) => ({
-              ...draft,
-              armExams: readExams(draft.armExams).filter((item) => item.id !== id),
-            }))
-          }
-        />
-      )}
-
-      {page === "profile" && (
-        <RetestSheet
-          entries={retests}
-          today={today.openDate}
-          week={selectedWeek}
-          onChange={(next) =>
-            update((draft) => ({
-              ...draft,
-              profile: { ...(draft.profile ?? {}), retests: next },
-            }))
-          }
-        />
-      )}
-
-      {page === "bloods" && (
-        <Bloods
-          panels={bloodPanels}
-          today={today.openDate}
-          contextFor={bloodContext}
-          onChange={(next) =>
-            update((draft) => ({
-              ...draft,
-              profile: { ...(draft.profile ?? {}), bloodPanels: next },
-            }))
-          }
-        />
-      )}
-
-      {page === "profile" && (
-        <TrainingMaxes
-          maxes={readTrainingMaxes(state?.pbs)}
-          onChange={(key, value) =>
-            update((draft) => ({ ...draft, pbs: setTrainingMax(draft.pbs, key, value) as never }))
-          }
-        />
-      )}
-
-      {page === "profile" && <TransferCard transfer={transfer} />}
-
-      {page === "profile" && (
-        <RecoverySettings
-          equipment={recoveryEquipment}
-          intentPercent={intentPercent}
-          teamTraining={teamTraining}
-          onTeamTraining={(next) =>
-            update((draft) => ({
-              ...draft,
-              profile: { ...(draft.profile ?? {}), teamTraining: next },
-            }))
-          }
-          onEquipment={(next) =>
-            update((draft) => ({
-              ...draft,
-              profile: { ...(draft.profile as object), recoveryEquipment: next },
-            }))
-          }
-          onIntentPercent={(next) =>
-            update((draft) => ({
-              ...draft,
-              profile: { ...(draft.profile as object), intentPercent: next },
-            }))
-          }
-        />
-      )}
-
-      {/* Placed after the arm screen, because that is most of what the link
-          carries and it explains what the physio will be looking at. */}
-      {page === "profile" && (
-        <PhysioShare
-          api={api}
-          hasSyncKey={isValidSyncKey(syncKey)}
-          buildSummary={buildPhysioSummaryNow}
-          hasBloods={bloodPanels.length > 0}
-        />
-      )}
-
-      {page === "profile" && (
-        <TrainingHistoryCard
-          history={state?.trainingHistory}
-          hasSyncKey={isValidSyncKey(syncKey)}
-          status={historyStatus}
-        />
-      )}
-
-      {page === "profile" && (
-        <Account
-          api={api}
-          syncKey={syncKey}
-          onSyncKey={setSyncKey}
-          onSyncNow={handleSyncNow}
-          syncStatus={syncStatus}
-          state={state}
-          onReplaceState={(next) => update(() => next, { record: false })}
-        />
+      {view === "account" && (
+        <>
+          <Account
+            api={api}
+            syncKey={syncKey}
+            onSyncKey={setSyncKey}
+            onSyncNow={handleSyncNow}
+            syncStatus={syncStatus}
+            state={state}
+            onReplaceState={(next) => update(() => next, { record: false })}
+          />
+          <TrainingHistoryCard
+            history={state?.trainingHistory}
+            hasSyncKey={isValidSyncKey(syncKey)}
+            status={historyStatus}
+          />
+        </>
       )}
     </Shell>
   );

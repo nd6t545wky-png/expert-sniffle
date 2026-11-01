@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { ReactNode, useState } from "react";
 import { SessionTask } from "../../src/domain/programmeSessions";
 import { SkippedTask, UNSKIPPABLE_STAGE } from "../../src/domain/session";
 import { DaySetLog, LoggedSet, bestOneRepMax, isLoggable, prescribedSets, setUnit } from "../../src/domain/setLog";
@@ -33,6 +33,14 @@ export interface TaskStagesProps {
   onLogSets?: (task: SessionTask, sets: LoggedSet[]) => void;
   /** Last time each lift was done, and whether to move up. Keyed by task id. */
   progression?: Record<string, Advice>;
+  /**
+   * Show each task's "why" line and each stage's description inline. Off on
+   * Today: what to do stays on the row, and the reasoning is one tap away in
+   * Details, so the workout reads as a list instead of a page of text.
+   */
+  showCues?: boolean;
+  /** Extra content inside a stage, keyed by stage title — the game log in Compete. */
+  stageExtras?: Record<string, ReactNode>;
 }
 
 /**
@@ -46,9 +54,27 @@ export interface TaskStagesProps {
  * see `splitPrescription` for how the two are told apart, and why it refuses
  * whenever it cannot tell.
  */
-function Prescription({ text }: { text: string }) {
+function Prescription({ text, collapse = false }: { text: string; collapse?: boolean }) {
   const movements = splitPrescription(text);
   if (!movements) return <div className="task-prescription">{text}</div>;
+
+  // On Today a multi-movement block is one line until it is opened: the
+  // warm-up was eight stacked lists before the first throw.
+  if (collapse) {
+    return (
+      <details className="task-movements-toggle">
+        <summary>{movements.length} movements</summary>
+        <ul className="task-movements">
+          {movements.map((movement) => (
+            <li key={`${movement.name}-${movement.dose ?? ""}`}>
+              <span className="movement-name">{movement.name}</span>
+              {movement.dose && <span className="movement-dose">{movement.dose}</span>}
+            </li>
+          ))}
+        </ul>
+      </details>
+    );
+  }
 
   return (
     <ul className="task-movements">
@@ -261,6 +287,8 @@ export function TaskStages({
   setLog,
   onLogSets,
   progression,
+  showCues = true,
+  stageExtras,
 }: TaskStagesProps) {
   const done = new Set(completed);
   const isResolved = (task: SessionTask) => done.has(task.id) || Boolean(skipped[task.id]);
@@ -302,7 +330,7 @@ export function TaskStages({
               <span className="stage-number">{stage}</span>
               <span className="stage-copy">
                 <strong>{first.stageTitle}</strong>
-                <small>{first.stageDescription}</small>
+                {showCues && <small>{first.stageDescription}</small>}
               </span>
               <span
                 className="stage-progress"
@@ -368,8 +396,8 @@ export function TaskStages({
                         {task.name}
                         {skip && <span className="skip-badge">Skipped</span>}
                       </div>
-                      <Prescription text={task.prescription} />
-                      <p className="task-cue">{task.cue}</p>
+                      <Prescription text={task.prescription} collapse={!showCues} />
+                      {showCues && <p className="task-cue">{task.cue}</p>}
                       {/* Above the logger, because it is what decides what
                           goes into it. */}
                       {advice && !isDone && !skip && <LastTime advice={advice} />}
@@ -409,6 +437,7 @@ export function TaskStages({
                 );
               })}
             </div>
+            {stageExtras?.[first.stageTitle] && <div className="stage-extra">{stageExtras[first.stageTitle]}</div>}
           </details>
         );
       })}

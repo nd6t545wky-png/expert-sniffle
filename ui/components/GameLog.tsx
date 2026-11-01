@@ -43,6 +43,11 @@ export interface GameLogProps {
   games: Game[];
   onSave: (game: Game) => void;
   onRemove: (id: string) => void;
+  /**
+   * Just today's game and the form, for the workout's Compete stage. The
+   * season summary and the full log stay on the Throwing tab.
+   */
+  compact?: boolean;
 }
 
 interface Draft {
@@ -104,7 +109,8 @@ const COUNTS: { key: keyof Draft; label: string; hint?: string }[] = [
   { key: "hitBatters", label: "Hit batters" },
 ];
 
-export function GameLog({ date, games, onSave, onRemove }: GameLogProps) {
+export function GameLog({ date, games: allGames, onSave, onRemove, compact = false }: GameLogProps) {
+  const games = compact ? allGames.filter((game) => game.date === date) : allGames;
   const [draft, setDraft] = useState<Draft>(() => blank(date));
   const [problems, setProblems] = useState<string[]>([]);
   const [open, setOpen] = useState(false);
@@ -185,6 +191,7 @@ export function GameLog({ date, games, onSave, onRemove }: GameLogProps) {
 
   return (
     <>
+      {!compact && (
       <Card>
         <CardHead
           title="Season"
@@ -226,9 +233,13 @@ export function GameLog({ date, games, onSave, onRemove }: GameLogProps) {
           </>
         )}
       </Card>
+      )}
 
       <Card>
-        <CardHead title="Game log" detail="One line per outing" />
+        <CardHead
+          title={compact ? "Log today's game" : "Game log"}
+          detail={compact ? "Pitches, strikes and the line — tomorrow's plan reads the pitch count" : "One line per outing"}
+        />
 
         {games.length === 0 ? null : (
           <div className="scroll-x">
