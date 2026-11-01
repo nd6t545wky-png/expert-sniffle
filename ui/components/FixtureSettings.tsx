@@ -47,6 +47,12 @@ const format = (date: string) =>
 
 const NEXT_FEW = 4;
 
+/** "vs Beenleigh Hawks" from "Summer Round 6 vs Beenleigh Hawks (Friday)". */
+function opponentOf(label: string): string {
+  const match = /\b(vs|at) (.+?)(?: \(|$)/.exec(label);
+  return match ? `${match[1]} ${match[2]}` : "";
+}
+
 export function FixtureSettings({
   fixtures,
   today,
@@ -62,26 +68,24 @@ export function FixtureSettings({
 
   const everything = allFixtures(fixtures);
   const ahead = everything.filter((fixture) => fixture.date >= today);
-  // This week and next by default; a week picked on the calendar outside
-  // those two shows that week instead. The rest of the season is a tap away.
+  // One week: this one, or the week picked on the calendar. The rest of the
+  // season is a tap away.
   const pickedOther =
-    currentWeek !== undefined &&
-    selectedWeek !== undefined &&
-    selectedWeek !== currentWeek &&
-    selectedWeek !== currentWeek + 1;
-  const weeks =
-    currentWeek === undefined ? null : pickedOther ? [selectedWeek as number] : [currentWeek, currentWeek + 1];
-  const inWeeks = weeks
-    ? (pickedOther ? everything : ahead).filter((fixture) => weeks.includes(programmeWeekFor(fixture.date) ?? -1))
-    : ahead.slice(0, NEXT_FEW);
+    currentWeek !== undefined && selectedWeek !== undefined && selectedWeek !== currentWeek;
+  const week = currentWeek === undefined ? null : pickedOther ? (selectedWeek as number) : currentWeek;
+  const inWeeks =
+    week === null
+      ? ahead.slice(0, NEXT_FEW)
+      : everything.filter((fixture) => programmeWeekFor(fixture.date) === week);
   const upcoming = showAll ? ahead : inWeeks;
+  // The draw names the opponent in each label ("Summer Round 5 at Redcliffe
+  // Padres (Sunday)"); a week's two games share one.
+  const opponents = [...new Set(inWeeks.map((fixture) => opponentOf(fixture.label)).filter(Boolean))];
   const heading = showAll
     ? "All upcoming games"
-    : weeks === null
+    : week === null
       ? "Upcoming games"
-      : pickedOther
-        ? `Games in week ${selectedWeek}`
-        : "Games this week and next";
+      : `${pickedOther ? `Week ${week}` : "This week"}${opponents.length ? ` · ${opponents.join(" & ")}` : ""}`;
 
   function add() {
     if (!date) return;
@@ -99,7 +103,7 @@ export function FixtureSettings({
       />
 
       {upcoming.length === 0 && ahead.length > 0 ? (
-        <p className="recovery-caveat">No games {pickedOther ? "that week" : "this week or next"}.</p>
+        <p className="recovery-caveat">No games {pickedOther ? "that week" : "this week"}.</p>
       ) : upcoming.length === 0 ? (
         <p className="recovery-caveat">
           Nothing left on the calendar. If your season is not over, add the remaining games below —
