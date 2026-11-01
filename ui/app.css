@@ -3131,6 +3131,137 @@ h1, h2, h3, h4 { font-weight: 600; }
 .checkout-throws { margin-bottom: 12px; }
 
 /* ---------------------------------------------------------------------------
+ * The club's second colour.
+ *
+ * The Cubs badge is purple and teal; the app used the purple everywhere and
+ * the teal in one place (the wordmark's rule). The split now: purple for
+ * what you press and where you are, teal for what is done and what is moving
+ * — progress, ticks, finished stages, section labels. On the Norths theme the
+ * secondary is the muted ink, so these rules read as neutral there.
+ *
+ * Text on a teal fill is white in light mode and dark ink in dark mode, where
+ * the teal lightens to #3fb8c7 and white on it falls under AA.
+ * ------------------------------------------------------------------------- */
+.app-shell { --team-on-secondary: #ffffff; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .app-shell { --team-on-secondary: #0b0b0c; }
+}
+:root[data-theme="dark"] .app-shell { --team-on-secondary: #0b0b0c; }
+
+/* Section labels: "STEP 1 · CHECK IN", eyebrows above page titles. */
+.app-shell .eyebrow,
+.app-shell .today-step { color: var(--team-secondary); }
+
+/* Progress runs from the club's purple into its teal — the badge's two
+   colours, filling as the day's tasks are ticked off. The deep purple is used
+   in both modes; on a dark track the lavender would wash the start out. */
+.app-shell .session-progress span {
+  background: linear-gradient(90deg, var(--accent-fill, var(--team-primary)), var(--team-secondary));
+}
+
+/* A ticked task and a finished stage are teal: done reads at a glance. */
+.app-shell .task-check:checked { border-color: var(--team-secondary); background: var(--team-secondary); }
+.app-shell .task-check:checked::after { color: var(--team-on-secondary); }
+.app-shell .task-stage.stage-complete .stage-number { color: var(--team-on-secondary); background: var(--team-secondary); }
+.app-shell .task-stage.stage-current { border-color: color-mix(in srgb, var(--team-secondary) 55%, var(--line)); }
+.app-shell .day-tab.done::after { color: var(--team-secondary); }
+
+/* The tab you are on, inside a page and in the bottom bar: a teal underline.
+   A pseudo-element rather than an extra box-shadow layer: in dark mode the
+   theme's raised shadow is `none`, and `none` inside a shadow list makes the
+   whole declaration invalid, so the underline vanished there. */
+.app-shell .segment.active,
+.app-shell .bottom-nav button.active { position: relative; }
+.app-shell .segment.active::after,
+.app-shell .bottom-nav button.active::after {
+  content: "";
+  position: absolute;
+  left: 28%;
+  right: 28%;
+  bottom: 3px;
+  height: 3px;
+  border-radius: var(--radius-sm);
+  background: var(--team-secondary);
+}
+
+/* Throws today, the session's headline numbers. */
+.app-shell .card-head > strong { color: var(--team-secondary); }
+.app-shell .status.green { color: var(--team-on-secondary); background: var(--team-secondary); }
+
+/* ---------------------------------------------------------------------------
+ * Today's head and the tasks-done bar.
+ * ------------------------------------------------------------------------- */
+.today-head .dashboard-heading { margin-bottom: 8px; }
+.today-head .team-wordmark { margin-top: 6px; }
+.today-head .today-blurb { margin: 6px 0 0; color: var(--muted); font-size: 13px; line-height: 1.45; }
+.app-shell .team-wordmark::before { background: var(--team-secondary); }
+
+/* The tasks-done bar: thicker, on a teal-tinted track, with the count in teal. */
+.app-shell .today-progress .session-progress {
+  height: 12px;
+  background: var(--team-secondary-soft);
+}
+.app-shell .today-progress > span:last-child { color: var(--team-secondary); font-weight: 800; }
+
+/* A stage's count turns teal once the stage is done. */
+.app-shell .task-stage.stage-complete .stage-progress strong { color: var(--team-secondary); }
+/* Today's tab in the week strip carries a teal rule along its foot. */
+.app-shell .day-tab.active { position: relative; }
+.app-shell .day-tab.active::before {
+  content: "";
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  bottom: 5px;
+  height: 3px;
+  border-radius: var(--radius-sm);
+  background: var(--team-secondary);
+}
+
+/* ---------------------------------------------------------------------------
+ * The Cubs purple, the same in dark mode.
+ *
+ * Dark mode swapped the club's deep purple for a pale lavender everywhere —
+ * on text, where a light tone is needed to be read on black, but also on
+ * every filled shape, where it is not. Filled shapes now keep the badge's
+ * purple (#3a2268) with white on it in both modes; purple *text* in dark mode
+ * keeps the lighter tone, because the deep purple on near-black is unreadable.
+ * ------------------------------------------------------------------------- */
+.app-shell.theme-coomera {
+  --accent-fill: #3a2268;
+  --on-accent-fill: #ffffff;
+}
+.app-shell.theme-coomera .btn-primary,
+.app-shell.theme-coomera .btn-dark,
+.app-shell.theme-coomera .day-chip.today,
+.app-shell.theme-coomera .score-orb,
+.app-shell.theme-coomera .bullpen-pitch-strip span,
+.app-shell.theme-coomera .velocity-band.ceiling {
+  color: var(--on-accent-fill);
+  border-color: transparent;
+  background: var(--accent-fill);
+}
+.app-shell.theme-coomera .day-tab.active,
+.app-shell.theme-coomera .day-tab[aria-current="date"] {
+  color: var(--on-accent-fill);
+  border-color: transparent;
+  background: var(--accent-fill);
+}
+.app-shell.theme-coomera .day-tab.active span,
+.app-shell.theme-coomera .day-tab.active strong,
+.app-shell.theme-coomera .day-tab[aria-current="date"] span,
+.app-shell.theme-coomera .day-tab[aria-current="date"] strong,
+.app-shell.theme-coomera .velocity-band.ceiling * {
+  color: var(--on-accent-fill);
+}
+/* The check-in sliders' filled track and thumb are a fill too: the deep
+   purple in both modes. Set on the input so its track and thumb inherit it. */
+.app-shell.theme-coomera .range-wrap input[type="range"] {
+  --blue: var(--accent-fill);
+  --team-primary: var(--accent-fill);
+}
+
+/* ---------------------------------------------------------------------------
  * Phones: no zoom on focus, and a bottom bar that stays at the bottom.
  *
  * iOS Safari zooms the page whenever a text field under 16px gets focus, and

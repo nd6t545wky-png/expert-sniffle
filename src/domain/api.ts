@@ -8,6 +8,7 @@
 
 import { IsoDate } from "./state";
 import { SyncGetResponse, SyncPutResponse } from "./sync";
+import type { BallclubzOuting } from "./ballclubz";
 
 export type Fetcher = typeof fetch;
 
@@ -304,6 +305,13 @@ export class PitchingOsApi {
   lookupBarcode(code: string) {
     return this.request<{ found: boolean; code?: string; product?: FoodProduct }>(
       `/api/nutrition/barcode?code=${encodeURIComponent(code)}`
+    );
+  }
+
+  /** The athlete's league game log, read off their Ballclubz player page by the server. */
+  ballclubzPitching(page: string) {
+    return this.request<{ page: string; outings: BallclubzOuting[]; fetchedAt: string }>(
+      `/api/ballclubz/pitching?page=${encodeURIComponent(page)}`
     );
   }
 

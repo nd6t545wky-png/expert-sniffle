@@ -62,6 +62,8 @@ import { ArmCare } from "./components/ArmCare";
 import { Card, CardHead, PageHead, Segments } from "./components/Page";
 import { ThrowCountCard } from "./components/ThrowCountCard";
 import { GameLog } from "./components/GameLog";
+import { BallclubzCard } from "./components/BallclubzCard";
+import { mergeBallclubzOutings } from "../src/domain/ballclubz";
 import { VelocityBlock } from "./components/VelocityBlock";
 import { weekFromTasks } from "../src/domain/velocity";
 import { formatIsoDate } from "./state/formatDate";
@@ -189,6 +191,9 @@ const PAGE_IDS: Page[] = [
   "profile",
   "account",
 ];
+
+/** Dylan's GBL D1 2026-27 player page; changeable in Settings. */
+const DEFAULT_BALLCLUBZ_URL = "https://ballclubz.com/gbld1/teams/9971819/687154";
 
 const DEFAULT_TARGETS: NutritionTargets = { calories: 0, protein: 0, carbs: 0, fat: 0, fluid: 0 };
 
@@ -358,9 +363,19 @@ export function App() {
   // The programme's prescriptions depend on training maxes and on Friday's
   // game pitch count, so give it those before building a session.
   useEffect(() => {
+    // A logged game is the day's game pitches too — whether it was typed in
+    // or came from Ballclubz — so the day after a start is built as recovery
+    // without the count being entered twice. A check-out figure still wins.
+    const post = { ...((state?.post ?? {}) as Record<string, { gamePitches?: number } | undefined>) };
+    for (const game of readGames(state?.games)) {
+      const pitches = Number(game.pitches);
+      if (!Number.isFinite(pitches) || pitches <= 0) continue;
+      const day = post[game.date];
+      if (!day?.gamePitches) post[game.date] = { ...(day ?? {}), gamePitches: pitches };
+    }
     setProgrammeContext({
       pbs: state?.pbs as never,
-      post: state?.post as never,
+      post: post as never,
     });
   }, [state]);
 
@@ -1222,6 +1237,53 @@ export function App() {
   const historyFailedAt = useRef(0);
   const [historyStatus, setHistoryStatus] = useState("");
 
+  // --- Ballclubz -------------------------------------------------------------
+  //
+  // League game lines, read off the athlete's public Ballclubz player page each
+  // time the app opens and filed into the game log. The server fetches the
+  // page (Ballclubz sends no CORS headers); merging happens here, because the
+  // game log lives in the encrypted state only this device can write.
+  const ballclubzUrl = (() => {
+    const stored = (state?.profile as { ballclubzUrl?: unknown } | undefined)?.ballclubzUrl;
+    return typeof stored === "string" ? stored : DEFAULT_BALLCLUBZ_URL;
+  })();
+  const [ballclubzStatus, setBallclubzStatus] = useState("");
+  const [ballclubzBusy, setBallclubzBusy] = useState(false);
+  const ballclubzChecked = useRef("");
+
+  const checkBallclubz = useCallback(async () => {
+    if (!ballclubzUrl) return;
+    setBallclubzBusy(true);
+    try {
+      const result = await api.ballclubzPitching(ballclubzUrl);
+      const counted = mergeBallclubzOutings(games, result.outings);
+      if (counted.added || counted.updated) {
+        update((draft) => {
+          const merged = mergeBallclubzOutings(readGames(draft.games), result.outings);
+          return merged.added || merged.updated ? { ...draft, games: merged.games } : draft;
+        });
+      }
+      const at = new Date().toLocaleTimeString("en-AU", { hour: "numeric", minute: "2-digit" });
+      setBallclubzStatus(
+        `Checked ${at}: ${result.outings.length} ${result.outings.length === 1 ? "outing" : "outings"} on Ballclubz` +
+          (counted.added || counted.updated
+            ? ` — ${counted.added} new${counted.updated ? `, ${counted.updated} corrected` : ""}.`
+            : ", all already in your game log.")
+      );
+    } catch (error) {
+      setBallclubzStatus(`Couldn't check Ballclubz: ${error instanceof Error ? error.message : String(error)}`);
+    } finally {
+      setBallclubzBusy(false);
+    }
+  }, [api, ballclubzUrl, games, update]);
+
+  useEffect(() => {
+    if (!state || !isValidSyncKey(syncKey) || !ballclubzUrl) return;
+    if (ballclubzChecked.current === ballclubzUrl) return;
+    ballclubzChecked.current = ballclubzUrl;
+    void checkBallclubz();
+  }, [state, syncKey, ballclubzUrl, checkBallclubz]);
+
   useEffect(() => {
     if (!state || !isValidSyncKey(syncKey) || historyBusy.current) return;
     if (Date.now() - historyFailedAt.current < HISTORY_RETRY_MS) return;
@@ -1448,6 +1510,7 @@ export function App() {
       {view === "session" && (
         <DailyPlan
           sidePanel={false}
+          team={{ name: team.name, logo: team.logo, alt: team.alt }}
           // The game log lives in the game day's Compete stage: log the outing
           // where the outing is on the plan.
           stageExtras={{
@@ -1902,7 +1965,7 @@ export function App() {
           backup have their own page. */}
       {view === "profile" && (
         <>
-          <PageHead eyebrow="Settings" title="Your programme." intro="Club nights, recovery kit, sharing." />
+          <PageHead eyebrow="Settings" title="Your programme." intro="Club nights, recovery kit, league games, sharing." />
           <RecoverySettings
             equipment={recoveryEquipment}
             intentPercent={intentPercent}
@@ -1931,6 +1994,16 @@ export function App() {
             hasSyncKey={isValidSyncKey(syncKey)}
             buildSummary={buildPhysioSummaryNow}
             hasBloods={bloodPanels.length > 0}
+          />
+          <BallclubzCard
+            url={ballclubzUrl}
+            status={ballclubzStatus}
+            busy={ballclubzBusy}
+            hasSyncKey={isValidSyncKey(syncKey)}
+            onChange={(next) =>
+              update((draft) => ({ ...draft, profile: { ...(draft.profile ?? {}), ballclubzUrl: next } }))
+            }
+            onCheckNow={() => void checkBallclubz()}
           />
           {/* The BFR cuff block: reference rather than a daily task — twice a
               week, and it depends on equipment the athlete may not have. */}
