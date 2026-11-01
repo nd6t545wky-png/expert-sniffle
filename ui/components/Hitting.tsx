@@ -65,7 +65,7 @@ export function Field({
 
   return (
     <svg
-      className={`field${onTap ? " tappable" : ""}`}
+      className={`hit-field${onTap ? " tappable" : ""}`}
       viewBox={`0 0 ${w} ${h}`}
       role="img"
       aria-label={label}

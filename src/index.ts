@@ -113,13 +113,42 @@ async function sha256Hex(value: string): Promise<string> {
   return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
-async function recoveryKeyHash(request: Request): Promise<string | null> {
+function rawRecoveryKeyHash(token: string): Promise<string> {
+  return sha256Hex(`pitching-os-sync-v1:${token}`);
+}
+
+/**
+ * Keys known to belong to an account, cached per isolate for a few minutes.
+ *
+ * Any 64-hex string used to pass as a recovery key, so anyone could call the
+ * paid endpoints (the nutrition AI, video analysis, uploads) by making one up.
+ * A key now counts only if an account workspace holds it — which, with
+ * accounts invite-only, means only invited players get in.
+ */
+const REGISTERED_KEYS = new Map<string, number>();
+const REGISTERED_KEY_TTL_MS = 10 * 60 * 1000;
+
+async function isRegisteredKey(env: Env, keyHash: string): Promise<boolean> {
+  const seen = REGISTERED_KEYS.get(keyHash);
+  if (seen && Date.now() - seen < REGISTERED_KEY_TTL_MS) return true;
+  const row = await env.SYNC_DB.prepare("SELECT 1 AS ok FROM account_workspaces WHERE key_hash = ?1")
+    .bind(keyHash)
+    .first<{ ok: number }>();
+  if (!row) return false;
+  REGISTERED_KEYS.set(keyHash, Date.now());
+  return true;
+}
+
+/** The caller's recovery key hash — only when it belongs to an account. */
+async function recoveryKeyHash(request: Request, env: Env): Promise<string | null> {
   const token = bearerToken(request);
-  return token ? sha256Hex(`pitching-os-sync-v1:${token}`) : null;
+  if (!token) return null;
+  const keyHash = await rawRecoveryKeyHash(token);
+  return (await isRegisteredKey(env, keyHash)) ? keyHash : null;
 }
 
 async function nutritionKeyHash(request: Request, env: Env, url: URL): Promise<string | null> {
-  const recoveryHash = await recoveryKeyHash(request);
+  const recoveryHash = await recoveryKeyHash(request, env);
   if (recoveryHash) return recoveryHash;
   try {
     const session = await accountSession(request, env, url);
@@ -608,6 +637,7 @@ async function purgeWorkspace(keyHash: string, env: Env): Promise<void> {
     } while (cursor);
   }
 
+  REGISTERED_KEYS.delete(keyHash);
   await env.SYNC_DB.batch([
     env.SYNC_DB.prepare("DELETE FROM sync_snapshots WHERE key_hash = ?1").bind(keyHash),
     env.SYNC_DB.prepare("DELETE FROM oauth_states WHERE key_hash = ?1").bind(keyHash),
@@ -627,7 +657,7 @@ async function purgeWorkspace(keyHash: string, env: Env): Promise<void> {
 async function handleSync(request: Request, env: Env): Promise<Response> {
   const token = bearerToken(request);
   if (!token || !SYNC_KEY_PATTERN.test(token)) return json({ error: "Invalid recovery key" }, 401);
-  const keyHash = await sha256Hex(`pitching-os-sync-v1:${token}`);
+  const keyHash = await rawRecoveryKeyHash(token);
 
   if (request.method === "GET") {
     const row = await env.SYNC_DB.prepare(
@@ -645,6 +675,10 @@ async function handleSync(request: Request, env: Env): Promise<Response> {
     if (contentLength > MAX_PAYLOAD_BYTES + 10_000) return json({ error: "Sync payload is too large" }, 413);
     const body = await request.json().catch(() => null);
     if (!isSyncBody(body)) return json({ error: "Invalid sync payload" }, 400);
+    // A first upload starts a new snapshot, and only an account's key may.
+    if (body.expectedRevision === 0 && !(await isRegisteredKey(env, keyHash))) {
+      return json({ error: "Sign in and join with an invite to turn on cloud autosave" }, 403);
+    }
     const now = new Date().toISOString();
 
     const write =
@@ -698,7 +732,7 @@ async function handleSync(request: Request, env: Env): Promise<Response> {
 }
 
 async function handleTrainingHistory(request: Request, env: Env, url: URL): Promise<Response> {
-  const keyHash = await recoveryKeyHash(request);
+  const keyHash = await recoveryKeyHash(request, env);
   if (!keyHash) return json({ error: "Cloud autosave recovery key required" }, 401);
 
   if (request.method === "GET") {
@@ -789,7 +823,7 @@ async function handleTrainingHistory(request: Request, env: Env, url: URL): Prom
 // -- Oura integration --------------------------------------------------------
 
 async function ouraStatus(request: Request, env: Env): Promise<Response> {
-  const keyHash = await recoveryKeyHash(request);
+  const keyHash = await recoveryKeyHash(request, env);
   if (!keyHash) return json({ error: "Cloud autosave recovery key required" }, 401);
   const row = await env.SYNC_DB.prepare(
     "SELECT scopes, updated_at FROM oauth_connections WHERE key_hash = ?1 AND provider = 'oura'"
@@ -805,7 +839,7 @@ async function ouraStatus(request: Request, env: Env): Promise<Response> {
 }
 
 async function beginOuraOAuth(request: Request, env: Env, url: URL): Promise<Response> {
-  const keyHash = await recoveryKeyHash(request);
+  const keyHash = await recoveryKeyHash(request, env);
   if (!keyHash) return json({ error: "Turn on cloud autosave before connecting Oura" }, 401);
   if (!isOuraConfigured(env)) return json({ error: "Oura application credentials have not been added yet" }, 503);
 
@@ -1223,7 +1257,7 @@ async function rowToSummary(row: { summary_encrypted: string } | null, env: Env)
 }
 
 async function dailyHealth(request: Request, env: Env, url: URL): Promise<Response> {
-  const keyHash = await recoveryKeyHash(request);
+  const keyHash = await recoveryKeyHash(request, env);
   if (!keyHash) return json({ error: "Cloud autosave recovery key required" }, 401);
   const day = url.searchParams.get("day");
   if (!validDay(day)) return json({ error: "A valid day is required" }, 400);
@@ -1303,7 +1337,7 @@ async function dailyHealth(request: Request, env: Env, url: URL): Promise<Respon
 }
 
 async function healthHistory(request: Request, env: Env, url: URL): Promise<Response> {
-  const keyHash = await recoveryKeyHash(request);
+  const keyHash = await recoveryKeyHash(request, env);
   if (!keyHash) return json({ error: "Cloud autosave recovery key required" }, 401);
   const endDay = url.searchParams.get("end");
   if (!validDay(endDay)) return json({ error: "A valid end day is required" }, 400);
@@ -1373,7 +1407,7 @@ async function healthHistory(request: Request, env: Env, url: URL): Promise<Resp
 }
 
 async function disconnectOura(request: Request, env: Env): Promise<Response> {
-  const keyHash = await recoveryKeyHash(request);
+  const keyHash = await recoveryKeyHash(request, env);
   if (!keyHash) return json({ error: "Cloud autosave recovery key required" }, 401);
   const row = await env.SYNC_DB.prepare(
     "SELECT access_token_encrypted FROM oauth_connections WHERE key_hash = ?1 AND provider = 'oura'"
@@ -1402,7 +1436,7 @@ async function disconnectOura(request: Request, env: Env): Promise<Response> {
 // -- Apple Health integration (Shortcuts-based upload) -----------------------
 
 async function appleStatus(request: Request, env: Env): Promise<Response> {
-  const keyHash = await recoveryKeyHash(request);
+  const keyHash = await recoveryKeyHash(request, env);
   if (!keyHash) return json({ error: "Cloud autosave recovery key required" }, 401);
   const row = await env.SYNC_DB.prepare(
     "SELECT created_at, updated_at, last_upload_at FROM apple_health_connections WHERE key_hash = ?1"
@@ -1413,7 +1447,7 @@ async function appleStatus(request: Request, env: Env): Promise<Response> {
 }
 
 async function createAppleUploadToken(request: Request, env: Env, url: URL): Promise<Response> {
-  const keyHash = await recoveryKeyHash(request);
+  const keyHash = await recoveryKeyHash(request, env);
   if (!keyHash) return json({ error: "Turn on cloud autosave before setting up Apple Health" }, 401);
   const uploadToken = randomHex();
   const uploadTokenHash = await sha256Hex(`pitching-os-apple-health-v1:${uploadToken}`);
@@ -1476,7 +1510,7 @@ async function ingestAppleHealth(request: Request, env: Env): Promise<Response> 
 }
 
 async function disconnectAppleHealth(request: Request, env: Env): Promise<Response> {
-  const keyHash = await recoveryKeyHash(request);
+  const keyHash = await recoveryKeyHash(request, env);
   if (!keyHash) return json({ error: "Cloud autosave recovery key required" }, 401);
   await env.SYNC_DB.batch([
     env.SYNC_DB.prepare("DELETE FROM apple_health_connections WHERE key_hash = ?1").bind(keyHash),
@@ -1493,7 +1527,7 @@ function boundedContentLength(request: Request, maximum: number): number | null 
 }
 
 async function listMechanicsVideos(request: Request, env: Env): Promise<Response> {
-  const keyHash = await recoveryKeyHash(request);
+  const keyHash = await recoveryKeyHash(request, env);
   if (!keyHash) return json({ error: "Cloud autosave recovery key required" }, 401);
   const rows = await env.SYNC_DB.prepare(
     `SELECT id, key_hash, object_key, file_name, content_type, byte_size, angle,
@@ -1530,7 +1564,7 @@ async function listMechanicsVideos(request: Request, env: Env): Promise<Response
 }
 
 async function uploadMechanicsVideo(request: Request, env: Env, url: URL, id: string): Promise<Response> {
-  const keyHash = await recoveryKeyHash(request);
+  const keyHash = await recoveryKeyHash(request, env);
   if (!keyHash) return json({ error: "Cloud autosave recovery key required" }, 401);
   if (!MEDIA_ID_PATTERN.test(id)) return json({ error: "Invalid video identifier" }, 400);
 
@@ -1609,7 +1643,7 @@ function aiJsonRecord(value: unknown): Record<string, unknown> {
 }
 
 async function analyzeMechanicsContactSheet(request: Request, env: Env, url: URL): Promise<Response> {
-  const keyHash = await recoveryKeyHash(request);
+  const keyHash = await recoveryKeyHash(request, env);
   if (!keyHash) return json({ error: "Cloud autosave recovery key required" }, 401);
 
   const contentType = (request.headers.get("Content-Type") || "").split(";")[0].toLowerCase();
@@ -1781,7 +1815,7 @@ async function analyzeMechanicsContactSheet(request: Request, env: Env, url: URL
 }
 
 async function deleteMechanicsVideo(request: Request, env: Env, id: string): Promise<Response> {
-  const keyHash = await recoveryKeyHash(request);
+  const keyHash = await recoveryKeyHash(request, env);
   if (!keyHash) return json({ error: "Cloud autosave recovery key required" }, 401);
   const row = await env.SYNC_DB.prepare("SELECT object_key FROM mechanics_videos WHERE id = ?1 AND key_hash = ?2")
     .bind(id, keyHash)
@@ -1813,7 +1847,7 @@ function sessionPhotoKey(keyHash: string, day: string): string {
 }
 
 async function uploadSessionPhoto(request: Request, env: Env, day: string): Promise<Response> {
-  const keyHash = await recoveryKeyHash(request);
+  const keyHash = await recoveryKeyHash(request, env);
   if (!keyHash) return json({ error: "Cloud autosave recovery key required" }, 401);
   if (!validDay(day)) return json({ error: "A valid session day is required" }, 400);
 
@@ -1835,7 +1869,7 @@ async function uploadSessionPhoto(request: Request, env: Env, day: string): Prom
 }
 
 async function sessionPhotoContent(request: Request, env: Env, day: string): Promise<Response> {
-  const keyHash = await recoveryKeyHash(request);
+  const keyHash = await recoveryKeyHash(request, env);
   if (!keyHash) return json({ error: "Cloud autosave recovery key required" }, 401);
   if (!validDay(day)) return json({ error: "A valid session day is required" }, 400);
 
@@ -1856,7 +1890,7 @@ async function sessionPhotoContent(request: Request, env: Env, day: string): Pro
 }
 
 async function deleteSessionPhoto(request: Request, env: Env, day: string): Promise<Response> {
-  const keyHash = await recoveryKeyHash(request);
+  const keyHash = await recoveryKeyHash(request, env);
   if (!keyHash) return json({ error: "Cloud autosave recovery key required" }, 401);
   if (!validDay(day)) return json({ error: "A valid session day is required" }, 400);
 
@@ -1869,7 +1903,7 @@ async function deleteSessionPhoto(request: Request, env: Env, day: string): Prom
 
 /** Which days have a photo, so the recap list does not guess. */
 async function listSessionPhotos(request: Request, env: Env): Promise<Response> {
-  const keyHash = await recoveryKeyHash(request);
+  const keyHash = await recoveryKeyHash(request, env);
   if (!keyHash) return json({ error: "Cloud autosave recovery key required" }, 401);
 
   const mediaBucket = privateMediaBucket(env);
@@ -3178,7 +3212,7 @@ async function handleShares(request: Request, env: Env, url: URL): Promise<Respo
     return json({ payload: row.payload, updatedAt: row.updated_at });
   }
 
-  const keyHash = await recoveryKeyHash(request);
+  const keyHash = await recoveryKeyHash(request, env);
   if (!keyHash) return json({ error: "Cloud autosave recovery key required" }, 401);
 
   // --- Listing your own, so they can be seen and revoked.

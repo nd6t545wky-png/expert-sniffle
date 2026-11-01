@@ -7,6 +7,8 @@
  * throwing hand, weight), so an existing profile keeps everything it had.
  */
 
+import { WeeklySchedule, readSchedule } from "./weeklySchedule";
+
 export type PlayerType = "pitcher" | "two-way" | "position";
 
 export const PLAYER_TYPES: readonly { value: PlayerType; label: string; help: string }[] = [
@@ -36,6 +38,10 @@ export const GBL_LEAGUE = "gbld1";
 
 export interface AthleteProfile {
   name: string;
+  /** Team training nights and game days; see weeklySchedule.ts. */
+  schedule: WeeklySchedule;
+  /** Winter-ball club, or "" for none. */
+  winterTeam: string;
   /** The team the athlete plays for now — a GBL club or anything typed. */
   team: string;
   playerType: PlayerType;
@@ -65,10 +71,13 @@ export function readAthleteProfile(value: unknown): Partial<AthleteProfile> {
   };
 }
 
-/** The sign-up questions still unanswered. Player type is the one that is never assumed. */
+/**
+ * Whether the sign-up questions are answered. Player type and the weekly
+ * schedule are never assumed: the week is built around the schedule.
+ */
 export function profileComplete(value: unknown): boolean {
   const profile = readAthleteProfile(value);
-  return Boolean(profile.name && profile.team && profile.playerType);
+  return Boolean(profile.name && profile.team && profile.playerType && readSchedule(value));
 }
 
 export function gblTeam(team: string | undefined) {
