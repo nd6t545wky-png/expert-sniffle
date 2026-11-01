@@ -1,4 +1,4 @@
-import { Fragment, ReactNode, useState } from "react";
+import { Fragment, ReactNode, useEffect, useRef, useState } from "react";
 
 /**
  * App shell.
@@ -174,6 +174,95 @@ const MORE_ITEMS: { id: PageId; label: string }[] = [
   { id: "account", label: "Account & backup" },
 ];
 
+/**
+ * Keep the phone's bottom bar on the bottom of the screen.
+ *
+ * `position: fixed` pins to the layout viewport, and on iOS Safari that can
+ * fall out of step with what is on screen — after a zoom, or after the
+ * keyboard closes — leaving the bar stranded mid-screen. The visual viewport
+ * is what the athlete actually sees, so the bar is shifted by the difference
+ * between its bottom edge and the layout viewport's. While the keyboard is up
+ * the bar is hidden instead of riding on top of it.
+ */
+function useBottomNavPinned() {
+  const navRef = useRef<HTMLElement | null>(null);
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
+
+  useEffect(() => {
+    const viewport = window.visualViewport;
+    if (!viewport) return;
+    let frame = 0;
+    const update = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        const shift = viewport.offsetTop + viewport.height - window.innerHeight;
+        navRef.current?.style.setProperty("--nav-shift", `${Math.round(shift)}px`);
+        // A keyboard takes well over a hundred pixels; a toolbar sliding in
+        // and out does not.
+        setKeyboardOpen(window.innerHeight - viewport.height > 150 && isTyping());
+      });
+    };
+    const settle = () => {
+      // Safari sometimes reports the old size for a beat after the keyboard
+      // closes; check again once it has finished animating.
+      update();
+      window.setTimeout(update, 350);
+    };
+    viewport.addEventListener("resize", update);
+    viewport.addEventListener("scroll", update);
+    window.addEventListener("focusout", settle);
+    window.addEventListener("orientationchange", settle);
+    update();
+    return () => {
+      cancelAnimationFrame(frame);
+      viewport.removeEventListener("resize", update);
+      viewport.removeEventListener("scroll", update);
+      window.removeEventListener("focusout", settle);
+      window.removeEventListener("orientationchange", settle);
+    };
+  }, []);
+
+  return { navRef, keyboardOpen };
+}
+
+/**
+ * True while the athlete is scrolling down the page, false when they scroll
+ * back up or are near the top. Drives `nav-condensed`, which shrinks the tab
+ * bar to its icons and the top bar to its title so the workout gets the room.
+ */
+function useCondensedOnScroll(): boolean {
+  const [condensed, setCondensed] = useState(false);
+  useEffect(() => {
+    let last = window.scrollY;
+    let frame = 0;
+    const onScroll = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        const y = window.scrollY;
+        // A few pixels of slack so a finger resting on the glass does not
+        // make the bar flicker between states.
+        if (y < 48) setCondensed(false);
+        else if (y > last + 6) setCondensed(true);
+        else if (y < last - 6) setCondensed(false);
+        last = y;
+      });
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener("scroll", onScroll);
+    };
+  }, []);
+  return condensed;
+}
+
+function isTyping(): boolean {
+  const active = document.activeElement;
+  if (!active) return false;
+  if (active instanceof HTMLTextAreaElement || active instanceof HTMLSelectElement) return true;
+  return active instanceof HTMLInputElement && !["checkbox", "radio", "range", "button", "submit"].includes(active.type);
+}
+
 export interface ShellProps {
   /** Theme class the prototype puts on the shell, e.g. `theme-norths`. */
   theme: string;
@@ -214,6 +303,8 @@ export function Shell({
   children,
 }: ShellProps) {
   const [moreOpen, setMoreOpen] = useState(false);
+  const { navRef, keyboardOpen } = useBottomNavPinned();
+  const condensed = useCondensedOnScroll();
 
   // Pages without a tab of their own light up the tab they live under.
   const activeNav: PageId =
@@ -228,7 +319,7 @@ export function Shell({
             : page;
 
   return (
-    <div className={`app-shell ${theme}`}>
+    <div className={`app-shell ${theme}${keyboardOpen ? " keyboard-open" : ""}${condensed ? " nav-condensed" : ""}`}>
       <aside className="sidebar">
         <div className="brand">
           <img className="brand-mark" src="/mark.svg" alt="" />
@@ -310,7 +401,7 @@ export function Shell({
         <div className="content">{children}</div>
       </main>
 
-      <nav className="bottom-nav" aria-label="Primary navigation">
+      <nav className="bottom-nav" aria-label="Primary navigation" ref={navRef}>
         {BOTTOM_NAV.map((item) => {
           // "More" opens the sheet rather than navigating, as in the prototype.
           const isMore = item.id === "profile";
