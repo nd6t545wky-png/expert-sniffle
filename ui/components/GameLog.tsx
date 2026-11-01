@@ -220,9 +220,21 @@ export function GameLog({ date, games: allGames, onSave, onRemove, compact = fal
             </ul>
 
             <p className="fineprint">
-              {totals.pitches} pitches, {totals.strikes} strikes, {totals.battersFaced} batters
-              faced, {totals.strikeouts} strikeouts, {totals.walks} walks, {totals.hits} hits,{" "}
-              {totals.earnedRuns} earned.
+              {/* Strikes and batters faced only where some game recorded them —
+                  a Ballclubz line carries neither, and "0 strikes" would say
+                  something false. */}
+              {[
+                `${totals.pitches} pitches`,
+                totals.pitchesWithStrikes > 0 ? `${totals.strikes} strikes` : null,
+                totals.battersFaced > 0 ? `${totals.battersFaced} batters faced` : null,
+                `${totals.strikeouts} strikeouts`,
+                `${totals.walks} walks`,
+                `${totals.hits} hits`,
+                `${totals.earnedRuns} earned`,
+              ]
+                .filter(Boolean)
+                .join(", ")}
+              .
             </p>
 
             {findings.map((finding) => (

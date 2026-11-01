@@ -1,5 +1,6 @@
 import { createAuth } from "./auth";
 import { isEmptyPayload, readApplePayload, suppliedFields } from "./domain/appleHealth";
+import { parsePitchingGameLog, parsePlayerPageUrl, playerPageUrl } from "./domain/ballclubz";
 import type { Env } from "./env";
 
 const MAX_PAYLOAD_BYTES = 750_000;
@@ -2713,6 +2714,32 @@ async function deleteAccount(request: Request, env: Env, url: URL): Promise<Resp
   return json({ deleted: true });
 }
 
+// -- Ballclubz -------------------------------------------------------------------
+
+const BALLCLUBZ_MAX_BYTES = 2_000_000;
+
+async function ballclubzPitching(url: URL): Promise<Response> {
+  const page = parsePlayerPageUrl(url.searchParams.get("page") ?? "");
+  if (!page) return json({ error: "That is not a Ballclubz player page link" }, 400);
+  const source = playerPageUrl(page);
+  let response: Response;
+  try {
+    response = await fetch(source, {
+      headers: { "User-Agent": "DylanPitchingOS/1 (one player's own training log)" },
+      // A league page changes a few times a week; fifteen minutes is plenty
+      // fresh and keeps repeat opens off their server.
+      cf: { cacheTtl: 900, cacheEverything: true },
+    } as RequestInit);
+  } catch {
+    return json({ error: "Ballclubz could not be reached" }, 502);
+  }
+  if (!response.ok) return json({ error: `Ballclubz returned ${response.status}` }, 502);
+  const html = await response.text();
+  if (html.length > BALLCLUBZ_MAX_BYTES) return json({ error: "Ballclubz page was unexpectedly large" }, 502);
+  const outings = parsePitchingGameLog(html);
+  return json({ page: source, outings, fetchedAt: new Date().toISOString() });
+}
+
 // -- Router -------------------------------------------------------------------
 
 async function routeApi(request: Request, env: Env, url: URL): Promise<Response | null> {
@@ -2730,6 +2757,16 @@ async function routeApi(request: Request, env: Env, url: URL): Promise<Response 
     if (!(await nutritionKeyHash(request, env, url))) return json({ error: "Sign in again to look up food" }, 401);
     const limited = await enforceAccountRateLimit(request, env, url, env.INTEGRATION_RATE_LIMITER, "food");
     return limited ?? usdaBarcode(request, env, url);
+  }
+
+  // The athlete's league game log, read off their public Ballclubz player
+  // page. Proxied because Ballclubz sends no CORS headers; parsed here so the
+  // page's HTML never reaches the client. Only a ballclubz.com player page is
+  // fetched — the URL is rebuilt from validated parts, never passed through.
+  if (url.pathname === "/api/ballclubz/pitching" && request.method === "GET") {
+    if (!(await nutritionKeyHash(request, env, url))) return json({ error: "Turn on cloud autosave to read Ballclubz" }, 401);
+    const limited = await enforceAccountRateLimit(request, env, url, env.INTEGRATION_RATE_LIMITER, "ballclubz");
+    return limited ?? ballclubzPitching(url);
   }
 
   if (url.pathname === "/api/health" && request.method === "GET") {

@@ -148,6 +148,17 @@ export interface SeasonTotals {
   walks: number;
   strikeouts: number;
   hitBatters: number;
+  /**
+   * The denominators for the rates, counted only over games that recorded the
+   * numerator's field. A game imported from a source that does not publish
+   * strikes (Ballclubz) stores them as absent; counting its pitches in the
+   * strike rate's denominator would read as a pitcher throwing no strikes.
+   */
+  pitchesWithStrikes: number;
+  battersFacedWithFirstPitch: number;
+  /** Strikeouts and walks in games that recorded batters faced. */
+  strikeoutsWithBatters: number;
+  walksWithBatters: number;
 }
 
 export function seasonTotals(games: Game[]): SeasonTotals {
@@ -169,7 +180,18 @@ export function seasonTotals(games: Game[]): SeasonTotals {
     walks: sum((game) => game.walks),
     strikeouts: sum((game) => game.strikeouts),
     hitBatters: sum((game) => game.hitBatters),
+    pitchesWithStrikes: sumWhere(games, (game) => known(game.strikes), (game) => game.pitches),
+    battersFacedWithFirstPitch: sumWhere(games, (game) => known(game.firstPitchStrikes), (game) => game.battersFaced),
+    strikeoutsWithBatters: sumWhere(games, (game) => known(game.battersFaced), (game) => game.strikeouts),
+    walksWithBatters: sumWhere(games, (game) => known(game.battersFaced), (game) => game.walks),
   };
+}
+
+/** Recorded, as opposed to absent: zero counts, null and undefined do not. */
+const known = (value: unknown) => typeof value === "number" && Number.isFinite(value);
+
+function sumWhere(games: Game[], keep: (game: Game) => boolean, pick: (game: Game) => number): number {
+  return games.filter(keep).reduce((total, game) => total + (Number(pick(game)) || 0), 0);
 }
 
 /**
@@ -215,10 +237,10 @@ export function seasonRates(totals: SeasonTotals): SeasonRate[] {
   const era = per9(totals.earnedRuns);
   const whip =
     innings > 0 ? Math.round(((totals.walks + totals.hits) / innings) * 100) / 100 : null;
-  const strikePct = pct(totals.strikes, totals.pitches);
-  const fpsPct = pct(totals.firstPitchStrikes, totals.battersFaced);
-  const kPct = pct(totals.strikeouts, totals.battersFaced);
-  const bbPct = pct(totals.walks, totals.battersFaced);
+  const strikePct = pct(totals.strikes, totals.pitchesWithStrikes);
+  const fpsPct = pct(totals.firstPitchStrikes, totals.battersFacedWithFirstPitch);
+  const kPct = pct(totals.strikeoutsWithBatters, totals.battersFaced);
+  const bbPct = pct(totals.walksWithBatters, totals.battersFaced);
 
   return [
     rate(
