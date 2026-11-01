@@ -102,6 +102,8 @@ export interface HealthFormProps {
   hasSyncKey: boolean;
   /** A game day asks whether the athlete is playing. */
   gameDay?: boolean;
+  /** False for a position player: the game-role question drops "Pitching". */
+  pitcher?: boolean;
 }
 
 export function HealthForm({
@@ -114,6 +116,7 @@ export function HealthForm({
   onPrefill,
   hasSyncKey,
   gameDay = false,
+  pitcher = true,
 }: HealthFormProps) {
   const [manual, setManual] = useState<Partial<ReadinessInputs>>({});
   const [gameRole, setGameRole] = useState<GameRole | null>(null);
@@ -223,7 +226,7 @@ export function HealthForm({
         />
 
         <form id="pre-form" className="form-grid" data-date={date} onSubmit={handleSubmit}>
-          {gameDay && <GameRoleField value={gameRole} onChange={setGameRole} />}
+          {gameDay && <GameRoleField value={gameRole} onChange={setGameRole} pitcher={pitcher} />}
 
           <div className="field">
             <label htmlFor="sleepHours">Sleep duration</label>

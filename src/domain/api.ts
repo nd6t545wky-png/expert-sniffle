@@ -8,7 +8,7 @@
 
 import { IsoDate } from "./state";
 import { SyncGetResponse, SyncPutResponse } from "./sync";
-import type { BallclubzOuting } from "./ballclubz";
+import type { BallclubzOuting, BattingLine, TeamFixture } from "./ballclubz";
 
 export type Fetcher = typeof fetch;
 
@@ -37,6 +37,16 @@ export class ApiError extends Error {
     super(message);
     this.name = "ApiError";
   }
+}
+
+export interface Invite {
+  code: string;
+  note: string;
+  createdAt: string;
+  usedAt?: string | null;
+  usedBy?: string | null;
+  revokedAt?: string | null;
+  link: string;
 }
 
 export class PitchingOsApi {
@@ -101,16 +111,38 @@ export class PitchingOsApi {
       user?: { id: string; name: string; email: string; image: string };
       syncKey?: string;
       updatedAt?: string;
+      /** The first account: the only one that can invite players. */
+      isOwner?: boolean;
+      /** Signed in, no workspace yet, and accounts are invite-only. */
+      needsInvite?: boolean;
     }>("/api/account/status");
   }
 
-  createWorkspace(legacySyncKey?: string) {
+  // --- invites (owner only) ---------------------------------------------------
+
+  listInvites() {
+    return this.request<{ invites: Invite[] }>("/api/invites");
+  }
+
+  createInvite(note: string) {
+    return this.request<Invite>("/api/invites", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ note }),
+    });
+  }
+
+  revokeInvite(code: string) {
+    return this.request<{ revoked: boolean }>(`/api/invites/${encodeURIComponent(code)}`, { method: "DELETE" });
+  }
+
+  createWorkspace(legacySyncKey?: string, invite?: string) {
     return this.request<{ workspaceReady: boolean; syncKey: string; adoptedExistingData: boolean; updatedAt: string }>(
       "/api/account/workspace",
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(legacySyncKey ? { legacySyncKey } : {}),
+        body: JSON.stringify({ ...(legacySyncKey ? { legacySyncKey } : {}), ...(invite ? { invite } : {}) }),
       }
     );
   }
@@ -308,9 +340,16 @@ export class PitchingOsApi {
     );
   }
 
+  /** A GBL team's draw, and the named player's Ballclubz page when found on the roster. */
+  ballclubzTeam(team: string, name: string) {
+    return this.request<{ team: string; fixtures: TeamFixture[]; playerPage: string | null; fetchedAt: string }>(
+      `/api/ballclubz/team?team=${encodeURIComponent(team)}&name=${encodeURIComponent(name)}`
+    );
+  }
+
   /** The athlete's league game log, read off their Ballclubz player page by the server. */
   ballclubzPitching(page: string) {
-    return this.request<{ page: string; outings: BallclubzOuting[]; fetchedAt: string }>(
+    return this.request<{ page: string; outings: BallclubzOuting[]; batting?: BattingLine[]; fetchedAt: string }>(
       `/api/ballclubz/pitching?page=${encodeURIComponent(page)}`
     );
   }

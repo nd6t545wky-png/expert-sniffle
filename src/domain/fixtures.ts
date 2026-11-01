@@ -186,9 +186,9 @@ export function readAthleteFixtures(value: unknown): Fixture[] {
 }
 
 /** The built-in draw plus whatever the athlete has entered, in date order. */
-export function allFixtures(athlete: readonly Fixture[] = []): Fixture[] {
+export function allFixtures(athlete: readonly Fixture[] = [], builtIn: readonly Fixture[] = FIXTURES): Fixture[] {
   const merged = new Map<string, Fixture>();
-  for (const fixture of [...FIXTURES, ...athlete]) merged.set(fixture.id, fixture);
+  for (const fixture of [...builtIn, ...athlete]) merged.set(fixture.id, fixture);
   return [...merged.values()].sort((a, b) => a.date.localeCompare(b.date));
 }
 
@@ -282,4 +282,32 @@ export function scheduleClash(
     phase: week.phaseName,
     message: `${fixture.label} is on this week, and the programme has these weeks as “${week.phaseName}” — planned with no game in them. The week has been re-phased around it: each game day is built as one, the day before the first game is the programme's pre-game primer instead of a recovery day, and the intent cap that unload put on the rest of the week is lifted, because a taper holds intensity where an unload drops it. Throwing volume and the gym are still set for a week off, which may well be right going into a final and is your call. Check the build-up before training it as written.`,
   };
+}
+
+/**
+ * The draw for the athlete's own teams.
+ *
+ * The built-in list is the original athlete's: the Coomera Cubs' summer draw
+ * and the Norths winter rounds. A Cubs player gets the Cubs draw; a Norths
+ * winter player the Norths rounds; a player at another GBL club gets that
+ * club's draw as read off Ballclubz (`teamDraw`), and anyone else only the
+ * games they enter themselves.
+ */
+export function builtInFixturesFor(
+  team: string | undefined,
+  winterClub: string | undefined,
+  teamDraw: readonly { date: IsoDate; opponent: string; home: boolean }[] = []
+): Fixture[] {
+  const summer =
+    team === "Coomera Cubs"
+      ? FIXTURES.filter((fixture) => fixture.team === "Coomera Cubs")
+      : teamDraw.map((game) => ({
+          id: `draw-${(team ?? "team").toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${game.date}`,
+          date: game.date,
+          team: team ?? "My team",
+          label: `${game.home ? "vs" : "at"} ${game.opponent} (${weekday(game.date)})`,
+          source: "official" as const,
+        }));
+  const winter = winterClub === "Norths" ? FIXTURES.filter((fixture) => fixture.team === "Norths") : [];
+  return [...winter, ...summer];
 }

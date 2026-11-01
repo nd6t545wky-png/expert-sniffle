@@ -56,13 +56,19 @@ import { Workload, ThrowingEntry } from "./components/Workload";
 import { Tracking } from "./components/Tracking";
 import { ProgressSpec } from "./components/ProgressTrends";
 import { AnnualPlan } from "./components/AnnualPlan";
-import { Account } from "./components/Account";
+import { Account, INVITE_STORAGE } from "./components/Account";
 import { BaselineTesting } from "./components/BaselineTesting";
 import { ArmCare } from "./components/ArmCare";
 import { Card, CardHead, PageHead, Segments } from "./components/Page";
 import { ThrowCountCard } from "./components/ThrowCountCard";
 import { GameLog } from "./components/GameLog";
 import { BallclubzCard } from "./components/BallclubzCard";
+import { ProfileCard, ProfileSetup } from "./components/ProfileSetup";
+import { Hitting } from "./components/Hitting";
+import { asPositionPlayer } from "../src/domain/positionPlayer";
+import { HittingGame, readHittingGames } from "../src/domain/hitting";
+import { BattingLine } from "../src/domain/ballclubz";
+import { AthleteProfile, gblTeam, hits as roleHits, pitches as rolePitches, profileComplete, readAthleteProfile, winterClubOf } from "../src/domain/athleteProfile";
 import { mergeBallclubzOutings } from "../src/domain/ballclubz";
 import { VelocityBlock } from "./components/VelocityBlock";
 import { weekFromTasks } from "../src/domain/velocity";
@@ -85,7 +91,7 @@ import { RetestSheet } from "./components/RetestSheet";
 import { TransferCard } from "./components/TransferCard";
 import { applyRecoveryProtocol } from "../src/domain/recoveryTasks";
 import { applyTeamTraining, readTeamTraining } from "../src/domain/teamTraining";
-import { allFixtures, fixtureOn, fixturesBetween, readAthleteFixtures, scheduleClash } from "../src/domain/fixtures";
+import { allFixtures, builtInFixturesFor, fixtureOn, fixturesBetween, readAthleteFixtures, scheduleClash } from "../src/domain/fixtures";
 import { readRetests } from "../src/domain/retest";
 import { velocityTransfer } from "../src/domain/velocityTransfer";
 import { Bloods } from "./components/Bloods";
@@ -116,6 +122,8 @@ import { Meal, Nutrition, NutritionTargets } from "./components/Nutrition";
 type Page = PageId;
 
 const SYNC_KEY_STORAGE = "dylan-pitching-os-sync-key-v1";
+/** Which account the local copy on this device belongs to. */
+const ACCOUNT_OWNER_STORAGE = "dylan-pitching-os-account-v1";
 const PAGE_STORAGE = "dylan-pitching-os-page-v1";
 
 /** Quiet period after the last change before autosave uploads. */
@@ -160,6 +168,7 @@ const PAGE_TITLES: Record<Page, string> = {
   integrations: "Connections",
   profile: "Settings",
   account: "Account & backup",
+  hitting: "Hitting",
 };
 
 const THROWING_TABS = [
@@ -192,6 +201,19 @@ const PAGE_IDS: Page[] = [
   "account",
 ];
 
+/** A club's colours and badge, where the app has them; the plain palette otherwise. */
+function teamBranding(name: string): { name: string; logo: string; alt: string; theme: string } {
+  if (name === "Coomera Cubs") {
+    // `theme-coomera`, not `theme-cubs`: the stylesheet has only ever defined
+    // the former, and a class nothing matches leaves every team colour unset.
+    return { name, logo: "/assets/coomera-cubs-logo.png", alt: "Coomera Cubs Baseball Club logo", theme: "theme-coomera" };
+  }
+  if (name === "Norths") {
+    return { name, logo: "/assets/norths-baseball-logo.jpg", alt: "Norths Baseball Club logo", theme: "theme-norths" };
+  }
+  return { name, logo: "", alt: "", theme: "" };
+}
+
 /** Dylan's GBL D1 2026-27 player page; changeable in Settings. */
 const DEFAULT_BALLCLUBZ_URL = "https://ballclubz.com/gbld1/teams/9971819/687154";
 
@@ -201,7 +223,7 @@ const DEFAULT_TARGETS: NutritionTargets = { calories: 0, protein: 0, carbs: 0, f
 const MAX_LIFT_CARDS = 6;
 
 export function App() {
-  const { state, load, update, submissions, planFor } = useAppState();
+  const { state, load, update, submissions, planFor, reset } = useAppState();
   // Remembering the open page is what stops a reload — or a service-worker
   // update, which reloads without asking — from dropping the athlete back on
   // the dashboard mid-session. sessionStorage, not localStorage: a genuinely
@@ -212,7 +234,15 @@ export function App() {
       // page. The Oura callback returns with ?page=integrations&oura=…, and
       // before this the app ignored the query entirely and opened on Today —
       // so a connection that had just succeeded looked like nothing happened.
-      const requested = new URLSearchParams(window.location.search).get("page");
+      const params = new URLSearchParams(window.location.search);
+      // An invite link: keep the code for after sign-in, and open the page
+      // where signing in happens.
+      const invite = params.get("invite");
+      if (invite) {
+        window.localStorage.setItem(INVITE_STORAGE, invite);
+        return "account";
+      }
+      const requested = params.get("page");
       if (requested && PAGE_IDS.includes(requested as Page)) return requested as Page;
       const stored = window.sessionStorage.getItem(PAGE_STORAGE);
       return stored && PAGE_IDS.includes(stored as Page) ? (stored as Page) : "session";
@@ -431,7 +461,14 @@ export function App() {
     () => readAthleteFixtures((state?.profile as { fixtures?: unknown } | undefined)?.fixtures),
     [state]
   );
-  const fixtures = useMemo(() => allFixtures(athleteFixtures), [athleteFixtures]);
+  // The draw for this athlete's own teams — see `builtInFixturesFor`.
+  const builtInFixtures = useMemo(() => {
+    const profile = state?.profile as { teamDraw?: { team?: string; games?: unknown } } | undefined;
+    const team = readAthleteProfile(state?.profile).team ?? "Coomera Cubs";
+    const draw = profile?.teamDraw?.team === team && Array.isArray(profile.teamDraw.games) ? profile.teamDraw.games : [];
+    return builtInFixturesFor(team, winterClubOf(state?.profile), draw as never);
+  }, [state?.profile]);
+  const fixtures = useMemo(() => allFixtures(athleteFixtures, builtInFixtures), [athleteFixtures, builtInFixtures]);
 
   /**
    * Whether a game is on, on a given date.
@@ -621,6 +658,10 @@ export function App() {
     [state]
   );
 
+  // Pitcher, two-way or position player, from the sign-up answers. Read here
+  // because the day's session depends on it.
+  const playerRole = readAthleteProfile(state?.profile).playerType ?? "pitcher";
+
   const sessionWithRecovery = useMemo(() => {
     if (!state || !selectedWeekPlan)
       return {
@@ -699,7 +740,8 @@ export function App() {
       // shoulder that has been on hold since day 1.
       const managed = applySorenessProtocol(merged.session, soreness);
       return {
-        session: managed.session,
+        // A position player gets the same day without the pitcher's throwing.
+        session: playerRole === "position" ? asPositionPlayer(managed.session) : managed.session,
         note: merged.note,
         teamNote: team.note,
         sorenessNote: managed.note,
@@ -731,6 +773,7 @@ export function App() {
     resolvedOn,
     gameOn,
     gamesInWeekOf,
+    playerRole,
   ]);
 
   const session = sessionWithRecovery.session;
@@ -1173,6 +1216,52 @@ export function App() {
     );
   }, [api, state, syncKey, update]);
 
+  // --- Whose data is on this device ------------------------------------------
+  //
+  // Several players can share one phone. The local copy is one player's, so
+  // when a different account signs in it starts empty and fills from that
+  // account's cloud copy; without this, autosave would merge the last player's
+  // training into the new player's account. A brand-new player always starts
+  // empty for the same reason, even on a device no account has claimed yet.
+  const handleAccount = useCallback(
+    (account: { userId: string; syncKey: string; isNew: boolean }) => {
+      let owner: string | null = null;
+      try {
+        owner = window.localStorage.getItem(ACCOUNT_OWNER_STORAGE);
+      } catch {
+        owner = null;
+      }
+      if (account.isNew || (owner && owner !== account.userId)) {
+        reset();
+        lastSynced.current = "";
+      }
+      try {
+        window.localStorage.setItem(ACCOUNT_OWNER_STORAGE, account.userId);
+      } catch {
+        // Private mode: nothing to remember the owner in; the next sign-in rechecks.
+      }
+      if (isValidSyncKey(account.syncKey)) setSyncKey(account.syncKey);
+    },
+    [reset, setSyncKey]
+  );
+
+  // Signing out saves what is pending, then clears this device, so the next
+  // person to pick it up does not open someone else's training.
+  const handleSignedOut = useCallback(async () => {
+    if (state && isValidSyncKey(syncKey)) {
+      await syncNow({ api, syncKey }, state).catch(() => undefined);
+    }
+    reset();
+    lastSynced.current = "";
+    setSyncKeyState("");
+    try {
+      window.localStorage.removeItem(SYNC_KEY_STORAGE);
+      window.localStorage.removeItem(ACCOUNT_OWNER_STORAGE);
+    } catch {
+      // Already gone.
+    }
+  }, [api, reset, state, syncKey]);
+
   // --- Autosave ------------------------------------------------------------
   //
   // Local changes reach the encrypted cloud snapshot on their own. Two things
@@ -1245,7 +1334,10 @@ export function App() {
   // game log lives in the encrypted state only this device can write.
   const ballclubzUrl = (() => {
     const stored = (state?.profile as { ballclubzUrl?: unknown } | undefined)?.ballclubzUrl;
-    return typeof stored === "string" ? stored : DEFAULT_BALLCLUBZ_URL;
+    if (typeof stored === "string") return stored;
+    // Found by name on the team roster (below) for everyone else.
+    const athlete = readAthleteProfile(state?.profile);
+    return athlete.team === "Coomera Cubs" && /sippel/i.test(athlete.name ?? "") ? DEFAULT_BALLCLUBZ_URL : "";
   })();
   const [ballclubzStatus, setBallclubzStatus] = useState("");
   const [ballclubzBusy, setBallclubzBusy] = useState(false);
@@ -1257,6 +1349,15 @@ export function App() {
     try {
       const result = await api.ballclubzPitching(ballclubzUrl);
       const counted = mergeBallclubzOutings(games, result.outings);
+      // The official batting line is the league's, not the athlete's: stored
+      // whole each time, replacing the last copy.
+      const batting = result.batting ?? [];
+      if (batting.length && JSON.stringify(batting) !== JSON.stringify((state?.profile as { leagueBatting?: unknown } | undefined)?.leagueBatting)) {
+        update((draft) => ({
+          ...draft,
+          profile: { ...((draft.profile ?? {}) as object), leagueBatting: batting },
+        }));
+      }
       if (counted.added || counted.updated) {
         update((draft) => {
           const merged = mergeBallclubzOutings(readGames(draft.games), result.outings);
@@ -1276,6 +1377,45 @@ export function App() {
       setBallclubzBusy(false);
     }
   }, [api, ballclubzUrl, games, update]);
+
+  // A GBL club's draw, and this player's page on its roster: refreshed once a
+  // session (and again whenever the team or name changes). The draw becomes the
+  // athlete's fixtures; the page link, the first time it is found, becomes the
+  // Ballclubz link above — never overwriting one the athlete set themselves.
+  const teamChecked = useRef("");
+  useEffect(() => {
+    if (!state || !isValidSyncKey(syncKey)) return;
+    const athlete = readAthleteProfile(state.profile);
+    const club = gblTeam(athlete.team);
+    if (!club || club.name === "Coomera Cubs" && !athlete.playerType) return;
+    const key = `${club.name}|${athlete.name ?? ""}`;
+    if (teamChecked.current === key) return;
+    teamChecked.current = key;
+    api
+      .ballclubzTeam(club.name, athlete.name ?? "")
+      .then((result) =>
+        update(
+          (draft) => {
+            const profile = (draft.profile ?? {}) as Record<string, unknown>;
+            return {
+              ...draft,
+              profile: {
+                ...profile,
+                teamDraw: { team: result.team, fetchedAt: result.fetchedAt, games: result.fixtures },
+                ...(result.playerPage && typeof profile.ballclubzUrl !== "string" ? { ballclubzUrl: result.playerPage } : {}),
+              },
+            };
+          }
+          // Recorded as a local change, so sync keeps it rather than the
+          // older cloud copy of the profile.
+        )
+      )
+      .catch(() => {
+        // Offline or Ballclubz down: the fixtures already stored stand, and
+        // the next session tries again.
+        teamChecked.current = "";
+      });
+  }, [api, state, syncKey, update]);
 
   useEffect(() => {
     if (!state || !isValidSyncKey(syncKey) || !ballclubzUrl) return;
@@ -1445,15 +1585,35 @@ export function App() {
   const winter = !["summer_first", "summer_second", "summer_break", "transition_summer"].includes(
     weekMeta.phaseId
   );
-  const profile = (state.profile ?? {}) as { winterTeam?: string; summerTeam?: string };
-  const team = winter
-    ? { name: profile.winterTeam || "Norths", logo: "/assets/norths-baseball-logo.jpg", alt: "Norths Baseball Club logo", theme: "theme-norths" }
-    // `theme-coomera`, not `theme-cubs`. The stylesheet has only ever defined
-    // the former — v60 built the class from the string "coomera" — so the
-    // rename in the rewrite meant that for every summer week, more than half
-    // the year, the shell carried a class nothing matched: no purple, and
-    // every `var(--team-primary)` in the app resolving to nothing at all.
-    : { name: profile.summerTeam || "Coomera Cubs", logo: "/assets/coomera-cubs-logo.png", alt: "Coomera Cubs Baseball Club logo", theme: "theme-coomera" };
+  // The team on screen is the athlete's own: their club's colours and badge
+  // where the app has them (the Cubs and Norths), the plain palette otherwise.
+  // The winter club only applies to an athlete who has one — the Cubs' original
+  // athlete plays winter for Norths, which is what an unset winter club means
+  // for a Cubs profile written before the question existed.
+  const athlete = readAthleteProfile(state.profile);
+  const winterClub = winterClubOf(state.profile);
+  const team = teamBranding(winter && winterClub ? winterClub : athlete.team ?? "Coomera Cubs");
+  const needsProfile = !profileComplete(state.profile) && view !== "account";
+  const role = athlete.playerType ?? "pitcher";
+  // A position player has no throwing pages; a pitcher no hitting page. A
+  // stale link to one lands on Today instead of an empty screen.
+  const offRole =
+    (!rolePitches(role) && (view === "workload" || view === "mechanics")) || (!roleHits(role) && view === "hitting");
+  const shown: Page | null = needsProfile ? null : offRole ? "session" : view;
+  const saveProfile = (answers: AthleteProfile) =>
+    update((draft) => ({
+      ...draft,
+      profile: {
+        ...((draft.profile ?? {}) as object),
+        ...answers,
+        // Fixed before the answers land: an unanswered winter club is read off
+        // the profile's age, and answering the sign-up questions changes that.
+        winterTeam: winterClubOf(draft.profile) ?? "",
+        // The names older code reads, kept in step.
+        summerTeam: answers.team,
+        throwingHand: answers.throws,
+      },
+    }));
 
   // Today's throw count, on the Throwing tab. The same card the workout used
   // to carry: it tallies from ticked tasks and can be overridden by hand.
@@ -1490,9 +1650,21 @@ export function App() {
       athleteName={String((state.profile as { name?: string })?.name ?? "Athlete")}
       athleteDetail={(() => {
         const p = state.profile as { throwingHand?: string; weight?: number | string } | undefined;
-        const hand = p?.throwingHand === "Left" ? "LHP" : "RHP";
+        const hand =
+          role === "position"
+            ? athlete.bats === "Left"
+              ? "Bats L"
+              : athlete.bats === "Switch"
+                ? "Bats S"
+                : "Bats R"
+            : role === "two-way"
+              ? `Two-way · ${p?.throwingHand === "Left" ? "LHP" : "RHP"}`
+              : p?.throwingHand === "Left"
+                ? "LHP"
+                : "RHP";
         return p?.weight ? `${hand} · ${p.weight} kg` : hand;
       })()}
+      role={role}
       onCycleAppearance={() =>
         update((draft) => {
           const current = (draft.profile ?? {}) as { appearance?: string };
@@ -1505,16 +1677,28 @@ export function App() {
       onNavigate={setPage}
       onOpenPlan={() => setPage(plan.status === "locked" ? "readiness" : "session")}
     >
+      {needsProfile && <ProfileSetup profile={state.profile} onSave={saveProfile} />}
+
       {/* Today: the week strip, then check-in → workout → check-out, all on
           one screen. Dashboard and the separate check-in page fold into it. */}
-      {view === "session" && (
+      {shown === "session" && (
         <DailyPlan
           sidePanel={false}
           team={{ name: team.name, logo: team.logo, alt: team.alt }}
           // The game log lives in the game day's Compete stage: log the outing
           // where the outing is on the plan.
           stageExtras={{
-            Compete: (
+            Compete: role === "position" ? (
+              <button type="button" className="btn btn-dark" onClick={() => setPage("hitting")}>
+                Log at-bats
+              </button>
+            ) : (
+              <>
+              {role === "two-way" && (
+                <button type="button" className="btn btn-outline" onClick={() => setPage("hitting")}>
+                  Log at-bats
+                </button>
+              )}
               <GameLog
                 compact
                 date={date}
@@ -1524,6 +1708,7 @@ export function App() {
                   update((draft) => ({ ...draft, games: readGames(draft.games).filter((game) => game.id !== id) }))
                 }
               />
+              </>
             ),
           }}
           checkIn={
@@ -1537,12 +1722,13 @@ export function App() {
               onPrefill={handleHealthPrefill}
               hasSyncKey={isValidSyncKey(syncKey)}
               gameDay={isGameDay}
+              pitcher={role !== "position"}
             />
           }
           checkOut={
             <Tracking
               mode="checkout"
-              throwLog={throwCard}
+              throwLog={role === "position" ? undefined : throwCard}
               date={date}
               plan={plan}
               reports={reports}
@@ -1594,6 +1780,7 @@ export function App() {
               />
               {isGameDay && submission && (
                 <GameRoleCard
+                  pitcher={role !== "position"}
                   value={gameRole}
                   onChange={(role) =>
                     update((draft) => {
@@ -1696,7 +1883,7 @@ export function App() {
         />
       )}
 
-      {view === "workload" && (
+      {shown === "workload" && (
         <>
           <PageHead eyebrow="Throwing" title="Your arm's work." intro={formatIsoDate(date)} />
           <Segments label="Throwing sections" options={THROWING_TABS} value={throwingTab} onChange={setThrowingTab} />
@@ -1760,7 +1947,7 @@ export function App() {
         </>
       )}
 
-      {view === "mechanics" && (
+      {shown === "mechanics" && (
         <Mechanics
           api={api}
           date={date}
@@ -1782,7 +1969,7 @@ export function App() {
         />
       )}
 
-      {view === "tracking" && (
+      {shown === "tracking" && (
         <>
           <PageHead eyebrow="Progress" title="What's changing." intro="Trends, testing and bloods over time." />
           <Segments label="Progress sections" options={PROGRESS_TABS} value={progressTab} onChange={setProgressTab} />
@@ -1867,7 +2054,7 @@ export function App() {
         </>
       )}
 
-      {view === "bloods" && (
+      {shown === "bloods" && (
         <Bloods
           panels={bloodPanels}
           today={today.openDate}
@@ -1881,7 +2068,7 @@ export function App() {
         />
       )}
 
-      {view === "annual" && (
+      {shown === "annual" && (
         <>
           <AnnualPlan
             initialView="month"
@@ -1907,7 +2094,7 @@ export function App() {
         </>
       )}
 
-      {view === "nutrition" && (
+      {shown === "nutrition" && (
         <Nutrition
           api={api}
           date={date}
@@ -1958,14 +2145,34 @@ export function App() {
         />
       )}
 
-      {view === "integrations" && <Integrations api={api} hasSyncKey={isValidSyncKey(syncKey)} />}
+      {shown === "hitting" && (
+        <Hitting
+          date={date}
+          games={readHittingGames(state.hitting)}
+          bats={athlete.bats ?? "Right"}
+          leagueBatting={
+            Array.isArray((state.profile as { leagueBatting?: unknown })?.leagueBatting)
+              ? ((state.profile as { leagueBatting: BattingLine[] }).leagueBatting)
+              : []
+          }
+          onSaveGame={(game: HittingGame) =>
+            update((draft) => ({
+              ...draft,
+              hitting: { ...((draft.hitting ?? {}) as Record<string, HittingGame>), [game.date]: game },
+            }))
+          }
+        />
+      )}
+
+      {shown === "integrations" && <Integrations api={api} hasSyncKey={isValidSyncKey(syncKey)} />}
 
       {/* Settings: how the programme fits your week and your kit, and who
           you share it with. Testing data moved to Progress; account and
           backup have their own page. */}
-      {view === "profile" && (
+      {shown === "profile" && (
         <>
-          <PageHead eyebrow="Settings" title="Your programme." intro="Club nights, recovery kit, league games, sharing." />
+          <PageHead eyebrow="Settings" title="Your programme." intro="Profile, club nights, recovery kit, league games, sharing." />
+          <ProfileCard profile={state.profile} onSave={saveProfile} />
           <RecoverySettings
             equipment={recoveryEquipment}
             intentPercent={intentPercent}
@@ -2023,12 +2230,14 @@ export function App() {
         </>
       )}
 
-      {view === "account" && (
+      {shown === "account" && (
         <>
           <Account
             api={api}
             syncKey={syncKey}
             onSyncKey={setSyncKey}
+            onAccount={handleAccount}
+            onSignedOut={handleSignedOut}
             onSyncNow={handleSyncNow}
             syncStatus={syncStatus}
             state={state}

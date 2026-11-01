@@ -25,6 +25,7 @@ export type PageId =
   | "bloods"
   | "integrations"
   | "account"
+  | "hitting"
   | "profile";
 
 export interface BottomNavItem {
@@ -101,6 +102,14 @@ const ICON_PATHS: Record<PageId, ReactNode> = {
       <path d="M7.5 4.5c1.6 2 2.4 4.6 2.4 7.5s-.8 5.5-2.4 7.5M16.5 4.5c-1.6 2-2.4 4.6-2.4 7.5s.8 5.5 2.4 7.5" />
     </>
   ),
+  // A bat and a ball, for at-bats.
+  hitting: (
+    <>
+      <path d="M5 19.2 15.4 6.8c1.1-1.3 2.9-1.4 3.9-.3 1 1-.1 2.8-1.4 3.9L6.3 20.4Z" />
+      <path d="m3.2 20.8 1.6-1.6" />
+      <circle cx="6.5" cy="6.5" r="2.5" />
+    </>
+  ),
   // A shield with a key slot, for account and backup.
   account: (
     <>
@@ -136,43 +145,50 @@ function NavIcon({ id }: { id: PageId }) {
  * Progress is what has changed over time, not the after-session form it used
  * to open on.
  */
-export const BOTTOM_NAV: BottomNavItem[] = [
-  { id: "session", label: "Today", icon: <NavIcon id="session" /> },
-  { id: "workload", label: "Throwing", icon: <NavIcon id="workload" /> },
-  { id: "tracking", label: "Progress", icon: <NavIcon id="tracking" /> },
-  { id: "nutrition", label: "Food", icon: <NavIcon id="nutrition" /> },
-  { id: "profile", label: "More", icon: <NavIcon id="profile" /> },
-];
+const TAB = {
+  today: { id: "session", label: "Today" },
+  throwing: { id: "workload", label: "Throwing" },
+  hitting: { id: "hitting", label: "Hitting" },
+  progress: { id: "tracking", label: "Progress" },
+  food: { id: "nutrition", label: "Food" },
+  season: { id: "annual", label: "Season" },
+  settings: { id: "profile", label: "Settings" },
+  connections: { id: "integrations", label: "Connections" },
+  account: { id: "account", label: "Account & backup" },
+} as const satisfies Record<string, { id: PageId; label: string }>;
 
-/** Sidebar groups: the same five jobs, with More's pages listed out. */
-export const SIDEBAR_GROUPS: { label: string; items: { id: PageId; label: string }[] }[] = [
-  {
-    label: "Train",
-    items: [
-      { id: "session", label: "Today" },
-      { id: "workload", label: "Throwing" },
-      { id: "tracking", label: "Progress" },
-      { id: "nutrition", label: "Food" },
-    ],
-  },
-  {
-    label: "More",
-    items: [
-      { id: "annual", label: "Season" },
-      { id: "profile", label: "Settings" },
-      { id: "integrations", label: "Connections" },
-      { id: "account", label: "Account & backup" },
-    ],
-  },
-];
+/** Which kind of athlete the nav is for; matches the profile's player type. */
+export type NavRole = "pitcher" | "two-way" | "position";
 
-/** What the phone's "More" button opens. */
-const MORE_ITEMS: { id: PageId; label: string }[] = [
-  { id: "annual", label: "Season" },
-  { id: "profile", label: "Settings" },
-  { id: "integrations", label: "Connections" },
-  { id: "account", label: "Account & backup" },
-];
+/**
+ * The tabs for each kind of athlete. Pitchers keep the five they had. A
+ * two-way player trades Food's tab for Hitting (Food moves under More), and a
+ * position player has Hitting where Throwing was — no throwing programme.
+ */
+export function navFor(role: NavRole = "pitcher") {
+  const main =
+    role === "two-way"
+      ? [TAB.today, TAB.throwing, TAB.hitting, TAB.progress]
+      : role === "position"
+        ? [TAB.today, TAB.hitting, TAB.progress, TAB.food]
+        : [TAB.today, TAB.throwing, TAB.progress, TAB.food];
+  const more = role === "two-way" ? [TAB.food, TAB.season, TAB.settings, TAB.connections, TAB.account] : [TAB.season, TAB.settings, TAB.connections, TAB.account];
+  return {
+    bottom: [...main, { id: "profile" as PageId, label: "More" }].map((item) => ({
+      ...item,
+      icon: <NavIcon id={item.id} />,
+    })) as BottomNavItem[],
+    sidebar: [
+      { label: "Train", items: main as { id: PageId; label: string }[] },
+      { label: "More", items: more as { id: PageId; label: string }[] },
+    ],
+    more: more as { id: PageId; label: string }[],
+  };
+}
+
+/** The pitcher's nav, kept as named exports for older callers. */
+export const BOTTOM_NAV: BottomNavItem[] = navFor("pitcher").bottom;
+export const SIDEBAR_GROUPS = navFor("pitcher").sidebar;
 
 /**
  * Keep the phone's bottom bar on the bottom of the screen.
@@ -282,6 +298,8 @@ export interface ShellProps {
   athleteDetail?: string;
   page: PageId;
   onNavigate: (page: PageId) => void;
+  /** Which tabs to show. Defaults to the pitcher's. */
+  role?: NavRole;
   /** No longer shown: Today is the plan. Kept so older callers still type-check. */
   onOpenPlan?: () => void;
   children: ReactNode;
@@ -300,8 +318,10 @@ export function Shell({
   athleteDetail = "",
   page,
   onNavigate,
+  role = "pitcher",
   children,
 }: ShellProps) {
+  const nav = navFor(role);
   const [moreOpen, setMoreOpen] = useState(false);
   const { navRef, keyboardOpen } = useBottomNavPinned();
   const condensed = useCondensedOnScroll();
@@ -314,7 +334,7 @@ export function Shell({
         ? "workload"
         : page === "bloods"
           ? "tracking"
-          : page === "annual" || page === "integrations" || page === "account"
+          : nav.more.some((item) => item.id === page)
             ? "profile"
             : page;
 
@@ -331,7 +351,7 @@ export function Shell({
         {/* Label and list are direct children of the sidebar, as in the
             prototype — it is a flex column, and wrapping each group in a div
             collapses six flex children into three and changes the spacing. */}
-        {SIDEBAR_GROUPS.map((group) => (
+        {nav.sidebar.map((group) => (
           <Fragment key={group.label}>
             <div className="nav-label">{group.label}</div>
             <nav className="nav-list">
@@ -402,7 +422,7 @@ export function Shell({
       </main>
 
       <nav className="bottom-nav" aria-label="Primary navigation" ref={navRef}>
-        {BOTTOM_NAV.map((item) => {
+        {nav.bottom.map((item) => {
           // "More" opens the sheet rather than navigating, as in the prototype.
           const isMore = item.id === "profile";
           const active = activeNav === item.id;
@@ -438,7 +458,7 @@ export function Shell({
                 ×
               </button>
             </div>
-            {MORE_ITEMS.map((item) => (
+            {nav.more.map((item) => (
               <button
                 key={item.id}
                 className={`nav-item ${page === item.id ? "active" : ""}`}

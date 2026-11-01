@@ -3308,3 +3308,93 @@ h1, h2, h3, h4 { font-weight: 600; }
   .app-shell.nav-condensed .bottom-nav button.active::after { bottom: 1px; }
   .app-shell .mobile-sheet { bottom: calc(76px + env(safe-area-inset-bottom)); }
 }
+
+/* Invite list (owner, Account page). */
+.invite-list { display: grid; gap: 8px; margin: 14px 0 0; padding: 0; list-style: none; }
+.invite-list li { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 12px; border-radius: var(--radius-md); background: var(--surface-secondary); }
+.invite-list li > div:first-child { display: grid; gap: 2px; min-width: 0; }
+.invite-list small { color: var(--muted); font-size: 11px; }
+.invite-actions { display: flex; flex-direction: row; align-items: center; gap: 4px; flex: 0 0 auto; }
+.invite-actions button { width: auto; min-height: 36px; padding: 0 8px; white-space: nowrap; }
+
+/* Sign-up profile. */
+.profile-setup { max-width: 640px; margin: 0 auto; }
+.player-type-choice { display: grid; gap: 8px; border: 0; margin: 0; padding: 0; }
+.player-type-choice legend { margin-bottom: 6px; color: var(--muted); font-size: 10px; font-weight: 800; letter-spacing: .07em; text-transform: uppercase; }
+.choice-card { display: flex; gap: 12px; align-items: flex-start; padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--surface); cursor: pointer; }
+.player-type-choice.field .choice-card input[type="radio"] {
+  appearance: auto;
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  min-height: 0;
+  margin: 2px 0 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  accent-color: var(--team-primary, var(--blue));
+}
+.choice-card span { display: grid; gap: 2px; }
+.choice-card small { color: var(--muted); font-size: 12px; }
+.choice-card.selected { border-color: var(--team-primary, var(--blue)); background: var(--accent-soft); }
+
+/* ---------------------------------------------------------------------------
+ * Hitting: at-bat entry, field, season tiles.
+ * ------------------------------------------------------------------------- */
+.app-shell {
+  --hit-dot: #2f9e5b;
+  --out-dot: #d1453b;
+  --error-dot: #d9a21b;
+  --field-grass: #e3efe4;
+  --field-dirt: #ead8c0;
+  --field-line: #ffffff;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .app-shell { --field-grass: #1d2b20; --field-dirt: #3a2f24; --field-line: #d9d9d9; }
+}
+:root[data-theme="dark"] .app-shell { --field-grass: #1d2b20; --field-dirt: #3a2f24; --field-line: #d9d9d9; }
+
+.result-group { margin-top: 10px; }
+.result-group .today-step { margin: 6px 0; }
+.chip-grid { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip {
+  padding: 9px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  color: var(--ink);
+  background: var(--surface);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+}
+.chip.tap { border-style: dashed; }
+.chip.selected { color: var(--on-accent-fill, var(--on-accent)); border-color: transparent; background: var(--accent-fill, var(--blue)); }
+.chip.tap.selected { color: var(--team-on-secondary, var(--on-accent)); background: var(--team-secondary); }
+
+.field { display: block; width: 100%; max-width: 420px; margin: 4px auto 0; }
+.field.tappable { cursor: crosshair; touch-action: manipulation; }
+.field .grass { fill: var(--field-grass); }
+.field .dirt { fill: var(--field-dirt); }
+.field .line { fill: none; stroke: var(--field-line); stroke-width: 1.5; }
+.field .base { fill: var(--field-line); }
+.field .lbl { fill: var(--muted); font-size: 9px; font-weight: 700; }
+.field .field-dot { stroke: var(--surface); stroke-width: 1.5; }
+.spray-legend { display: flex; justify-content: center; gap: 14px; margin: 6px 0 0; color: var(--muted); font-size: 11px; font-weight: 700; }
+.spray-legend span::before { content: ""; display: inline-block; width: 8px; height: 8px; margin-right: 5px; border-radius: var(--radius-pill); vertical-align: 0; }
+.spray-legend .hit::before { background: var(--hit-dot); }
+.spray-legend .out::before { background: var(--out-dot); }
+.spray-legend .error::before { background: var(--error-dot); }
+
+.atbat-list { display: grid; gap: 8px; margin: 10px 0 0; padding: 0; list-style: none; }
+.atbat-list li { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; padding: 9px 11px; border-radius: var(--radius-md); background: var(--surface-secondary); font-size: 13px; }
+.atbat-list small { display: block; color: var(--muted); font-size: 11px; margin-top: 2px; }
+.qab-badge { margin-right: 6px; padding: 1px 7px; border-radius: var(--radius-pill); color: var(--team-on-secondary, var(--on-accent)); background: var(--team-secondary); font-size: 10px; font-weight: 800; }
+
+.hit-tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 8px; }
+.hit-tiles div { display: grid; gap: 2px; padding: 10px; border-radius: var(--radius-md); background: var(--surface-secondary); text-align: center; }
+.hit-tiles strong { font-size: var(--t-lg); }
+.hit-tiles small { color: var(--muted); font-size: 10px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+.tendency-list { margin: 0; padding-left: 18px; font-size: 13px; line-height: 1.5; }
+.hit-games { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.hit-games li { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; font-size: 13px; }
+.hit-games small { color: var(--muted); text-align: right; }

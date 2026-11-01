@@ -13,6 +13,7 @@ import {
 } from "../state/authClient";
 import { Alert, Card, CardHead, Field, PageHead, TaskRow } from "./Page";
 import { DataBackup } from "./DataBackup";
+import { InvitesCard } from "./InvitesCard";
 import { AppState } from "../../src/domain/state";
 
 /**
@@ -26,6 +27,14 @@ export interface AccountProps {
   api: PitchingOsApi;
   syncKey: string;
   onSyncKey: (key: string) => void;
+  /**
+   * A signed-in account with a workspace: whose it is, its key, and whether it
+   * was just created. The app uses it to keep each account's data separate on
+   * a shared device. Falls back to `onSyncKey` when not given.
+   */
+  onAccount?: (account: { userId: string; syncKey: string; isNew: boolean }) => void;
+  /** After signing out: the app clears this device. */
+  onSignedOut?: () => void | Promise<void>;
   onSyncNow: () => void;
   syncStatus: string;
   /** Everything stored, for the backup file. */
@@ -36,14 +45,29 @@ export interface AccountProps {
 interface Status {
   signedIn: boolean;
   workspaceReady: boolean;
-  user?: { name: string; email: string; image: string };
+  user?: { id?: string; name: string; email: string; image: string };
   syncKey?: string;
+  isOwner?: boolean;
+  needsInvite?: boolean;
+}
+
+/** Where an invite link's code waits between opening the link and signing in. */
+export const INVITE_STORAGE = "pitching-os-invite";
+
+function storedInvite(): string {
+  try {
+    return window.localStorage.getItem(INVITE_STORAGE) ?? "";
+  } catch {
+    return "";
+  }
 }
 
 export function Account({
   api,
   syncKey,
   onSyncKey,
+  onAccount,
+  onSignedOut,
   onSyncNow,
   syncStatus,
   state,
@@ -56,6 +80,7 @@ export function Account({
   const [busy, setBusy] = useState(false);
   const [passkeys, setPasskeys] = useState<Passkey[]>([]);
   const [authBusy, setAuthBusy] = useState("");
+  const [invite, setInvite] = useState(storedInvite);
 
   useEffect(() => {
     let cancelled = false;
@@ -64,24 +89,42 @@ export function Account({
       .then((result) => {
         if (cancelled) return;
         setStatus(result);
-        // A signed-in workspace hands back the sync key; adopt it.
-        if (result.syncKey && isValidSyncKey(result.syncKey)) onSyncKey(result.syncKey);
+        // A signed-in workspace hands back the sync key; adopt it — through
+        // onAccount when given, so the app can check whose data is on the device.
+        if (result.syncKey && isValidSyncKey(result.syncKey)) {
+          if (onAccount && result.user?.id) onAccount({ userId: result.user.id, syncKey: result.syncKey, isNew: false });
+          else onSyncKey(result.syncKey);
+        }
         if (result.signedIn) listPasskeys().then(setPasskeys).catch(() => setPasskeys([]));
       })
       .catch((cause) => !cancelled && setError(cause.message));
     return () => {
       cancelled = true;
     };
-  }, [api, onSyncKey]);
+  }, [api, onSyncKey, onAccount]);
 
   async function createWorkspace() {
     setBusy(true);
     setError("");
     try {
-      // Adopt an existing local recovery key so device data is not stranded.
-      const result = await api.createWorkspace(isValidSyncKey(syncKey) ? syncKey : undefined);
-      onSyncKey(result.syncKey);
-      setStatus((current) => (current ? { ...current, workspaceReady: true } : current));
+      // A new player joins with their invite and a fresh workspace — never
+      // whatever recovery key this device happens to hold, which could be
+      // someone else's. Only the owner's first sign-in adopts the local key,
+      // so the data already on this device is not stranded.
+      const result = status?.needsInvite
+        ? await api.createWorkspace(undefined, invite.trim())
+        : await api.createWorkspace(isValidSyncKey(syncKey) ? syncKey : undefined);
+      try {
+        window.localStorage.removeItem(INVITE_STORAGE);
+      } catch {
+        // Nothing to clean up.
+      }
+      if (onAccount && status?.user?.id) {
+        onAccount({ userId: status.user.id, syncKey: result.syncKey, isNew: Boolean(status.needsInvite) });
+      } else {
+        onSyncKey(result.syncKey);
+      }
+      setStatus((current) => (current ? { ...current, workspaceReady: true, needsInvite: false } : current));
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : String(cause));
     } finally {
@@ -171,7 +214,30 @@ export function Account({
         </div>
       )}
 
-      {status?.signedIn && !status.workspaceReady && (
+      {status?.signedIn && !status.workspaceReady && status.needsInvite && (
+        <div className="form-grid">
+          <div className="field full">
+            <label htmlFor="inviteCode">Invite code</label>
+            <input
+              id="inviteCode"
+              type="text"
+              autoCapitalize="characters"
+              autoComplete="off"
+              placeholder="From your invite link"
+              value={invite}
+              onChange={(event) => setInvite(event.target.value)}
+            />
+            <small>Accounts are invite-only. Opening your invite link fills this in.</small>
+          </div>
+          <div className="form-actions">
+            <button type="button" className="btn btn-dark" disabled={busy || !invite.trim()} onClick={createWorkspace}>
+              {busy ? "Joining…" : "Join"}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {status?.signedIn && !status.workspaceReady && !status.needsInvite && (
         <div className="cloud-actions">
           <button type="button" className="btn btn-dark" disabled={busy} onClick={createWorkspace}>
             {busy ? "Setting up…" : "Set up cloud workspace"}
@@ -224,7 +290,12 @@ export function Account({
               type="button"
               className="btn btn-outline"
               disabled={authBusy !== ""}
-              onClick={() => runAuth("sign-out", signOut)}
+              onClick={() =>
+                runAuth("sign-out", async () => {
+                  await signOut();
+                  await onSignedOut?.();
+                })
+              }
             >
               Sign out
             </button>
@@ -274,6 +345,8 @@ export function Account({
       </div>
       {syncStatus && <p className="fineprint">{syncStatus}</p>}
       </Card>
+
+      {status?.isOwner && status.workspaceReady && <InvitesCard api={api} />}
 
       {onReplaceState && <DataBackup state={state ?? null} onReplace={onReplaceState} />}
 

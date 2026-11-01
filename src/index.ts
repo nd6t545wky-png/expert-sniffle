@@ -1,4 +1,5 @@
 import { createAuth } from "./auth";
+import { inviteLink, newInviteCode, normalizeInviteCode } from "./domain/invites";
 import { isEmptyPayload, readApplePayload, suppliedFields } from "./domain/appleHealth";
 import {
   type BallclubzOuting,
@@ -11,7 +12,12 @@ import {
   parseScheduleGames,
   pitchingFromGameFile,
   playerPageUrl,
+  parseBattingGameLog,
+  findOnRoster,
+  parseRoster,
+  teamFixtures,
 } from "./domain/ballclubz";
+import { GBL_LEAGUE, gblTeam } from "./domain/athleteProfile";
 import type { Env } from "./env";
 
 const MAX_PAYLOAD_BYTES = 750_000;
@@ -2641,6 +2647,7 @@ async function accountStatus(request: Request, env: Env, url: URL): Promise<Resp
   const workspace = await env.SYNC_DB.prepare("SELECT wrapped_sync_key, updated_at FROM account_workspaces WHERE user_id = ?1")
     .bind(session.user.id)
     .first<{ wrapped_sync_key: string; updated_at: string }>();
+  const owner = await ownerUserId(env);
   return json({
     signedIn: true,
     user: {
@@ -2650,6 +2657,9 @@ async function accountStatus(request: Request, env: Env, url: URL): Promise<Resp
       image: session.user.image || "",
     },
     workspaceReady: Boolean(workspace),
+    isOwner: owner === session.user.id,
+    // A new player needs an invite; the very first account (no owner yet) does not.
+    needsInvite: !workspace && owner !== null,
     syncKey: workspace ? await unwrapWorkspaceKey(workspace.wrapped_sync_key, env) : "",
     updatedAt: workspace?.updated_at || "",
   });
@@ -2691,6 +2701,25 @@ async function createAccountWorkspace(request: Request, env: Env, url: URL): Pro
     return json({ error: "That saved workspace already belongs to another account" }, 409);
   }
 
+  // Invite-only. The first account ever made becomes the owner and needs no
+  // code; everyone after needs one. The code is claimed in the same statement
+  // that checks it is free, so one code cannot open two accounts.
+  const appOwner = await ownerUserId(env);
+  if (appOwner !== null) {
+    const code = normalizeInviteCode(body && typeof body === "object" ? (body as Record<string, unknown>).invite : "");
+    if (!code) return json({ error: "An invite code is needed to make an account", code: "invite_required" }, 403);
+    await ensureInvitesTable(env);
+    const claimed = await env.SYNC_DB.prepare(
+      `UPDATE invites SET used_by = ?1, used_at = ?2
+       WHERE code = ?3 AND used_by IS NULL AND revoked_at IS NULL`
+    )
+      .bind(session.user.id, new Date().toISOString(), code)
+      .run();
+    if (!claimed.meta.changes) {
+      return json({ error: "That invite code has been used, revoked, or does not exist", code: "invite_invalid" }, 403);
+    }
+  }
+
   const now = new Date().toISOString();
   const wrappedSyncKey = await wrapWorkspaceKey(syncKey, env);
   await env.SYNC_DB.prepare(
@@ -2701,6 +2730,92 @@ async function createAccountWorkspace(request: Request, env: Env, url: URL): Pro
     .run();
 
   return json({ workspaceReady: true, syncKey, adoptedExistingData: Boolean(legacyCandidate), updatedAt: now }, 201);
+}
+
+// -- Invites -----------------------------------------------------------------
+
+/** Created on first use: the deploy pipeline does not run migrations (0008 records it). */
+async function ensureInvitesTable(env: Env): Promise<void> {
+  await env.SYNC_DB.batch([
+    env.SYNC_DB.prepare(
+      `CREATE TABLE IF NOT EXISTS invites (
+        code TEXT PRIMARY KEY,
+        note TEXT NOT NULL DEFAULT '',
+        created_by TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        used_by TEXT,
+        used_at TEXT,
+        revoked_at TEXT
+      ) STRICT`
+    ),
+    env.SYNC_DB.prepare("CREATE INDEX IF NOT EXISTS invites_created_idx ON invites (created_at DESC)"),
+  ]);
+}
+
+/** The owner: whoever made the first workspace. Null before anyone has. */
+async function ownerUserId(env: Env): Promise<string | null> {
+  const row = await env.SYNC_DB.prepare("SELECT user_id FROM account_workspaces ORDER BY created_at ASC LIMIT 1").first<{
+    user_id: string;
+  }>();
+  return row?.user_id ?? null;
+}
+
+async function requireOwner(request: Request, env: Env, url: URL): Promise<Response | null> {
+  const session = await accountSession(request, env, url);
+  if (!session?.user?.id) return json({ error: "Sign in is required" }, 401);
+  if ((await ownerUserId(env)) !== session.user.id) return json({ error: "Only the owner can manage invites" }, 403);
+  return null;
+}
+
+async function handleInvites(request: Request, env: Env, url: URL): Promise<Response> {
+  const denied = await requireOwner(request, env, url);
+  if (denied) return denied;
+  await ensureInvitesTable(env);
+  const session = await accountSession(request, env, url);
+  const origin = applicationOrigin(env, url);
+
+  if (request.method === "GET") {
+    const { results } = await env.SYNC_DB.prepare(
+      `SELECT i.code, i.note, i.created_at, i.used_at, i.revoked_at, u.name AS used_by_name
+       FROM invites i LEFT JOIN "user" u ON u.id = i.used_by
+       ORDER BY i.created_at DESC LIMIT 100`
+    ).all<{ code: string; note: string; created_at: string; used_at: string | null; revoked_at: string | null; used_by_name: string | null }>();
+    return json({
+      invites: results.map((row) => ({
+        code: row.code,
+        note: row.note,
+        createdAt: row.created_at,
+        usedAt: row.used_at,
+        usedBy: row.used_by_name,
+        revokedAt: row.revoked_at,
+        link: inviteLink(origin, row.code),
+      })),
+    });
+  }
+
+  if (request.method === "POST") {
+    const blocked = requireSameOrigin(request, url, env);
+    if (blocked) return blocked;
+    const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
+    const code = newInviteCode();
+    const now = new Date().toISOString();
+    await env.SYNC_DB.prepare("INSERT INTO invites (code, note, created_by, created_at) VALUES (?1, ?2, ?3, ?4)")
+      .bind(code, cleanText(body.note, 60), session!.user.id, now)
+      .run();
+    return json({ code, note: cleanText(body.note, 60), createdAt: now, link: inviteLink(origin, code) }, 201);
+  }
+
+  if (request.method === "DELETE") {
+    const blocked = requireSameOrigin(request, url, env);
+    if (blocked) return blocked;
+    const code = normalizeInviteCode(url.pathname.split("/").pop());
+    if (!code) return json({ error: "Unknown invite" }, 404);
+    await env.SYNC_DB.prepare("UPDATE invites SET revoked_at = ?1 WHERE code = ?2 AND used_by IS NULL")
+      .bind(new Date().toISOString(), code)
+      .run();
+    return json({ revoked: true });
+  }
+  return json({ error: "Method not allowed" }, 405);
 }
 
 async function deleteAccount(request: Request, env: Env, url: URL): Promise<Response> {
@@ -2776,6 +2891,24 @@ async function withBoxScore(
   return line ? { ...outing, ...line } : outing;
 }
 
+async function ballclubzTeam(url: URL): Promise<Response> {
+  const team = gblTeam(url.searchParams.get("team") ?? "");
+  if (!team) return json({ error: "Not a GBL Division 1 team" }, 400);
+  const name = cleanText(url.searchParams.get("name"), 80);
+  const [scheduleHtml, rosterHtml] = await Promise.all([
+    ballclubzFetch(`https://ballclubz.com/${GBL_LEAGUE}/schedule`, 900),
+    name ? ballclubzFetch(`https://ballclubz.com/${GBL_LEAGUE}/teams/${team.ballclubzId}`, 3600) : Promise.resolve(null),
+  ]);
+  if (scheduleHtml === null) return json({ error: "Ballclubz could not be reached" }, 502);
+  const player = rosterHtml && name ? findOnRoster(parseRoster(rosterHtml), name) : null;
+  return json({
+    team: team.name,
+    fixtures: teamFixtures(scheduleHtml, team.name),
+    playerPage: player ? `https://ballclubz.com${player.path}` : null,
+    fetchedAt: new Date().toISOString(),
+  });
+}
+
 async function ballclubzPitching(url: URL): Promise<Response> {
   const page = parsePlayerPageUrl(url.searchParams.get("page") ?? "");
   if (!page) return json({ error: "That is not a Ballclubz player page link" }, 400);
@@ -2796,7 +2929,8 @@ async function ballclubzPitching(url: URL): Promise<Response> {
       outings = [...enriched, ...outings.slice(BALLCLUBZ_MAX_BOX_SCORES)];
     }
   }
-  return json({ page: source, outings, fetchedAt: new Date().toISOString() });
+  // The same page carries the batting log for anyone who hits.
+  return json({ page: source, outings, batting: parseBattingGameLog(html), fetchedAt: new Date().toISOString() });
 }
 
 // -- Router -------------------------------------------------------------------
@@ -2822,6 +2956,13 @@ async function routeApi(request: Request, env: Env, url: URL): Promise<Response 
   // page. Proxied because Ballclubz sends no CORS headers; parsed here so the
   // page's HTML never reaches the client. Only a ballclubz.com player page is
   // fetched — the URL is rebuilt from validated parts, never passed through.
+  // A GBL team's draw and, when a name is given, that player's own page on
+  // the team roster — what a new account's team and name hook up to.
+  if (url.pathname === "/api/ballclubz/team" && request.method === "GET") {
+    if (!(await nutritionKeyHash(request, env, url))) return json({ error: "Turn on cloud autosave to read Ballclubz" }, 401);
+    const limited = await enforceAccountRateLimit(request, env, url, env.INTEGRATION_RATE_LIMITER, "ballclubz");
+    return limited ?? ballclubzTeam(url);
+  }
   if (url.pathname === "/api/ballclubz/pitching" && request.method === "GET") {
     if (!(await nutritionKeyHash(request, env, url))) return json({ error: "Turn on cloud autosave to read Ballclubz" }, 401);
     const limited = await enforceAccountRateLimit(request, env, url, env.INTEGRATION_RATE_LIMITER, "ballclubz");
@@ -2858,6 +2999,10 @@ async function routeApi(request: Request, env: Env, url: URL): Promise<Response 
   }
   if (url.pathname === "/api/account/workspace" && request.method === "POST") {
     return createAccountWorkspace(request, env, url);
+  }
+  if (url.pathname === "/api/invites" || url.pathname.startsWith("/api/invites/")) {
+    const limited = await enforceAccountRateLimit(request, env, url, env.INTEGRATION_RATE_LIMITER, "invites");
+    return limited ?? handleInvites(request, env, url);
   }
   if (url.pathname === "/api/account" && request.method === "DELETE") {
     return deleteAccount(request, env, url);
