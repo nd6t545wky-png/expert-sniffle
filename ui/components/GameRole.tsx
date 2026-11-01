@@ -1,5 +1,5 @@
 import { GAME_ROLES, GameRole } from "../../src/domain/programmeSessions";
-import { Card, CardHead } from "./Page";
+import { Card } from "./Page";
 
 /**
  * "Are you playing today?" — asked on game days only.
@@ -44,11 +44,8 @@ export function GameRoleField({
 /** The same answer, changeable after the check-in — line-ups change. */
 export function GameRoleCard({ value, onChange }: { value: GameRole | null; onChange: (role: GameRole) => void }) {
   return (
-    <Card aria-label="Playing today">
-      <CardHead title="Game day" detail="Line-up changed? Update this and the plan follows." />
-      <div className="form-grid">
-        <GameRoleField id="gameRoleSession" value={value} onChange={onChange} />
-      </div>
+    <Card aria-label="Playing today" className="game-role-card">
+      <GameRoleField id="gameRoleSession" value={value} onChange={onChange} />
     </Card>
   );
 }

@@ -113,6 +113,22 @@ export interface DailyPlanProps {
    * just today's.
    */
   progression?: Record<string, Advice>;
+  /**
+   * The morning check-in, shown in place when the day is locked. Today runs
+   * check-in, workout and check-out on one screen instead of sending the
+   * athlete to three pages and back.
+   */
+  checkIn?: React.ReactNode;
+  /** The after-session report, shown in place once every task is resolved. */
+  checkOut?: React.ReactNode;
+  /** Shown just above the workout: the soreness reporter, the game-day answer. */
+  beforeWorkout?: React.ReactNode;
+  /**
+   * Show the readiness, throws and velocity panels beside the workout. Off on
+   * Today — throws and velocity live on the Throwing tab, and the readiness
+   * score is one line above the workout.
+   */
+  sidePanel?: boolean;
 }
 
 const GUARDRAILS: [string, string][] = [
@@ -155,6 +171,10 @@ export function DailyPlan({
   onSetThrows,
   onUseAutoThrows,
   weekGames,
+  checkIn,
+  checkOut,
+  beforeWorkout,
+  sidePanel = true,
 }: DailyPlanProps) {
   const [error, setError] = useState("");
   const [reason, setReason] = useState("");
@@ -230,26 +250,42 @@ export function DailyPlan({
   // split, so both states get them.
   const header = (
     <>
-      <PageHead
-        eyebrow={`${weekLabel ?? `${day ?? ""} · Session`}${
-          day && isHighIntentDay(day) ? " · High-intent day" : ""
-        }`}
-        title={sessionTitle || "Today's session"}
-        intro={sessionDescription || formatIsoDate(date)}
-        className="session-page-head"
-        controls={
-          onPreviousWeek && onNextWeek ? (
-            <>
-              <button className="btn btn-outline" type="button" onClick={onPreviousWeek}>
-                ← Week
+      {sidePanel ? (
+        <PageHead
+          eyebrow={`${weekLabel ?? `${day ?? ""} · Session`}${
+            day && isHighIntentDay(day) ? " · High-intent day" : ""
+          }`}
+          title={sessionTitle || "Today's session"}
+          intro={sessionDescription || formatIsoDate(date)}
+          className="session-page-head"
+          controls={
+            onPreviousWeek && onNextWeek ? (
+              <>
+                <button className="btn btn-outline" type="button" onClick={onPreviousWeek}>
+                  ← Week
+                </button>
+                <button className="btn btn-outline" type="button" onClick={onNextWeek}>
+                  Week →
+                </button>
+              </>
+            ) : undefined
+          }
+        />
+      ) : (
+        <>
+          {onPreviousWeek && onNextWeek && (
+            <div className="today-week-nav">
+              <button className="btn btn-outline" type="button" aria-label="Previous week" onClick={onPreviousWeek}>
+                ‹
               </button>
-              <button className="btn btn-outline" type="button" onClick={onNextWeek}>
-                Week →
+              <span>{weekLabel}</span>
+              <button className="btn btn-outline" type="button" aria-label="Next week" onClick={onNextWeek}>
+                ›
               </button>
-            </>
-          ) : undefined
-        }
-      />
+            </div>
+          )}
+        </>
+      )}
 
       {/* Where the day sits in a recovery protocol, when it sits in one. The
           work itself is in the task list below; this only says what it is
@@ -289,10 +325,30 @@ export function DailyPlan({
           )}
         </Alert>
       )}
+
+      {!sidePanel && (
+        <section className="today-head">
+          <p className="eyebrow">
+            {formatIsoDate(date)}
+            {day && isHighIntentDay(day) ? " · High-intent day" : ""}
+          </p>
+          <h2>{(sessionTitle || "Today's session").replace(/^[A-Za-z]+ · /, "")}</h2>
+          {sessionDescription && <p>{sessionDescription}</p>}
+        </section>
+      )}
     </>
   );
 
   if (plan.status === "locked") {
+    if (checkIn) {
+      return (
+        <>
+          {header}
+          <p className="today-step">Step 1 · Check in</p>
+          {checkIn}
+        </>
+      );
+    }
     return (
       <>
         {header}
@@ -330,8 +386,26 @@ export function DailyPlan({
         </Alert>
       )}
 
-      <div className="session-layout">
+      <div className={sidePanel ? "session-layout" : ""}>
         <div>
+          {!sidePanel && (
+            <div className="today-progress" aria-label="Session progress">
+              {submission && (
+                <span className={`status ${risk}`}>
+                  {submission.manualOverride ? "Full session" : `${submission.planLevel} · ${submission.score}`}
+                </span>
+              )}
+              <div className="session-progress">
+                <span style={{ width: `${progress.percent}%` }} />
+              </div>
+              <span>
+                {progress.resolved}/{progress.total} done
+              </span>
+            </div>
+          )}
+
+          {beforeWorkout}
+
           <section className="session-task-stack" aria-label="Today's workout stages">
             <TaskStages
               tasks={tasks}
@@ -345,10 +419,16 @@ export function DailyPlan({
               onSkipStage={(title, stageTasks) => setStageCandidate({ title, tasks: stageTasks })}
               onUndoSkip={(task) => onSkipTask(date, undoSkipTask(skipped, date, task.id))}
               progression={progression}
+              showCues={sidePanel}
             />
           </section>
 
-          {allResolved ? (
+          {allResolved && checkOut ? (
+            <>
+              <p className="today-step">Last step · Check out</p>
+              {checkOut}
+            </>
+          ) : allResolved ? (
             <Card className="gate">
               <div className="gate-icon" aria-hidden="true">
                 ✓
@@ -366,7 +446,7 @@ export function DailyPlan({
                 </button>
               )}
             </Card>
-          ) : (
+          ) : checkOut ? null : (
             <Card className="gate">
               <div className="gate-icon" aria-hidden="true">
                 🔒
@@ -396,6 +476,7 @@ export function DailyPlan({
           )}
         </div>
 
+        {sidePanel && (
         <aside className="sticky-panel">
           {submission && (
             <article className={`card readiness-card ${risk}`}>
@@ -469,7 +550,25 @@ export function DailyPlan({
             </div>
           </Card>
         </aside>
+        )}
       </div>
+
+      {!sidePanel && (
+        <details className="today-extras">
+          <summary>Today's guardrails</summary>
+          <div className="mini-list">
+            {GUARDRAILS.map(([title, body], index) => (
+              <div className="mini-row" key={title}>
+                <span className="mini-icon">{index + 1}</span>
+                <div>
+                  <strong>{title}</strong>
+                  <p>{body}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </details>
+      )}
 
       {detailsTask && <TaskDetailsModal task={detailsTask} onClose={() => setDetailsTask(null)} />}
       {skipCandidate && (

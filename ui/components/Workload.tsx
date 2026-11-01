@@ -39,6 +39,17 @@ export interface ThrowingEntry {
 }
 
 export interface WorkloadProps {
+  /**
+   * Which part of the page to show. The Throwing tab shows one at a time;
+   * "all" is the old single long page.
+   */
+  section?: "all" | "today" | "pitches" | "games";
+  /**
+   * Today's count, as the auto-tallying card from the workout. When given it
+   * replaces the hand-entry form: the two wrote to the same record, and having
+   * both on screen was two answers to one question.
+   */
+  throwCard?: React.ReactNode;
   /** Ball-flight data for the open day. */
   pitches?: Pitch[];
   /** Every earlier day's pitches, for the movement comparison. */
@@ -88,7 +99,10 @@ export function Workload({
   onImportPitches,
   onAddPitch,
   onRemovePitch,
+  section = "all",
+  throwCard,
 }: WorkloadProps) {
+  const show = (part: "today" | "pitches" | "games") => section === "all" || section === part;
   const [intent, setIntent] = useState<ThrowIntent>("low");
   const [throws, setThrows] = useState(20);
   const [error, setError] = useState("");
@@ -127,12 +141,17 @@ export function Workload({
 
   return (
     <>
-      <PageHead
-        eyebrow="Throwing workload"
-        title="Log today's throwing."
-        intro={formatIsoDate(date)}
-      />
+      {section === "all" && (
+        <PageHead
+          eyebrow="Throwing workload"
+          title="Log today's throwing."
+          intro={formatIsoDate(date)}
+        />
+      )}
 
+      {show("today") && throwCard}
+
+      {show("today") && !throwCard && (
       <Card>
         <div className="form-grid">
           <Field id="intent" label="Intent">
@@ -163,6 +182,7 @@ export function Workload({
           </div>
         </div>
       </Card>
+      )}
 
       {error && (
         <Alert tone="danger" role="alert">
@@ -170,6 +190,8 @@ export function Workload({
         </Alert>
       )}
 
+      {show("today") && (
+      <>
       <section className="grid metrics">
         <Metric label="7-day load" value={last7 || "—"} detail="Weighted by intent" source="Logged throwing" />
         <Metric label="28-day load" value={last28 || "—"} detail="Rolling month" source="Logged throwing" />
@@ -198,15 +220,18 @@ export function Workload({
         </Alert>
       )}
 
-      <p className="fineprint">
+      <details className="fineprint">
+        <summary>About the acute : chronic ratio</summary>
         <strong>On this ratio:</strong> the acute:chronic workload ratio describes how this week
         compares with your recent average. It is not an injury-risk model — its statistical
         properties make it unreliable as a predictor, and no threshold here is safe or unsafe.
         Rising load with rising soreness is worth a conversation with your coach; the number on its
         own is not a verdict.
-      </p>
+      </details>
+      </>
+      )}
 
-      {onImportPitches && onAddPitch && onRemovePitch && (
+      {show("pitches") && onImportPitches && onAddPitch && onRemovePitch && (
         <PitchData
           date={date}
           pitches={pitches ?? []}
@@ -216,11 +241,11 @@ export function Workload({
         />
       )}
 
-      <MovementPlot pitches={pitches ?? []} priorPitches={priorPitches ?? []} />
+      {show("pitches") && <MovementPlot pitches={pitches ?? []} priorPitches={priorPitches ?? []} />}
 
       {/* The training exists to serve outings, so the outings belong on the
           same page as the throwing that builds toward them. */}
-      {onSaveGame && onRemoveGame && (
+      {show("games") && onSaveGame && onRemoveGame && (
         <GameLog date={date} games={games ?? []} onSave={onSaveGame} onRemove={onRemoveGame} />
       )}
     </>

@@ -39,13 +39,18 @@ const format = (date: string) =>
     year: "numeric",
   }).format(new Date(`${date}T00:00:00+10:00`));
 
+const NEXT_FEW = 4;
+
 export function FixtureSettings({ fixtures, today, onChange, onSelectWeek }: FixtureSettingsProps) {
   const [date, setDate] = useState("");
   const [label, setLabel] = useState("");
   const [team, setTeam] = useState("Norths");
+  const [showAll, setShowAll] = useState(false);
 
   const everything = allFixtures(fixtures);
-  const upcoming = everything.filter((fixture) => fixture.date >= today);
+  const ahead = everything.filter((fixture) => fixture.date >= today);
+  // The next few, with the rest a tap away: the whole draw is thirty-odd rows.
+  const upcoming = showAll ? ahead : ahead.slice(0, NEXT_FEW);
 
   function add() {
     if (!date) return;
@@ -58,8 +63,8 @@ export function FixtureSettings({ fixtures, today, onChange, onSelectWeek }: Fix
   return (
     <Card>
       <CardHead
-        title="Season fixtures"
-        detail="The built-in draw stops at FNCBA Round 19 on 5 September. Finals and anything drawn since go in here. A day with a game on it is then built as a game day, whatever the calendar had planned; the days around it are not, and the plan says so."
+        title="Upcoming games"
+        detail="Add finals or a rescheduled game below and that day is built as a game day."
       />
 
       {upcoming.length === 0 ? (
@@ -111,6 +116,11 @@ export function FixtureSettings({ fixtures, today, onChange, onSelectWeek }: Fix
             );
           })}
         </ul>
+      )}
+      {ahead.length > NEXT_FEW && (
+        <button className="text-button" type="button" onClick={() => setShowAll((open) => !open)}>
+          {showAll ? "Show fewer" : `Show all ${ahead.length} games`}
+        </button>
       )}
 
       <div className="intent-grid">

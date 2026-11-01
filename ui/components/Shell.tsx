@@ -24,6 +24,7 @@ export type PageId =
   | "mechanics"
   | "bloods"
   | "integrations"
+  | "account"
   | "profile";
 
 export interface BottomNavItem {
@@ -93,7 +94,21 @@ const ICON_PATHS: Record<PageId, ReactNode> = {
       <path d="m8 12 2.2 2.2L16 8.5" />
     </>
   ),
-  workload: <path d="M4 20V10M10 20V4M16 20v-7M22 20H2" />,
+  // A ball, for throwing.
+  workload: (
+    <>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M7.5 4.5c1.6 2 2.4 4.6 2.4 7.5s-.8 5.5-2.4 7.5M16.5 4.5c-1.6 2-2.4 4.6-2.4 7.5s.8 5.5 2.4 7.5" />
+    </>
+  ),
+  // A shield with a key slot, for account and backup.
+  account: (
+    <>
+      <path d="M12 3 5 6v5c0 4.4 3 8.3 7 10 4-1.7 7-5.6 7-10V6l-7-3Z" />
+      <circle cx="12" cy="11" r="2" />
+      <path d="M12 13v3" />
+    </>
+  ),
 };
 
 function NavIcon({ id }: { id: PageId }) {
@@ -112,53 +127,51 @@ function NavIcon({ id }: { id: PageId }) {
   );
 }
 
+/**
+ * The phone's five tabs, one job each.
+ *
+ * Today is the whole day in one place — the week strip, the check-in, the
+ * workout and the check-out — rather than a summary page that sent you to
+ * three others. Everything about the arm's throwing lives under Throwing, and
+ * Progress is what has changed over time, not the after-session form it used
+ * to open on.
+ */
 export const BOTTOM_NAV: BottomNavItem[] = [
-  { id: "dashboard", label: "Today", icon: <NavIcon id="dashboard" /> },
-  { id: "session", label: "Plan", icon: <NavIcon id="session" /> },
+  { id: "session", label: "Today", icon: <NavIcon id="session" /> },
+  { id: "workload", label: "Throwing", icon: <NavIcon id="workload" /> },
   { id: "tracking", label: "Progress", icon: <NavIcon id="tracking" /> },
-  { id: "nutrition", label: "Nutrition", icon: <NavIcon id="nutrition" /> },
+  { id: "nutrition", label: "Food", icon: <NavIcon id="nutrition" /> },
   { id: "profile", label: "More", icon: <NavIcon id="profile" /> },
 ];
 
-/** Sidebar groups, mirroring the prototype's Plan / Track / Settings. */
+/** Sidebar groups: the same five jobs, with More's pages listed out. */
 export const SIDEBAR_GROUPS: { label: string; items: { id: PageId; label: string }[] }[] = [
   {
-    label: "Plan",
+    label: "Train",
     items: [
-      { id: "dashboard", label: "Today" },
-      { id: "session", label: "Plan" },
-      { id: "annual", label: "Year" },
-    ],
-  },
-  {
-    label: "Track",
-    items: [
-      // Throwing was reachable only from a dashboard tile, which made the
-      // pitch log effectively undiscoverable. It is a page; it gets a link.
+      { id: "session", label: "Today" },
       { id: "workload", label: "Throwing" },
       { id: "tracking", label: "Progress" },
-      { id: "nutrition", label: "Nutrition" },
-      { id: "mechanics", label: "Biomechanics" },
-      { id: "bloods", label: "Bloods" },
+      { id: "nutrition", label: "Food" },
     ],
   },
   {
-    label: "Settings",
+    label: "More",
     items: [
-      { id: "profile", label: "Athlete" },
+      { id: "annual", label: "Season" },
+      { id: "profile", label: "Settings" },
       { id: "integrations", label: "Connections" },
+      { id: "account", label: "Account & backup" },
     ],
   },
 ];
 
-/** What the phone's "More" button opens, as in the prototype. */
+/** What the phone's "More" button opens. */
 const MORE_ITEMS: { id: PageId; label: string }[] = [
-  { id: "workload", label: "Throwing" },
-  { id: "annual", label: "Year" },
-  { id: "mechanics", label: "Biomechanics" },
-  { id: "bloods", label: "Bloods" },
-  { id: "profile", label: "Athlete" },
+  { id: "annual", label: "Season" },
+  { id: "profile", label: "Settings" },
   { id: "integrations", label: "Connections" },
+  { id: "account", label: "Account & backup" },
 ];
 
 export interface ShellProps {
@@ -180,7 +193,8 @@ export interface ShellProps {
   athleteDetail?: string;
   page: PageId;
   onNavigate: (page: PageId) => void;
-  onOpenPlan: () => void;
+  /** No longer shown: Today is the plan. Kept so older callers still type-check. */
+  onOpenPlan?: () => void;
   children: ReactNode;
 }
 
@@ -197,20 +211,21 @@ export function Shell({
   athleteDetail = "",
   page,
   onNavigate,
-  onOpenPlan,
   children,
 }: ShellProps) {
   const [moreOpen, setMoreOpen] = useState(false);
 
-  // The prototype maps several pages onto one bottom-nav entry.
+  // Pages without a tab of their own light up the tab they live under.
   const activeNav: PageId =
-    page === "readiness" || page === "workload"
+    page === "readiness" || page === "dashboard"
       ? "session"
-      : page === "annual" || page === "bloods"
-        ? "tracking"
-        : page === "mechanics" || page === "integrations"
-          ? "profile"
-          : page;
+      : page === "mechanics"
+        ? "workload"
+        : page === "bloods"
+          ? "tracking"
+          : page === "annual" || page === "integrations" || page === "account"
+            ? "profile"
+            : page;
 
   return (
     <div className={`app-shell ${theme}`}>
@@ -248,7 +263,7 @@ export function Shell({
 
         {/* `.athlete-chip` carries `margin-top: auto`: it is what pins the nav
             to the top of the rail and itself to the bottom. */}
-        <button className="athlete-chip" type="button" onClick={() => onNavigate("profile")}>
+        <button className="athlete-chip" type="button" onClick={() => onNavigate("account")}>
           <span className="avatar">{(athleteName || "A").slice(0, 1).toUpperCase()}</span>
           <div>
             <strong>{athleteName || "Athlete"}</strong>
@@ -272,7 +287,7 @@ export function Shell({
               className="sync-pill"
               type="button"
               aria-label="Open cloud autosave settings"
-              onClick={() => onNavigate("profile")}
+              onClick={() => onNavigate("account")}
             >
               {/* Both attributes are required: styles.css keys the flex layout
                   and the status dot off [data-sync-status]. */}
@@ -288,9 +303,6 @@ export function Shell({
               onClick={onCycleAppearance}
             >
               <span>A</span>
-            </button>
-            <button className="today-button" type="button" onClick={onOpenPlan}>
-              Open plan
             </button>
           </div>
         </header>

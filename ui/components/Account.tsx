@@ -118,7 +118,7 @@ export function Account({
   return (
     <>
       <PageHead
-        eyebrow="Athlete settings"
+        eyebrow="Account"
         title="Account and cloud sync."
         intro="Sign-in, passkeys and encrypted cross-device autosave."
       />
