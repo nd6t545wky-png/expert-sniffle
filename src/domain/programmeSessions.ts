@@ -27,6 +27,13 @@ import {
   isTransitionPhase,
 } from "./programmeContent";
 import { IsoDate } from "./state";
+import {
+  WeeklySchedule,
+  isProgrammeSummerWeek,
+  isProgrammeWinterWeek,
+  personalSummerDay,
+  personalWinterDay,
+} from "./weeklySchedule";
 import { PlanLevel } from "./readiness";
 
 export { setProgrammeContext, ANNUAL_START };
@@ -332,6 +339,11 @@ export function buildSession(
     weekGames?: number;
     /** What the athlete said at the check-in about today's game, if it is one. */
     role?: GameRole | null;
+    /**
+     * The athlete's own week. When it differs from the week the programme was
+     * written around, each day's job is laid over their game days instead.
+     */
+    schedule?: WeeklySchedule | null;
   } = {}
 ): Session {
   const stamp = (built: Session): Session =>
@@ -340,7 +352,20 @@ export function buildSession(
   if (options.risk === "red") return stamp(recoveryOnlySession(week, day) as Session);
 
   let session: unknown;
-  if (isSummerCompetitionPhase(week.phase.id)) {
+  const schedule = options.schedule ?? null;
+  const personalSummer =
+    schedule && isSummerCompetitionPhase(week.phase.id) && !isProgrammeSummerWeek(schedule)
+      ? personalSummerDay(week, day, schedule)
+      : null;
+  if (personalSummer) {
+    session = personalSummer;
+  } else if (
+    schedule &&
+    (week.phase.id === "winter" || week.phase.id === "winter_next") &&
+    !isProgrammeWinterWeek(schedule)
+  ) {
+    session = personalWinterDay(week, day, schedule);
+  } else if (isSummerCompetitionPhase(week.phase.id)) {
     session = summerSession(week, day);
   } else if (isTransitionPhase(week.phase.id) && day === 2) {
     session = transitionWednesdaySession(week);

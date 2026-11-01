@@ -14,7 +14,15 @@ describe("athlete profile", () => {
 
   it("is incomplete until the player type is answered", () => {
     expect(profileComplete({ name: "Dylan Sippel", summerTeam: "Coomera Cubs" })).toBe(false);
-    expect(profileComplete({ name: "Dylan Sippel", team: "Coomera Cubs", playerType: "pitcher" })).toBe(true);
+    expect(profileComplete({ name: "Dylan Sippel", team: "Coomera Cubs", playerType: "pitcher" })).toBe(false);
+    expect(
+      profileComplete({
+        name: "Dylan Sippel",
+        team: "Coomera Cubs",
+        playerType: "pitcher",
+        schedule: { training: [1, 3], games: [4, 6], winterGames: [5] },
+      })
+    ).toBe(true);
     expect(profileComplete({ name: "Ty Iddon", team: "Coomera Cubs", playerType: "batter" })).toBe(false);
   });
 

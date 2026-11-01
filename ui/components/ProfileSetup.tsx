@@ -1,6 +1,7 @@
 import { useState } from "react";
 import {
   AthleteProfile,
+  gblTeam,
   BatSide,
   GBL_TEAMS,
   Hand,
@@ -10,8 +11,31 @@ import {
   readAthleteProfile,
 } from "../../src/domain/athleteProfile";
 import { Card, CardHead } from "./Page";
+import { DAY_SHORT, PROGRAMME_WEEK, readSchedule } from "../../src/domain/weeklySchedule";
 
 const OTHER = "__other__";
+
+/** Weekday chips; any number can be on. */
+function DayPicker({ id, value, onChange }: { id: string; value: number[]; onChange: (days: number[]) => void }) {
+  return (
+    <div className="chip-grid day-picker" role="group" aria-labelledby={id}>
+      {DAY_SHORT.map((label, day) => {
+        const on = value.includes(day);
+        return (
+          <button
+            key={label}
+            type="button"
+            className={`chip ${on ? "selected" : ""}`.trim()}
+            aria-pressed={on}
+            onClick={() => onChange(on ? value.filter((d) => d !== day) : [...value, day].sort())}
+          >
+            {label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
 
 /**
  * The questions every account answers once: name, team, player type, and
@@ -35,9 +59,28 @@ export function ProfileForm({
   const [playerType, setPlayerType] = useState<PlayerType | "">(current.playerType ?? "");
   const [throws, setThrows] = useState<Hand>(current.throws ?? "Right");
   const [bats, setBats] = useState<BatSide>(current.bats ?? "Right");
+  const stored = readSchedule(profile);
+  const raw = (profile && typeof profile === "object" ? profile : {}) as { winterTeam?: unknown };
+  const [training, setTraining] = useState<number[]>(stored?.training ?? []);
+  // GBL clubs play Friday and Sunday; anyone else says when they play.
+  const [games, setGames] = useState<number[]>(stored?.games ?? []);
+  const [gamesTouched, setGamesTouched] = useState(Boolean(stored));
+  const [winter, setWinter] = useState<"" | "yes" | "no">(
+    stored ? (stored.winterGames.length ? "yes" : "no") : ""
+  );
+  const [winterTeam, setWinterTeam] = useState(typeof raw.winterTeam === "string" ? raw.winterTeam : "");
+  const [winterGames, setWinterGames] = useState<number[]>(stored?.winterGames.length ? stored.winterGames : [5]);
 
   const team = teamChoice === OTHER ? otherTeam.trim() : teamChoice;
-  const ready = Boolean(name.trim() && team && playerType);
+  const shownGames = !gamesTouched && games.length === 0 && gblTeam(team) ? PROGRAMME_WEEK.games : games;
+  const ready = Boolean(
+    name.trim() &&
+      team &&
+      playerType &&
+      shownGames.length &&
+      winter &&
+      (winter === "no" || (winterTeam.trim() && winterGames.length))
+  );
 
   return (
     <form
@@ -45,7 +88,15 @@ export function ProfileForm({
       onSubmit={(event) => {
         event.preventDefault();
         if (!ready) return;
-        onSave({ name: name.trim(), team, playerType: playerType as PlayerType, throws, bats });
+        onSave({
+          name: name.trim(),
+          team,
+          playerType: playerType as PlayerType,
+          throws,
+          bats,
+          schedule: { training, games: shownGames, winterGames: winter === "yes" ? winterGames : [] },
+          winterTeam: winter === "yes" ? winterTeam.trim() : "",
+        });
       }}
     >
       <div className="field full">
@@ -129,6 +180,55 @@ export function ProfileForm({
             <option value="Switch">Switch</option>
           </select>
         </div>
+      )}
+
+      <div className="field full">
+        <label id="trainingDays">Which nights does your team train?</label>
+        <DayPicker id="trainingDays" value={training} onChange={setTraining} />
+        <small>Your throwing on those nights is the team&apos;s, so the plan doesn&apos;t add its own.</small>
+      </div>
+
+      <div className="field full">
+        <label id="gameDays">Which days are your games?</label>
+        <DayPicker
+          id="gameDays"
+          value={shownGames}
+          onChange={(next) => {
+            setGamesTouched(true);
+            setGames(next);
+          }}
+        />
+        <small>Your week is built around these: the day off after a game, the bullpen between, a light catch the day before.</small>
+      </div>
+
+      <div className="field full">
+        <label htmlFor="profileWinter">Do you play winter ball?</label>
+        <select id="profileWinter" value={winter} onChange={(event) => setWinter(event.target.value as "yes" | "no")}>
+          <option value="" disabled>
+            Choose one
+          </option>
+          <option value="no">No</option>
+          <option value="yes">Yes</option>
+        </select>
+      </div>
+
+      {winter === "yes" && (
+        <>
+          <div className="field full">
+            <label htmlFor="profileWinterTeam">Winter team</label>
+            <input
+              id="profileWinterTeam"
+              type="text"
+              maxLength={60}
+              value={winterTeam}
+              onChange={(event) => setWinterTeam(event.target.value)}
+            />
+          </div>
+          <div className="field full">
+            <label id="winterGameDays">Winter game day</label>
+            <DayPicker id="winterGameDays" value={winterGames} onChange={setWinterGames} />
+          </div>
+        </>
       )}
 
       <div className="form-actions">

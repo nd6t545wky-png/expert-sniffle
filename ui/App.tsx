@@ -66,6 +66,7 @@ import { BallclubzCard } from "./components/BallclubzCard";
 import { ProfileCard, ProfileSetup } from "./components/ProfileSetup";
 import { Hitting } from "./components/Hitting";
 import { asPositionPlayer } from "../src/domain/positionPlayer";
+import { readSchedule } from "../src/domain/weeklySchedule";
 import { HittingGame, readHittingGames } from "../src/domain/hitting";
 import { BattingLine } from "../src/domain/ballclubz";
 import { AthleteProfile, gblTeam, hits as roleHits, pitches as rolePitches, profileComplete, readAthleteProfile, winterClubOf } from "../src/domain/athleteProfile";
@@ -450,6 +451,8 @@ export function App() {
     () => readTeamTraining((state?.profile as { teamTraining?: unknown } | undefined)?.teamTraining),
     [state]
   );
+  /** The athlete's own week from the sign-up questions; null until answered. */
+  const schedule = useMemo(() => readSchedule(state?.profile), [state]);
   /**
    * The season, as far as anyone can actually confirm it.
    *
@@ -507,12 +510,16 @@ export function App() {
     if (!selectedWeekPlan) return false;
     try {
       return sessionHasGame(
-        buildSession(selectedWeekPlan, selectedDay, { game: gameOn(date), gameTomorrow: gameOn(addDays(date, 1)) })
+        buildSession(selectedWeekPlan, selectedDay, {
+          game: gameOn(date),
+          gameTomorrow: gameOn(addDays(date, 1)),
+          schedule,
+        })
       );
     } catch {
       return false;
     }
-  }, [selectedWeekPlan, selectedDay, date, gameOn]);
+  }, [selectedWeekPlan, selectedDay, date, gameOn, schedule]);
   const retests = useMemo(
     () => readRetests((state?.profile as { retests?: unknown } | undefined)?.retests),
     [state]
@@ -636,6 +643,7 @@ export function App() {
               gameTomorrow: gameOn(addDays(on, 1)),
               weekGames: gamesInWeekOf(plan),
               role: readGameRole(submissions[on]?.gameRole),
+              schedule,
             }).tasks;
           }
         }
@@ -644,7 +652,7 @@ export function App() {
       }
       return [];
     },
-    [state, gameOn, gamesInWeekOf, submissions]
+    [state, gameOn, gamesInWeekOf, submissions, schedule]
   );
 
   const resolvedOn = useCallback(
@@ -690,6 +698,7 @@ export function App() {
           gameTomorrow: gameOn(addDays(date, 1)),
           weekGames: gamesInWeekOf(selectedWeekPlan),
           role: gameRole,
+          schedule,
         }),
         level,
         selectedDay
@@ -774,6 +783,7 @@ export function App() {
     gameOn,
     gamesInWeekOf,
     playerRole,
+    schedule,
   ]);
 
   const session = sessionWithRecovery.session;
@@ -1606,9 +1616,15 @@ export function App() {
       profile: {
         ...((draft.profile ?? {}) as object),
         ...answers,
-        // Fixed before the answers land: an unanswered winter club is read off
-        // the profile's age, and answering the sign-up questions changes that.
-        winterTeam: winterClubOf(draft.profile) ?? "",
+        // Club nights drive the training overlay. An existing setting keeps
+        // its start date, so past weeks read the same as they did.
+        teamTraining: {
+          days: answers.schedule.training,
+          from: (draft.profile as { teamTraining?: unknown } | undefined)?.teamTraining
+            ? readTeamTraining((draft.profile as { teamTraining?: unknown }).teamTraining).from
+            : (new Date().toISOString().slice(0, 10) as IsoDate),
+          club: answers.team,
+        },
         // The names older code reads, kept in step.
         summerTeam: answers.team,
         throwingHand: answers.throws,

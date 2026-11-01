@@ -804,9 +804,11 @@ function summerWeekday(week, day, midweek) {
   };
 }
 
-function summerSlot(week, day, slot) {
+// `firstGameDay` is the weekday of the game whose pitches decide the
+// between-games day; Friday unless an athlete's own week says otherwise.
+function summerSlot(week, day, slot, firstGameDay = 4) {
   const p = `w${week.week}-d${day}-summer`;
-  const fridayDate = isoDate(addDays(week.start, 4));
+  const fridayDate = isoDate(addDays(week.start, firstGameDay));
   const fridayPitches = Number((ctx.post ?? {})[fridayDate]?.gamePitches || 0);
   const appearedFriday = fridayPitches > 0;
 
@@ -1208,6 +1210,7 @@ export {
   todaySelection,
   standardSession,
   summerSession,
+  summerSlot,
   recoveryOnlySession,
   transitionWednesdaySession,
   nonCompetitionSaturdaySession,
