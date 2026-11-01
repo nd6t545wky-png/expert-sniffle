@@ -114,6 +114,19 @@ describe("a bullpen on a club night", () => {
 });
 
 describe("a week read off the team's draw", () => {
+  it("keeps gym and throwing over Christmas when the league plays through it", () => {
+    const breakWeek = 23;
+    const bye = { training: [1], games: [], winterGames: [], fromDraw: true, inSeason: true };
+    const sessions = Array.from({ length: 7 }, (_, d) => day(breakWeek, d, bye));
+    const tasks = sessions.flatMap((s) => s.tasks);
+    expect(tasks.filter((t) => /Whole-Body Gym|Strength Maintenance/.test(t.stageTitle)).length).toBeGreaterThan(4);
+    expect(tasks.some((t) => /^Bullpen$/.test(String(t.name)))).toBe(true);
+    expect(sessions.some((s) => sessionHasGame(s))).toBe(false);
+    // Before the season starts or after it ends, the break is the programme's.
+    const offSeason = Array.from({ length: 7 }, (_, d) => day(breakWeek, d, { ...bye, inSeason: false }));
+    expect(offSeason.map((s) => s.title)).toEqual(Array.from({ length: 7 }, (_, d) => day(breakWeek, d, null).title));
+  });
+
   it("builds an ABL series week: day off Monday, bullpen Tuesday, catch Wednesday", () => {
     const schedule = { training: [1], games: [3, 4, 5, 6], winterGames: [], fromDraw: true };
     const titles = Array.from({ length: 7 }, (_, d) => day(SUMMER_WEEK, d, schedule).title);
@@ -138,6 +151,10 @@ describe("a week read off the team's draw", () => {
     expect(week(breakWeek).phase.id).toBe("summer_break");
     const schedule = { training: [], games: [4, 5], winterGames: [], fromDraw: true };
     expect(sessionHasGame(day(breakWeek, 4, schedule))).toBe(true);
+    // The game week keeps its gym and its throwing.
+    const gameWeek = Array.from({ length: 7 }, (_, d) => day(breakWeek, d, schedule));
+    expect(gameWeek.some((s) => s.tasks.some((t) => /Whole-Body Gym|Strength Maintenance/.test(t.stageTitle)))).toBe(true);
+    expect(gameWeek.some((s) => s.tasks.some((t) => /^Bullpen$/.test(String(t.name))))).toBe(true);
     // Without a draw, the break stays a break.
     expect(sessionHasGame(day(breakWeek, 4, { ...schedule, fromDraw: false }))).toBe(false);
   });

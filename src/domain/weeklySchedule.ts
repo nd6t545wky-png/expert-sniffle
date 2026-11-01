@@ -30,6 +30,12 @@ export interface WeeklySchedule {
    * games is a bye.
    */
   fromDraw?: boolean;
+  /**
+   * With `fromDraw`: the team's season is under way this week — it has games
+   * before it and after it. A week without a game then is a bye in the
+   * middle of the season, not the off-season.
+   */
+  inSeason?: boolean;
 }
 
 export const DAY_NAMES = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"] as const;
