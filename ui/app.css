@@ -3213,3 +3213,40 @@ h1, h2, h3, h4 { font-weight: 600; }
   border-radius: var(--radius-sm);
   background: var(--team-secondary);
 }
+
+/* ---------------------------------------------------------------------------
+ * The Cubs purple, the same in dark mode.
+ *
+ * Dark mode swapped the club's deep purple for a pale lavender everywhere —
+ * on text, where a light tone is needed to be read on black, but also on
+ * every filled shape, where it is not. Filled shapes now keep the badge's
+ * purple (#3a2268) with white on it in both modes; purple *text* in dark mode
+ * keeps the lighter tone, because the deep purple on near-black is unreadable.
+ * ------------------------------------------------------------------------- */
+.app-shell.theme-coomera {
+  --accent-fill: #3a2268;
+  --on-accent-fill: #ffffff;
+}
+.app-shell.theme-coomera .btn-primary,
+.app-shell.theme-coomera .btn-dark,
+.app-shell.theme-coomera .day-chip.today,
+.app-shell.theme-coomera .score-orb,
+.app-shell.theme-coomera .bullpen-pitch-strip span,
+.app-shell.theme-coomera .velocity-band.ceiling {
+  color: var(--on-accent-fill);
+  border-color: transparent;
+  background: var(--accent-fill);
+}
+.app-shell.theme-coomera .day-tab.active,
+.app-shell.theme-coomera .day-tab[aria-current="date"] {
+  color: var(--on-accent-fill);
+  border-color: transparent;
+  background: var(--accent-fill);
+}
+.app-shell.theme-coomera .day-tab.active span,
+.app-shell.theme-coomera .day-tab.active strong,
+.app-shell.theme-coomera .day-tab[aria-current="date"] span,
+.app-shell.theme-coomera .day-tab[aria-current="date"] strong,
+.app-shell.theme-coomera .velocity-band.ceiling * {
+  color: var(--on-accent-fill);
+}
