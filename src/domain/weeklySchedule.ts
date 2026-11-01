@@ -78,7 +78,7 @@ const wrap = (day: number) => ((day % 7) + 7) % 7;
  * What each weekday is for, given the game days. The week wraps: Sunday's game
  * makes Monday the day after a game.
  */
-export function dayRoles(games: number[], training: number[] = []): DayRole[] | null {
+export function dayRoles(games: number[]): DayRole[] | null {
   if (!games.length) return null;
   const isGame = (day: number) => games.includes(wrap(day));
   const roles: DayRole[] = DAY_NAMES.map((_, day) => {
@@ -95,11 +95,9 @@ export function dayRoles(games: number[], training: number[] = []): DayRole[] | 
     for (let n = 1; n <= 7; n += 1) if (isGame(day + step * n)) return n;
     return 7;
   };
-  // A club night is no place for the bullpen: practice throwing would replace
-  // it. Use a night off if there is one.
-  const allFree = roles.map((role, day) => (role === "free" ? day : -1)).filter((day) => day >= 0);
-  const nightsOff = allFree.filter((day) => !training.includes(day));
-  const free = nightsOff.length ? nightsOff : allFree;
+  // Club nights do not move it: a bullpen can fall on a training night, and
+  // the training overlay keeps it there alongside practice.
+  const free = roles.map((role, day) => (role === "free" ? day : -1)).filter((day) => day >= 0);
   if (free.length) {
     const score = (day: number) => Math.min(distance(day, 1), distance(day, -1));
     const best = free.reduce((pick, day) => {
@@ -171,7 +169,7 @@ const TEAM_STAGES = new Set(["Team Practice", "Team Throwing"]);
 
 /** A summer-season day laid over the athlete's own week. */
 export function personalSummerDay(week: WeekPlan, day: number, schedule: WeeklySchedule): Session | null {
-  const roles = dayRoles(schedule.games, schedule.training);
+  const roles = dayRoles(schedule.games);
   if (!roles) return null;
   const slots = roles.map((_, index) => summerSlotFor(roles, index));
   const slot = slots[day];

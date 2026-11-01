@@ -202,6 +202,28 @@ export function applyTeamTraining(
   if (soloThrows.length === 0) return { session, note: null };
 
   const throwStage = Number(soloThrows[0].stage);
+
+  // A bullpen is not swapped out. It is the week's planned mound work, and it
+  // can fall on a training night: the bullpen stays, practice goes alongside
+  // it, and practice throwing is kept to a catch.
+  if (soloThrows.some((task) => /bullpen/i.test(String(task.name)))) {
+    const withPractice = [...tasks];
+    const after = withPractice.findIndex((task) => Number(task.stage) > throwStage);
+    withPractice.splice(after === -1 ? withPractice.length : after, 0, {
+      ...teamPracticeTask(prefix, throwStage + 1, settings.club),
+      prescription: "Complete assigned baseball work · no extra bullpen · keep throwing to a catch",
+      cue: `The bullpen is today's throwing. At ${settings.club} training, field and hit, but keep throwing to an easy catch — the bullpen pitches already count.`,
+    });
+    return {
+      session: {
+        ...session,
+        tasks: withPractice,
+        description: `${session.description} ${settings.club} training is on tonight too: the bullpen stays, and practice throwing is kept to an easy catch.`.trim(),
+      },
+      note: `${settings.club} training tonight — the bullpen stays; keep practice throwing to a catch.`,
+    };
+  }
+
   const replaced = tasks.filter((task) => task.stageTitle !== SOLO_THROW_STAGE);
   const insertAt = replaced.findIndex((task) => Number(task.stage) > throwStage);
 

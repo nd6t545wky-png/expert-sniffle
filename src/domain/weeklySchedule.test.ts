@@ -18,8 +18,8 @@ describe("dayRoles", () => {
     expect(dayRoles([5])).toEqual(["free", "free", "bullpen", "free", "pre-game", "game", "post-game"]);
   });
 
-  it("keeps the bullpen off a club night when there is a night off", () => {
-    expect(dayRoles([5], [0, 2])).toEqual(["free", "bullpen", "free", "free", "pre-game", "game", "post-game"]);
+  it("lets the bullpen fall on a club night", () => {
+    expect(dayRoles([5])?.[2]).toBe("bullpen");
   });
 
   it("has no plan without games", () => {
@@ -55,8 +55,8 @@ describe("the athlete's own week", () => {
     expect(sessions.map((s) => sessionHasGame(s))).toEqual([false, false, false, false, false, true, false]);
     expect(sessions[5].title).toBe("Saturday · Game Day");
     expect(sessions[6].title).toMatch(/^Sunday · Recovery/);
-    expect(sessions[1].title).toMatch(/^Tuesday · Bullpen/);
-    expect(sessions[1].description).toMatch(/well clear of Saturday's game/);
+    expect(sessions[2].title).toMatch(/^Wednesday · Bullpen/);
+    expect(sessions[2].description).toMatch(/well clear of Saturday's game/);
     expect(sessions[4].title).toBe("Friday · Light Catch");
     for (const [d, s] of sessions.entries()) {
       expect(s.description).toMatch(/^Your week: training Mon & Wed · game Sat\./);
@@ -92,5 +92,23 @@ describe("the athlete's own week", () => {
     const schedule = { training: [1, 3], games: [4, 6], winterGames: [] };
     const sessions = Array.from({ length: 7 }, (_, d) => day(WINTER_NEXT_WEEK, d, schedule));
     expect(sessions.some((s) => sessionHasGame(s))).toBe(false);
+  });
+});
+
+describe("a bullpen on a club night", () => {
+  it("keeps the bullpen and adds practice alongside it", async () => {
+    const { applyTeamTraining } = await import("./teamTraining");
+    const schedule = { training: [0, 2], games: [5], winterGames: [] };
+    const wednesday = day(SUMMER_WEEK, 2, schedule);
+    const date = "2026-11-04" as never;
+    const { session, note } = applyTeamTraining(wednesday, {
+      day: 2,
+      date,
+      settings: { days: [0, 2], from: "2026-11-01" as never, club: "Logan Rays" },
+    });
+    expect(session.tasks.some((t) => /^Bullpen$/.test(String(t.name)))).toBe(true);
+    expect(session.tasks.some((t) => t.stageTitle === "Team Practice")).toBe(true);
+    expect(session.tasks.some((t) => /practice throwing/i.test(String(t.name)))).toBe(false);
+    expect(note).toMatch(/bullpen stays/);
   });
 });
