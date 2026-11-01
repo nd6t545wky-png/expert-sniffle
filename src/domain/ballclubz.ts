@@ -367,3 +367,186 @@ export function pitchingFromGameFile(file: unknown, name: string): BoxScoreLine 
     firstPitchStrikes,
   };
 }
+
+// --- Any team: its draw, and the player's own page -----------------------------
+
+export interface RosterPlayer {
+  first: string;
+  last: string;
+  number: string;
+  /** "/gbld1/teams/9971819/687154". */
+  path: string;
+}
+
+/** The roster table on a team page. */
+export function parseRoster(html: string): RosterPlayer[] {
+  const players: RosterPlayer[] = [];
+  for (const row of html.matchAll(/<tr[\s\S]*?<\/tr>/gi)) {
+    const link = /href="(\/[a-z0-9]{2,40}\/teams\/[A-Za-z0-9]{1,40}\/\d{1,12})"/i.exec(row[0]);
+    if (!link) continue;
+    const cells = [...row[0].matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)].map((cell) => text(cell[1]));
+    const at = cells.findIndex((cell, index) => index > 0 && cell && row[0].includes(`>${cell}</a>`));
+    if (at < 0) continue;
+    players.push({ number: cells[0] ?? "", last: cells[at], first: cells[at + 1] ?? "", path: link[1] });
+  }
+  return players;
+}
+
+const fold = (value: string) => value.normalize("NFKD").replace(/[^\p{L}]/gu, "").toLowerCase();
+
+/** A roster player by full name — first and last, in either order, ignoring case and accents. */
+export function findOnRoster(roster: readonly RosterPlayer[], name: string): RosterPlayer | null {
+  const words = name.split(/\s+/).map(fold).filter(Boolean);
+  if (words.length < 2) return null;
+  return (
+    roster.find((player) => {
+      const first = fold(player.first);
+      const last = fold(player.last);
+      return words.includes(first) && words.includes(last);
+    }) ?? null
+  );
+}
+
+export interface TeamFixture {
+  date: IsoDate;
+  opponent: string;
+  home: boolean;
+  /** "7:00 pm", or the final score once played. */
+  detail: string;
+}
+
+/**
+ * A team's games, off the league schedule.
+ *
+ * Each game box lists the away team first and the home team second, the same
+ * order as the published draw; dates come from the day headers, with the year
+ * read off the season title.
+ */
+export function teamFixtures(html: string, team: string, now: Date = new Date()): TeamFixture[] {
+  const firstYear = seasonStartYear(html, now);
+  const wanted = team.trim().toLowerCase();
+  const fixtures: TeamFixture[] = [];
+  let monthDay: [number, number] | null = null;
+  const pattern =
+    /class="bz-schedule-separator"[^>]*>\s*[A-Za-z]{3}\s+(\d{1,2})\/(\d{1,2})\s*<|class="bz-game-box(?:\s[^"]*)?"\s+data-href="[^"]*"([\s\S]*?)(?=class="bz-game-box(?:\s[^"]*)?"\s+data-href|class="bz-schedule-separator"|<\/ul>|$)/gi;
+  for (const match of html.matchAll(pattern)) {
+    if (match[1]) {
+      monthDay = [Number(match[1]), Number(match[2])];
+      continue;
+    }
+    if (!monthDay) continue;
+    const cols = [...match[3].matchAll(/class="bz-game-box-col"[^>]*>([\s\S]*?)<\/div>/gi)].map((cell) => text(cell[1]));
+    // [venue, status], [away, score or time], [home, score]
+    if (cols.length < 6) continue;
+    const away = cols[2];
+    const home = cols[4];
+    const isHome = home.toLowerCase() === wanted;
+    if (!isHome && away.toLowerCase() !== wanted) continue;
+    const [month, day] = monthDay;
+    const year = month >= 7 ? firstYear : firstYear + 1;
+    fixtures.push({
+      date: `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}` as IsoDate,
+      opponent: isHome ? away : home,
+      home: isHome,
+      detail: [cols[1], cols[3], cols[5]].filter(Boolean).join(" "),
+    });
+  }
+  return fixtures;
+}
+
+// --- Batting ------------------------------------------------------------------
+
+/** One game of the official batting line, off a player page's Batting Game Log. */
+export interface BattingLine {
+  date: IsoDate;
+  opponent: string;
+  side: GameSide;
+  pa: number;
+  ab: number;
+  r: number;
+  h: number;
+  rbi: number;
+  doubles: number;
+  triples: number;
+  hr: number;
+  bb: number;
+  so: number;
+  sb: number;
+  cs: number;
+}
+
+export function parseBattingGameLog(html: string, now: Date = new Date()): BattingLine[] {
+  const start = html.search(/Batting Game Log/i);
+  if (start < 0) return [];
+  const table = /<table[\s\S]*?<\/table>/i.exec(html.slice(start))?.[0] ?? "";
+  const all = rows(table);
+  const header = all.find((cells) => cells.includes("PA") && cells.includes("AB"));
+  if (!header) return [];
+  const col = (name: string) => header.indexOf(name);
+  const firstYear = seasonStartYear(html, now);
+  const lines: BattingLine[] = [];
+  for (const cells of all) {
+    if (cells === header) continue;
+    const when = /\b(\d{1,2})\/(\d{1,2})\b/.exec(cells[col("DATE")] ?? "");
+    const team = /^(vs\.?|@|at)\s+(.+)$/i.exec(cells[col("TEAM")] ?? "");
+    if (!when || !team) continue;
+    const month = Number(when[1]);
+    const day = Number(when[2]);
+    const year = month >= 7 ? firstYear : firstYear + 1;
+    const num = (name: string) => {
+      const value = Number(cells[col(name)]);
+      return col(name) >= 0 && Number.isFinite(value) && value >= 0 ? value : 0;
+    };
+    lines.push({
+      date: `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}` as IsoDate,
+      opponent: team[2].trim(),
+      side: /^vs/i.test(team[1]) ? "home" : "away",
+      pa: num("PA"),
+      ab: num("AB"),
+      r: num("R"),
+      h: num("H"),
+      rbi: num("RBI"),
+      doubles: num("2B"),
+      triples: num("3B"),
+      hr: num("HR"),
+      bb: num("BB"),
+      so: num("SO"),
+      sb: num("SB"),
+      cs: num("CS"),
+    });
+  }
+  return lines;
+}
+
+/** Season totals of the official line, with AVG / OBP / SLG as far as the line allows. */
+export function battingTotals(lines: readonly BattingLine[]) {
+  const sum = (key: keyof Omit<BattingLine, "date" | "opponent" | "side">) => lines.reduce((total, line) => total + line[key], 0);
+  const t = {
+    games: lines.length,
+    pa: sum("pa"),
+    ab: sum("ab"),
+    r: sum("r"),
+    h: sum("h"),
+    rbi: sum("rbi"),
+    doubles: sum("doubles"),
+    triples: sum("triples"),
+    hr: sum("hr"),
+    bb: sum("bb"),
+    so: sum("so"),
+    sb: sum("sb"),
+    cs: sum("cs"),
+  };
+  const singles = t.h - t.doubles - t.triples - t.hr;
+  const tb = singles + 2 * t.doubles + 3 * t.triples + 4 * t.hr;
+  // The log has no HBP or sacrifice column. Plate appearances not accounted
+  // for by at-bats and walks are counted as reaching base over all plate
+  // appearances, which is how Ballclubz computes its own published OBP — the
+  // test checks a real player's line comes out the same.
+  const other = Math.max(0, t.pa - t.ab - t.bb);
+  return {
+    ...t,
+    avg: t.ab ? t.h / t.ab : null,
+    obp: t.pa ? (t.h + t.bb + other) / t.pa : null,
+    slg: t.ab ? tb / t.ab : null,
+  };
+}

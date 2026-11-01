@@ -2,16 +2,21 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
+  battingTotals,
+  findOnRoster,
   gameForOuting,
   liveGameFileUrl,
   mergeBallclubzOutings,
+  parseBattingGameLog,
   parseLiveGameRef,
+  parseRoster,
   parsePitchingGameLog,
   parsePlayerHeader,
   parsePlayerPageUrl,
   parseScheduleGames,
   pitchingFromGameFile,
   playerPageUrl,
+  teamFixtures,
 } from "./ballclubz";
 import { Game, seasonRates, seasonTotals } from "./gameLog";
 
@@ -179,5 +184,53 @@ describe("box scores", () => {
     );
     const game = mergeBallclubzOutings([], enriched).games.find((g) => g.date === "2026-11-01")!;
     expect(game).toMatchObject({ pitches: 42, strikes: 19, battersFaced: 9, firstPitchStrikes: 7 });
+  });
+});
+
+describe("any team", () => {
+  const SCHEDULE = readFileSync(join(__dirname, "fixtures", "ballclubzSchedule.html"), "utf8");
+  const ROSTER = readFileSync(join(__dirname, "fixtures", "ballclubzRoster.html"), "utf8");
+
+  it("reads the roster and finds a player by name", () => {
+    const roster = parseRoster(ROSTER);
+    expect(roster.length).toBeGreaterThan(25);
+    expect(findOnRoster(roster, "Dylan Sippel")?.path).toBe("/gbld1/teams/9971819/687154");
+    expect(findOnRoster(roster, "sippel dylan")?.path).toBe("/gbld1/teams/9971819/687154");
+    expect(findOnRoster(roster, "Ty Iddon")?.path).toBe("/gbld1/teams/9971819/687142");
+    expect(findOnRoster(roster, "Dylan")).toBeNull();
+    expect(findOnRoster(roster, "Someone Else")).toBeNull();
+  });
+
+  it("builds a team's draw from the schedule, home and away", () => {
+    const cubs = teamFixtures(SCHEDULE, "Coomera Cubs", NOW);
+    expect(cubs.length).toBe(36);
+    expect(cubs.find((game) => game.date === "2026-11-01")).toMatchObject({ opponent: "Redcliffe Padres", home: false });
+    expect(cubs.find((game) => game.date === "2027-01-06")).toMatchObject({ opponent: "Carina Red Sox", home: true });
+    // Another club reads the same way.
+    const rays = teamFixtures(SCHEDULE, "Redlands Rays", NOW);
+    expect(rays.length).toBe(36);
+    expect(rays.every((game) => game.opponent !== "Redlands Rays")).toBe(true);
+  });
+});
+
+describe("batting", () => {
+  const HITTER = readFileSync(join(__dirname, "fixtures", "ballclubzHitter.html"), "utf8");
+
+  it("reads the batting game log", () => {
+    const lines = parseBattingGameLog(HITTER, NOW);
+    expect(lines).toHaveLength(7);
+    expect(lines[0]).toMatchObject({ date: "2026-10-02", opponent: "Surfers Paradise", side: "home", pa: 4, ab: 2, h: 1, bb: 2, so: 0, sb: 1 });
+  });
+
+  it("comes out at the line Ballclubz publishes (.235/.536/.294)", () => {
+    const t = battingTotals(parseBattingGameLog(HITTER, NOW));
+    expect([t.pa, t.ab, t.h, t.bb, t.so, t.sb]).toEqual([28, 17, 4, 9, 5, 5]);
+    expect(t.avg?.toFixed(3)).toBe("0.235");
+    expect(t.obp?.toFixed(3)).toBe("0.536");
+    expect(t.slg?.toFixed(3)).toBe("0.294");
+  });
+
+  it("finds no batting on a pitcher-only page", () => {
+    expect(parseBattingGameLog(PAGE, NOW)).toEqual([]);
   });
 });

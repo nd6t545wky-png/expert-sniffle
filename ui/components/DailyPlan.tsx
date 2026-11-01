@@ -335,7 +335,7 @@ export function DailyPlan({
       {!sidePanel && (
         <section className="today-head">
           <div className="dashboard-heading">
-            {team && (
+            {team?.logo && (
               <div className="team-logo-wrap">
                 <img src={team.logo} alt={team.alt} />
               </div>

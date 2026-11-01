@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { AppState, IsoDate } from "../../src/domain/state";
+import { AppState, IsoDate, LEGACY_STORAGE_KEYS, STORAGE_KEY } from "../../src/domain/state";
 import { LoadResult, loadAppState, migrateIfNeeded, saveAppState } from "../../src/domain/storage";
 import { ReadinessSubmission, PlanState, planStateForDate } from "../../src/domain/session";
 import { mergeTrainingHistories, recordStateChanges } from "../../src/domain/trainingHistory";
@@ -32,6 +32,12 @@ export interface AppStateHandle {
   update: (mutate: (draft: AppState) => AppState, options?: UpdateOptions) => void;
   submissions: Record<IsoDate, ReadinessSubmission | undefined>;
   planFor: (date: IsoDate) => PlanState;
+  /**
+   * Start this device over with empty state — when a different account signs
+   * in, or on sign-out. Bypasses `update`, whose history merge exists precisely
+   * to stop events being dropped and would carry the last person's over.
+   */
+  reset: () => void;
 }
 
 export interface UpdateOptions {
@@ -85,7 +91,16 @@ export function useAppState(): AppStateHandle {
 
   const planFor = useCallback((date: IsoDate) => planStateForDate(submissions, date), [submissions]);
 
-  return { state, load, update, submissions, planFor };
+  const reset = useCallback(() => {
+    const storage = browserStorage();
+    storage.removeItem(STORAGE_KEY);
+    for (const key of LEGACY_STORAGE_KEYS) storage.removeItem(key);
+    const fresh = loadAppState(storage);
+    setLoad(fresh);
+    setState(fresh.state);
+  }, []);
+
+  return { state, load, update, submissions, planFor, reset };
 }
 
 // Deliberately no `todayIso` here. "Today" comes from

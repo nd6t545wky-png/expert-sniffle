@@ -11,12 +11,22 @@ export function GameRoleField({
   value,
   onChange,
   id = "gameRole",
+  pitcher = true,
 }: {
   value: GameRole | null;
   onChange: (role: GameRole) => void;
   id?: string;
+  /** A position player is never pitching: only "playing" or "not playing". */
+  pitcher?: boolean;
 }) {
-  const help = GAME_ROLES.find((role) => role.value === value)?.help ?? "Sets today's game-day plan.";
+  const roles = pitcher
+    ? GAME_ROLES
+    : GAME_ROLES.filter((role) => role.value !== "pitching").map((role) =>
+        role.value === "playing"
+          ? { ...role, label: "Playing", help: "In the line-up — log your at-bats in the Compete stage." }
+          : { ...role, help: "Not in the line-up today." }
+      );
+  const help = roles.find((role) => role.value === value)?.help ?? "Sets today's game-day plan.";
   return (
     <div className="field">
       <label htmlFor={id}>Are you playing today?</label>
@@ -30,7 +40,7 @@ export function GameRoleField({
         <option value="" disabled>
           Choose one
         </option>
-        {GAME_ROLES.map((role) => (
+        {roles.map((role) => (
           <option key={role.value} value={role.value}>
             {role.label}
           </option>
@@ -42,10 +52,18 @@ export function GameRoleField({
 }
 
 /** The same answer, changeable after the check-in — line-ups change. */
-export function GameRoleCard({ value, onChange }: { value: GameRole | null; onChange: (role: GameRole) => void }) {
+export function GameRoleCard({
+  value,
+  onChange,
+  pitcher = true,
+}: {
+  value: GameRole | null;
+  onChange: (role: GameRole) => void;
+  pitcher?: boolean;
+}) {
   return (
     <Card aria-label="Playing today" className="game-role-card">
-      <GameRoleField id="gameRoleSession" value={value} onChange={onChange} />
+      <GameRoleField id="gameRoleSession" value={value} onChange={onChange} pitcher={pitcher} />
     </Card>
   );
 }
