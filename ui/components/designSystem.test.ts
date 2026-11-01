@@ -205,9 +205,10 @@ describe("design system", () => {
   });
 
   it("uses gradients only where a gradient is the data", () => {
-    // Three survive, all load-bearing: the two-stop hard split that draws a
-    // range slider's filled track, the hatch that marks a partial bar, and the
-    // scrim that keeps a caption legible over an athlete's photograph.
+    // Four survive, all load-bearing: the two-stop hard split that draws a
+    // range slider's filled track, the hatch that marks a partial bar, the
+    // scrim that keeps a caption legible over an athlete's photograph, and the
+    // club-colour fill of the tasks-done bar, which the athlete asked for.
     const offenders = SHEETS.flatMap(([name, css]) =>
       declarations(css)
         .filter(({ text }) => /gradient\(/.test(text))
@@ -215,7 +216,8 @@ describe("design system", () => {
           ({ text }) =>
             !/var\(--range-progress/.test(text) &&
             !/repeating-linear-gradient/.test(text) &&
-            !/rgba\(8, 8, 10/.test(text)
+            !/rgba\(8, 8, 10/.test(text) &&
+            !/var\(--accent-fill, var\(--team-primary\)\), var\(--team-secondary\)/.test(text)
         )
         .map(({ line, text }) => `${name}:${line} ${text.slice(0, 80)}`)
     );

@@ -3152,8 +3152,12 @@ h1, h2, h3, h4 { font-weight: 600; }
 .app-shell .eyebrow,
 .app-shell .today-step { color: var(--team-secondary); }
 
-/* Progress fills in the club's teal. */
-.app-shell .session-progress span { background: var(--team-secondary); }
+/* Progress runs from the club's purple into its teal — the badge's two
+   colours, filling as the day's tasks are ticked off. The deep purple is used
+   in both modes; on a dark track the lavender would wash the start out. */
+.app-shell .session-progress span {
+  background: linear-gradient(90deg, var(--accent-fill, var(--team-primary)), var(--team-secondary));
+}
 
 /* A ticked task and a finished stage are teal: done reads at a glance. */
 .app-shell .task-check:checked { border-color: var(--team-secondary); background: var(--team-secondary); }
