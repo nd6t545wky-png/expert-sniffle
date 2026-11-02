@@ -11,6 +11,7 @@ import {
 } from "../../src/domain/athleteProfile";
 import { Card, CardHead } from "./Page";
 import { DAY_SHORT, readSchedule } from "../../src/domain/weeklySchedule";
+import { KNOWN_TEAM_COLOURS, readTeamColours } from "../../src/domain/teamColours";
 
 const OTHER = "__other__";
 
@@ -71,6 +72,14 @@ export function ProfileForm({
   const [winterGames, setWinterGames] = useState<number[]>(stored?.winterGames.length ? stored.winterGames : [5]);
 
   const team = teamChoice === OTHER ? otherTeam.trim() : teamChoice;
+  // The app is drawn in the team's colours. Known teams start from theirs;
+  // anyone else picks two.
+  const storedColours = readTeamColours(profile);
+  const [primary, setPrimary] = useState(storedColours?.primary ?? "");
+  const [secondary, setSecondary] = useState(storedColours?.secondary ?? "");
+  const known = KNOWN_TEAM_COLOURS[team];
+  const shownPrimary = primary || known?.primary || "#1f3a93";
+  const shownSecondary = secondary || known?.secondary || "#c8102e";
   // A league team starts from the days that league plays; the athlete can change them.
   const league = leagueTeam(team)?.league;
   const shownGames = !gamesTouched && games.length === 0 && league ? [...league.usualGameDays] : games;
@@ -97,6 +106,7 @@ export function ProfileForm({
           bats,
           schedule: { training, games: shownGames, winterGames: winter === "yes" ? winterGames : [] },
           winterTeam: winter === "yes" ? winterTeam.trim() : "",
+          teamColours: { primary: shownPrimary, secondary: shownSecondary },
         });
       }}
     >
@@ -146,6 +156,25 @@ export function ProfileForm({
           />
         </div>
       )}
+
+      <div className="field full">
+        <label id="teamColours">Team colours</label>
+        <div className="team-colours" role="group" aria-labelledby="teamColours">
+          <label className="colour-pick">
+            <input type="color" value={shownPrimary} onChange={(event) => setPrimary(event.target.value)} />
+            <span>Main</span>
+          </label>
+          <label className="colour-pick">
+            <input type="color" value={shownSecondary} onChange={(event) => setSecondary(event.target.value)} />
+            <span>Second</span>
+          </label>
+          <span className="colour-preview" aria-hidden="true">
+            <span style={{ background: shownPrimary }} />
+            <span style={{ background: shownSecondary }} />
+          </span>
+        </div>
+        <small>The app is drawn in these: buttons and headings in the main colour, the progress bar and ticks in the second.</small>
+      </div>
 
       <fieldset className="field full player-type-choice">
         <legend>What do you play?</legend>

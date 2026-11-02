@@ -8,6 +8,7 @@
  */
 
 import { WeeklySchedule, readSchedule } from "./weeklySchedule";
+import { TeamColours, readTeamColours } from "./teamColours";
 
 export type PlayerType = "pitcher" | "two-way" | "position";
 
@@ -42,6 +43,8 @@ export interface AthleteProfile {
   schedule: WeeklySchedule;
   /** Winter-ball club, or "" for none. */
   winterTeam: string;
+  /** The team's two colours; the app is drawn in them. */
+  teamColours: TeamColours;
   /** The team the athlete plays for now — a GBL club or anything typed. */
   team: string;
   playerType: PlayerType;
@@ -72,12 +75,15 @@ export function readAthleteProfile(value: unknown): Partial<AthleteProfile> {
 }
 
 /**
- * Whether the sign-up questions are answered. Player type and the weekly
- * schedule are never assumed: the week is built around the schedule.
+ * Whether the sign-up questions are answered. Player type, the weekly
+ * schedule and the team's colours are never assumed: the week is built around
+ * the schedule, and the app is drawn in the colours.
  */
 export function profileComplete(value: unknown): boolean {
   const profile = readAthleteProfile(value);
-  return Boolean(profile.name && profile.team && profile.playerType && readSchedule(value));
+  return Boolean(
+    profile.name && profile.team && profile.playerType && readSchedule(value) && readTeamColours(value, profile.team)
+  );
 }
 
 export function gblTeam(team: string | undefined) {

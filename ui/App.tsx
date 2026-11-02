@@ -66,6 +66,7 @@ import { BallclubzCard } from "./components/BallclubzCard";
 import { ProfileCard, ProfileSetup } from "./components/ProfileSetup";
 import { Hitting } from "./components/Hitting";
 import { asPositionPlayer } from "../src/domain/positionPlayer";
+import { readTeamColours, teamThemeVars } from "../src/domain/teamColours";
 import { readSchedule } from "../src/domain/weeklySchedule";
 import { HittingGame, readHittingGames } from "../src/domain/hitting";
 import { BattingLine } from "../src/domain/ballclubz";
@@ -1642,7 +1643,13 @@ export function App() {
   // for a Cubs profile written before the question existed.
   const athlete = readAthleteProfile(state.profile);
   const winterClub = winterClubOf(state.profile);
-  const team = teamBranding(winter && winterClub ? winterClub : athlete.team ?? "Coomera Cubs");
+  const branded = teamBranding(winter && winterClub ? winterClub : athlete.team ?? "Coomera Cubs");
+  // The app is always in the athlete's team colours: the hand-tuned Cubs and
+  // Norths themes where they apply, otherwise one worked out from the colours
+  // given at sign-up.
+  const ownColours = branded.theme ? null : readTeamColours(state.profile, athlete.team);
+  const team = ownColours ? { ...branded, theme: "theme-team" } : branded;
+  const themeVars = ownColours ? teamThemeVars(ownColours) : undefined;
   const needsProfile = !profileComplete(state.profile) && view !== "account";
   const role = athlete.playerType ?? "pitcher";
   // A position player has no throwing pages; a pitcher no hitting page. A
@@ -1697,6 +1704,7 @@ export function App() {
   return (
     <Shell
       theme={team.theme}
+      themeVars={themeVars}
       desktopContext={weekMeta.eyebrow}
       mobileContext={PAGE_TITLES[page]}
       contextRange={weekMeta.range}
