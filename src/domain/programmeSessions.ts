@@ -27,6 +27,7 @@ import {
   isTransitionPhase,
 } from "./programmeContent";
 import { IsoDate } from "./state";
+import { withChristmasThrowing } from "./christmasThrowing";
 import {
   WeeklySchedule,
   isProgrammeSummerWeek,
@@ -382,6 +383,10 @@ export function buildSession(
   } else {
     session = standardSession(week, day);
   }
+
+  // The Christmas block keeps a pitcher on the mound and builds the count
+  // back to a game's worth before games resume.
+  if (!personalSummer) session = withChristmasThrowing(session as Session, week, day);
 
   if (options.game && !sessionHasGame(session as Session)) {
     session = gameDayFor(week, day);
