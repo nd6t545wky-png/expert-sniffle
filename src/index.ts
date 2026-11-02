@@ -19,6 +19,7 @@ import {
 } from "./domain/ballclubz";
 import { GBL_LEAGUE, gblTeam } from "./domain/athleteProfile";
 import { leagueTeam, mlbStatsScheduleUrl, parseMlbStatsSchedule } from "./domain/leagues";
+import { parseTeamLookup, teamLookupPrompt } from "./domain/teamLookup";
 import type { IsoDate } from "./domain/state";
 import type { Env } from "./env";
 
@@ -2928,6 +2929,52 @@ async function withBoxScore(
 }
 
 /**
+ * A team outside the leagues the app follows, looked up on the web: logo,
+ * colours and draw in one search, for the sign-up question. The model's reply
+ * is checked field by field in teamLookup.ts and shown to the athlete, with
+ * its source, before anything is saved.
+ */
+async function teamWebLookup(env: Env, url: URL): Promise<Response> {
+  const team = cleanText(url.searchParams.get("team"), 80);
+  const where = cleanText(url.searchParams.get("where"), 80);
+  if (team.length < 3) return json({ error: "Enter your team's name" }, 400);
+  try {
+    const reply = await env.AI.run("@cf/google/gemma-4-26b-a4b-it" as any, {
+      messages: [
+        {
+          role: "system",
+          content:
+            "You find amateur and semi-professional baseball clubs on the web. Use only facts from pages you found. Return JSON only.",
+        },
+        { role: "user", content: teamLookupPrompt(team, where) },
+      ],
+      max_completion_tokens: 1800,
+      reasoning_effort: "low",
+      chat_template_kwargs: { enable_thinking: false },
+      temperature: 0,
+      response_format: { type: "json_object" },
+      web_search_options: {
+        search_context_size: "high",
+        user_location: { type: "approximate", approximate: { country: "AU", region: "Queensland", timezone: "Australia/Brisbane" } },
+      },
+    } as any);
+    let parsed: unknown = reply;
+    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+      const record = parsed as Record<string, unknown>;
+      if (Array.isArray(record.choices)) parsed = (record.choices[0] as { message?: { content?: unknown } })?.message?.content ?? null;
+      else if ("response" in record) parsed = record.response;
+    }
+    if (typeof parsed === "string") {
+      const match = parsed.match(/\{[\s\S]*\}/);
+      parsed = match ? JSON.parse(match[0]) : null;
+    }
+    return json({ ...parseTeamLookup(team, parsed), fetchedAt: new Date().toISOString() });
+  } catch {
+    return json({ error: "Couldn't search for that team right now. Try again, or pick its colours yourself." }, 502);
+  }
+}
+
+/**
  * A team's draw from whichever league it plays in — and, where the league's
  * source has player pages, that player's own page — for the team and name a
  * new account gave. See src/domain/leagues.ts for the leagues followed.
@@ -3027,6 +3074,11 @@ async function routeApi(request: Request, env: Env, url: URL): Promise<Response 
   // fetched — the URL is rebuilt from validated parts, never passed through.
   // A GBL team's draw and, when a name is given, that player's own page on
   // the team roster — what a new account's team and name hook up to.
+  if (url.pathname === "/api/team/lookup" && request.method === "GET") {
+    if (!(await nutritionKeyHash(request, env, url))) return json({ error: "Sign in to look up your team" }, 401);
+    const limited = await enforceAccountRateLimit(request, env, url, env.INTEGRATION_RATE_LIMITER, "team-lookup");
+    return limited ?? teamWebLookup(env, url);
+  }
   if ((url.pathname === "/api/league/team" || url.pathname === "/api/ballclubz/team") && request.method === "GET") {
     if (!(await nutritionKeyHash(request, env, url))) return json({ error: "Sign in to bring in your team's draw" }, 401);
     const limited = await enforceAccountRateLimit(request, env, url, env.INTEGRATION_RATE_LIMITER, "ballclubz");

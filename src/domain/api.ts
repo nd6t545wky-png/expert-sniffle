@@ -8,6 +8,7 @@
 
 import { IsoDate } from "./state";
 import { SyncGetResponse, SyncPutResponse } from "./sync";
+import type { TeamLookup } from "./teamLookup";
 import type { BallclubzOuting, BattingLine, TeamFixture } from "./ballclubz";
 
 export type Fetcher = typeof fetch;
@@ -341,6 +342,13 @@ export class PitchingOsApi {
   }
 
   /** A GBL team's draw, and the named player's Ballclubz page when found on the roster. */
+  /** A team outside the followed leagues, found on the web: logo, colours and draw. */
+  teamLookup(team: string, where = "") {
+    return this.request<TeamLookup & { fetchedAt: string }>(
+      `/api/team/lookup?team=${encodeURIComponent(team)}&where=${encodeURIComponent(where)}`
+    );
+  }
+
   /** A team's draw from the league it plays in (see leagues.ts), and the player's page where there is one. */
   leagueTeam(team: string, name: string) {
     return this.request<{ team: string; league?: string; fixtures: TeamFixture[]; playerPage: string | null; fetchedAt: string }>(

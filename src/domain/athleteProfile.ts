@@ -45,6 +45,10 @@ export interface AthleteProfile {
   winterTeam: string;
   /** The team's two colours; the app is drawn in them. */
   teamColours: TeamColours;
+  /** A team outside the followed leagues: its logo, found on the web ("" for none). */
+  teamLogo?: string;
+  /** A team outside the followed leagues: its draw, found on the web. */
+  teamDraw?: { team: string; fetchedAt: string; games: unknown[]; source: string };
   /** The team the athlete plays for now — a GBL club or anything typed. */
   team: string;
   playerType: PlayerType;

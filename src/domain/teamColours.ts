@@ -14,9 +14,28 @@ export interface TeamColours {
   secondary: string;
 }
 
-/** Teams whose colours the app already knows; the sign-up question starts from these. */
+/**
+ * Every GBL Division 1 and ABL team's colours, read off each club's own logo
+ * (or, where the logo is one colour, the colours the club lists). The sign-up
+ * question starts from these; the athlete can change them.
+ */
 export const KNOWN_TEAM_COLOURS: Readonly<Record<string, TeamColours>> = {
+  // GBL Division 1
+  "Beenleigh Hawks": { primary: "#003c24", secondary: "#f2c500" },
+  "Carina Red Sox": { primary: "#e00000", secondary: "#007854" },
   "Coomera Cubs": { primary: "#3a2268", secondary: "#24909f" },
+  "Narangba Demons": { primary: "#000054", secondary: "#008448" },
+  "Pine Hills Lightning": { primary: "#111111", secondary: "#f5c400" },
+  "Redcliffe Padres": { primary: "#f0300c", secondary: "#111111" },
+  "Redlands Rays": { primary: "#3c86c6", secondary: "#111111" },
+  "Surfers Paradise": { primary: "#1d4f9c", secondary: "#111111" },
+  "Wests Bulldogs": { primary: "#182454", secondary: "#cc1830" },
+  "Windsor Royals": { primary: "#002490", secondary: "#d0202e" },
+  // ABL
+  "Adelaide Giants": { primary: "#002454", secondary: "#d81830" },
+  "Brisbane Bandits": { primary: "#18489c", secondary: "#f0d800" },
+  "Perth Heat": { primary: "#c03c30", secondary: "#111111" },
+  "Sydney Blue Sox": { primary: "#54a8e4", secondary: "#1c1414" },
 };
 
 const HEX = /^#[0-9a-f]{6}$/i;

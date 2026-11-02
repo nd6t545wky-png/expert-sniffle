@@ -34,3 +34,11 @@ describe("team colours", () => {
     }
   });
 });
+
+describe("league teams", () => {
+  it("has colours for every GBL and ABL team", async () => {
+    const { LEAGUES } = await import("./leagues");
+    const { KNOWN_TEAM_COLOURS } = await import("./teamColours");
+    for (const league of LEAGUES) for (const team of league.teams) expect(KNOWN_TEAM_COLOURS[team.name], team.name).toBeTruthy();
+  });
+});
