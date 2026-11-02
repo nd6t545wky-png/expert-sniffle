@@ -1034,7 +1034,6 @@ describe("every task names something to do", () => {
     "One controlled Wednesday intent exposure; team training rhythm Tue/Thu",
     "Complete assigned baseball work; record session duration and RPE",
     "Keep conditioning and extra throwing low volume",
-    "Easy catch plus one controlled mound touch",
   ]);
 
   it("carries a dose on every task the overlay produces", () => {

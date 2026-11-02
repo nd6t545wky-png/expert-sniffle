@@ -517,13 +517,27 @@ export function App() {
       team && team !== "Coomera Cubs" && leagueTeam(team) && draw?.team === team && Array.isArray(draw.games) && draw.games.length
     );
   }, [state?.profile]);
+  /** Whether the athlete's league has any game over the programme's Christmas break. */
+  const playsThroughChristmas = useMemo(() => {
+    for (let week = 1; week <= 60; week += 1) {
+      let plan: WeekPlan;
+      try {
+        plan = weekPlan(week);
+      } catch {
+        break;
+      }
+      if (plan.phase.id !== "summer_break") continue;
+      if (fixturesBetween(dateForWeekDay(plan, 0), dateForWeekDay(plan, 6), fixtures).length) return true;
+    }
+    return false;
+  }, [fixtures]);
   const scheduleForWeek = useCallback(
     (plan: WeekPlan | null) => {
       if (!schedule || !plan || !followsDraw) return schedule;
       const games = [0, 1, 2, 3, 4, 5, 6].filter((day) => fixtureOn(dateForWeekDay(plan, day), fixtures) !== null);
-      return { ...schedule, games, fromDraw: true };
+      return { ...schedule, games, fromDraw: true, inSeason: playsThroughChristmas };
     },
-    [schedule, followsDraw, fixtures]
+    [schedule, followsDraw, fixtures, playsThroughChristmas]
   );
 
   /**
