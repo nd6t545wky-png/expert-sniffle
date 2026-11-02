@@ -66,7 +66,6 @@ import { BallclubzCard } from "./components/BallclubzCard";
 import { ProfileCard, ProfileSetup } from "./components/ProfileSetup";
 import { Hitting } from "./components/Hitting";
 import { asPositionPlayer } from "../src/domain/positionPlayer";
-import { NEUTRAL_ICON, iconPng, setTouchIcon } from "./appIcon";
 import { readSchedule } from "../src/domain/weeklySchedule";
 import { HittingGame, readHittingGames } from "../src/domain/hitting";
 import { BattingLine } from "../src/domain/ballclubz";
@@ -1545,30 +1544,6 @@ export function App() {
 
     return () => window.clearTimeout(timer);
   }, [api, state, syncKey, buildPhysioSummaryNow]);
-
-  // The home-screen icon in the athlete's team colours, where the app has
-  // them. iOS reads the icon when the app is added to the home screen, so it
-  // is set on the page as soon as the team is known; with no team colours the
-  // neutral icon from index.html stands.
-  const iconTeam = teamBranding(readAthleteProfile(state?.profile).team ?? "").theme;
-  useEffect(() => {
-    if (!iconTeam) return;
-    const shell = document.querySelector(".app-shell");
-    if (!shell) return;
-    const style = getComputedStyle(shell);
-    const read = (name: string) => style.getPropertyValue(name).trim();
-    const background = read("--accent-fill") || read("--team-primary");
-    if (!background) return;
-    let cancelled = false;
-    iconPng({ background, ball: NEUTRAL_ICON.ball, seam: read("--team-secondary") || NEUTRAL_ICON.seam })
-      .then((href) => !cancelled && setTouchIcon(href))
-      .catch(() => {
-        // The neutral icon stays.
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [iconTeam]);
 
   if (load?.source === "corrupt") {
     return (
