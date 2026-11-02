@@ -114,34 +114,23 @@ describe("a bullpen on a club night", () => {
 });
 
 describe("a week read off the team's draw", () => {
-  it("makes Christmas a mini off-season around the games for a team still playing", () => {
+  it("keeps a league that plays through Christmas in season", () => {
     const breakWeek = 23;
-    const series = { training: [1], games: [3, 4, 5, 6], winterGames: [], fromDraw: true };
+    const series = { training: [1], games: [3, 4, 5, 6], winterGames: [], fromDraw: true, inSeason: true };
     const sessions = Array.from({ length: 7 }, (_, d) => day(breakWeek, d, series));
-    // Still in season: the games stay.
     expect(sessions.map((s) => sessionHasGame(s))).toEqual([false, false, false, true, true, true, true]);
-    // The off-season's gym in place of maintenance lifting.
-    expect(sessions[0].title).toBe("Monday · Recovery + Whole-Body Force");
-    expect(sessions[0].tasks.some((t) => t.stageTitle === "Whole-Body Force")).toBe(true);
-    expect(sessions[0].tasks.some((t) => t.stageTitle === "Strength Maintenance")).toBe(false);
-    expect(sessions[1].title).toBe("Tuesday · Bullpen + Whole-Body Power");
-    expect(sessions[1].tasks.some((t) => /^Bullpen$/.test(String(t.name)))).toBe(true);
-    expect(sessions[1].tasks.some((t) => t.stageTitle === "Whole-Body Power")).toBe(true);
-    expect(sessions[0].description).toMatch(/mini off-season around your games/);
-
-    // A one-game week fills its free days with command, speed and throwing development.
-    const single = Array.from({ length: 7 }, (_, d) => day(breakWeek, d, { training: [], games: [5], winterGames: [], fromDraw: true }));
-    expect(single[0].title).toBe("Monday · Command + Acceleration");
-    expect(single.some((s) => /Throwing Development|Recovery \+ Aerobic/.test(s.title))).toBe(true);
-    for (const [d, s] of [...sessions, ...single].map((s, i) => [i % 7, s] as const)) {
-      for (const task of s.tasks) expect(task.id).toMatch(new RegExp(`^w${breakWeek}-d${d}-`));
-      expect(new Set(s.tasks.map((t) => t.id)).size).toBe(s.tasks.length);
-    }
+    // The same in-season week as any other: maintenance gym, bullpen between games.
+    expect(sessions[0].title).toBe("Monday · Recovery + Strength Maintenance");
+    expect(sessions[1].title).toBe("Tuesday · Bullpen + Whole-Body Strength");
+    // A week off over Christmas, mid-season, is a bye — not the off-season.
+    const bye = Array.from({ length: 7 }, (_, d) => day(breakWeek, d, { ...series, games: [] }));
+    expect(bye.every((s) => /^No game for your team this week/.test(String(s.description)))).toBe(true);
+    expect(bye.some((s) => s.tasks.some((t) => /^Bullpen$/.test(String(t.name))))).toBe(true);
   });
 
-  it("makes a Christmas week with no game the programme's mini off-season", () => {
+  it("gives a league that stops for Christmas the programme's off-season block", () => {
     const breakWeek = 23;
-    const bye = { training: [1], games: [], winterGames: [], fromDraw: true };
+    const bye = { training: [1], games: [], winterGames: [], fromDraw: true, inSeason: false };
     const sessions = Array.from({ length: 7 }, (_, d) => day(breakWeek, d, bye));
     // The same week the programme gives over Christmas, gym and throwing included.
     expect(sessions.map((s) => s.title)).toEqual(Array.from({ length: 7 }, (_, d) => day(breakWeek, d, null).title));
@@ -173,11 +162,11 @@ describe("a week read off the team's draw", () => {
   it("plays the draw's games over the programme's Christmas break", () => {
     const breakWeek = 23;
     expect(week(breakWeek).phase.id).toBe("summer_break");
-    const schedule = { training: [], games: [4, 5], winterGames: [], fromDraw: true };
+    const schedule = { training: [], games: [4, 5], winterGames: [], fromDraw: true, inSeason: true };
     expect(sessionHasGame(day(breakWeek, 4, schedule))).toBe(true);
     // The game week keeps its gym and its throwing.
     const gameWeek = Array.from({ length: 7 }, (_, d) => day(breakWeek, d, schedule));
-    expect(gameWeek.some((s) => s.tasks.some((t) => /Whole-Body Force|Whole-Body Power/.test(t.stageTitle)))).toBe(true);
+    expect(gameWeek.some((s) => s.tasks.some((t) => /Whole-Body Gym|Strength Maintenance/.test(t.stageTitle)))).toBe(true);
     expect(gameWeek.some((s) => s.tasks.some((t) => /^Bullpen$/.test(String(t.name))))).toBe(true);
     // Without a draw, the break stays a break.
     expect(sessionHasGame(day(breakWeek, 4, { ...schedule, fromDraw: false }))).toBe(false);

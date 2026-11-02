@@ -30,6 +30,12 @@ export interface WeeklySchedule {
    * games is a bye.
    */
   fromDraw?: boolean;
+  /**
+   * With `fromDraw`, over the programme's Christmas break: the team's league
+   * plays through Christmas, so the break is in season for them — game weeks
+   * as normal, and a week without a game a bye rather than the off-season.
+   */
+  inSeason?: boolean;
 }
 
 export const DAY_NAMES = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"] as const;
@@ -272,55 +278,7 @@ export function personalSummerDay(week: WeekPlan, day: number, schedule: WeeklyS
     ...(role === "post-game" ? { postGame: true } : {}),
     ...(schedule.games.length >= 2 ? { twoGameWeek: true } : {}),
   };
-  return week.phase.id === "summer_break" ? christmasBlock(base, week, day, role, roles, training) : base;
-}
-
-/** The mini off-season's own day `from`, moved onto `day`. */
-function breakDay(week: WeekPlan, from: number, day: number): Session {
-  const built = standardSession(week, from) as Session;
-  const renamed = renameDays(built, new Map([[DAY_NAMES[from], DAY_NAMES[day]]])) as Session;
-  return { ...renamed, tasks: rehome(renamed.tasks, from, day) };
-}
-
-const MAINTENANCE_GYM = new Set(["Strength Maintenance", "Whole-Body Gym"]);
-
-/**
- * Christmas for a team still playing: a mini off-season built around the
- * games. The in-season rhythm stays — the game, the day off after it, the
- * light catch before it, the bullpen between — but the work in between is the
- * off-season's: the force and power gym in place of maintenance lifting, and
- * command, speed and throwing development on the days with no game either side.
- */
-function christmasBlock(
-  session: Session,
-  week: WeekPlan,
-  day: number,
-  role: DayRole,
-  roles: DayRole[],
-  training: boolean
-): Session {
-  const note = "Christmas is a mini off-season around your games: the gym and throwing build as they would in the off-season, while the games stay on.";
-  const swapGym = (from: number, title: string): Session => {
-    const gym = breakDay(week, from, day).tasks.filter((task) => /^Whole-Body (Force|Power)$/.test(task.stageTitle));
-    const kept = session.tasks.filter((task) => !MAINTENANCE_GYM.has(task.stageTitle));
-    const at = kept.findIndex((task) => Number(task.stage) > Number(gym[0]?.stage ?? 4));
-    kept.splice(at === -1 ? kept.length : at, 0, ...gym);
-    return { ...session, title: `${DAY_NAMES[day]} · ${title}`, description: `${session.description} ${note}`, tasks: kept };
-  };
-  if (role === "post-game") return swapGym(0, "Recovery + Whole-Body Force");
-  if (role === "bullpen") return swapGym(2, "Bullpen + Whole-Body Power");
-  if (role === "free") {
-    // The first free day is the week's command and speed day; any other is
-    // throwing development, or recovery the day after it.
-    const free = roles.map((r, index) => (r === "free" ? index : -1)).filter((index) => index >= 0);
-    const from = free[0] === day ? 1 : roles[wrap(day - 1)] === "free" ? 3 : 5;
-    const built = breakDay(week, from, day);
-    return {
-      ...built,
-      description: `${String(session.description).split(". ")[0]}. ${note} ${built.description}${training ? " Team training tonight replaces the solo throwing." : ""}`,
-    };
-  }
-  return session;
+  return base;
 }
 
 /** Winter weeks have one game: the programme's Saturday. Move the whole week with it. */
