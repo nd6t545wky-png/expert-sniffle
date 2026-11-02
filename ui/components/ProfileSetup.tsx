@@ -1,9 +1,8 @@
 import { useState } from "react";
+import { LEAGUES, leagueTeam } from "../../src/domain/leagues";
 import {
   AthleteProfile,
-  gblTeam,
   BatSide,
-  GBL_TEAMS,
   Hand,
   PLAYER_TYPES,
   PlayerType,
@@ -11,7 +10,7 @@ import {
   readAthleteProfile,
 } from "../../src/domain/athleteProfile";
 import { Card, CardHead } from "./Page";
-import { DAY_SHORT, PROGRAMME_WEEK, readSchedule } from "../../src/domain/weeklySchedule";
+import { DAY_SHORT, readSchedule } from "../../src/domain/weeklySchedule";
 
 const OTHER = "__other__";
 
@@ -52,7 +51,7 @@ export function ProfileForm({
   onSave: (answers: AthleteProfile) => void;
 }) {
   const current = readAthleteProfile(profile);
-  const knownTeam = GBL_TEAMS.some((team) => team.name === current.team);
+  const knownTeam = Boolean(leagueTeam(current.team));
   const [name, setName] = useState(current.name ?? "");
   const [teamChoice, setTeamChoice] = useState(current.team ? (knownTeam ? current.team : OTHER) : "");
   const [otherTeam, setOtherTeam] = useState(knownTeam ? "" : current.team ?? "");
@@ -72,7 +71,9 @@ export function ProfileForm({
   const [winterGames, setWinterGames] = useState<number[]>(stored?.winterGames.length ? stored.winterGames : [5]);
 
   const team = teamChoice === OTHER ? otherTeam.trim() : teamChoice;
-  const shownGames = !gamesTouched && games.length === 0 && gblTeam(team) ? PROGRAMME_WEEK.games : games;
+  // A league team starts from the days that league plays; the athlete can change them.
+  const league = leagueTeam(team)?.league;
+  const shownGames = !gamesTouched && games.length === 0 && league ? [...league.usualGameDays] : games;
   const ready = Boolean(
     name.trim() &&
       team &&
@@ -119,16 +120,18 @@ export function ProfileForm({
           <option value="" disabled>
             Choose your team
           </option>
-          <optgroup label="GBL Division 1">
-            {GBL_TEAMS.map((option) => (
-              <option key={option.name} value={option.name}>
-                {option.name}
-              </option>
-            ))}
-          </optgroup>
+          {LEAGUES.map((option) => (
+            <optgroup key={option.id} label={option.name}>
+              {option.teams.map((club) => (
+                <option key={club.name} value={club.name}>
+                  {club.name}
+                </option>
+              ))}
+            </optgroup>
+          ))}
           <option value={OTHER}>Another team…</option>
         </select>
-        <small>A GBL club brings in its draw and your league stats automatically.</small>
+        <small>A GBL or ABL team brings in its draw automatically, and your week follows it.</small>
       </div>
 
       {teamChoice === OTHER && (

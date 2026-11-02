@@ -1,0 +1,173 @@
+{
+  "dates": [
+    {
+      "date": "2026-11-19",
+      "games": [
+        {
+          "gamePk": 851294,
+          "gameDate": "2026-11-19T08:30:00Z",
+          "officialDate": "2026-11-19",
+          "gameType": "R",
+          "status": {
+            "abstractGameState": "Preview",
+            "detailedState": "Scheduled"
+          },
+          "teams": {
+            "away": {
+              "team": {
+                "id": 4065,
+                "name": "Brisbane Bandits"
+              }
+            },
+            "home": {
+              "team": {
+                "id": 4064,
+                "name": "Adelaide Giants"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "date": "2026-11-20",
+      "games": [
+        {
+          "gamePk": 851293,
+          "gameDate": "2026-11-20T08:30:00Z",
+          "officialDate": "2026-11-20",
+          "gameType": "R",
+          "status": {
+            "abstractGameState": "Preview",
+            "detailedState": "Scheduled"
+          },
+          "teams": {
+            "away": {
+              "team": {
+                "id": 4065,
+                "name": "Brisbane Bandits"
+              }
+            },
+            "home": {
+              "team": {
+                "id": 4064,
+                "name": "Adelaide Giants"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "date": "2026-11-21",
+      "games": [
+        {
+          "gamePk": 851289,
+          "gameDate": "2026-11-21T04:30:00Z",
+          "officialDate": "2026-11-21",
+          "gameType": "R",
+          "status": {
+            "abstractGameState": "Preview",
+            "detailedState": "Scheduled"
+          },
+          "teams": {
+            "away": {
+              "team": {
+                "id": 4065,
+                "name": "Brisbane Bandits"
+              }
+            },
+            "home": {
+              "team": {
+                "id": 4064,
+                "name": "Adelaide Giants"
+              }
+            }
+          }
+        },
+        {
+          "gamePk": 851292,
+          "gameDate": "2026-11-21T08:30:00Z",
+          "officialDate": "2026-11-21",
+          "gameType": "R",
+          "status": {
+            "abstractGameState": "Preview",
+            "detailedState": "Scheduled"
+          },
+          "teams": {
+            "away": {
+              "team": {
+                "id": 4065,
+                "name": "Brisbane Bandits"
+              }
+            },
+            "home": {
+              "team": {
+                "id": 4064,
+                "name": "Adelaide Giants"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "date": "2026-11-26",
+      "games": [
+        {
+          "gamePk": 851271,
+          "gameDate": "2026-11-26T08:30:00Z",
+          "officialDate": "2026-11-26",
+          "gameType": "R",
+          "status": {
+            "abstractGameState": "Preview",
+            "detailedState": "Scheduled"
+          },
+          "teams": {
+            "away": {
+              "team": {
+                "id": 4068,
+                "name": "Perth Heat"
+              }
+            },
+            "home": {
+              "team": {
+                "id": 4065,
+                "name": "Brisbane Bandits"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "date": "2026-11-27",
+      "games": [
+        {
+          "gamePk": 851272,
+          "gameDate": "2026-11-27T08:00:00Z",
+          "officialDate": "2026-11-27",
+          "gameType": "R",
+          "status": {
+            "abstractGameState": "Preview",
+            "detailedState": "Scheduled"
+          },
+          "teams": {
+            "away": {
+              "team": {
+                "id": 4068,
+                "name": "Perth Heat"
+              }
+            },
+            "home": {
+              "team": {
+                "id": 4065,
+                "name": "Brisbane Bandits"
+              }
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -341,9 +341,10 @@ export class PitchingOsApi {
   }
 
   /** A GBL team's draw, and the named player's Ballclubz page when found on the roster. */
-  ballclubzTeam(team: string, name: string) {
-    return this.request<{ team: string; fixtures: TeamFixture[]; playerPage: string | null; fetchedAt: string }>(
-      `/api/ballclubz/team?team=${encodeURIComponent(team)}&name=${encodeURIComponent(name)}`
+  /** A team's draw from the league it plays in (see leagues.ts), and the player's page where there is one. */
+  leagueTeam(team: string, name: string) {
+    return this.request<{ team: string; league?: string; fixtures: TeamFixture[]; playerPage: string | null; fetchedAt: string }>(
+      `/api/league/team?team=${encodeURIComponent(team)}&name=${encodeURIComponent(name)}`
     );
   }
 

@@ -353,10 +353,16 @@ export function buildSession(
 
   let session: unknown;
   const schedule = options.schedule ?? null;
+  // The Christmas break is a mini off-season: unload, rebuild, then force and
+  // strength-speed back to the mound. Every athlete gets it for the Christmas
+  // weeks they have no game. A team whose league plays over Christmas gets a
+  // normal in-season week — gym, a bullpen and its games — in the weeks it
+  // actually plays.
+  const inSeason =
+    isSummerCompetitionPhase(week.phase.id) ||
+    (week.phase.id === "summer_break" && Boolean(schedule?.fromDraw && schedule.games.length));
   const personalSummer =
-    schedule && isSummerCompetitionPhase(week.phase.id) && !isProgrammeSummerWeek(schedule)
-      ? personalSummerDay(week, day, schedule)
-      : null;
+    schedule && inSeason && !isProgrammeSummerWeek(schedule) ? personalSummerDay(week, day, schedule) : null;
   if (personalSummer) {
     session = personalSummer;
   } else if (
