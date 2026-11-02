@@ -33,7 +33,7 @@ export const KNOWN_TEAM_COLOURS: Readonly<Record<string, TeamColours>> = {
   "Windsor Royals": { primary: "#002490", secondary: "#d0202e" },
   // ABL
   "Adelaide Giants": { primary: "#002454", secondary: "#d81830" },
-  "Brisbane Bandits": { primary: "#18489c", secondary: "#f0d800" },
+  "Brisbane Bandits": { primary: "#18489c", secondary: "#ffd400" },
   "Perth Heat": { primary: "#c03c30", secondary: "#111111" },
   "Sydney Blue Sox": { primary: "#54a8e4", secondary: "#1c1414" },
 };
