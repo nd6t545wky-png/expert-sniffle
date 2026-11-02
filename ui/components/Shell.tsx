@@ -342,7 +342,7 @@ export function Shell({
     <div className={`app-shell ${theme}${keyboardOpen ? " keyboard-open" : ""}${condensed ? " nav-condensed" : ""}`}>
       <aside className="sidebar">
         <div className="brand">
-          <img className="brand-mark" src="/mark.svg" alt="" />
+          <img className="brand-mark" src="/icons/icon.svg" alt="" />
           <div>
             <strong>Pitching OS</strong>
             <span>{athleteName}</span>
