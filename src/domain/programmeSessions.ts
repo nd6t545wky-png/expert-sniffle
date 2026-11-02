@@ -353,14 +353,14 @@ export function buildSession(
 
   let session: unknown;
   const schedule = options.schedule ?? null;
-  // The Christmas break is a break in the programme's league, not in every
-  // league. A team whose season runs through it gets a normal in-season week —
-  // gym, a bullpen and its games — and a week off over Christmas is a bye,
-  // which still keeps the gym and the bullpen, not the programme's unload.
+  // The Christmas break is a mini off-season: unload, rebuild, then force and
+  // strength-speed back to the mound. Every athlete gets it for the Christmas
+  // weeks they have no game. A team whose league plays over Christmas gets a
+  // normal in-season week — gym, a bullpen and its games — in the weeks it
+  // actually plays.
   const inSeason =
     isSummerCompetitionPhase(week.phase.id) ||
-    (week.phase.id === "summer_break" &&
-      Boolean(schedule?.fromDraw && (schedule.games.length || schedule.inSeason)));
+    (week.phase.id === "summer_break" && Boolean(schedule?.fromDraw && schedule.games.length));
   const personalSummer =
     schedule && inSeason && !isProgrammeSummerWeek(schedule) ? personalSummerDay(week, day, schedule) : null;
   if (personalSummer) {

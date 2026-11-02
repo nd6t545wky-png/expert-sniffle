@@ -521,10 +521,7 @@ export function App() {
     (plan: WeekPlan | null) => {
       if (!schedule || !plan || !followsDraw) return schedule;
       const games = [0, 1, 2, 3, 4, 5, 6].filter((day) => fixtureOn(dateForWeekDay(plan, day), fixtures) !== null);
-      const start = dateForWeekDay(plan, 0);
-      const end = dateForWeekDay(plan, 6);
-      const inSeason = fixtures.some((fixture) => fixture.date < start) && fixtures.some((fixture) => fixture.date > end);
-      return { ...schedule, games, fromDraw: true, inSeason };
+      return { ...schedule, games, fromDraw: true };
     },
     [schedule, followsDraw, fixtures]
   );
