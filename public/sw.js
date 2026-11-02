@@ -4,7 +4,7 @@
 // written because the filenames carry content hashes.
 const BUILD = "__BUILD_ID__";
 const CACHE = `pitching-os-${BUILD}`;
-const CORE = ["/", "/index.html", "/styles.css?v=46", "/training-history.js?v=46", "/auth-client.js?v=46", "/app.js?v=46", "/mark.svg", "/assets/norths-baseball-logo.jpg", "/assets/coomera-cubs-logo.png", "/manifest.webmanifest", "/privacy.html", "/terms.html", "/legal.css"];
+const CORE = ["/", "/index.html", "/styles.css?v=46", "/training-history.js?v=46", "/auth-client.js?v=46", "/app.js?v=46", "/mark.svg", "/icons/icon.svg", "/icons/apple-touch-icon.png", "/assets/norths-baseball-logo.jpg", "/assets/coomera-cubs-logo.png", "/manifest.webmanifest", "/privacy.html", "/terms.html", "/legal.css"];
 const NEXT_CORE = ["__NEXT_PRECACHE__"];
 
 const NEXT_SHELL = "/next/index.html";

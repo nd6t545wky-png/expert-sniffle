@@ -2076,7 +2076,8 @@ body {
    pairing. An earlier version of this comment asserted the accents stay dark
    in dark mode; measuring them says otherwise. */
 .app-shell.theme-norths,
-.app-shell.theme-coomera {
+.app-shell.theme-coomera,
+.app-shell.theme-team {
   --team-on-primary: var(--on-accent);
 }
 
@@ -3231,18 +3232,31 @@ h1, h2, h3, h4 { font-weight: 600; }
   --accent-fill: #3a2268;
   --on-accent-fill: #ffffff;
 }
+.app-shell.theme-team {
+  --accent-fill: var(--tc-fill);
+  --on-accent-fill: var(--tc-on-fill);
+  --team-on-secondary: var(--tc-on-secondary);
+}
 .app-shell.theme-coomera .btn-primary,
 .app-shell.theme-coomera .btn-dark,
 .app-shell.theme-coomera .day-chip.today,
 .app-shell.theme-coomera .score-orb,
 .app-shell.theme-coomera .bullpen-pitch-strip span,
-.app-shell.theme-coomera .velocity-band.ceiling {
+.app-shell.theme-coomera .velocity-band.ceiling,
+.app-shell.theme-team .btn-primary,
+.app-shell.theme-team .btn-dark,
+.app-shell.theme-team .day-chip.today,
+.app-shell.theme-team .score-orb,
+.app-shell.theme-team .bullpen-pitch-strip span,
+.app-shell.theme-team .velocity-band.ceiling {
   color: var(--on-accent-fill);
   border-color: transparent;
   background: var(--accent-fill);
 }
 .app-shell.theme-coomera .day-tab.active,
-.app-shell.theme-coomera .day-tab[aria-current="date"] {
+.app-shell.theme-coomera .day-tab[aria-current="date"],
+.app-shell.theme-team .day-tab.active,
+.app-shell.theme-team .day-tab[aria-current="date"] {
   color: var(--on-accent-fill);
   border-color: transparent;
   background: var(--accent-fill);
@@ -3251,12 +3265,18 @@ h1, h2, h3, h4 { font-weight: 600; }
 .app-shell.theme-coomera .day-tab.active strong,
 .app-shell.theme-coomera .day-tab[aria-current="date"] span,
 .app-shell.theme-coomera .day-tab[aria-current="date"] strong,
-.app-shell.theme-coomera .velocity-band.ceiling * {
+.app-shell.theme-coomera .velocity-band.ceiling *,
+.app-shell.theme-team .day-tab.active span,
+.app-shell.theme-team .day-tab.active strong,
+.app-shell.theme-team .day-tab[aria-current="date"] span,
+.app-shell.theme-team .day-tab[aria-current="date"] strong,
+.app-shell.theme-team .velocity-band.ceiling * {
   color: var(--on-accent-fill);
 }
 /* The check-in sliders' filled track and thumb are a fill too: the deep
    purple in both modes. Set on the input so its track and thumb inherit it. */
-.app-shell.theme-coomera .range-wrap input[type="range"] {
+.app-shell.theme-coomera .range-wrap input[type="range"],
+.app-shell.theme-team .range-wrap input[type="range"] {
   --blue: var(--accent-fill);
   --team-primary: var(--accent-fill);
 }
@@ -3398,3 +3418,22 @@ h1, h2, h3, h4 { font-weight: 600; }
 .hit-games { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
 .hit-games li { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; font-size: 13px; }
 .hit-games small { color: var(--muted); text-align: right; }
+
+/* The P mark in the sidebar, in the team's colours. */
+.brand-mark .brand-mark-bg { fill: var(--accent-fill, var(--team-primary)); }
+.brand-mark .brand-mark-ink { fill: var(--on-accent-fill, var(--on-accent)); }
+.brand-mark .brand-mark-seam { fill: none; stroke: var(--team-secondary); stroke-width: 2.6; stroke-linecap: round; }
+
+/* Sign-up: the team's two colours. */
+.team-colours { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.colour-pick { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; }
+.colour-pick input[type="color"] { width: 44px; height: 44px; padding: 0; border: 1px solid var(--line); border-radius: var(--radius-pill); background: none; cursor: pointer; }
+.colour-preview { display: inline-flex; overflow: hidden; border-radius: var(--radius-pill); border: 1px solid var(--line); }
+.colour-preview span { display: block; width: 28px; height: 20px; }
+
+/* Sign-up: a team found on the web. */
+.team-found { display: flex; align-items: center; gap: 12px; margin-top: 10px; padding: 10px 12px; border-radius: var(--radius-md); background: var(--surface-secondary); }
+.team-found img { width: 52px; height: 52px; object-fit: contain; border-radius: var(--radius-sm); background: var(--surface); }
+.team-found div { display: grid; gap: 2px; }
+.team-found small { color: var(--muted); }
+.team-found a { color: var(--accent); font-weight: 600; }

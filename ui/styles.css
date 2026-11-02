@@ -361,7 +361,38 @@
   --team-secondary-soft: #e4f3f5;
 }
 
+/* Any other team: its own two colours, given at sign-up. The values are
+ * worked out in teamColours.ts and set on the shell as --tc-* properties, a
+ * light and a dark set; this picks between them like the Cubs theme does. */
+.app-shell.theme-team {
+  --accent: var(--tc-accent-light);
+  --accent-dark: var(--tc-accent-dark-light);
+  --accent-soft: var(--tc-accent-soft-light);
+  --accent-on-ink: var(--tc-accent-dark);
+  --on-accent: var(--tc-on-fill);
+  --team-primary: var(--accent);
+  --team-secondary: var(--tc-secondary-light);
+  --team-primary-soft: var(--accent-soft);
+  --team-secondary-soft: var(--tc-secondary-soft-light);
+}
+:root[data-theme="dark"] .app-shell.theme-team {
+  --accent: var(--tc-accent-dark);
+  --accent-dark: var(--tc-accent-dark-dark);
+  --accent-soft: var(--tc-accent-soft-dark);
+  --on-accent: #0b0b0c;
+  --team-secondary: var(--tc-secondary-dark);
+  --team-secondary-soft: var(--tc-secondary-soft-dark);
+}
+
 @media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .app-shell.theme-team {
+    --accent: var(--tc-accent-dark);
+    --accent-dark: var(--tc-accent-dark-dark);
+    --accent-soft: var(--tc-accent-soft-dark);
+    --on-accent: #0b0b0c;
+    --team-secondary: var(--tc-secondary-dark);
+    --team-secondary-soft: var(--tc-secondary-soft-dark);
+  }
   :root:not([data-theme="light"]) .app-shell.theme-norths {
     --accent: #ff6b60;
     --accent-dark: #ff8b82;
@@ -3060,7 +3091,8 @@ summary:focus-visible {
 .team-wordmark { color: var(--muted); font-size: 10px; }
 .team-wordmark::before { background: var(--team-primary); }
 /* The Cubs badge is purple and teal; the bar under the club name takes the teal. */
-.app-shell.theme-coomera .team-wordmark::before { background: var(--team-secondary); }
+.app-shell.theme-coomera .team-wordmark::before,
+.app-shell.theme-team .team-wordmark::before { background: var(--team-secondary); }
 
 .btn {
   min-height: 44px;

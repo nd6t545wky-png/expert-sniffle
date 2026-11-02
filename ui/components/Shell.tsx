@@ -1,4 +1,4 @@
-import { Fragment, ReactNode, useEffect, useRef, useState } from "react";
+import { CSSProperties, Fragment, ReactNode, useEffect, useRef, useState } from "react";
 
 /**
  * App shell.
@@ -119,6 +119,24 @@ const ICON_PATHS: Record<PageId, ReactNode> = {
     </>
   ),
 };
+
+/**
+ * The app's P mark, in the team's colours: the team colour behind it and the
+ * second colour in the stitching. The home-screen icon is the neutral version.
+ */
+function BrandMark() {
+  return (
+    <svg className="brand-mark" viewBox="0 0 128 128" aria-hidden="true">
+      <rect width="128" height="128" rx="28" className="brand-mark-bg" />
+      <path className="brand-mark-ink" d="M42 102V26h28c17 0 28 10 28 24s-11 24-28 24H60v28Z" />
+      <path className="brand-mark-bg" d="M60 42h9c7 0 11 3 11 8s-4 8-11 8h-9Z" />
+      <path
+        className="brand-mark-seam"
+        d="M40,104 C44,84 46,52 40,24 M37.0 99.3L45.3 96.0M38.0 92.5L46.2 88.9M38.9 85.2L46.9 81.2M39.5 77.4L47.4 73.2M39.9 69.2L47.6 64.8M39.9 60.9L47.6 56.1M39.7 52.4L47.1 47.3M39.1 43.9L46.3 38.4M38.1 35.4L45.0 29.6"
+      />
+    </svg>
+  );
+}
 
 function NavIcon({ id }: { id: PageId }) {
   return (
@@ -282,6 +300,8 @@ function isTyping(): boolean {
 export interface ShellProps {
   /** Theme class the prototype puts on the shell, e.g. `theme-norths`. */
   theme: string;
+  /** Custom properties for a team theme worked out from its colours. */
+  themeVars?: Record<string, string>;
   /** Long context line, shown on wide screens. */
   desktopContext: string;
   /** Short context line, shown on phones. */
@@ -307,6 +327,7 @@ export interface ShellProps {
 
 export function Shell({
   theme,
+  themeVars,
   desktopContext,
   mobileContext,
   contextRange,
@@ -339,10 +360,13 @@ export function Shell({
             : page;
 
   return (
-    <div className={`app-shell ${theme}${keyboardOpen ? " keyboard-open" : ""}${condensed ? " nav-condensed" : ""}`}>
+    <div
+      className={`app-shell ${theme}${keyboardOpen ? " keyboard-open" : ""}${condensed ? " nav-condensed" : ""}`}
+      style={themeVars as CSSProperties | undefined}
+    >
       <aside className="sidebar">
         <div className="brand">
-          <img className="brand-mark" src="/mark.svg" alt="" />
+          <BrandMark />
           <div>
             <strong>Pitching OS</strong>
             <span>{athleteName}</span>

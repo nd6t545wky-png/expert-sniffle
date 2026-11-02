@@ -66,6 +66,7 @@ import { BallclubzCard } from "./components/BallclubzCard";
 import { ProfileCard, ProfileSetup } from "./components/ProfileSetup";
 import { Hitting } from "./components/Hitting";
 import { asPositionPlayer } from "../src/domain/positionPlayer";
+import { readTeamColours, teamThemeVars } from "../src/domain/teamColours";
 import { readSchedule } from "../src/domain/weeklySchedule";
 import { HittingGame, readHittingGames } from "../src/domain/hitting";
 import { BattingLine } from "../src/domain/ballclubz";
@@ -505,16 +506,16 @@ export function App() {
   /**
    * The athlete's week for a given programme week.
    *
-   * A team in a league the app follows (other than the Cubs, whose draw the
-   * programme was written around) has its real games for that week read off
-   * the imported draw: a Wednesday round, a four-game ABL series, or a bye.
+   * A team with an imported draw — from a league the app follows, or found on
+   * the web at sign-up — other than the Cubs, whose draw the programme was
+   * written around, has its real games for that week read off the draw: a Wednesday round, a four-game ABL series, or a bye.
    * Anyone else keeps the usual days they gave at sign-up.
    */
   const followsDraw = useMemo(() => {
     const team = readAthleteProfile(state?.profile).team;
     const draw = (state?.profile as { teamDraw?: { team?: string; games?: unknown[] } } | undefined)?.teamDraw;
     return Boolean(
-      team && team !== "Coomera Cubs" && leagueTeam(team) && draw?.team === team && Array.isArray(draw.games) && draw.games.length
+      team && team !== "Coomera Cubs" && draw?.team === team && Array.isArray(draw.games) && draw.games.length
     );
   }, [state?.profile]);
   /** Whether the athlete's league has any game over the programme's Christmas break. */
@@ -1642,7 +1643,20 @@ export function App() {
   // for a Cubs profile written before the question existed.
   const athlete = readAthleteProfile(state.profile);
   const winterClub = winterClubOf(state.profile);
-  const team = teamBranding(winter && winterClub ? winterClub : athlete.team ?? "Coomera Cubs");
+  const branded = teamBranding(winter && winterClub ? winterClub : athlete.team ?? "Coomera Cubs");
+  // The app is always in the athlete's team colours: the hand-tuned Cubs and
+  // Norths themes where they apply, otherwise one worked out from the colours
+  // given at sign-up.
+  const ownColours = branded.theme ? null : readTeamColours(state.profile, athlete.team);
+  const team = ownColours ? { ...branded, theme: "theme-team" } : branded;
+  const themeVars = ownColours ? teamThemeVars(ownColours) : undefined;
+  // A team found on the web brings its logo; the Cubs and Norths have theirs.
+  const webLogo = (state.profile as { teamLogo?: unknown } | undefined)?.teamLogo;
+  if (!team.logo && typeof webLogo === "string" && /^https?:\/\//.test(webLogo)) {
+    team.logo = webLogo;
+    team.alt = `${team.name} logo`;
+  }
+  const lookupTeam = (name: string, where: string) => api.teamLookup(name, where);
   const needsProfile = !profileComplete(state.profile) && view !== "account";
   const role = athlete.playerType ?? "pitcher";
   // A position player has no throwing pages; a pitcher no hitting page. A
@@ -1697,6 +1711,7 @@ export function App() {
   return (
     <Shell
       theme={team.theme}
+      themeVars={themeVars}
       desktopContext={weekMeta.eyebrow}
       mobileContext={PAGE_TITLES[page]}
       contextRange={weekMeta.range}
@@ -1733,7 +1748,7 @@ export function App() {
       onNavigate={setPage}
       onOpenPlan={() => setPage(plan.status === "locked" ? "readiness" : "session")}
     >
-      {needsProfile && <ProfileSetup profile={state.profile} onSave={saveProfile} />}
+      {needsProfile && <ProfileSetup profile={state.profile} onSave={saveProfile} onLookup={lookupTeam} />}
 
       {/* Today: the week strip, then check-in → workout → check-out, all on
           one screen. Dashboard and the separate check-in page fold into it. */}
@@ -2228,7 +2243,7 @@ export function App() {
       {shown === "profile" && (
         <>
           <PageHead eyebrow="Settings" title="Your programme." intro="Profile, club nights, recovery kit, league games, sharing." />
-          <ProfileCard profile={state.profile} onSave={saveProfile} />
+          <ProfileCard profile={state.profile} onSave={saveProfile} onLookup={lookupTeam} />
           <RecoverySettings
             equipment={recoveryEquipment}
             intentPercent={intentPercent}
