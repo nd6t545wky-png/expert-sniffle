@@ -14,6 +14,7 @@ import {
 import { Alert, Card, CardHead, Field, PageHead, TaskRow } from "./Page";
 import { DataBackup } from "./DataBackup";
 import { InvitesCard } from "./InvitesCard";
+import { PlayerEventsCard } from "./PlayerEventsCard";
 import { AppState } from "../../src/domain/state";
 
 /**
@@ -347,6 +348,7 @@ export function Account({
       </Card>
 
       {status?.isOwner && status.workspaceReady && <InvitesCard api={api} />}
+      {status?.isOwner && status.workspaceReady && <PlayerEventsCard api={api} />}
 
       {onReplaceState && <DataBackup state={state ?? null} onReplace={onReplaceState} />}
 

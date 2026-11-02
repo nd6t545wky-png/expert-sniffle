@@ -68,6 +68,7 @@ import { Hitting } from "./components/Hitting";
 import { asPositionPlayer } from "../src/domain/positionPlayer";
 import { readTeamColours, teamThemeVars } from "../src/domain/teamColours";
 import { readSchedule } from "../src/domain/weeklySchedule";
+import { readPlayerEvents, withPlayerEvents } from "../src/domain/playerEvents";
 import { HittingGame, readHittingGames } from "../src/domain/hitting";
 import { BattingLine } from "../src/domain/ballclubz";
 import { leagueTeam } from "../src/domain/leagues";
@@ -1465,6 +1466,29 @@ export function App() {
         // Offline or Ballclubz down: the fixtures already stored stand, and
         // the next session tries again.
         teamChecked.current = "";
+      });
+  }, [api, state, syncKey, update]);
+
+  // Games the owner has sent to this player (a tournament, a rep squad), added
+  // to their own games once a session.
+  const eventsChecked = useRef(false);
+  useEffect(() => {
+    if (!state || !isValidSyncKey(syncKey) || eventsChecked.current) return;
+    eventsChecked.current = true;
+    api
+      .myEvents()
+      .then((result) => {
+        const events = readPlayerEvents(result.events);
+        update((draft) => {
+          const profile = (draft.profile ?? {}) as Record<string, unknown>;
+          const merged = withPlayerEvents(profile.fixtures, events);
+          if (!merged.added && !merged.removed) return draft;
+          return { ...draft, profile: { ...profile, fixtures: merged.fixtures } };
+        });
+      })
+      .catch(() => {
+        // Signed out or offline: try again next session.
+        eventsChecked.current = false;
       });
   }, [api, state, syncKey, update]);
 
