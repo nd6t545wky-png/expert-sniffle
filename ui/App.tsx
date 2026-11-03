@@ -1590,7 +1590,7 @@ export function App() {
           const merged = withPlayerEvents(profile.fixtures, events);
           // The pitching lines from those games, once played, go in the game log.
           const lines = withEventOutings(readGames(draft.games), events);
-          const fixturesChanged = merged.added || merged.removed;
+          const fixturesChanged = merged.added || merged.removed || merged.updated;
           const gamesChanged = lines.added || lines.updated || lines.removed;
           if (!fixturesChanged && !gamesChanged) return draft;
           return {

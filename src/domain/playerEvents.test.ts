@@ -38,6 +38,13 @@ describe("withPlayerEvents", () => {
       ["2026-11-07", "Club game"],
       ["2026-11-12", "APBC 2026: vs Korea"],
     ]);
+    // Corrected by the owner: updated in place.
+    const corrected = withPlayerEvents(
+      again.fixtures,
+      readPlayerEvents([{ id: "e1", title: "APBC 2026", games: [{ date: "2026-11-12", label: "Final vs Japan" }] }])
+    );
+    expect(corrected.updated).toBe(1);
+    expect(readAthleteFixtures(corrected.fixtures).map((f) => f.label)).toContain("APBC 2026: Final vs Japan");
     // Taken back by the owner: gone, and the player's own game stays.
     const withdrawn = withPlayerEvents(again.fixtures, []);
     expect(withdrawn.removed).toBe(1);

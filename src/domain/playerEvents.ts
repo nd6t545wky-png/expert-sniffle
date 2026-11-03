@@ -144,13 +144,13 @@ export function readPlayerEvents(value: unknown): PlayerEvent[] {
 /**
  * The player's stored games with the sent events added. Each sent game has a
  * fixed id, so adding the same event twice changes nothing, and a game the
- * player has since edited keeps their edit. Games from an event that is no
- * longer sent are taken out.
+ * owner corrects (a time, or which game it turned out to be) is updated in
+ * place. Games from an event that is no longer sent are taken out.
  */
 export function withPlayerEvents(
   fixtures: unknown,
   events: readonly PlayerEvent[]
-): { fixtures: unknown[]; added: number; removed: number } {
+): { fixtures: unknown[]; added: number; removed: number; updated: number } {
   // An event the owner has taken back goes from the player's games too.
   const live = new Set(events.map((event) => event.id));
   const all = Array.isArray(fixtures) ? [...fixtures] : [];
@@ -160,18 +160,28 @@ export function withPlayerEvents(
     return !match || live.has(match[1]);
   });
   const removed = all.length - current.length;
-  const ids = new Set(current.map((entry) => (entry && typeof entry === "object" ? (entry as { id?: unknown }).id : null)));
+  const idOf = (entry: unknown) => (entry && typeof entry === "object" ? String((entry as { id?: unknown }).id ?? "") : "");
   let added = 0;
+  let updated = 0;
   for (const event of events) {
     event.games.forEach((game, index) => {
       const id = `event-${event.id}-${index}`;
-      if (ids.has(id)) return;
-      ids.add(id);
-      current.push({ id, date: game.date, team: event.title, label: `${event.title}: ${game.label}` });
-      added += 1;
+      const fixture = { id, date: game.date, team: event.title, label: `${event.title}: ${game.label}` };
+      const at = current.findIndex((entry) => idOf(entry) === id);
+      if (at < 0) {
+        current.push(fixture);
+        added += 1;
+        return;
+      }
+      // The owner corrected the game (a time, or which game it turned out to be).
+      const existing = current[at] as Record<string, unknown>;
+      if (existing.date !== fixture.date || existing.label !== fixture.label || existing.team !== fixture.team) {
+        current[at] = { ...existing, ...fixture };
+        updated += 1;
+      }
     });
   }
-  return { fixtures: current, added, removed };
+  return { fixtures: current, added, removed, updated };
 }
 
 /**
