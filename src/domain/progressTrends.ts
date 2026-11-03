@@ -1,8 +1,8 @@
 /**
  * Whether the training is actually working.
  *
- * The app had been collecting the raw material for months — logged sets, an
- * imported pitch log, a bodyweight on every check-in — and showing none of its
+ * The app had been collecting the raw material for months - logged sets, an
+ * imported pitch log, a bodyweight on every check-in - and showing none of its
  * shape. A single number ("your best back squat is 145 kg") answers a trivia
  * question; the line that got there answers the only question that matters,
  * which is whether the last eight weeks moved anything.
@@ -14,7 +14,7 @@
  *   - Bodyweight, from the check-ins.
  *
  * Every point is a measurement. Nothing is interpolated, smoothed or carried
- * forward — the same stance the recovery trends take, and for the same reason:
+ * forward - the same stance the recovery trends take, and for the same reason:
  * a filled gap reads as a session that happened.
  */
 
@@ -33,7 +33,7 @@ export interface TrendPoint {
  * Below two measurements there is no trend, only a reading.
  *
  * A one-point chart is a dot on an axis. It would still be *true*, which is
- * exactly what makes it tempting — but it invites a reader to see a direction
+ * exactly what makes it tempting - but it invites a reader to see a direction
  * that has not been measured yet.
  */
 export const MIN_POINTS_FOR_TREND = 2;
@@ -51,7 +51,7 @@ export interface TaskIndex {
    * Task id to what its sets are counted in.
    *
    * Needed wherever logged sets are read without the session that produced
-   * them — a day's tonnage, most of all, which sums `reps × kg` and would
+   * them - a day's tonnage, most of all, which sums `reps × kg` and would
    * otherwise fold a farmer carry's metres into a total of kilograms.
    */
   units: Record<string, SetUnit>;
@@ -61,7 +61,7 @@ export interface TaskIndex {
  * Task ids mapped to what the programme says about them, for the dates that
  * were actually logged.
  *
- * Logged sets are keyed by task id, and a task id carries its week and day —
+ * Logged sets are keyed by task id, and a task id carries its week and day -
  * the same back squat is `w3-d0-squat` one week and `w4-d0-squat` the next. So
  * the names have to come from the programme, and the only honest way to get
  * them is to ask it: walk the weeks forward, build the sessions whose dates
@@ -88,7 +88,7 @@ export function taskIndexForDates(dates: Iterable<IsoDate>): TaskIndex {
       wanted.delete(date);
       // Through the overlay, not the raw session. The back squat, the depth
       // jump, the RDL and the calf raise are added by
-      // `applyBaselineProgramming` and exist in no raw session — so naming
+      // `applyBaselineProgramming` and exist in no raw session - so naming
       // from `buildSession` alone left every one of them permanently
       // unidentifiable, and a logged back squat could never be matched to the
       // lift it belonged to. It reported "no history" forever, and it was
@@ -135,7 +135,7 @@ export function liftProgress(
       const kg = bestOneRepMax(sets);
       if (kg === null) continue;
       const series = byLift.get(name) ?? new Map<IsoDate, number>();
-      // Two entries for one lift on one day keep the heavier — a session split
+      // Two entries for one lift on one day keep the heavier - a session split
       // across two task rows is still one session's best.
       series.set(date, Math.max(series.get(date) ?? 0, kg));
       byLift.set(name, series);
@@ -160,7 +160,7 @@ export function liftProgress(
  *
  * Two sources, and the higher wins: the imported pitch log is a device's
  * reading, and the check-out figure is what a radar gun showed on a day no
- * file was exported. Neither is a guess, so taking the maximum loses nothing —
+ * file was exported. Neither is a guess, so taking the maximum loses nothing -
  * whereas preferring one source outright would blank every day the athlete
  * used the other.
  */
@@ -241,7 +241,7 @@ export const STEADY_BAND_PCT = 1;
 /**
  * Where a series has got to, against where it started.
  *
- * `higherIsBetter: null` is the bodyweight case — up is not good news and down
+ * `higherIsBetter: null` is the bodyweight case - up is not good news and down
  * is not bad news, so the summary reports the direction and declines to call a
  * high-water mark a "best".
  */
@@ -266,13 +266,13 @@ export function summariseProgress(
     first.value === 0 ? 0 : Math.round(((latest.value - first.value) / first.value) * 1000) / 10;
 
   // A repeat of an earlier best is still the best figure on record, so the
-  // comparison is on value rather than on identity — otherwise matching a
+  // comparison is on value rather than on identity - otherwise matching a
   // personal best would read as "holding steady".
   const atBest = ordered.length > 1 && latest.value === best.value;
 
   // The noise band is checked *first*, and that ordering is the whole point of
   // it. A series that has crept from 100 to 100.5 has its highest value on the
-  // last day, which is technically a best and would be announced as one — a
+  // last day, which is technically a best and would be announced as one - a
   // half-kilogram of Epley arithmetic sold back to the athlete as a personal
   // record. Where the series has genuinely moved, the band never fires and a
   // best is still called a best.

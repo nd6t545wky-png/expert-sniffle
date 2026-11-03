@@ -3,7 +3,7 @@
  *
  * The baseline screen has shown April's force-plate report since it was built
  * and offered no way to add a second column, so every number the programme is
- * aimed at has been frozen for four months. This is the second column — and
+ * aimed at has been frozen for four months. This is the second column - and
  * the third, and the tenth.
  *
  * It reports distance rather than pass or fail. The constraint profile is

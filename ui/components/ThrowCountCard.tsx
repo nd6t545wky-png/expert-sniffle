@@ -3,7 +3,7 @@
  *
  * It used to live only on the Workload tab, which meant the athlete finished a
  * session, worked out the total in their head, went to another page and typed
- * it in — and the number that fed the acute:chronic ratio was whichever of the
+ * it in - and the number that fed the acute:chronic ratio was whichever of the
  * two records they remembered to keep. Ticking the throwing tasks now produces
  * the count, and this shows it, with its working, beside the ticking.
  *
@@ -23,9 +23,9 @@ import { ThrowTally, ThrowingRecord } from "../../src/domain/throwCount";
 import { ThrowIntent } from "../../src/domain/session";
 import { Card } from "./Page";
 
-/** Wording, not the stored key — the same list the Workload tab offers. */
+/** Wording, not the stored key - the same list the Workload tab offers. */
 const INTENTS: { value: ThrowIntent; label: string }[] = [
-  { value: "recovery", label: "Recovery — catch play" },
+  { value: "recovery", label: "Recovery - catch play" },
   { value: "low", label: "Low intent" },
   { value: "moderate", label: "Moderate intent" },
   { value: "high", label: "High intent / game" },
@@ -48,7 +48,7 @@ export interface ThrowCountCardProps {
   onUseAuto: () => void;
   /**
    * Show the card even with nothing counted yet, so there is somewhere to
-   * enter throws — the check-out, where a day with no throwing tasks still
+   * enter throws - the check-out, where a day with no throwing tasks still
    * gets asked.
    */
   alwaysShow?: boolean;

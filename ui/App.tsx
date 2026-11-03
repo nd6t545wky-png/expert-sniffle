@@ -6,6 +6,7 @@ import {
   SessionReport,
   SkippedTask,
   ThrowIntent,
+  sessionProgress,
   totalThrowLoad,
 } from "../src/domain/session";
 import { MetricSource, ReadinessInputs, computeReadiness } from "../src/domain/readiness";
@@ -154,7 +155,7 @@ const HEALTH_HISTORY_INTERVAL_MS = 12 * 60 * 60 * 1000;
 /**
  * Pages that are about today rather than about whatever is being browsed.
  * Nutrition is here with the dashboard because the dashboard's hydration tile
- * links straight to it — if one meant today and the other meant the browsed
+ * links straight to it - if one meant today and the other meant the browsed
  * week, the number would change on the way through.
  */
 const TODAY_PAGES: Page[] = ["dashboard", "nutrition"];
@@ -229,15 +230,15 @@ const MAX_LIFT_CARDS = 6;
 
 export function App() {
   const { state, load, update, submissions, planFor, reset } = useAppState();
-  // Remembering the open page is what stops a reload — or a service-worker
-  // update, which reloads without asking — from dropping the athlete back on
+  // Remembering the open page is what stops a reload - or a service-worker
+  // update, which reloads without asking - from dropping the athlete back on
   // the dashboard mid-session. sessionStorage, not localStorage: a genuinely
   // new visit should still start at Today.
   const [page, setPage] = useState<Page>(() => {
     try {
       // An OAuth provider sends the athlete back to a URL, not to a stored
       // page. The Oura callback returns with ?page=integrations&oura=…, and
-      // before this the app ignored the query entirely and opened on Today —
+      // before this the app ignored the query entirely and opened on Today -
       // so a connection that had just succeeded looked like nothing happened.
       const params = new URLSearchParams(window.location.search);
       // An invite link: keep the code for after sign-in, and open the page
@@ -270,7 +271,7 @@ export function App() {
   }, [page]);
   // One source of truth for "which day am I looking at".
   //
-  // The selection is a (week, day) pair and the date is *derived* from it —
+  // The selection is a (week, day) pair and the date is *derived* from it -
   // never stored alongside it. That is what stops the heading and the date
   // from disagreeing: there is no second value that can fall out of step, so
   // moving weeks or days cannot leave a readiness entry filed under one date
@@ -280,14 +281,14 @@ export function App() {
     week: today.selectedWeek,
     day: today.selectedDay,
   }));
-  // Some pages always mean today, whatever week or day is being browsed —
+  // Some pages always mean today, whatever week or day is being browsed -
   // "Today" showing week 30 because the annual plan was left open there is
   // not a view of today. The browsing position is kept, not discarded: it is
   // simply not what these pages are about.
   //
   // This stays a single derivation. What is being viewed is one (week, day)
   // pair chosen by the open page, and the date, session, phase, team colours
-  // and topbar context all come from it — so they cannot disagree with each
+  // and topbar context all come from it - so they cannot disagree with each
   // other any more than they could before.
   const viewing = TODAY_PAGES.includes(page)
     ? { week: today.selectedWeek, day: today.selectedDay }
@@ -388,7 +389,7 @@ export function App() {
   // Backfill the last 28 days of ring data once a day.
   //
   // Without this the trends only ever hold days the check-in happened to be
-  // opened on, which on a rest day is none of them — the chart would be a
+  // opened on, which on a rest day is none of them - the chart would be a
   // record of app usage rather than of recovery. Throttled by the stored
   // timestamp so it is one request per day, not one per mount.
   const historyRun = useRef(false);
@@ -407,7 +408,7 @@ export function App() {
           healthHistoryFetchedAt: fetchedAt,
         }));
       })
-      // A failed backfill is not worth interrupting anything over — the charts
+      // A failed backfill is not worth interrupting anything over - the charts
       // simply show what they already have, and it retries tomorrow.
       .catch(() => {
         historyRun.current = false;
@@ -417,8 +418,8 @@ export function App() {
   // The programme's prescriptions depend on training maxes and on Friday's
   // game pitch count, so give it those before building a session.
   useEffect(() => {
-    // A logged game is the day's game pitches too — whether it was typed in
-    // or came from Ballclubz — so the day after a start is built as recovery
+    // A logged game is the day's game pitches too - whether it was typed in
+    // or came from Ballclubz - so the day after a start is built as recovery
     // without the count being entered twice. A check-out figure still wins.
     const post = { ...((state?.post ?? {}) as Record<string, { gamePitches?: number } | undefined>) };
     for (const game of readGames(state?.games)) {
@@ -467,7 +468,7 @@ export function App() {
    * Which nights the athlete is at club training.
    *
    * Saved rather than hardcoded: club schedules move, and the plan has to
-   * follow without a deploy. The default is what is true now — Coomera Cubs on
+   * follow without a deploy. The default is what is true now - Coomera Cubs on
    * Tuesdays, from the week it started.
    */
   const teamTraining = useMemo(
@@ -480,14 +481,14 @@ export function App() {
    * The season, as far as anyone can actually confirm it.
    *
    * The built-in draw stops at Round 19 and neither league publishes anything
-   * this app can read, so anything past that — a finals series especially —
+   * this app can read, so anything past that - a finals series especially -
    * has to come from the athlete.
    */
   const athleteFixtures = useMemo(
     () => readAthleteFixtures((state?.profile as { fixtures?: unknown } | undefined)?.fixtures),
     [state]
   );
-  // The draw for this athlete's own teams — see `builtInFixturesFor`.
+  // The draw for this athlete's own teams - see `builtInFixturesFor`.
   const builtInFixtures = useMemo(() => {
     const profile = state?.profile as { teamDraw?: { team?: string; games?: unknown } } | undefined;
     const team = readAthleteProfile(state?.profile).team ?? "Coomera Cubs";
@@ -527,8 +528,8 @@ export function App() {
   /**
    * The athlete's week for a given programme week.
    *
-   * A team with an imported draw — from a league the app follows, or found on
-   * the web at sign-up — other than the Cubs, whose draw the programme was
+   * A team with an imported draw - from a league the app follows, or found on
+   * the web at sign-up - other than the Cubs, whose draw the programme was
    * written around, has its real games for that week read off the draw: a Wednesday round, a four-game ABL series, or a bye.
    * Anyone else keeps the usual days they gave at sign-up.
    */
@@ -563,7 +564,7 @@ export function App() {
   );
 
   /**
-   * Whether the selected day is a game day, before any answer reshapes it —
+   * Whether the selected day is a game day, before any answer reshapes it -
    * the programme's own game days and any fixture the athlete entered. Game
    * days ask "are you playing?" at the check-in.
    */
@@ -586,7 +587,7 @@ export function App() {
     [state]
   );
   /**
-   * Best mound reading against best pulldown — the constraint profile's key
+   * Best mound reading against best pulldown - the constraint profile's key
    * missing diagnostic, read off check-outs the app has always been recording.
    */
   const transfer = useMemo(
@@ -627,8 +628,8 @@ export function App() {
    * This is the only thing the blood page does that a pathology portal cannot:
    * a CK drawn thirty-six hours after a start is not the same reading as the
    * same number on a rest day, and the laboratory has no way of knowing which
-   * it was. Everything here is already recorded — outings, check-in sleep,
-   * logged sets — so the panel costs nothing extra to put in context.
+   * it was. Everything here is already recorded - outings, check-in sleep,
+   * logged sets - so the panel costs nothing extra to put in context.
    */
   /**
    * What the programme says about every task the athlete has ever logged
@@ -636,7 +637,7 @@ export function App() {
    *
    * Shared by everything below that reads logged sets without the session that
    * produced them, because getting it means walking fifty-two weeks of the
-   * programme forward — once here, rather than once per consumer.
+   * programme forward - once here, rather than once per consumer.
    */
   const loggedTasks = useMemo(
     () => taskIndexForDates(Object.keys((state?.setLogs as Record<string, unknown> | undefined) ?? {})),
@@ -671,8 +672,8 @@ export function App() {
   /**
    * What the athlete has reported as sore, and what today does about it.
    *
-   * Reports carry forward from the day they were made — pain does not stop
-   * existing because nobody opened the app — so this is read for the open date
+   * Reports carry forward from the day they were made - pain does not stop
+   * existing because nobody opened the app - so this is read for the open date
    * rather than only for today.
    */
   const sorenessReports = useMemo(() => readReports(state?.soreness), [state]);
@@ -769,7 +770,7 @@ export function App() {
       // session nobody trained is not something to recover from.
       //
       // Yesterday is checked too, because the gym protocol runs a second day
-      // — the flush — and that day's own plan says nothing about it.
+      // - the flush - and that day's own plan says nothing about it.
       const yesterday = addDays(date, -1);
       const todaysType = gymSessionForDay(programmed.tasks, resolvedOn(date));
       const yesterdaysType = todaysType
@@ -798,7 +799,7 @@ export function App() {
       });
 
       // Recovery next, so it lands on the day as it will actually be trained
-      // — including any readiness reduction already applied above.
+      // - including any readiness reduction already applied above.
       const merged = applyRecoveryProtocol(team.session, recovery, {
         gym,
         resolvedTaskIds: resolvedOn(date),
@@ -854,7 +855,7 @@ export function App() {
   /**
    * A game in a week the programme planned as having none.
    *
-   * The day itself is acted on — `buildSession` gets `game` and builds a game
+   * The day itself is acted on - `buildSession` gets `game` and builds a game
    * day. This is about the days around it, which the fixed phase table still
    * owns: rebuilding the back half of the year because one date was entered is
    * not a call to make on the athlete's behalf.
@@ -913,7 +914,7 @@ export function App() {
    * writes state on every render of a page that reads that state is a loop
    * waiting for one wrong dependency, and this only ever needs to happen when
    * a task is ticked or unticked. `adoptTally` decides whether the write is
-   * ours to make — a count the athlete typed is never overwritten.
+   * ours to make - a count the athlete typed is never overwritten.
    */
   const reconcileThrows = useCallback(
     (draft: AppState, forDate: IsoDate, nextCompleted: string[]): AppState => {
@@ -952,7 +953,7 @@ export function App() {
    * Read from the stored health payload rather than fetched: the field has
    * been imported and persisted since Apple Health was connected, and until
    * now nothing displayed it anywhere, which reads as data going missing.
-   * Shown on the fuelling card as context, never added to the target — the
+   * Shown on the fuelling card as context, never added to the target - the
    * card says why.
    */
   const activeCaloriesToday = useMemo(() => {
@@ -967,7 +968,7 @@ export function App() {
    *
    * Built here rather than in the plan because it needs the whole set-log
    * history, and because resolving a historical task id to a lift's name means
-   * rebuilding the sessions those logs belong to — `taskNamesForDates` walks
+   * rebuilding the sessions those logs belong to - `taskNamesForDates` walks
    * the programme forward to do it. Keyed by *today's* task id so the plan can
    * look each one up without knowing any of that.
    *
@@ -1079,7 +1080,7 @@ export function App() {
       // sentence the athlete did rather than a paraphrase of it.
       recoveryLabel: (on) => {
         const found = recoveryForDay(on, loggedOutings, knownBodyweight, recoveryEquipment);
-        return found ? `${found.tier} protocol, day ${found.dayOffset + 1} — ${found.day.title}` : null;
+        return found ? `${found.tier} protocol, day ${found.dayOffset + 1} - ${found.day.title}` : null;
       },
       exams: armExams,
       workload: banded ? { ratio: banded.ratio, inBand: banded.inBand } : undefined,
@@ -1108,7 +1109,7 @@ export function App() {
             ...(report.resolvedOn ? { resolvedOn: report.resolvedOn } : {}),
           };
         }),
-      // Only when this link was created — or amended — to carry them.
+      // Only when this link was created - or amended - to carry them.
       ...(options.bloods && bloodPanels.length
         ? { bloods: { panels: bloodPanels, context: bloodContext } }
         : {}),
@@ -1133,7 +1134,7 @@ export function App() {
    * The training trends: has anything moved since this started?
    *
    * Built from the whole log rather than the open day, so the series survive
-   * flicking between dates. Lifts are capped — a card per movement in the
+   * flicking between dates. Lifts are capped - a card per movement in the
    * programme would bury the three the athlete actually cares about under
    * twenty they trained twice.
    */
@@ -1200,7 +1201,7 @@ export function App() {
   );
 
   // What the day actually was, for the shareable recap card. Built from the
-  // logged record only — a card is a public claim about training, so anything
+  // logged record only - a card is a public claim about training, so anything
   // not logged is omitted rather than defaulted to zero.
   const recap = useMemo(
     () =>
@@ -1210,7 +1211,7 @@ export function App() {
         tasks,
         completed: completed[date] ?? [],
         skipped: skippedTasks[date] ?? {},
-        // The measured pitch log outranks the number typed at check-out — it is
+        // The measured pitch log outranks the number typed at check-out - it is
         // the device's reading rather than a recollection. It supplies the
         // speed only: which personal best a bullpen fastball counts toward is
         // the athlete's call at check-out, and guessing "pulldown" here would
@@ -1426,7 +1427,7 @@ export function App() {
   //    itself change local state (a merge), and syncing that back immediately
   //    would spin forever.
   //
-  // A failure is left for the next change or a manual "Sync now" to retry —
+  // A failure is left for the next change or a manual "Sync now" to retry -
   // it is reported, never silently swallowed, and never blocks local work.
   const lastSynced = useRef<string>("");
   const syncing = useRef(false);
@@ -1522,7 +1523,7 @@ export function App() {
       setBallclubzStatus(
         `Checked ${at}: ${result.outings.length} ${result.outings.length === 1 ? "outing" : "outings"} on Ballclubz` +
           (counted.added || counted.updated
-            ? ` — ${counted.added} new${counted.updated ? `, ${counted.updated} corrected` : ""}.`
+            ? ` - ${counted.added} new${counted.updated ? `, ${counted.updated} corrected` : ""}.`
             : ", all already in your game log.")
       );
     } catch (error) {
@@ -1532,11 +1533,11 @@ export function App() {
     }
   }, [api, ballclubzUrl, games, update]);
 
-  // The team's draw from its league (GBL, ABL — see leagues.ts), and where the
+  // The team's draw from its league (GBL, ABL - see leagues.ts), and where the
   // league has player pages, this player's page on its roster: refreshed once a
   // session (and again whenever the team or name changes). The draw becomes the
   // athlete's fixtures; the page link, the first time it is found, becomes the
-  // Ballclubz link above — never overwriting one the athlete set themselves.
+  // Ballclubz link above - never overwriting one the athlete set themselves.
   const teamChecked = useRef("");
   useEffect(() => {
     if (!state || !isValidSyncKey(syncKey)) return;
@@ -1651,7 +1652,7 @@ export function App() {
   //
   // A share the athlete has to remember to refresh is a share that goes stale
   // in a fortnight, which is the same as not having one. So it re-publishes
-  // itself as the workspace changes — but on a much slower clock than autosave,
+  // itself as the workspace changes - but on a much slower clock than autosave,
   // because a physio does not need the summary to move while a slider is being
   // dragged, and each publish is a re-encrypt and an upload of the whole
   // summary. At most once every quarter of an hour, and only when something has
@@ -1690,7 +1691,7 @@ export function App() {
         <div className="alert danger" role="alert">
           <strong>Saved data could not be read.</strong>
           <p>
-            Nothing has been deleted — the original was copied to <code>{load.backupKey}</code> before
+            Nothing has been deleted - the original was copied to <code>{load.backupKey}</code> before
             anything else happened.
           </p>
         </div>
@@ -1748,7 +1749,7 @@ export function App() {
 
   const weekMeta = (() => {
     try {
-      // Reuse the derived plan rather than recomputing it — a second lookup is
+      // Reuse the derived plan rather than recomputing it - a second lookup is
       // a second thing that can disagree with the first.
       const plan = selectedWeekPlan;
       if (!plan) throw new Error("no plan");
@@ -1776,7 +1777,7 @@ export function App() {
   );
   // The team on screen is the athlete's own: their club's colours and badge
   // where the app has them (the Cubs and Norths), the plain palette otherwise.
-  // The winter club only applies to an athlete who has one — the Cubs' original
+  // The winter club only applies to an athlete who has one - the Cubs' original
   // athlete plays winter for Norths, which is what an unset winter club means
   // for a Cubs profile written before the question existed.
   const athlete = readAthleteProfile(state.profile);
@@ -1874,6 +1875,9 @@ export function App() {
         return p?.weight ? `${hand} · ${p.weight} kg` : hand;
       })()}
       role={role}
+      teamLogo={team.logo ? { src: team.logo, alt: team.alt } : null}
+      teamName={team.name}
+      progress={shown === "session" && plan.status !== "locked" ? sessionProgress(tasks, completed[date] ?? [], skippedTasks[date] ?? {}) : null}
       onCycleAppearance={() =>
         update((draft) => {
           const current = (draft.profile ?? {}) as { appearance?: string };
@@ -2039,9 +2043,7 @@ export function App() {
           today={today.openDate}
           onSelectDay={setSelectedDay}
           onToday={() => setSelection({ week: today.selectedWeek, day: today.selectedDay })}
-          onPreviousWeek={() => setSelectedWeek(Math.max(1, selectedWeek - 1))}
-          onNextWeek={() => setSelectedWeek(Math.min(52, selectedWeek + 1))}
-          weekLabel={`Week ${selectedWeek} · ${weekMeta.heading}`}
+          weekLabel={`Week ${selectedWeek}`}
           tasks={tasks}
           sessionTitle={session?.title}
           sessionDescription={session?.description}
@@ -2402,8 +2404,17 @@ export function App() {
       {shown === "profile" && (
         <>
           <PageHead eyebrow="Settings" title="Your programme." intro="Profile, club nights, recovery kit, league games, sharing." />
+          {/* Grouped and folded so the page is three headings, not eight
+              screens of cards. Profile opens first: it is what changes most. */}
+          <details className="settings-group" open>
+            <summary>Profile and week</summary>
           <ProfileCard profile={state.profile} onSave={saveProfile} onLookup={lookupTeam} />
+          </details>
+          <details className="settings-group">
+            <summary>Recovery and intent</summary>
           <RecoverySettings
+            // Training nights are asked in "Your profile" above.
+            showTeamTraining={!schedule}
             equipment={recoveryEquipment}
             intentPercent={intentPercent}
             teamTraining={teamTraining}
@@ -2426,6 +2437,9 @@ export function App() {
               }))
             }
           />
+          </details>
+          <details className="settings-group">
+            <summary>League stats and sharing</summary>
           {!coaching && (
             <PhysioShare
               api={api}
@@ -2444,7 +2458,10 @@ export function App() {
             }
             onCheckNow={() => void checkBallclubz()}
           />
-          {/* The BFR cuff block: reference rather than a daily task — twice a
+          </details>
+          <details className="settings-group">
+            <summary>BFR cuff block</summary>
+          {/* The BFR cuff block: reference rather than a daily task - twice a
               week, and it depends on equipment the athlete may not have. */}
           <Card>
             <CardHead title={BFR_BLOCK.name} detail="Twice a week, throwing arm only." />
@@ -2454,11 +2471,12 @@ export function App() {
               <summary>Why</summary>
               <p>{BFR_BLOCK.why}</p>
               <p className="recovery-citation">
-                <strong>{BFR_BLOCK.citation.key}</strong> — {BFR_BLOCK.citation.detail}
+                <strong>{BFR_BLOCK.citation.key}</strong> - {BFR_BLOCK.citation.detail}
               </p>
               <p>{BFR_BLOCK.experimentalNote}</p>
             </details>
           </Card>
+          </details>
         </>
       )}
 

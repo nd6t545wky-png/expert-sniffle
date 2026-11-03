@@ -33,8 +33,8 @@ createRoot(container).render(
 /**
  * Register the service worker.
  *
- * Only the prototype's `app.js` ever did this, so the rebuilt app — the one
- * actually used — had no service worker at all and did not work offline in any
+ * Only the prototype's `app.js` ever did this, so the rebuilt app - the one
+ * actually used - had no service worker at all and did not work offline in any
  * form. At a field with no signal it simply failed to load.
  *
  * The script lives at the origin root, so its scope covers both apps and one

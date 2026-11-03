@@ -6,7 +6,7 @@
  * The key never leaves the client, so the server cannot read training data.
  *
  * Crypto and merge semantics are ported verbatim from the prototype
- * (`legacy/app.js`) — the key-derivation string, envelope shape and
+ * (`legacy/app.js`) - the key-derivation string, envelope shape and
  * last-write-wins rules must stay byte-compatible or existing cloud backups
  * become unreadable.
  */
@@ -49,7 +49,7 @@ export function base64UrlToBytes(value: string): Uint8Array {
   return Uint8Array.from(binary, (char) => char.charCodeAt(0));
 }
 
-/** Copy into a concrete ArrayBuffer — SubtleCrypto will not take a view
+/** Copy into a concrete ArrayBuffer - SubtleCrypto will not take a view
  *  whose buffer might be a SharedArrayBuffer. */
 function toArrayBuffer(bytes: Uint8Array): ArrayBuffer {
   const buffer = new ArrayBuffer(bytes.byteLength);
@@ -65,7 +65,7 @@ export async function deriveCloudEncryptionKey(syncKey: string, subtle: SubtleCr
 
 /**
  * The snapshot pushed to the cloud. UI position and locally-derived training
- * history are excluded — they are per-device, not shared state.
+ * history are excluded - they are per-device, not shared state.
  */
 export function cloudSnapshot(state: AppState): Record<string, unknown> {
   const copy: Record<string, unknown> = { ...state };
@@ -129,8 +129,8 @@ function asRecord(value: unknown): AnyRecord {
  * athlete whose last save came from v61 got "Invalid cloud backup" on every
  * device, with all of their data sitting intact behind it.
  *
- * Version 2 is version 1 with one structural change: the three task maps —
- * `completedTasks`, `skippedTasks` and `taskCompletionUpdatedAt` — were folded
+ * Version 2 is version 1 with one structural change: the three task maps -
+ * `completedTasks`, `skippedTasks` and `taskCompletionUpdatedAt` - were folded
  * into `sessions[date].taskStates`, one record per task with a status. This
  * unfolds them again:
  *
@@ -139,8 +139,8 @@ function asRecord(value: unknown): AnyRecord {
  *   - `not-attempted` is simply absent, as it always was in version 1;
  *   - the day's completion time is the latest task timestamp.
  *
- * Nothing is dropped. `sessions` itself rides along as an unknown field — the
- * state layer carries those through verbatim — so the dated plans and any
+ * Nothing is dropped. `sessions` itself rides along as an unknown field - the
+ * state layer carries those through verbatim - so the dated plans and any
  * modification notes are still there.
  */
 export function snapshotFromV2(v2: AnyRecord): AnyRecord {
@@ -325,8 +325,8 @@ export function mergeCloudSnapshot(remote: Record<string, unknown>, local: AppSt
 /**
  * When each top-level field was last changed on a device.
  *
- * Fields the merge above has no record-level rule for — the set logs, the
- * profile, nutrition, training maxes and the rest — used to go through a bare
+ * Fields the merge above has no record-level rule for - the set logs, the
+ * profile, nutrition, training maxes and the rest - used to go through a bare
  * `...remote` spread, so the cloud copy won outright. Autosave pulls and merges
  * before every push, which made that spread revert every such change about a
  * second after it was made: log three sets, autosave fetches the copy uploaded

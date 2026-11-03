@@ -3,8 +3,8 @@
  *
  * The built-in draw is eight FNCBA rounds recovered from an old build, ending
  * at Round 19 on 5 September, plus one Cubs date the athlete supplied. Neither
- * league publishes fixtures this app can read — the FNCBA draw lives inside a
- * TeamApp calendar and the Cubs' 2026/27 season has not been drawn — so
+ * league publishes fixtures this app can read - the FNCBA draw lives inside a
+ * TeamApp calendar and the Cubs' 2026/27 season has not been drawn - so
  * everything past Round 19, a finals series in particular, can only come from
  * the athlete.
  *
@@ -21,7 +21,7 @@ import { IsoDate } from "../../src/domain/state";
 import { Card, CardHead } from "./Page";
 
 export interface FixtureSettingsProps {
-  /** Only the athlete's own entries — the built-in rounds are not editable. */
+  /** Only the athlete's own entries - the built-in rounds are not editable. */
   fixtures: Fixture[];
   /** Today, so the list can separate what is still to come. */
   today: IsoDate;
@@ -30,7 +30,7 @@ export interface FixtureSettingsProps {
   onSelectWeek?: (week: number) => void;
   /**
    * This week, and the week picked on the calendar. With both, the list shows
-   * this week and next — or, once a different week is picked, that week.
+   * this week and next - or, once a different week is picked, that week.
    */
   currentWeek?: number;
   selectedWeek?: number;
@@ -106,7 +106,7 @@ export function FixtureSettings({
         <p className="recovery-caveat">No games {pickedOther ? "that week" : "this week"}.</p>
       ) : upcoming.length === 0 ? (
         <p className="recovery-caveat">
-          Nothing left on the calendar. If your season is not over, add the remaining games below —
+          Nothing left on the calendar. If your season is not over, add the remaining games below -
           otherwise the plan will treat the coming weeks as an off-season unload.
         </p>
       ) : (
@@ -115,7 +115,7 @@ export function FixtureSettings({
             // Editable means "in the athlete's own list", not "labelled as
             // theirs". The built-in Cubs opener carries the athlete-provided
             // label because that is where the date came from, but it lives in
-            // the frozen list — offering Remove on it gave a button that
+            // the frozen list - offering Remove on it gave a button that
             // filtered a list the fixture was never in, and did nothing.
             const mine = fixtures.some((entry) => entry.id === fixture.id);
             const week = programmeWeekFor(fixture.date);

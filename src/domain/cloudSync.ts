@@ -2,7 +2,7 @@
  * Cloud sync orchestration: pull, merge, push, and conflict recovery.
  *
  * Kept separate from both the API client and the crypto so the ordering
- * rules — which are where data actually gets lost — can be tested directly.
+ * rules - which are where data actually gets lost - can be tested directly.
  *
  * The rule throughout: never overwrite the server with a snapshot that has
  * not been merged against what the server currently holds.
@@ -53,7 +53,7 @@ export async function pullAndMerge(deps: SyncDeps, local: AppState): Promise<Syn
  *
  * A 409 means another device wrote while we were working. The only safe
  * response is to re-read, merge again, and retry with the revision the
- * server actually has — never to force the write through.
+ * server actually has - never to force the write through.
  */
 export async function pushState(deps: SyncDeps, local: AppState, knownRevision: number): Promise<SyncOutcome> {
   const attempt = async (state: AppState, revision: number): Promise<SyncOutcome> => {

@@ -12,7 +12,7 @@ import { PLYO_EVIDENCE_NOTE } from "./programmeUpdates";
  *
  *  1. Nothing is prescribed from a metric that was not rated. A rear-view
  *     capture cannot see sequencing or arm timing, and the screen returns
- *     null for those — "not assessed" is reported as not assessed, never
+ *     null for those - "not assessed" is reported as not assessed, never
  *     silently treated as fine.
  *  2. Nothing is prescribed at all when the capture was not analyzable.
  *  3. At most two priorities. A list of eighteen drills is not a plan, and
@@ -20,7 +20,7 @@ import { PLYO_EVIDENCE_NOTE } from "./programmeUpdates";
  *
  * This remains a qualitative screen from phone video, not laboratory
  * biomechanics. The drills are conventional coaching work, offered for a
- * coach to confirm — not a diagnosis and not a substitute for one.
+ * coach to confirm - not a diagnosis and not a substitute for one.
  */
 
 export type MetricKey =
@@ -41,7 +41,7 @@ export const METRIC_LABELS: Record<MetricKey, string> = {
 };
 
 export const METRIC_MEANING: Record<MetricKey, string> = {
-  sequence: "The order energy travels — legs, then pelvis, then trunk, then arm.",
+  sequence: "The order energy travels - legs, then pelvis, then trunk, then arm.",
   lowerHalf: "Drive into the ground and how firmly the lead leg blocks.",
   trunk: "Posture and rotation between pelvis and shoulders.",
   armTiming: "Whether the arm arrives on time with the trunk rather than early or late.",
@@ -79,7 +79,7 @@ export const CHECKPOINTS: { key: Checkpoint; label: string; look: string }[] = [
   {
     key: "firstMovement",
     label: "First movement",
-    look: "How the delivery starts — direction and whether the move is gathered or rushed.",
+    look: "How the delivery starts - direction and whether the move is gathered or rushed.",
   },
   {
     key: "maxLegLift",
@@ -123,7 +123,7 @@ export const ANGLE_COVERAGE: Record<string, { label: string; covers: MetricKey[]
   rear: {
     label: "Rear",
     covers: ["lowerHalf", "trunk", "release", "deceleration"],
-    note: "Cannot judge sequencing or arm timing — those come back unrated rather than assumed good.",
+    note: "Cannot judge sequencing or arm timing - those come back unrated rather than assumed good.",
   },
   dual: {
     label: "Dual view",
@@ -151,7 +151,7 @@ export interface Drill {
 
 /**
  * Conventional pitching and strength drills, each mapped to the quality it
- * addresses. Nothing exotic — the point is that the screen's output leads
+ * addresses. Nothing exotic - the point is that the screen's output leads
  * somewhere, not that the drills are novel.
  */
 export const DRILL_LIBRARY: Drill[] = [
@@ -204,7 +204,7 @@ export const DRILL_LIBRARY: Drill[] = [
   },
   {
     id: "wall-hip-lead",
-    name: "Wall drill — hip lead",
+    name: "Wall drill - hip lead",
     targets: ["lowerHalf", "sequence"],
     prescription: "2 × 8/side · no ball",
     cue: "Back pocket to the target first. The shoulders stay quiet.",
@@ -435,7 +435,7 @@ export function drillsFor(metric: MetricKey): Drill[] {
  * Build the routine.
  *
  * Priorities are taken worst-first. If nothing is below the threshold but
- * something sits at the monitor mark, that becomes the single focus — a
+ * something sits at the monitor mark, that becomes the single focus - a
  * screen with no glaring fault still deserves an answer to "so what do I do".
  */
 export function prescribeRoutine(analysis: MechanicsAnalysis | null): Routine {
@@ -493,7 +493,7 @@ export function prescribeRoutine(analysis: MechanicsAnalysis | null): Routine {
 
   return {
     available: blocks.length > 0,
-    reason: blocks.length ? undefined : "Every rated quality scored 4 or better — nothing needs remediation from this screen.",
+    reason: blocks.length ? undefined : "Every rated quality scored 4 or better - nothing needs remediation from this screen.",
     scores,
     blocks,
     minutes: drills.reduce((total, drill) => total + drill.minutes, 0),

@@ -7,7 +7,7 @@ import { ReactNode } from "react";
  * a `section.page-head`, `article.card`s, `form.form-grid` with `div.field`
  * children, `details.card.disclosure-card` for collapsible detail, and
  * `.empty` / `.chart-empty` for blank states. Reproducing them once here keeps
- * the rest of the components honest — if a screen looks wrong, it is using
+ * the rest of the components honest - if a screen looks wrong, it is using
  * the wrong shape, not missing CSS.
  */
 
@@ -37,7 +37,7 @@ export function PageHead({
 }
 
 /**
- * `.card` on its own sets a surface, a border and a radius — and no padding
+ * `.card` on its own sets a surface, a border and a radius - and no padding
  * at all. In the prototype it is always paired with something that supplies
  * it: `.card-pad` normally, or a variant like `.gate` / `.integration` that
  * brings its own. A card without either has its contents touching the border,
@@ -62,7 +62,7 @@ export function Card({
 /**
  * Heading row inside a card.
  *
- * `.card-head` is styled for `h3` + `p` — the `strong`/`small` pair belongs to
+ * `.card-head` is styled for `h3` + `p` - the `strong`/`small` pair belongs to
  * a disclosure summary, where the stylesheet lays it out. Used here it runs
  * the title and the detail together on one line.
  */
@@ -128,7 +128,7 @@ export function Disclosure({
  *
  * `.empty` is the prototype's shape for this, and the reason matters: only
  * `.empty strong` is `display: block`, so only this shape puts the title on
- * its own line. `.chart-empty` is a dashed placeholder sized for a chart —
+ * its own line. `.chart-empty` is a dashed placeholder sized for a chart -
  * used for one it looks deliberate, used for a list it renders the title and
  * detail run together in a box of empty space.
  */
@@ -163,7 +163,7 @@ export function ChartEmpty({ title, detail }: { title: string; detail?: string }
 /**
  * A row in a `.task-list`.
  *
- * `.task` is a three-column grid — marker, text, actions. Given two children
+ * `.task` is a three-column grid - marker, text, actions. Given two children
  * the text lands in the 28px marker column and wraps one word per line. That
  * bug has now appeared on the plan, the mechanics page, the account page and
  * the nutrition page, so the shape lives here once instead of being retyped
@@ -213,7 +213,7 @@ export function Metric({
   const className = `card metric ${onClick ? "metric-shortcut " : ""}${tone}`.trim();
 
   // The shortcut variant is a button of spans; the plain variant is an article
-  // whose value is a div. That difference is the prototype's, not an accident —
+  // whose value is a div. That difference is the prototype's, not an accident -
   // the block-level value is what makes a non-interactive tile stack instead of
   // running label and number together on one line.
   if (onClick) {

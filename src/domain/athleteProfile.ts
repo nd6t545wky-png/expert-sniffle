@@ -15,7 +15,7 @@ export type PlayerType = "pitcher" | "two-way" | "position";
 export const PLAYER_TYPES: readonly { value: PlayerType; label: string; help: string }[] = [
   { value: "pitcher", label: "Pitcher", help: "Throwing programme, bullpens and game pitching." },
   { value: "two-way", label: "Two-way", help: "Pitching and hitting: the throwing programme plus at-bat tracking." },
-  { value: "position", label: "Position player", help: "Hitting and strength — no throwing programme." },
+  { value: "position", label: "Position player", help: "Hitting and strength - no throwing programme." },
 ];
 
 export type Hand = "Right" | "Left";
@@ -49,7 +49,7 @@ export interface AthleteProfile {
   teamLogo?: string;
   /** A team outside the followed leagues: its draw, found on the web. */
   teamDraw?: { team: string; fetchedAt: string; games: unknown[]; source: string };
-  /** The team the athlete plays for now — a GBL club or anything typed. */
+  /** The team the athlete plays for now - a GBL club or anything typed. */
   team: string;
   playerType: PlayerType;
   throws: Hand;

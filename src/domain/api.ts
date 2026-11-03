@@ -239,7 +239,7 @@ export class PitchingOsApi {
   }
 
   /**
-   * Read a share by its id. No key is sent — the request carries no
+   * Read a share by its id. No key is sent - the request carries no
    * Authorization header worth anything here, and the payload comes back
    * encrypted under a key the server has never seen.
    */
@@ -552,7 +552,7 @@ export interface HealthHistoryResponse {
    * Each day carries the same `merged` + `sources` shape as the daily route,
    * so a history record can be stored into `healthPrefill` as-is. `merged`
    * holds a narrower field set here, but `sources.oura.data` is the full
-   * summary either way — which is what the trend charts read.
+   * summary either way - which is what the trend charts read.
    */
   records: Record<
     IsoDate,
@@ -630,7 +630,7 @@ export interface FoodProduct {
   perServing: Record<string, number | null> | null;
   /**
    * What the label declared beyond the macros. A nutrient the label stayed
-   * silent on is *absent* from these, never zero — the app reports the
+   * silent on is *absent* from these, never zero - the app reports the
    * silence rather than counting it as none.
    */
   micronutrientsPer100g?: Record<string, number>;

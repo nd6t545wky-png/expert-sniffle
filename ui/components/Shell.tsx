@@ -3,7 +3,7 @@ import { CSSProperties, Fragment, ReactNode, useEffect, useRef, useState } from 
 /**
  * App shell.
  *
- * The markup mirrors the prototype's — `app-shell` + theme class, `main.main`
+ * The markup mirrors the prototype's - `app-shell` + theme class, `main.main`
  * containing `header.topbar` and `div.content`, and `nav.bottom-nav`. The
  * stylesheet is written against those selectors, so the structure is the
  * contract: change a class name and the design falls apart.
@@ -157,8 +157,8 @@ function NavIcon({ id }: { id: PageId }) {
 /**
  * The phone's five tabs, one job each.
  *
- * Today is the whole day in one place — the week strip, the check-in, the
- * workout and the check-out — rather than a summary page that sent you to
+ * Today is the whole day in one place - the week strip, the check-in, the
+ * workout and the check-out - rather than a summary page that sent you to
  * three others. Everything about the arm's throwing lives under Throwing, and
  * Progress is what has changed over time, not the after-session form it used
  * to open on.
@@ -181,7 +181,7 @@ export type NavRole = "pitcher" | "two-way" | "position";
 /**
  * The tabs for each kind of athlete. Pitchers keep the five they had. A
  * two-way player trades Food's tab for Hitting (Food moves under More), and a
- * position player has Hitting where Throwing was — no throwing programme.
+ * position player has Hitting where Throwing was - no throwing programme.
  */
 export function navFor(role: NavRole = "pitcher") {
   const main =
@@ -212,8 +212,8 @@ export const SIDEBAR_GROUPS = navFor("pitcher").sidebar;
  * Keep the phone's bottom bar on the bottom of the screen.
  *
  * `position: fixed` pins to the layout viewport, and on iOS Safari that can
- * fall out of step with what is on screen — after a zoom, or after the
- * keyboard closes — leaving the bar stranded mid-screen. The visual viewport
+ * fall out of step with what is on screen - after a zoom, or after the
+ * keyboard closes - leaving the bar stranded mid-screen. The visual viewport
  * is what the athlete actually sees, so the bar is shifted by the difference
  * between its bottom edge and the layout viewport's. While the keyboard is up
  * the bar is hidden instead of riding on top of it.
@@ -318,6 +318,12 @@ export interface ShellProps {
   athleteDetail?: string;
   page: PageId;
   onNavigate: (page: PageId) => void;
+  /** The team's badge, shown at the left of the top bar. */
+  teamLogo?: { src: string; alt: string } | null;
+  /** The team's name: a club without a logo gets its initials in its colours. */
+  teamName?: string;
+  /** Today's session progress, shown as a bar along the top bar's foot. */
+  progress?: { resolved: number; total: number; percent: number } | null;
   /** Which tabs to show. Defaults to the pitcher's. */
   role?: NavRole;
   /** No longer shown: Today is the plan. Kept so older callers still type-check. */
@@ -340,6 +346,9 @@ export function Shell({
   page,
   onNavigate,
   role = "pitcher",
+  teamLogo = null,
+  teamName,
+  progress = null,
   children,
 }: ShellProps) {
   const nav = navFor(role);
@@ -373,7 +382,7 @@ export function Shell({
           </div>
         </div>
         {/* Label and list are direct children of the sidebar, as in the
-            prototype — it is a flex column, and wrapping each group in a div
+            prototype - it is a flex column, and wrapping each group in a div
             collapses six flex children into three and changes the spacing. */}
         {nav.sidebar.map((group) => (
           <Fragment key={group.label}>
@@ -410,10 +419,26 @@ export function Shell({
       <main className="main">
         <header className="topbar">
           <div className="top-context">
-            <span className="context-mark" />
+            {teamLogo ? (
+              <img className="topbar-logo" src={teamLogo.src} alt={teamLogo.alt} />
+            ) : teamName ? (
+              <span className="topbar-logo topbar-monogram" role="img" aria-label={`${teamName} badge`}>
+                {teamInitials(teamName)}
+              </span>
+            ) : (
+              <span className="context-mark" />
+            )}
             <div>
               <strong className="desktop-context">{desktopContext}</strong>
-              <strong className="mobile-context">{mobileContext}</strong>
+              <strong className="mobile-context">
+                {mobileContext}
+                {progress && progress.total > 0 && (
+                  <span className="topbar-count">
+                    {" "}
+                    · {progress.resolved}/{progress.total}
+                  </span>
+                )}
+              </strong>
               <small>{contextRange}</small>
             </div>
           </div>
@@ -440,6 +465,18 @@ export function Shell({
               <span>A</span>
             </button>
           </div>
+          {progress && progress.total > 0 && (
+            <div
+              className="session-progress topbar-progress"
+              role="progressbar"
+              aria-label="Today's session"
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={progress.percent}
+            >
+              <span style={{ width: `${progress.percent}%` }} />
+            </div>
+          )}
         </header>
 
         <div className="content">{children}</div>
@@ -503,4 +540,10 @@ export function Shell({
       )}
     </div>
   );
+}
+
+/** A club's initials for its badge: "Redlands Rays" is RR, "Norths" is N. */
+export function teamInitials(name: string): string {
+  const words = name.split(/[^A-Za-z0-9]+/).filter((word) => word && !/^(the|of|and)$/i.test(word));
+  return words.slice(0, 2).map((word) => word[0].toUpperCase()).join("") || "?";
 }

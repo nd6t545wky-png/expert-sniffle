@@ -152,7 +152,7 @@ describe("seasonRates", () => {
 describe("gameProblems", () => {
   it("catches more strikes than pitches", () => {
     expect(gameProblems({ ...game({ pitches: 40, strikes: 50 }) })).toContain(
-      "More strikes than pitches — one of the two is wrong."
+      "More strikes than pitches - one of the two is wrong."
     );
   });
 
@@ -177,7 +177,7 @@ describe("gameProblems", () => {
   it("catches fewer batters than the innings imply", () => {
     // Nine innings cannot be pitched against four batters.
     expect(gameProblems(game({ outs: 27, battersFaced: 4 }))).toContain(
-      "Fewer batters faced than innings pitched — check both."
+      "Fewer batters faced than innings pitched - check both."
     );
   });
 

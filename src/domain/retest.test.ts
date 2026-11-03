@@ -2,8 +2,8 @@
  * Retesting.
  *
  * The subtle requirement here is direction. Half these metrics improve by
- * going up and half by going down — a drop-jump ground contact of 0.30 s is
- * better than 0.348, a jump height of 23 cm is better than 19.8 — and a change
+ * going up and half by going down - a drop-jump ground contact of 0.30 s is
+ * better than 0.348, a jump height of 23 cm is better than 19.8 - and a change
  * column that reported raw arithmetic would show the single most important
  * improvement in the programme as a negative number. So most of what follows
  * is about "better", not about "more".
@@ -161,7 +161,7 @@ describe("what it says about progress", () => {
   });
 
   it("takes the most recent reading of each metric, not the newest entry only", () => {
-    // A partial retest is normal — the plate was busy, the gates were not set
+    // A partial retest is normal - the plate was busy, the gates were not set
     // up. A metric measured three weeks ago still counts as the latest one.
     const entries = readRetests([
       entry("2026-08-03", { sj: 20.5, sprint10: 1.82 }),

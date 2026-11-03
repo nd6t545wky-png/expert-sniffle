@@ -45,7 +45,7 @@ describe("parseGameCsv", () => {
   });
 
   it("stores innings as outs, so the scorebook notation survives the import", () => {
-    // "3.2" is three innings and two outs — eleven outs, not 3.2 of anything.
+    // "3.2" is three innings and two outs - eleven outs, not 3.2 of anything.
     expect(parseGameCsv(perGame, "2026-08-12").games[1].outs).toBe(11);
   });
 
@@ -78,7 +78,7 @@ describe("parseGameCsv", () => {
     const idle = `${perGame}\n"Smith, Alex",08/07/2026,Coomera Cubs,0.0,0,0,0,0,0,0,0,0,0,0`;
     const result = parseGameCsv(idle, "2026-08-12");
     expect(result.games).toHaveLength(2);
-    // Not an error either — nothing to report about it.
+    // Not an error either - nothing to report about it.
     expect(result.skipped).toEqual([]);
   });
 

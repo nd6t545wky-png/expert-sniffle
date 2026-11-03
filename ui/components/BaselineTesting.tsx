@@ -10,7 +10,7 @@ import { Card, CardHead, Disclosure } from "./Page";
  * Measured baseline testing, on the athlete page.
  *
  * The anchors come first because those are the numbers the programme
- * actually computes from — the rest is the evidence behind them. Values the
+ * actually computes from - the rest is the evidence behind them. Values the
  * reports themselves flagged as below target are marked, because a wall of
  * numbers with nothing distinguished is a wall of numbers.
  */
@@ -20,7 +20,7 @@ export function BaselineTesting() {
   return (
     <>
       <Card>
-        <CardHead title="Baseline testing" detail="Measured — the programme computes loads from these" />
+        <CardHead title="Baseline testing" detail="Measured - the programme computes loads from these" />
 
         <div className="grid metrics">
           <article className="card metric">

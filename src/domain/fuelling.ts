@@ -1,7 +1,7 @@
 /**
  * Today's fuelling targets, set by today's session.
  *
- * The app knows what tomorrow's session is, which no nutrition app does — a
+ * The app knows what tomorrow's session is, which no nutrition app does - a
  * tracker with a fixed daily carbohydrate target is fuelling a Tuesday bullpen
  * and a Sunday off-day identically. Carbohydrate is the macronutrient that
  * should move with the work; protein and fluid move much less.
@@ -14,7 +14,7 @@
  *     activity factor for the day. That beats any per-kilogram formula,
  *     because it is this athlete's own resting expenditure rather than a
  *     population estimate of it.
- *   - Protein scales to *lean* mass, not total mass, at 2.4 g/kg — inside the
+ *   - Protein scales to *lean* mass, not total mass, at 2.4 g/kg - inside the
  *     usual 2.2–2.5 g/kg-lean band. Scaling to total mass over-prescribes for
  *     an athlete carrying fat, and does something worse besides: it would cut
  *     the protein target as fat came off, which is exactly when it should hold.
@@ -87,7 +87,7 @@ const KCAL = { protein: 4, carbs: 4, fat: 9 } as const;
  * How demanding today's session is.
  *
  * Read from the session's own stress label and duration, then capped by the
- * readiness plan level — a day reduced to 50% is not a hard day however it was
+ * readiness plan level - a day reduced to 50% is not a hard day however it was
  * written, and fuelling it as one is how a recovery day stops being one.
  */
 export function sessionDemand(input: {
@@ -124,10 +124,10 @@ export function sessionDemand(input: {
   // as what was written.
   if (input.planLevel === "hold") return { demand: "rest", reason: "Health hold" };
   if (input.planLevel === "recovery") {
-    return { demand: "light", reason: "Recovery day — 50% plan" };
+    return { demand: "light", reason: "Recovery day - 50% plan" };
   }
   if (input.planLevel === "reduced" && demand === "hard") {
-    return { demand: "moderate", reason: "Reduced day — 75% plan" };
+    return { demand: "moderate", reason: "Reduced day - 75% plan" };
   }
 
   return { demand, reason };
@@ -140,7 +140,7 @@ function round(value: number, step = 1): number {
 /**
  * Targets for the day.
  *
- * Returns null without a bodyweight — every figure here is per kilogram, and
+ * Returns null without a bodyweight - every figure here is per kilogram, and
  * guessing a bodyweight would make every number wrong at once.
  */
 export function fuelTargets(input: {
@@ -176,7 +176,7 @@ export function fuelTargets(input: {
   const energyFromMeasuredBmr = Number.isFinite(basal) && basal > 0;
 
   // A floor rounds *up*. Rounding fat to the nearest 5 g put a 90 kg athlete
-  // at 70 g — 0.78 g/kg, under the floor this figure exists to guarantee.
+  // at 70 g - 0.78 g/kg, under the floor this figure exists to guarantee.
   const fatFloor = Math.ceil((weight * FAT_FLOOR_PER_KG) / 5) * 5;
 
   let calories: number;
@@ -185,7 +185,7 @@ export function fuelTargets(input: {
   if (energyFromMeasuredBmr) {
     calories = round(basal * ACTIVITY_FACTOR[demand], 50);
     // Fat takes what protein and carbohydrate leave. If that is under the
-    // floor, the floor wins and energy rises to match — a split that cannot
+    // floor, the floor wins and energy rises to match - a split that cannot
     // be eaten is not a target, and silently thinning fat to make the sum
     // work is how a plan starts compromising hormonal function.
     const remaining = calories - protein * KCAL.protein - carbs * KCAL.carbs;
@@ -237,7 +237,7 @@ export function fuelTargetsFromBaseline(input: {
 
 /** Plain-English note explaining why today's carbohydrate target moved. */
 export const DEMAND_NOTE: Record<SessionDemand, string> = {
-  rest: "Lower carbohydrate — there is no session to fuel. Protein stays up for recovery.",
+  rest: "Lower carbohydrate - there is no session to fuel. Protein stays up for recovery.",
   light: "Carbohydrate eased back for a light day. Protein unchanged.",
   moderate: "Standard training-day carbohydrate.",
   hard: "Carbohydrate raised for the hardest session of the week.",

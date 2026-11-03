@@ -9,7 +9,7 @@ import type { Session, SessionTask, WeekPlan } from "./programmeSessions";
  * The athlete's own week: which nights their team trains and which days they
  * play. Asked at sign-up.
  *
- * The programme was written around one athlete's week — club training Tuesday
+ * The programme was written around one athlete's week - club training Tuesday
  * and Thursday, games Friday and Sunday in summer, a Saturday game in winter.
  * Every day's session is a job relative to the games: the day after a game is
  * the arm's day off, the bullpen sits two days clear of the next game, the day
@@ -32,7 +32,7 @@ export interface WeeklySchedule {
   fromDraw?: boolean;
   /**
    * With `fromDraw`, over the programme's Christmas break: the team's league
-   * plays through Christmas, so the break is in season for them — game weeks
+   * plays through Christmas, so the break is in season for them - game weeks
    * as normal, and a week without a game a bye rather than the off-season.
    */
   inSeason?: boolean;
@@ -101,7 +101,7 @@ export function dayRoles(games: number[]): DayRole[] | null {
     return "free";
   });
   // One bullpen between games: the free day furthest from a game on both
-  // sides, and of those the one nearest the next game — two days clear of it,
+  // sides, and of those the one nearest the next game - two days clear of it,
   // as the programme has it.
   const distance = (day: number, step: 1 | -1) => {
     for (let n = 1; n <= 7; n += 1) if (isGame(day + step * n)) return n;
@@ -249,22 +249,22 @@ export function personalSummerDay(week: WeekPlan, day: number, schedule: WeeklyS
     },
     "pre-game": {
       title: training ? "Team Training" : "Light Catch",
-      text: `The day before ${next}'s game: a light catch only — no gym and no microdose.${training ? " Keep extra throwing at practice low." : ""}`,
+      text: `The day before ${next}'s game: a light catch only - no gym and no microdose.${training ? " Keep extra throwing at practice low." : ""}`,
     },
     "post-game": {
       title: "Recovery + Strength Maintenance",
-      text: `The day after ${last}'s game is the arm's day off: no throwing. The gym is maintenance only — single-leg work, pulling and the posterior chain, no hinge and no pressing.`,
+      text: `The day after ${last}'s game is the arm's day off: no throwing. The gym is maintenance only - single-leg work, pulling and the posterior chain, no hinge and no pressing.`,
     },
     bullpen: {
       title: "Bullpen + Whole-Body Strength",
-      text: `Bullpen day — the week's one throwing session between games, ${
+      text: `Bullpen day - the week's one throwing session between games, ${
         last === next ? `well clear of ${next}'s game on either side` : `clear of ${last}'s game and before ${next}'s`
       }. The bullpen goes first while the arm is fresh, then the heavier of the week's gym sessions.`,
     },
     free: {
       title: training ? "Team Training" : "Recovery Catch",
       text: training
-        ? `Team training, with no game either side. No extra throwing beyond what practice asks — ${next}'s game is the week's work.`
+        ? `Team training, with no game either side. No extra throwing beyond what practice asks - ${next}'s game is the week's work.`
         : `No game either side and no team training: an optional recovery catch if the arm wants it.`,
     },
   };

@@ -1,7 +1,7 @@
 /**
  * The GBL draw against the days the programme builds.
  *
- * Every 26/27 round is Friday and Sunday except Round 11 — Wednesday 6 January
+ * Every 26/27 round is Friday and Sunday except Round 11 - Wednesday 6 January
  * and Sunday 10 January. The summer template is written for Friday games, so
  * before this week was handled the app showed a game on Friday 8 January,
  * which has nothing on it, and a bullpen on the night of the real game.
@@ -49,7 +49,7 @@ describe("Round 11: Wednesday and Sunday", () => {
   it("runs the athlete's rhythm two days earlier", () => {
     expect(sessionOn("2027-01-05" as IsoDate).title).toBe("Tuesday · Team Training");
     expect(names("2027-01-05" as IsoDate)).toContain("Light catch");
-    expect(names("2027-01-07" as IsoDate)).toContain("Recovery catch only — optional");
+    expect(names("2027-01-07" as IsoDate)).toContain("Recovery catch only - optional");
     expect(sessionOn("2027-01-08" as IsoDate).title).toBe("Friday · Bullpen + Whole-Body Strength");
     expect(names("2027-01-08" as IsoDate)).toContain("Bullpen");
     expect(names("2027-01-08" as IsoDate)).toContain("Trap bar deadlift");

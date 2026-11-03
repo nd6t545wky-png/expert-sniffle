@@ -4,7 +4,7 @@
  * The workspace is end-to-end encrypted: the server stores ciphertext and a
  * hash of the sync key, and cannot read a single field of it. That is a
  * property worth keeping, so this does not ask the server to decrypt anything
- * — and it does not hand the physio the sync key either, because the sync key
+ * - and it does not hand the physio the sync key either, because the sync key
  * is also the write credential. Anyone holding it can overwrite or delete the
  * whole workspace.
  *
@@ -103,7 +103,7 @@ export interface PhysioSummary {
 /**
  * One draw, flattened for a reader who has no access to the marker table.
  *
- * Everything the viewer needs to render a row travels with the row — label,
+ * Everything the viewer needs to render a row travels with the row - label,
  * unit, the range the value was actually judged against, and which side of it
  * the value fell. No marker ids, so the viewer never has to look anything up,
  * and nothing here is an interpretation.
@@ -150,7 +150,7 @@ export const SHARE_DAYS = 28;
 /**
  * A share key is its own secret, unrelated to the sync key.
  *
- * 32 bytes of randomness, hex encoded — the same shape the envelope helpers
+ * 32 bytes of randomness, hex encoded - the same shape the envelope helpers
  * already take, so no new crypto is introduced for this.
  */
 export function newShareKey(random: Crypto = crypto): string {
@@ -158,7 +158,7 @@ export function newShareKey(random: Crypto = crypto): string {
   return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
-/** A share id is public — it names the row, and grants only reading it. */
+/** A share id is public - it names the row, and grants only reading it. */
 export function newShareId(random: Crypto = crypto): string {
   const bytes = random.getRandomValues(new Uint8Array(16));
   return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
@@ -192,7 +192,7 @@ export function readShareLink(search: string, hash: string): { id: string; key: 
  * What the builder is given.
  *
  * Plain maps out of the workspace, plus two callbacks for the things that are
- * derived rather than stored — how many tasks a day's plan held, and where the
+ * derived rather than stored - how many tasks a day's plan held, and where the
  * day sat in a recovery protocol. Passing those in keeps this module free of
  * the programme and the protocol, so a change to either cannot quietly change
  * what a physio is shown.
@@ -223,7 +223,7 @@ export interface PhysioSummaryInput {
   /**
    * Blood work, only when the athlete asked for it on this link.
    *
-   * Absent means absent — there is no "include everything" default here, and
+   * Absent means absent - there is no "include everything" default here, and
    * passing an empty list is the same as passing nothing.
    */
   bloods?: {
@@ -282,7 +282,7 @@ function throwingFrom(entry: unknown): PhysioDay["throwing"] {
 /**
  * Flatten the athlete's panels for a reader who cannot look anything up.
  *
- * Only the values the laboratory actually reported travel — a marker absent
+ * Only the values the laboratory actually reported travel - a marker absent
  * from a panel stays absent rather than arriving as a blank row, because a
  * column of dashes reads as "tested and normal" to someone skimming.
  */
@@ -318,7 +318,7 @@ function bloodPanelsFrom(input: PhysioSummaryInput["bloods"]): PhysioBloodPanel[
 /**
  * Build the summary the physio sees.
  *
- * Days with nothing recorded are left out rather than shipped empty — a run of
+ * Days with nothing recorded are left out rather than shipped empty - a run of
  * blank rows reads as an athlete who stopped training, when it usually means a
  * rest week. Anything absent stays absent; nothing here invents a value.
  */

@@ -2,7 +2,7 @@
  * Pitch-by-pitch ball flight, and the importers that fill it.
  *
  * The one whole category the app had nothing for. A pitcher's most-looked-at
- * numbers — velocity, spin, break, extension — lived nowhere, so pitch design
+ * numbers - velocity, spin, break, extension - lived nowhere, so pitch design
  * was invisible and "top velocity" was a figure typed in by hand once a day.
  *
  * Two ways in, and they store the same record:
@@ -14,7 +14,7 @@
  * *values*. Vendors rename columns between firmware versions and localise
  * them, so a header is matched on a normalised form against a list of known
  * aliases. A row whose numbers cannot be read is reported as skipped with a
- * reason — never dropped quietly, because a silently-shortened import is a
+ * reason - never dropped quietly, because a silently-shortened import is a
  * bullpen that looks lighter than it was.
  */
 
@@ -32,7 +32,7 @@ export const SOURCE_LABEL: Record<PitchSource, string> = {
 export interface Pitch {
   id: string;
   date: IsoDate;
-  /** Normalised name — "Fastball", "Slider". Empty when the file did not say. */
+  /** Normalised name - "Fastball", "Slider". Empty when the file did not say. */
   pitchType: string;
   velocityMph: number | null;
   spinRpm: number | null;
@@ -72,7 +72,7 @@ export function normalisePitchType(value: unknown): string {
   for (const [pattern, name] of PITCH_TYPE_ALIASES) {
     if (pattern.test(raw)) return name;
   }
-  // An unrecognised tag is kept as written rather than discarded — a coach's
+  // An unrecognised tag is kept as written rather than discarded - a coach's
   // own label is data, not noise.
   return raw.replace(/\s+/g, " ");
 }
@@ -151,7 +151,7 @@ export interface ImportResult {
 /**
  * Which device wrote this file, from the columns it carries.
  *
- * Detection is by distinctive header, not by filename — a file renamed on the
+ * Detection is by distinctive header, not by filename - a file renamed on the
  * way out of a laptop is still a TrackMan export.
  */
 export function detectSource(headers: string[]): PitchSource {
@@ -223,7 +223,7 @@ function pitchId(): string {
 /**
  * Read a vendor CSV into pitches.
  *
- * `fallbackDate` is used for rows carrying no date of their own — a Pocket
+ * `fallbackDate` is used for rows carrying no date of their own - a Pocket
  * Radar export often has none, and filing those under the session they were
  * imported into is the only honest option available.
  */
@@ -237,7 +237,7 @@ export function parsePitchCsv(text: string, fallbackDate: IsoDate): ImportResult
     return {
       source: "manual",
       pitches: [],
-      skipped: [{ line: 1, reason: "No recognisable column headers — is this a pitch export?" }],
+      skipped: [{ line: 1, reason: "No recognisable column headers - is this a pitch export?" }],
       missingFields: [],
     };
   }
@@ -268,7 +268,7 @@ export function parsePitchCsv(text: string, fallbackDate: IsoDate): ImportResult
 
     // A trailing summary row is dropped *before* its numbers are read.
     // Checking only rows that lack a speed let "Average,,,87.4" through as a
-    // sixth pitch — inflating the count and, worse, competing for the max.
+    // sixth pitch - inflating the count and, worse, competing for the max.
     const first = (cells[0] ?? "").trim().toLowerCase();
     if (/^(avg|average|mean|max|maximum|min|minimum|total|summary|overall)\b/.test(first)) continue;
     if (cells.every((cell) => !cell)) continue;
@@ -277,7 +277,7 @@ export function parsePitchCsv(text: string, fallbackDate: IsoDate): ImportResult
       columns[field] === -1 ? null : toNumber(cells[columns[field]]);
 
     const velocity = read("velocityMph");
-    // A pitch with no speed is the one row that carries nothing usable — every
+    // A pitch with no speed is the one row that carries nothing usable - every
     // other field is optional, this one is the record.
     if (velocity === null) {
       skipped.push({ line, reason: "No pitch speed in this row" });
@@ -333,7 +333,7 @@ function mean(values: (number | null)[]): number | null {
  * One row per pitch type, busiest first.
  *
  * Averages skip pitches that did not carry the field rather than treating a
- * missing break as zero — a Pocket Radar session mixed into a Rapsodo one must
+ * missing break as zero - a Pocket Radar session mixed into a Rapsodo one must
  * not drag the average break toward nothing.
  */
 export function pitchTypeSummaries(pitches: Pitch[]): PitchTypeSummary[] {

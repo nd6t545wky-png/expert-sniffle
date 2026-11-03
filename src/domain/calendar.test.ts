@@ -5,7 +5,7 @@
  * Brisbane-anchored date through a UTC accessor. Midnight in Brisbane is 14:00
  * the previous day in UTC, so `getUTCDate()` on it returns yesterday, and the
  * error only shows up for part of the day. These tests pin the boundaries
- * where that would surface — month edges, the start and end of the programme,
+ * where that would surface - month edges, the start and end of the programme,
  * and the grid padding either side of a month.
  */
 

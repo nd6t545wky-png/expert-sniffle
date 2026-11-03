@@ -14,7 +14,7 @@ import { formatIsoDate } from "../state/formatDate";
 /**
  * Post-session reporting and weekly tracking.
  *
- * One report per date — enforced in the domain layer, because a duplicate
+ * One report per date - enforced in the domain layer, because a duplicate
  * would double-count that day in every workload figure downstream.
  */
 
@@ -34,13 +34,13 @@ export interface TrackingProps {
   onRecapCaption?: (caption: string) => void;
   recapStats?: string[];
   onToggleRecapStat?: (id: string) => void;
-  /** Lift, velocity and bodyweight series — see `progressTrends`. */
+  /** Lift, velocity and bodyweight series - see `progressTrends`. */
   progress?: ProgressSpec[];
   /**
    * Pitches thrown in a game logged for this date, when one has been.
    *
    * The field below used to open at zero and be typed from memory, next to a
-   * game log that already held the number — and this is not a display figure:
+   * game log that already held the number - and this is not a display figure:
    * `summerSession` reads it to decide whether the day after a start is
    * recovery or a primer. Two records of one appearance, and the programme
    * following whichever was typed second.
@@ -60,7 +60,7 @@ export interface TrackingProps {
  * v60's six series, retitled for someone who has never worn an Oura ring.
  *
  * "HRV" and "SpO₂" name the sensor, not the thing measured. Each entry now
- * says what the number is, and which direction is the good one — which is not
+ * says what the number is, and which direction is the good one - which is not
  * guessable for stress minutes, where every other chart's "up" is this one's
  * bad news.
  */
@@ -87,14 +87,14 @@ const OURA_SERIES: SeriesSpec[] = [
     key: "hrv",
     title: "Overnight recovery",
     explain:
-      "Heart-rate variability — the beat-to-beat variation while you sleep. It falls when you are under strain.",
+      "Heart-rate variability - the beat-to-beat variation while you sleep. It falls when you are under strain.",
     getter: (day) => day.hrv,
     higherIsBetter: true,
     unit: " ms",
   },
   {
     key: "stress",
-    // Zero high-stress minutes is a real reading, and a good one — this is the
+    // Zero high-stress minutes is a real reading, and a good one - this is the
     // one series where dropping zeroes would hide the best days.
     title: "Time under stress",
     explain: "Minutes during the day your body showed a stress response.",
@@ -137,7 +137,7 @@ function OuraTrends({ days }: { days: OuraTrendDay[] }) {
       <div className="disclosure-body">
         <p className="fineprint disclosure-intro">
           <strong>How to read these:</strong> each chart compares the latest reading against{" "}
-          <em>your own</em> usual range — the shaded band — rather than against anyone else’s
+          <em>your own</em> usual range - the shaded band - rather than against anyone else’s
           numbers. Days your ring did not sync stay blank; nothing here is estimated or filled in.
         </p>
         <section className="trend-grid">
@@ -177,7 +177,7 @@ export function Tracking({
   const [notes, setNotes] = useState("");
   const [error, setError] = useState("");
 
-  // Follow the game log when it moves — a game entered after the check-out
+  // Follow the game log when it moves - a game entered after the check-out
   // form was opened, or the day being changed underneath it. Only while the
   // field still holds what the log last said: once it has been typed over, the
   // typed number is the athlete's answer and stands.
@@ -191,7 +191,7 @@ export function Tracking({
   // Keyed by date, so the key is the authority on which day a report belongs
   // to. Records written by older builds (and the `post` map restored from a
   // backup) carry no `date` field of their own, and reading `report.date`
-  // straight off them threw on sort — taking the whole Progress page down
+  // straight off them threw on sort - taking the whole Progress page down
   // behind the error boundary. The key fills the gap; anything still without a
   // usable date is dropped rather than sorted against `undefined`.
   const recent: SessionReport[] = Object.entries(reports)
@@ -208,7 +208,7 @@ export function Tracking({
       armFeel,
       gamePitches,
       notes,
-      // Zero means "not measured today" — storing it would put a 0 mph on the
+      // Zero means "not measured today" - storing it would put a 0 mph on the
       // recap card and, worse, could never beat a stored PB but would still
       // read as a recorded attempt.
       ...(bestVelocity > 0 ? { bestVelocity, velocityType } : {}),
@@ -238,7 +238,7 @@ export function Tracking({
         // heading, explanation, then the form.
         <article className="card gate" id="post-card">
           <div className="gate-icon">✓</div>
-          <h3>{mode === "checkout" ? "How did that go?" : "Plan resolved—check out"}</h3>
+          <h3>{mode === "checkout" ? "How did that go?" : "Plan resolved. Check out"}</h3>
           <p>Record what actually happened.</p>
 
           <form id="post-form" className="form-grid" data-date={date} onSubmit={handleSubmit}>

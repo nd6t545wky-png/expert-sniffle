@@ -2,14 +2,14 @@
  * Baseline testing data for the athlete.
  *
  * Two measured reports, transcribed verbatim. Nothing here is estimated,
- * interpolated or inferred — every value carries the report it came from and
+ * interpolated or inferred - every value carries the report it came from and
  * the date it was measured, because a training prescription computed from a
  * number is only as good as the provenance of that number.
  *
  * Sources:
- *  1. Griffith University Bone Densitometry & Body Composition — 2D fan-beam
+ *  1. Griffith University Bone Densitometry & Body Composition - 2D fan-beam
  *     DEXA, scanned 27/04/2026, reported 11/06/2026.
- *  2. VALD ForceDecks Performance Report — squat jump, countermovement jump,
+ *  2. VALD ForceDecks Performance Report - squat jump, countermovement jump,
  *     drop jump, back-squat load-velocity profile and MFT muscle-typology
  *     scan. Undated in the document; filed under the 2026 pre-season block.
  *
@@ -42,7 +42,7 @@ export interface BaselineSection {
 export const BASELINE_ANCHORS = {
   /** Confirmed by 5-set velocity-based testing, R² = 0.942. */
   backSquat1RmKg: 145,
-  /** L0/2 from the load-velocity profile — the report's prescribed load zone
+  /** L0/2 from the load-velocity profile - the report's prescribed load zone
    *  for power-focused squat work. */
   optimalPowerLoadKg: 94,
   /** The report's strength-block intensity window. */
@@ -54,15 +54,15 @@ export const BASELINE_ANCHORS = {
   /**
    * Trap bar deadlift training max, back-derived from the programme itself.
    *
-   * Not from a test — from arithmetic on the athlete's own plan. The programme
+   * Not from a test - from arithmetic on the athlete's own plan. The programme
    * carries a fifty-two-week trap bar table of `sets × reps @ percent`
    * (`TRAP_BAR_WEEK_SPECS`) *and*, separately, the winter block's written
    * loads: "4 × 5 @ 120 kg", "5 × 3 @ 127.5 kg", "6 × 2 @ 125 kg" and so on.
    * One is a percentage of a max the app was never told; the other is that
    * same max already multiplied out. So the max is solvable.
    *
-   * At 150 kg the two tables agree on nine of their twelve weeks — every week
-   * where they also agree on the set and rep count — and no other candidate
+   * At 150 kg the two tables agree on nine of their twelve weeks - every week
+   * where they also agree on the set and rep count - and no other candidate
    * agrees on even one. The three that miss are the three where the shapes
    * disagree as well (the specs say 3 × 5, the literals say 4 × 2), so those
    * rows describe different weeks rather than a different max.
@@ -81,7 +81,7 @@ export const BASELINE_ANCHORS = {
    * flat number never did.
    *
    * Twenty per cent sits inside the band the loaded-jump literature reports for
-   * peak power — studies of the jump squat put it low, commonly between
+   * peak power - studies of the jump squat put it low, commonly between
    * bodyweight alone and about 30% of squat 1RM, and they disagree with each
    * other about where in that band, which is why Cormie, McGuigan & Newton
    * (Sports Med 2011;41(1):17–38 and 41(2):125–146, "Developing maximal
@@ -95,7 +95,7 @@ export const BASELINE_ANCHORS = {
    * positioning on the kinematics and kinetics of weighted vertical jumps")
    * compared hexagonal-barbell and straight-barbell weighted jumps across a
    * range of loads and found the hexagonal bar produced greater peak power,
-   * force and velocity — the load sits at the hips rather than on the back, so
+   * force and velocity - the load sits at the hips rather than on the back, so
    * more of it goes into the jump.
    */
   jumpPowerPercentOf1Rm: 20,
@@ -131,13 +131,13 @@ export const BASELINE_SECTIONS: BaselineSection[] = [
       {
         label: "Arm lean mass (L / R)",
         value: "3.98 / 3.93 kg",
-        context: "1.2% difference — within scan precision, not a finding",
+        context: "1.2% difference - within scan precision, not a finding",
       },
       { label: "Leg lean mass (L / R)", value: "10.48 / 10.86 kg", context: "3.6% difference" },
     ],
   },
   {
-    title: "Force plate — jump testing",
+    title: "Force plate - jump testing",
     source: "VALD ForceDecks",
     measuredOn: "2026-pre-season",
     measures: [
@@ -149,25 +149,25 @@ export const BASELINE_SECTIONS: BaselineSection[] = [
         value: "1.646",
         context: "Exceptional, but driven by a low squat jump rather than strong reactive ability",
       },
-      { label: "RSI-modified (CMJ)", value: "0.49 m/s", context: "Below average — target ≥0.70", flagged: true },
-      { label: "Drop jump RSI", value: "0.96 m/s", context: "Poor — below 1.0", flagged: true },
+      { label: "RSI-modified (CMJ)", value: "0.49 m/s", context: "Below average - target ≥0.70", flagged: true },
+      { label: "Drop jump RSI", value: "0.96 m/s", context: "Poor - below 1.0", flagged: true },
       {
         label: "Drop jump ground contact",
         value: "0.348 s",
-        context: "Target is under 0.25 s — slow, not reactive",
+        context: "Target is under 0.25 s - slow, not reactive",
         flagged: true,
       },
       { label: "Time to peak force (SJ)", value: "354 ms", context: "Slow rate of force development", flagged: true },
       { label: "CMJ contraction time", value: "730 ms", context: "Target under 650 ms", flagged: true },
       { label: "Countermovement depth", value: "31.3 cm", context: "Within the optimal 30–40 cm range" },
       { label: "Eccentric peak velocity (CMJ)", value: "1.24 m/s" },
-      { label: "Concentric mean force — SJ", value: "1276 N", context: "1.45× body weight" },
-      { label: "Concentric mean force — CMJ", value: "1753 N", context: "1.99× body weight" },
-      { label: "Concentric mean force — DJ", value: "2083 N", context: "2.36× body weight" },
+      { label: "Concentric mean force - SJ", value: "1276 N", context: "1.45× body weight" },
+      { label: "Concentric mean force - CMJ", value: "1753 N", context: "1.99× body weight" },
+      { label: "Concentric mean force - DJ", value: "2083 N", context: "2.36× body weight" },
     ],
   },
   {
-    title: "Load–velocity profile — back squat",
+    title: "Load–velocity profile - back squat",
     source: "VALD ForceDecks, 5-set velocity-based testing",
     measuredOn: "2026-pre-season",
     note: "R² = 0.942. The report notes the fit is noisier than its comparators, likely technical breakdown near true max.",
@@ -176,12 +176,12 @@ export const BASELINE_SECTIONS: BaselineSection[] = [
       { label: "Theoretical max load (L0)", value: "188.6 kg", context: "2.10× body weight" },
       { label: "Theoretical max velocity (V0)", value: "1.324 m/s", context: "Report's flagged limiter", flagged: true },
       { label: "Estimated Pmax", value: "613 W", context: "6.82 W/kg", flagged: true },
-      { label: "Optimal load for Pmax", value: "94 kg", context: "65% of 1RM — the power-work load zone" },
+      { label: "Optimal load for Pmax", value: "94 kg", context: "65% of 1RM - the power-work load zone" },
       { label: "Mean velocity at 80% 1RM", value: "0.510 m/s" },
       {
         label: "Force–velocity ratio",
         value: "142.4 kg/(m/s)",
-        context: "Force-oriented — velocity qualities lag force qualities",
+        context: "Force-oriented - velocity qualities lag force qualities",
         flagged: true,
       },
     ],
@@ -240,7 +240,7 @@ export const BASELINE_RECOMMENDATIONS = [
  *  - never overwrite an existing entry. A number the athlete or their coach
  *    has since updated is newer than a report from April, and silently
  *    replacing it would undo real work.
- *  - say where each one came from. The back squat is `tested` — confirmed by
+ *  - say where each one came from. The back squat is `tested` - confirmed by
  *    5-set velocity-based testing rather than estimated from a rep-max
  *    formula. The trap bar is `derived`: solved out of the programme's own
  *    two tables, and shown as an estimate wherever it is used.

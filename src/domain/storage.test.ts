@@ -76,7 +76,7 @@ describe("loadAppState", () => {
   });
 });
 
-describe("parseAppState — non-destructive behaviour", () => {
+describe("parseAppState - non-destructive behaviour", () => {
   it("keeps entries whose keys are not valid dates, and reports them", () => {
     const { state, issues } = parseAppState({ version: 1, pre: { "not-a-date": { readiness: 5 } } });
     expect(state?.pre["not-a-date"]).toEqual({ readiness: 5 });

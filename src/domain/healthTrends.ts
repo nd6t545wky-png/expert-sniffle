@@ -3,7 +3,7 @@
  *
  * v60 had a recovery-trends view built straight off the imported ring data;
  * the rebuild dropped it. This is the port, split so that the part worth
- * testing — which days have data, and where the points land — is pure, and the
+ * testing - which days have data, and where the points land - is pure, and the
  * component is left with nothing but the SVG.
  *
  * The stance v60 took, and this keeps: these charts show Oura fields only.
@@ -44,7 +44,7 @@ function pick(...candidates: unknown[]): number | null {
  * One row per date the app knows anything about, oldest first.
  *
  * Values come from the imported ring payload, falling back to whatever a
- * check-in recorded for the same metric — so a day that was answered manually
+ * check-in recorded for the same metric - so a day that was answered manually
  * before the import existed still contributes its point.
  */
 export function ouraTrendDays(
@@ -101,7 +101,7 @@ export type Verdict = "better" | "worse" | "normal" | "unknown";
 export interface MetricSummary {
   latest: number | null;
   latestDate: IsoDate | null;
-  /** The middle half of prior readings — this athlete's own normal. */
+  /** The middle half of prior readings - this athlete's own normal. */
   usual: { low: number; high: number } | null;
   verdict: Verdict;
   /** How many prior readings the usual range was built from. */
@@ -177,7 +177,7 @@ export function summariseMetric(
 /**
  * The chart box.
  *
- * Wider left margin than v60 had, because the y-axis now carries labels — a
+ * Wider left margin than v60 had, because the y-axis now carries labels - a
  * scale with no numbers on it tells a reader nothing about whether 62 is high.
  * The bottom band holds the date labels; sizing the box to exclude them is
  * what gives a card its own little scrollbar.
@@ -200,7 +200,7 @@ export interface ChartGeometry {
   points: ChartPoint[];
   path: string;
   axisY: number;
-  /** Two or three labelled gridlines — an unlabelled axis says nothing. */
+  /** Two or three labelled gridlines - an unlabelled axis says nothing. */
   ticks: ChartTick[];
   /** The athlete's usual range as a shaded band, when one is established. */
   band: { top: number; bottom: number } | null;
@@ -211,7 +211,7 @@ export interface ChartGeometry {
 /**
  * Two or three round numbers spanning the axis.
  *
- * Rounding to a 1 / 2 / 5 step is what makes a tick readable — "0, 50, 100"
+ * Rounding to a 1 / 2 / 5 step is what makes a tick readable - "0, 50, 100"
  * is a scale a reader can hold in their head; "3.7, 51.4, 99.1" is not.
  */
 function ticksForStep(lo: number, hi: number, step: number): number[] {
@@ -248,7 +248,7 @@ function niceTicks(lo: number, hi: number): number[] {
  *
  * A zero is dropped by default: a resting heart rate or a sleep score of zero
  * is a missing reading, not a measurement. High-stress minutes are the
- * exception — zero of them is a real and rather good day — so that series
+ * exception - zero of them is a real and rather good day - so that series
  * passes `allowZero`.
  *
  * Returns null when there is nothing to draw, which is the caller's cue to
@@ -257,7 +257,7 @@ function niceTicks(lo: number, hi: number): number[] {
 export interface GeometryOptions {
   allowZero?: boolean;
   usual?: { low: number; high: number } | null;
-  /** Hard ceiling for the scale — a score out of 100 never reaches 102. */
+  /** Hard ceiling for the scale - a score out of 100 never reaches 102. */
   max?: number;
 }
 
@@ -293,8 +293,8 @@ export function seriesGeometry(
   // has no range to scale, so it falls back to a small fixed pad.
   const range = max - min;
   const pad = range > 0 ? range * 0.25 : Math.max(Math.abs(max) * 0.05, 1);
-  // Every series here is non-negative — scores, minutes, HRV, SpO2, heart
-  // rate — so the axis never needs to go below zero to hold the padding.
+  // Every series here is non-negative - scores, minutes, HRV, SpO2, heart
+  // rate - so the axis never needs to go below zero to hold the padding.
   const lo = Math.max(0, min - pad);
   // Padding must not push the axis past what the metric can physically read.
   // An oxygen-saturation chart topping out at 102% is a scale that lies.

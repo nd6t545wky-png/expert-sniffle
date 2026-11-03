@@ -6,7 +6,7 @@
  *
  * This is the athlete's actual training programme: real loads, throw counts,
  * distances, effort percentages and stop-criteria. It is the only surviving
- * record of it — the source manual could not be located — so it is copied
+ * record of it - the source manual could not be located - so it is copied
  * rather than reinterpreted. Do not "tidy" the prescriptions.
  *
  * The one change from the original is mechanical: the prototype read training
@@ -15,7 +15,7 @@
  *
  * One change is not mechanical. On the athlete's instruction, Monday's single
  * `Pallof press + farmer carry` task is split into a `Pallof press` task and a
- * `Farmer carry` task, so that the carry — which is trying to get heavier — can
+ * `Farmer carry` task, so that the carry - which is trying to get heavier - can
  * carry its own log and its own progression advice, and the press, which is
  * not, can decline both. No prescription wording changed in the split: the
  * sentences were divided between the two exercises they already named, and the
@@ -363,7 +363,7 @@ function task(id, stage, stageTitle, stageDescription, name, prescription, cue, 
 
 function basePrep(prefix, emphasis = "throwing") {
   return [
-    task(`${prefix}-heat`, 1, "Prepare", "Raise temperature before mobility or throwing.", "Raise tissue temperature", "5 minutes easy bike, jog or brisk walk", "Finish warm—not tired—and able to breathe through your nose.", {
+    task(`${prefix}-heat`, 1, "Prepare", "Raise temperature before mobility or throwing.", "Raise tissue temperature", "5 minutes easy bike, jog or brisk walk", "Finish warm, not tired, and able to breathe through your nose.", {
       setup: "Choose the lowest-impact option available. Keep the pace conversational.",
       execution: "Build gradually across five minutes. Do not sprint or chase calories.",
       rest: "Move directly into the mobility flow.",
@@ -464,10 +464,10 @@ function standardSession(week, day) {
       description: "Throwing quality stays easy. The gym sequence is a low-volume ballistic primer, primary strength, unilateral strength, upper-body push/pull, then hamstring, trunk and carry work.",
       tasks: [
         ...basePrep(p, "recovery throwing"),
-        plyoTask(p, 1, "Plyo Ball Reverse Throw — 2,000 g", "1 × 5", 50, "Heavy-ball patterning only; keep the trunk and arm moving together."),
-        plyoTask(p, 2, "Plyo Ball Reverse Throw — 1,000 g", "1 × 6", 55, "Smooth acceleration and a balanced finish."),
-        plyoTask(p, 3, "Plyo Ball Roll-In Throw — 450 g", "2 × 5", 60, "Organize the lead leg and throw through the target."),
-        plyoTask(p, 4, "Plyo Ball Rocker Throw — 225 g", "2 × 4", 60, "Use rhythm; do not chase ball speed on a recovery day."),
+        plyoTask(p, 1, "Plyo Ball Reverse Throw - 2,000 g", "1 × 5", 50, "Heavy-ball patterning only; keep the trunk and arm moving together."),
+        plyoTask(p, 2, "Plyo Ball Reverse Throw - 1,000 g", "1 × 6", 55, "Smooth acceleration and a balanced finish."),
+        plyoTask(p, 3, "Plyo Ball Roll-In Throw - 450 g", "2 × 5", 60, "Organize the lead leg and throw through the target."),
+        plyoTask(p, 4, "Plyo Ball Rocker Throw - 225 g", "2 × 4", 60, "Use rhythm; do not chase ball speed on a recovery day."),
         task(`${p}-catch`, 3, "Throw", "Low-intent catch precedes the lift because pitching skill remains the priority.", "Recovery catch", "45–60 total throws · 60–75 ft · 50–60% effort", "Loose arc, clean direction, no pull-downs and no aggressive compression throws.", {
           setup: "Begin at close range and add distance only when the arm feels free.",
           execution: "Use a relaxed tempo. The session should improve, not test, how the arm feels.",
@@ -527,10 +527,10 @@ function standardSession(week, day) {
         task(`${p}-sprint`, 2, "Speed", "Short acceleration volume while fresh.", "Acceleration quality", "2 × 10 m build-up · 3 × 20 m @ 85–90% · 2 min rest", "Smooth projection and full recovery; this is speed practice, not fatigue conditioning.", {
           setup: "Use flat turf and complete two rehearsal starts.", execution: "Push for the first steps, then rise naturally. Keep shoulders relaxed and make every repetition look alike.", rest: "Two minutes between 20 m efforts; walk and breathe easily.", stop: "Stop if speed drops, mechanics change, or hamstring/calf tightness appears."
         }),
-        plyoTask(p, 1, "Plyo Ball Reverse Throw — 1,000 g", "1 × 6", 60, "Smooth arm path and complete finish."),
-        plyoTask(p, 2, "Plyo Ball Roll-In Throw — 450 g", "2 × 5", 65, "Lead-leg stability before arm acceleration."),
-        plyoTask(p, 3, "Plyo Ball Rocker Throw — 225 g", "2 × 4", 70, "Direct energy through the target."),
-        plyoTask(p, 4, "Plyo Ball Walking Windup — 150 g", "2 × 3", 70, "Rhythm and direction; no velocity chase."),
+        plyoTask(p, 1, "Plyo Ball Reverse Throw - 1,000 g", "1 × 6", 60, "Smooth arm path and complete finish."),
+        plyoTask(p, 2, "Plyo Ball Roll-In Throw - 450 g", "2 × 5", 65, "Lead-leg stability before arm acceleration."),
+        plyoTask(p, 3, "Plyo Ball Rocker Throw - 225 g", "2 × 4", 70, "Direct energy through the target."),
+        plyoTask(p, 4, "Plyo Ball Walking Windup - 150 g", "2 × 3", 70, "Rhythm and direction; no velocity chase."),
         task(`${p}-command`, 3, "Throw", "Command volume stays moderate before Wednesday.", "Flat-ground command", "45–55 total throws · 90–120 ft · 65–75% effort", "Suggested finish: 10 fastballs glove-side, 10 arm-side, 8 changeups, 4–6 breaking balls. No throw above 80%.", {
           setup: "Complete easy catch first, then work from a stable flat-ground position.", execution: "Choose one clear target per throw. Reset rather than rushing misses.", rest: "Normal catch rhythm; 20–30 seconds between pitch-type blocks.", stop: "Stop if command worsens with fatigue or the arm feels slower than it did during catch."
         }),
@@ -552,12 +552,12 @@ function standardSession(week, day) {
         task(`${p}-sprintprep`, 2, "High-Intent Prep", "Potentiate without accumulating sprint fatigue.", "Sprint mechanics", "A-march 1 × 10 m · ankling 1 × 10 m · 3 × 10 m progressive starts", "Last start reaches about 85%; save the highest intent for throwing.", {
           setup: "Flat turf and 10 metres of run-out.", execution: "Crisp contacts and relaxed upper body.", rest: "45–60 seconds.", stop: "Do not continue if stride mechanics change."
         }),
-        plyoTask(p, 1, "Plyo Ball Reverse Throw — 1,000 g", "1 × 5", 65, "Create rhythm without using the heavy ball as a max-effort throw."),
-        plyoTask(p, 2, "Plyo Ball Roll-In Throw — 450 g", "1 × 5", 75, "Fast lower half with a connected arm."),
-        plyoTask(p, 3, "Plyo Ball Rocker Throw — 225 g", "1 × 4", 80, "Firm direction and full deceleration."),
-        plyoTask(p, 4, "Plyo Ball Walking Windup — 150 g", "2 × 3", 85, "Accelerate only while positions stay organized."),
-        plyoTask(p, 5, "Plyo Ball Walking Windup — 125 g", "2 × 2", 85, "Fast but controlled; stop before timing gets early."),
-        plyoTask(p, 6, "Plyo Ball Walking Windup — 100 g", "2 × 2", 85, "The lightest ball is a speed exposure, not permission to lose direction."),
+        plyoTask(p, 1, "Plyo Ball Reverse Throw - 1,000 g", "1 × 5", 65, "Create rhythm without using the heavy ball as a max-effort throw."),
+        plyoTask(p, 2, "Plyo Ball Roll-In Throw - 450 g", "1 × 5", 75, "Fast lower half with a connected arm."),
+        plyoTask(p, 3, "Plyo Ball Rocker Throw - 225 g", "1 × 4", 80, "Firm direction and full deceleration."),
+        plyoTask(p, 4, "Plyo Ball Walking Windup - 150 g", "2 × 3", 85, "Accelerate only while positions stay organized."),
+        plyoTask(p, 5, "Plyo Ball Walking Windup - 125 g", "2 × 2", 85, "Fast but controlled; stop before timing gets early."),
+        plyoTask(p, 6, "Plyo Ball Walking Windup - 100 g", "2 × 2", 85, "The lightest ball is a speed exposure, not permission to lose direction."),
         task(`${p}-build`, 3, "Throw", "Build distance and intent gradually before the measured set.", "Catch-play build-up", "Close catch → 60 → 90 → 120 → 150 ft · 35–50 throws", "Add distance only when the previous distance feels clean. No aggressive return throws before the pulldown set.", {
           setup: "Use a marked throwing lane and a catcher who can maintain a consistent rhythm.", execution: "Progress from arc to firmer line as the arm warms. Stay below max intent.", rest: "Normal catch rhythm.", stop: "Do not begin pulldowns unless the arm feels fully warm and symptom-free."
         }),
@@ -597,9 +597,9 @@ function standardSession(week, day) {
       description: "No step-behinds, underload velocity throws, lifting or sprinting.",
       tasks: [
         ...basePrep(p, "recovery throwing"),
-        plyoTask(p, 1, "Plyo Ball Reverse Throw — 1,000 g", "1 × 5", 50, "Easy rhythm and full exhale."),
-        plyoTask(p, 2, "Plyo Ball Roll-In Throw — 450 g", "1 × 5", 50, "Quiet effort; clean lead-leg organization."),
-        plyoTask(p, 3, "Plyo Ball Rocker Throw — 225 g", "1 × 4", 50, "Finish balanced and loose."),
+        plyoTask(p, 1, "Plyo Ball Reverse Throw - 1,000 g", "1 × 5", 50, "Easy rhythm and full exhale."),
+        plyoTask(p, 2, "Plyo Ball Roll-In Throw - 450 g", "1 × 5", 50, "Quiet effort; clean lead-leg organization."),
+        plyoTask(p, 3, "Plyo Ball Rocker Throw - 225 g", "1 × 4", 50, "Finish balanced and loose."),
         task(`${p}-catch`, 3, "Throw", "The arm should feel better at the finish than at the start.", "Recovery catch", "35–40 throws · 60 ft · about 50%", "Use a relaxed arc and stop before any fatigue appears.", {
           setup: "Begin at 30–45 ft and move back only if comfortable.", execution: "Smooth catch-play rhythm and relaxed grip pressure.", rest: "Natural rhythm.", stop: "Stop if soreness rises instead of falling."
         }),
@@ -621,10 +621,10 @@ function standardSession(week, day) {
       description: "No game-speed fastballs. The 15–20 minute gym microdose uses fast outputs first, then minimal activation before Saturday competition.",
       tasks: [
         ...basePrep(p, "pregame primer throwing"),
-        plyoTask(p, 1, "Plyo Ball Reverse Throw — 1,000 g", "1 × 4", 55, "Easy rhythm only."),
-        plyoTask(p, 2, "Plyo Ball Roll-In Throw — 450 g", "1 × 4", 60, "Crisp lead-leg block without max intent."),
-        plyoTask(p, 3, "Plyo Ball Rocker Throw — 225 g", "1 × 3", 60, "Finish loose and directional."),
-        plyoTask(p, 4, "Plyo Ball Walking Windup — 150 g", "1 × 2", 65, "Two clean rhythm throws; stop there."),
+        plyoTask(p, 1, "Plyo Ball Reverse Throw - 1,000 g", "1 × 4", 55, "Easy rhythm only."),
+        plyoTask(p, 2, "Plyo Ball Roll-In Throw - 450 g", "1 × 4", 60, "Crisp lead-leg block without max intent."),
+        plyoTask(p, 3, "Plyo Ball Rocker Throw - 225 g", "1 × 3", 60, "Finish loose and directional."),
+        plyoTask(p, 4, "Plyo Ball Walking Windup - 150 g", "1 × 2", 65, "Two clean rhythm throws; stop there."),
         task(`${p}-catch`, 3, "Throw", "Touch-and-feel only.", "Primer catch", "20–25 throws · 60–90 ft · 50–60%", "No pull-downs, no compression throws and no radar.", {
           setup: "Start close and use a relaxed catch partner.", execution: "Find rhythm and stop while the arm feels lively.", rest: "Natural rhythm.", stop: "End immediately if the session begins to feel like work."
         }),
@@ -641,7 +641,7 @@ function standardSession(week, day) {
           setup: "Use a secure landmine attachment and staggered half-kneeling stance.", execution: "Short dip, drive and smooth return.", rest: "60 seconds.", stop: "Reduce load if bar speed is not obvious."
         }),
         task(`${p}-iso`, 4, "Whole-Body Primer", "Fast, low-volume outputs precede light activation.", "Split-squat isometric", "1 × 15 sec/side", "Create tension without shaking.", {
-          setup: "Choose a mid-range split-squat position.", execution: "Hold a stable posture.", rest: "No rest — go straight into the band row.", stop: "End before fatigue or tremor increases.", superset: "A1", supersetOf: 2
+          setup: "Choose a mid-range split-squat position.", execution: "Hold a stable posture.", rest: "No rest - go straight into the band row.", stop: "End before fatigue or tremor increases.", superset: "A1", supersetOf: 2
         }),
         task(`${p}-iso-row`, 4, "Whole-Body Primer", "Fast, low-volume outputs precede light activation.", "Band row", "2 × 6 fast", "Rows stay snappy.", {
           setup: "A medium band.", execution: "Fast but controlled rows.", rest: "45 seconds.", stop: "End before fatigue increases.", superset: "A2", supersetOf: 2
@@ -664,10 +664,10 @@ function standardSession(week, day) {
         task(`${p}-sprints`, 2, "Game Warm-up", "Progress from movement quality to game speed.", "Sprint build-ups", "2 × 10 m · 2 × 20 m · final rep about 90%", "Full recovery and relaxed speed.", {
           setup: "Flat turf with clear run-out.", execution: "Increase speed gradually on each repetition.", rest: "60–90 seconds.", stop: "Stop for any lower-body symptom."
         }),
-        plyoTask(p, 1, "Plyo Ball Reverse Throw — 1,000 g", "1 × 4", 60, "Game-day rhythm without fatigue."),
-        plyoTask(p, 2, "Plyo Ball Roll-In Throw — 450 g", "1 × 4", 65, "Lead-leg timing and direction."),
-        plyoTask(p, 3, "Plyo Ball Rocker Throw — 225 g", "1 × 3", 70, "Crisp but controlled."),
-        plyoTask(p, 4, "Plyo Ball Walking Windup — 150 g", "1 × 2", 70, "Two rhythm throws; avoid chasing plyo velocity."),
+        plyoTask(p, 1, "Plyo Ball Reverse Throw - 1,000 g", "1 × 4", 60, "Game-day rhythm without fatigue."),
+        plyoTask(p, 2, "Plyo Ball Roll-In Throw - 450 g", "1 × 4", 65, "Lead-leg timing and direction."),
+        plyoTask(p, 3, "Plyo Ball Rocker Throw - 225 g", "1 × 3", 70, "Crisp but controlled."),
+        plyoTask(p, 4, "Plyo Ball Walking Windup - 150 g", "1 × 2", 70, "Two rhythm throws; avoid chasing plyo velocity."),
         task(`${p}-catch`, 3, "Throw", "Use the same progression each start so readiness is comparable.", "Pregame catch", "Close catch → 60 → 90 → 120 ft · 25–40 throws", "Build line and intent gradually; keep early throws easy.", {
           setup: "Coordinate timing with the catcher and game schedule.", execution: "Progress only when the previous distance feels clean.", rest: "Natural rhythm.", stop: "If pain or unexpected weakness appears, tell the coach/medical staff before the bullpen."
         }),
@@ -742,8 +742,8 @@ function retext(tasks, pairs) {
 function summerSession(week, day) {
   const midweek = midweekGblRound(week);
   const session = summerWeekday(week, day, midweek);
-  // A Wednesday-and-Sunday week is shaped like every other two-game week —
-  // one gym day between the games — whatever its velocity block is called, so
+  // A Wednesday-and-Sunday week is shaped like every other two-game week -
+  // one gym day between the games - whatever its velocity block is called, so
   // the overlay gives its lifts the two-game budget.
   return midweek ? { ...session, twoGameWeek: true } : session;
 }
@@ -765,7 +765,7 @@ function summerWeekday(week, day, midweek) {
       preGame: true,
       title: "Tuesday · Team Training",
       focus: "Prepare for Wednesday's game",
-      description: `${rhythm} Today is the light catch the day before a game — the job Thursday does in a Friday week. No gym and no microdose.`,
+      description: `${rhythm} Today is the light catch the day before a game - the job Thursday does in a Friday week. No gym and no microdose.`,
       tasks: retext(session.tasks, [
         ["the day after the bullpen and the day before Friday", "the day before Wednesday's game"],
         ["if the arm has not bounced back from Wednesday's bullpen", "if the arm has not bounced back from Sunday's game"],
@@ -785,7 +785,7 @@ function summerWeekday(week, day, midweek) {
       postGame: true,
       title: "Thursday · Team Training",
       focus: "Recover from Wednesday's game",
-      description: `${rhythm} Today is the day after the game: no throwing at practice beyond a recovery catch if the arm asks for it, and no microdose — Friday carries the bullpen and the gym.`,
+      description: `${rhythm} Today is the day after the game: no throwing at practice beyond a recovery catch if the arm asks for it, and no microdose - Friday carries the bullpen and the gym.`,
       tasks: retext(session.tasks, [
         ["if the arm wants it after Sunday", "if the arm wants it after Wednesday's game"],
         ["Tuesday is not a throwing day.", "Today is not a throwing day."],
@@ -818,14 +818,14 @@ function summerSlot(week, day, slot, firstGameDay = 4) {
       focus: "Restore the arm, then hold strength",
       duration: "60–80 min",
       stress: "Low–moderate",
-      description: "No throwing: Monday is the arm's day off after Sunday's game, on the athlete's own week — off Monday, nothing at Tuesday practice unless the arm needs a recovery catch, bullpen Wednesday, light catch Thursday, game Friday, primer Saturday, game Sunday. Monday still carries the week's second gym exposure. There is no hinge and no pressing here — those are Wednesday's — so this block is unilateral legs, upper-body pulling and posterior-chain work at submaximal effort, four days out from Friday.",
+      description: "Day off for the arm after Sunday's game: no throwing. Light gym: single-leg work, pulling and posterior chain. No hinge or pressing (those are Wednesday).",
       tasks: [
         ...basePrep(p, "post-game recovery"),
         task(`${p}-split`, 4, "Strength Maintenance", "Unilateral legs and upper-body pulling; no hinge and no pressing before Wednesday.", "Rear-foot-elevated split squat", "3 × 6/leg @ RPE 6–7 · straps allowed", "Keep soreness cost low; this maintains single-leg strength through the season.", {
           setup: "Rear foot on a low bench with the front foot far enough forward to keep the whole foot down.", execution: "Lower in 2–3 seconds, stay stacked over the front leg, then drive up without bouncing.", rest: "90 seconds between legs/sets.", stop: "Reduce load if balance or front-foot pressure is the limiter, and skip the day entirely if Sunday's legs have not recovered."
         }),
         task(`${p}-pull`, 4, "Strength Maintenance", "Unilateral legs and upper-body pulling; no hinge and no pressing before Wednesday.", "Chin-up", "2 × 5", "Pulling volume is safe the day after pitching; pressing is not, so it waits for Wednesday.", {
-          setup: "Natural chin-up grip.", execution: "Pull smoothly from an active shoulder and control every return.", rest: "No rest — go straight into the chest-supported row.", stop: "Use assistance when the last chin-up slows.", superset: "A1", supersetOf: 2
+          setup: "Natural chin-up grip.", execution: "Pull smoothly from an active shoulder and control every return.", rest: "No rest - go straight into the chest-supported row.", stop: "Use assistance when the last chin-up slows.", superset: "A1", supersetOf: 2
         }),
         task(`${p}-pull-row`, 4, "Strength Maintenance", "Unilateral legs and upper-body pulling; no hinge and no pressing before Wednesday.", "Chest-supported row", "3 × 8 @ RPE 7", "Row toward the lower ribs with the chest fully supported.", {
           setup: "An incline bench with the chest fully supported.", execution: "Row toward the lower ribs and control every return.", rest: "90 seconds, then back to the chin-up for the next round.", stop: "Reduce row load if the upper trap dominates.", superset: "A2", supersetOf: 2
@@ -853,8 +853,8 @@ function summerSlot(week, day, slot, firstGameDay = 4) {
       duration: "Team session dependent",
       stress: isThursday ? "Low–moderate" : "Moderate",
       description: isThursday
-        ? "Thursday volume is capped so it does not become a third high-stress day before Friday and Sunday games. The microdose that finishes it — reactive pogos, a hinge and a calf dose — is added by the overlay rather than written here, because it is dropped automatically whenever Thursday becomes a game eve."
-        : "Tuesday is the higher-volume team practice window, and the day the week leaves without a gym exposure — Monday and Wednesday lift, Thursday microdoses. No throwing at practice: the arm's work this week is Wednesday's bullpen, so Tuesday is recovery catch only, and only if the arm asks for it after Sunday.",
+        ? "Day before Friday's game: keep practice and extra throwing light."
+        : "Team practice, no gym. No throwing beyond an optional recovery catch: this week's throwing is Wednesday's bullpen.",
       tasks: [
         ...basePrep(p, "team practice"),
         ...(isThursday
@@ -864,7 +864,7 @@ function summerSlot(week, day, slot, firstGameDay = 4) {
               })
             ]
           : [
-              task(`${p}-practice-throw`, 3, "Team Throwing", "No throwing at practice unless the arm needs a recovery catch.", "Recovery catch only — optional", "None, or 15–25 throws · 45–60 ft · 45–50% if the arm wants it after Sunday", "Tuesday is not a throwing day. Field, hit and do the team's work without throwing; take this catch only if the arm feels better moving.", {
+              task(`${p}-practice-throw`, 3, "Team Throwing", "No throwing at practice unless the arm needs a recovery catch.", "Recovery catch only - optional", "None, or 15–25 throws · 45–60 ft · 45–50% if the arm wants it after Sunday", "Tuesday is not a throwing day. Field, hit and do the team's work without throwing; take this catch only if the arm feels better moving.", {
                 setup: "Begin close with a relaxed partner.", execution: "Easy arc only, short distance.", rest: "Natural rhythm.", stop: "Stop if the arm does not loosen. Skipping it entirely is the default, not a miss."
               })
             ]),
@@ -883,13 +883,13 @@ function summerSlot(week, day, slot, firstGameDay = 4) {
       focus: "Main summer gym exposure",
       duration: "70–85 min",
       stress: "Moderate",
-      description: "Bullpen day, then the heavier of the week's two gym days. The bullpen is the week's one throwing session between starts — two days clear of Friday — and it goes first, while the arm is fresh. The gym follows: the only session with a hinge and a press, power first, then the primary lift, unilateral work, push/pull and trunk at the three sets the week plan prescribes.",
+      description: "Bullpen first while the arm is fresh, then the week's main gym session (power, main lift, single-leg, push/pull, trunk).",
       tasks: [
         ...basePrep(p, "bullpen"),
-        plyoTask(p, 1, "Plyo Ball Reverse Throw — 1,000 g", "1 × 5", 60, "Organise the body before the mound."),
-        plyoTask(p, 2, "Plyo Ball Roll-In Throw — 450 g", "1 × 5", 65, "Crisp lead-leg timing."),
-        plyoTask(p, 3, "Plyo Ball Rocker Throw — 225 g", "1 × 4", 70, "Finish balanced."),
-        plyoTask(p, 4, "Plyo Ball Walking Windup — 150 g", "1 × 3", 70, "Rhythm into the pen; no radar chase."),
+        plyoTask(p, 1, "Plyo Ball Reverse Throw - 1,000 g", "1 × 5", 60, "Organise the body before the mound."),
+        plyoTask(p, 2, "Plyo Ball Roll-In Throw - 450 g", "1 × 5", 65, "Crisp lead-leg timing."),
+        plyoTask(p, 3, "Plyo Ball Rocker Throw - 225 g", "1 × 4", 70, "Finish balanced."),
+        plyoTask(p, 4, "Plyo Ball Walking Windup - 150 g", "1 × 3", 70, "Rhythm into the pen; no radar chase."),
         task(`${p}-bullpen-catch`, 3, "Throw", "Bullpen between starts, two days clear of Friday.", "Bullpen catch build", "15–25 throws · build to 90–120 ft · 50–70%", "Just enough to get loose for the mound. No long toss and no pulldowns.", {
           setup: "A relaxed partner, then straight to the mound.", execution: "Build distance smoothly and come back in before moving to the mound.", rest: "Natural rhythm.", stop: "Stop and skip the bullpen if the arm has not recovered from the weekend."
         }),
@@ -906,13 +906,13 @@ function summerSlot(week, day, slot, firstGameDay = 4) {
           setup: "Low rear-foot support and stable front foot.", execution: "Controlled descent and crisp drive.", rest: "90 seconds.", stop: "Reduce load if balance is the limiter."
         }),
         task(`${p}-upper`, 4, "Whole-Body Gym", "Fast outputs occur before strength work.", "Bench press", strengthPrescription("benchPress", 3, 5, 67, "3 × 5 @ RPE 6–7"), "Shoulder comfort governs pressing range.", {
-          setup: "Use safeties.", execution: "Smooth, submaximal reps.", rest: "No rest — go straight into the chest-supported row.", stop: "Stop pressing for shoulder or biceps symptoms.", superset: "A1", supersetOf: 2
+          setup: "Use safeties.", execution: "Smooth, submaximal reps.", rest: "No rest - go straight into the chest-supported row.", stop: "Stop pressing for shoulder or biceps symptoms.", superset: "A1", supersetOf: 2
         }),
         task(`${p}-upper-row`, 4, "Whole-Body Gym", "Fast outputs occur before strength work.", "Chest-supported row", "3 × 8 @ RPE 7", "Pair with the bench without rushing either lift.", {
           setup: "A supported row bench.", execution: "Smooth, submaximal reps toward the lower ribs.", rest: "75–90 seconds, then back to the bench for the next round.", stop: "Reduce load if the upper trap dominates.", superset: "A2", supersetOf: 2
         }),
         task(`${p}-trunk`, 4, "Whole-Body Gym", "Fast outputs occur before strength work.", "Pallof press", "3 × 8/side", "Resist rotation and breathe behind the brace.", {
-          setup: "Cable or band at sternum height.", execution: "Press without trunk shift.", rest: "No rest — go straight into the farmer carry.", stop: "Reduce tension if posture changes.", superset: "B1", supersetOf: 2
+          setup: "Cable or band at sternum height.", execution: "Press without trunk shift.", rest: "No rest - go straight into the farmer carry.", stop: "Reduce tension if posture changes.", superset: "B1", supersetOf: 2
         }),
         task(`${p}-trunk-carry`, 4, "Whole-Body Gym", "Fast outputs occur before strength work.", "Farmer carry", "2 × 20 m (no straps)", "Carry tall and controlled, as deliberate grip work rather than a max test.", {
           setup: "Carry space clear.", execution: "Walk tall with the shoulders set; no straps.", rest: "30–45 seconds, then back to the Pallof press for the next round.", stop: "End the carry before posture or grip fails.", superset: "B2", supersetOf: 2
@@ -930,16 +930,16 @@ function summerSlot(week, day, slot, firstGameDay = 4) {
       focus: "Compete and log actual workload",
       duration: "Game dependent",
       stress: "Very high",
-      description: slot === 4 ? "Friday is the first weekly game window. Your actual appearance determines Saturday." : "Sunday is the second game window; Monday becomes recovery-first.",
+      description: slot === 4 ? "Game day. How much you pitch decides tomorrow." : "Game day. Tomorrow is the arm's day off.",
       tasks: [
         ...basePrep(p, "game performance"),
         task(`${p}-builds`, 2, "Game Warm-up", "Build speed without fatigue.", "Sprint build-ups", "2 × 10 m · 2 × 20 m progressive", "Last rep about 90%; full recovery.", {
           setup: "Flat turf.", execution: "Smooth acceleration.", rest: "60–90 seconds.", stop: "Stop for lower-body symptoms."
         }),
-        plyoTask(p, 1, "Plyo Ball Reverse Throw — 1,000 g", "1 × 4", 60, "Game-day rhythm."),
-        plyoTask(p, 2, "Plyo Ball Roll-In Throw — 450 g", "1 × 4", 65, "Crisp lead-leg timing."),
-        plyoTask(p, 3, "Plyo Ball Rocker Throw — 225 g", "1 × 3", 70, "Finish balanced."),
-        plyoTask(p, 4, "Plyo Ball Walking Windup — 150 g", "1 × 2", 70, "Stop before fatigue."),
+        plyoTask(p, 1, "Plyo Ball Reverse Throw - 1,000 g", "1 × 4", 60, "Game-day rhythm."),
+        plyoTask(p, 2, "Plyo Ball Roll-In Throw - 450 g", "1 × 4", 65, "Crisp lead-leg timing."),
+        plyoTask(p, 3, "Plyo Ball Rocker Throw - 225 g", "1 × 3", 70, "Finish balanced."),
+        plyoTask(p, 4, "Plyo Ball Walking Windup - 150 g", "1 × 2", 70, "Stop before fatigue."),
         task(`${p}-pregame`, 3, "Throw", "Use team role and appearance plan.", "Pregame catch and bullpen", "Catch 25–40 throws · bullpen only if scheduled to pitch", "Relievers should avoid unnecessary bullpen pitches if they are not entering.", {
           setup: "Confirm role and pitch limits with the coach.", execution: "Build intent progressively.", rest: "Game dependent.", stop: "Report pain or unexpected weakness."
         }),
@@ -958,10 +958,10 @@ function summerSlot(week, day, slot, firstGameDay = 4) {
       focus: `Recover from ${fridayPitches} Friday pitches`,
       duration: "25–45 min",
       stress: "Low",
-      description: "Because Friday game pitches were logged, Saturday automatically switches from primer to recovery.",
+      description: "You pitched Friday, so today is recovery.",
       tasks: [
         ...basePrep(p, "recovery"),
-        plyoTask(p, 1, "Plyo Ball Reverse Throw — 1,000 g", "1 × 4", 45, "Optional only if symptom-free."),
+        plyoTask(p, 1, "Plyo Ball Reverse Throw - 1,000 g", "1 × 4", 45, "Optional only if symptom-free."),
         task(`${p}-catch`, 3, "Throw", "Use team recovery guidance after an appearance.", "Optional recovery catch", "15–25 throws · 45–60 ft · 45–50%", "Complete rest is acceptable if the arm is not improving during warm-up.", {
           setup: "Begin close.", execution: "Easy arc.", rest: "Natural.", stop: "Stop if symptoms rise."
         }),
@@ -979,11 +979,11 @@ function summerSlot(week, day, slot, firstGameDay = 4) {
     focus: "Low-fatigue readiness",
     duration: "35–50 min",
     stress: "Low",
-    description: "No Friday game pitches were logged, so Saturday shows a short primer for Sunday. If you threw but forgot to log it, enter Friday workload first.",
+    description: "No Friday pitches logged, so today is a short primer for Sunday. If you did pitch, log it first.",
     tasks: [
       ...basePrep(p, "pregame primer"),
-      plyoTask(p, 1, "Plyo Ball Reverse Throw — 1,000 g", "1 × 4", 50, "Easy rhythm."),
-      plyoTask(p, 2, "Plyo Ball Roll-In Throw — 450 g", "1 × 4", 55, "Crisp and controlled."),
+      plyoTask(p, 1, "Plyo Ball Reverse Throw - 1,000 g", "1 × 4", 50, "Easy rhythm."),
+      plyoTask(p, 2, "Plyo Ball Roll-In Throw - 450 g", "1 × 4", 55, "Crisp and controlled."),
       task(`${p}-catch`, 3, "Throw", "Keep the arm moving without a high-intent exposure.", "Primer catch", "20–25 throws · 60–75 ft · 50–60%", "No pulldowns and no game-speed finish.", {
         setup: "Relaxed catch partner.", execution: "Finish while fresh.", rest: "Natural.", stop: "End as soon as it feels like work."
       }),
@@ -1013,8 +1013,8 @@ function transitionWednesdaySession(week) {
     description: "Transition Wednesday deliberately removes pulldowns and underload speed throws. The gym keeps technique and force qualities without creating a recovery hole.",
     tasks: [
       ...basePrep(p, "easy catch and strength training"),
-      plyoTask(p, 1, "Plyo Ball Reverse Throw — 1,000 g", "1 × 5", 50, "Smooth patterning only."),
-      plyoTask(p, 2, "Plyo Ball Roll-In Throw — 450 g", "1 × 4", 55, "Stay directional and finish balanced."),
+      plyoTask(p, 1, "Plyo Ball Reverse Throw - 1,000 g", "1 × 5", 50, "Smooth patterning only."),
+      plyoTask(p, 2, "Plyo Ball Roll-In Throw - 450 g", "1 × 4", 55, "Stay directional and finish balanced."),
       task(`${p}-catch`, 3, "Throw", "Keep the arm moving without a high-intent stimulus.", "Easy catch", "30–45 throws · 60–90 ft · 50–65%", "No pulldowns, aggressive compression throws or radar work.", {
         setup: "Begin close and add distance only when the arm feels free.", execution: "Use a relaxed arc and consistent direction.", rest: "Natural catch rhythm.", stop: "Stop if soreness rises or the arm does not loosen."
       }),
@@ -1025,7 +1025,7 @@ function transitionWednesdaySession(week) {
         setup: "Complete progressive warm-up sets.", execution: "Brace, drive the floor away and finish tall.", rest: "2.5–3 minutes.", stop: "Stop for position loss or RPE above 7."
       }),
       task(`${p}-secondary`, 4, "Whole-Body Rebuild", "Keep the session balanced without chasing soreness.", "Split squat", "2 × 6/leg @ RPE 6", "Use straps if grip limits the legs.", {
-        setup: "Stable front foot.", execution: "Controlled reps with no grinders.", rest: "No rest — go straight into the chest-supported row.", stop: "Reduce load for balance loss.", superset: "A1", supersetOf: 2
+        setup: "Stable front foot.", execution: "Controlled reps with no grinders.", rest: "No rest - go straight into the chest-supported row.", stop: "Reduce load for balance loss.", superset: "A1", supersetOf: 2
       }),
       task(`${p}-secondary-row`, 4, "Whole-Body Rebuild", "Keep the session balanced without chasing soreness.", "Chest-supported row", "2 × 8 @ RPE 6–7", "Controlled reps with no grinders.", {
         setup: "Supported row bench.", execution: "Row toward the lower ribs and control the return.", rest: "75–90 seconds, then back to the split squat for the next round.", stop: "Reduce load for shoulder symptoms.", superset: "A2", supersetOf: 2
@@ -1057,8 +1057,8 @@ function nonCompetitionSaturdaySession(week) {
     description: "No league game is assumed in this calendar block. This session preserves the weekly rhythm without falsely labelling an unpublished fixture as Game Day.",
     tasks: [
       ...basePrep(p, moundBuild ? "mound throwing" : "developmental catch"),
-      plyoTask(p, 1, "Plyo Ball Reverse Throw — 1,000 g", "1 × 5", transition ? 45 : 55, "Smooth rhythm and a balanced finish."),
-      plyoTask(p, 2, "Plyo Ball Roll-In Throw — 450 g", "1 × 4", transition ? 50 : 65, "Organize the lead leg without chasing speed."),
+      plyoTask(p, 1, "Plyo Ball Reverse Throw - 1,000 g", "1 × 5", transition ? 45 : 55, "Smooth rhythm and a balanced finish."),
+      plyoTask(p, 2, "Plyo Ball Roll-In Throw - 450 g", "1 × 4", transition ? 50 : 65, "Organize the lead leg without chasing speed."),
       task(`${p}-throw`, 3, "Throw", "The Saturday exposure changes with the calendar phase.", throwingName, throwingDose, moundBuild ? "Prioritize fastball command and finish with a small game-sequence block." : "Build only while direction and arm speed stay clean.", {
         setup: moundBuild ? "Confirm mound, catcher and pitch target before starting." : "Use a safe throwing lane with marked distances.",
         execution: moundBuild ? "Progress from catch into a short bullpen; cap secondary-pitch volume." : "Add distance gradually and return on a relaxed line.",
@@ -1114,7 +1114,7 @@ function adaptTaskForReadiness(item, planLevel, gameDay) {
   }
 
   if (type === "highThrow") {
-    adapted.name = planLevel === "recovery" ? "Recovery catch — replaces high-intent throwing" : `${item.name} — reduced dose`;
+    adapted.name = planLevel === "recovery" ? "Recovery catch - replaces high-intent throwing" : `${item.name} - reduced dose`;
     adapted.prescription = planLevel === "recovery"
       ? "25–35 throws · 45–75 ft · 50–60% · no pulldowns, radar, mound work or aggressive return throws"
       : "Complete 75% of the assigned measured throws · cap at 90–92% perceived intent · no bonus throws";

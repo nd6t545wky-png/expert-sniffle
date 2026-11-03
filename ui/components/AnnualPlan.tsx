@@ -33,7 +33,7 @@ const WEEKDAYS = ["M", "T", "W", "T", "F", "S", "S"];
  * `LEGACY_PHASES` carries hex values lifted verbatim out of the prototype, and
  * they were the last colours in the product that were not on the palette: a
  * red, a purple and a teal for the gaps between seasons. The red and the purple
- * are already tokens — they are the two club themes — so the calendar reads
+ * are already tokens - they are the two club themes - so the calendar reads
  * them from there rather than restating them, and a block belonging to no
  * season is drawn in slate instead of being given a fourth hue of its own.
  *
@@ -66,7 +66,7 @@ export interface AnnualPlanProps {
 
 /*
  * The season's fixtures used to be listed here as well, read straight off
- * `FIXTURES` — which meant a game entered in the app never appeared on the page
+ * `FIXTURES` - which meant a game entered in the app never appeared on the page
  * the athlete goes to to look at their season, and the same heading appeared
  * twice once the entry form moved onto this page. `FixtureSettings` renders
  * below this component and does both jobs from one list.
@@ -101,7 +101,7 @@ export function AnnualPlan({ selectedWeek, onSelectWeek, today, initialView = "y
         title="The training year."
         intro={
           phase
-            ? `Week ${selectedWeek} of ${PROGRAMME_WEEK_COUNT} — ${phase.name}.`
+            ? `Week ${selectedWeek} of ${PROGRAMME_WEEK_COUNT} - ${phase.name}.`
             : `Week ${selectedWeek} of ${PROGRAMME_WEEK_COUNT}.`
         }
         controls={

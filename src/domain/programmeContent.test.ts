@@ -8,13 +8,13 @@
  * nothing checked that every one of the 364 days it can produce is intact.
  *
  * That is the failure this file is for. A row mangled in extraction does not
- * throw — it surfaces as a session with no tasks, a load that reads "NaN kg",
+ * throw - it surfaces as a session with no tasks, a load that reads "NaN kg",
  * a prescription that is the empty string, or a day the plan simply cannot
  * build. Any of those would be shown to the athlete as their training for the
  * day, and nothing else would notice.
  *
  * These are structural checks, deliberately. They assert that a prescription
- * exists and is legible, never what it should say — the loads, throw counts
+ * exists and is legible, never what it should say - the loads, throw counts
  * and stop-criteria are the record, and a test that second-guessed them would
  * be reinterpreting the programme, which is exactly what must not happen.
  */
@@ -232,8 +232,8 @@ describe("the trunk slot the athlete asked to split", () => {
    * soreness playbook carried a bespoke swap to strip the carry out of it, and
    * a log against it was a log against neither.
    *
-   * These check the split is actually in the sessions the athlete sees — not
-   * just in the source — and that each half kept the words that were already
+   * These check the split is actually in the sessions the athlete sees - not
+   * just in the source - and that each half kept the words that were already
    * its own. `scripts/extract-programme.mjs` re-applies the split, so a
    * regeneration cannot quietly put them back together, and this is what would
    * fail if it did.

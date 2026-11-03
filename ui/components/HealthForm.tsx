@@ -23,7 +23,7 @@ import { RangeField } from "./RangeField";
  *
  * Shaped to the prototype's `renderPreForm`: an `article.card.gate` with an
  * icon, a heading, the explanation, then `form#pre-form.form-grid`. Field
- * order, labels, helper text and control types are the original's — sliders
+ * order, labels, helper text and control types are the original's - sliders
  * are `RangeField`, sleep quality is a select, the warning-signs question
  * carries `.warning-field`.
  *
@@ -66,7 +66,7 @@ const FOLLOW_UP_FIELDS = [
 
 const SLEEP_QUALITY_LABELS = ["", "Poor", "Below average", "Average", "Good", "Excellent"];
 
-/** name, label, min, max, helper — verbatim from the prototype's rangeField calls. */
+/** name, label, min, max, helper - verbatim from the prototype's rangeField calls. */
 const SCALE_FIELDS = [
   ["energy", "Energy", 1, 5, "1 empty · 5 energised"],
   ["stress", "Life stress", 1, 5, "1 low · 5 very high"],
@@ -95,7 +95,7 @@ export interface HealthFormProps {
     }
   ) => void;
   api: PitchingOsApi;
-  /** `state.healthPrefill` — every date's fetched payload. */
+  /** `state.healthPrefill` - every date's fetched payload. */
   prefill: Record<IsoDate, unknown>;
   onPrefill: (date: IsoDate, record: HealthPrefillRecord) => void;
   /** Without a sync key there is no account to read connected data from. */
@@ -120,7 +120,7 @@ export function HealthForm({
 }: HealthFormProps) {
   const [manual, setManual] = useState<Partial<ReadinessInputs>>({});
   const [gameRole, setGameRole] = useState<GameRole | null>(null);
-  /** "Anything sore or not right?" — the pain questions only appear on a yes. */
+  /** "Anything sore or not right?" - the pain questions only appear on a yes. */
   const [sore, setSore] = useState(false);
   const [notes, setNotes] = useState("");
   const [error, setError] = useState<string>("");
@@ -135,7 +135,7 @@ export function HealthForm({
   const load = useRef<(force: boolean) => void>(() => {});
   load.current = (force: boolean) => {
     if (!hasSyncKey) return;
-    // A submitted day is history — refetching would only invite an edit to a
+    // A submitted day is history - refetching would only invite an edit to a
     // check-in that has already set the day's plan.
     if (alreadySubmitted && !force) return;
     if (fetching.current === date) return;
@@ -189,7 +189,7 @@ export function HealthForm({
     event.preventDefault();
     setError("");
     if (gameDay && !gameRole) {
-      setError("Say whether you are playing today — it decides the game-day plan.");
+      setError("Say whether you are playing today - it decides the game-day plan.");
       return;
     }
     // Duplicate protection lives in the domain layer, not in a disabled button.
@@ -248,7 +248,7 @@ export function HealthForm({
 
           {/* Bodyweight is not scored, but the ring reports it and the check-in
               is where it is worth capturing. It appears only when a device
-              supplied it — an empty box here would just be another field. */}
+              supplied it - an empty box here would just be another field. */}
           {bodyweightKg !== null && (
             <div className="field">
               <label htmlFor="bodyweight">Bodyweight</label>
@@ -281,7 +281,7 @@ export function HealthForm({
             </select>
             <small>
               {imported.has("sleepQuality")
-                ? "Derived from the imported sleep score — change it if it reads wrong"
+                ? "Derived from the imported sleep score - change it if it reads wrong"
                 : "Required when no device score is available"}
             </small>
           </div>
@@ -307,7 +307,7 @@ export function HealthForm({
               value={sore ? "yes" : "no"}
               onChange={(event) => setSore(event.target.value === "yes")}
             >
-              <option value="no">No — all good</option>
+              <option value="no">No - all good</option>
               <option value="yes">Yes</option>
             </select>
             <small>Arm, body, or how you pulled up from the last session</small>
@@ -325,7 +325,7 @@ export function HealthForm({
                   required
                 >
                   <option value="no">No</option>
-                  <option value="yes">Yes — hold today's plan</option>
+                  <option value="yes">Yes - hold today's plan</option>
                 </select>
                 <small>
                   New sharp or worsening pain, weakness, numbness, or symptoms changing your throwing
@@ -437,7 +437,7 @@ export function HealthForm({
 }
 
 /**
- * What the connected sources are doing right now — v60's `sourceLine`.
+ * What the connected sources are doing right now - v60's `sourceLine`.
  *
  * The four states are all worth showing. Silence when an import has failed is
  * how an athlete ends up trusting a manually-typed check-in that they believe
@@ -534,7 +534,7 @@ function ReadinessPreview({ result }: { result: ReturnType<typeof computeReadine
       </span>
       <div>
         <strong>
-          {result.score}/100 — {result.planLevel}
+          {result.score}/100 - {result.planLevel}
         </strong>
         {result.planLevel === "hold" && (
           <span>

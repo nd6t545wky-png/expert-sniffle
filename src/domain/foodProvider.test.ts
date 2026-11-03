@@ -24,7 +24,7 @@ describe("mapping Open Food Facts", () => {
 
   it("falls back to converting the kilojoules", () => {
     // Australian labels are in kJ. A product with only energy_100g must not
-    // report zero calories — that is a food that looks free to eat.
+    // report zero calories - that is a food that looks free to eat.
     const item = fromOpenFoodFacts({ product_name: "Muesli Bar", nutriments: { energy_100g: 1650 } });
     expect(item?.caloriesPer100g).toBeCloseTo(kjToKcal(1650), 1);
     expect(item?.caloriesPer100g).toBeGreaterThan(390);

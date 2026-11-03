@@ -46,7 +46,7 @@ describe("taskNamesForDates", () => {
 
   it("says which tasks count their sets in metres", () => {
     // Logged sets are read in places that never see the session they came from
-    // — a past day's tonnage, above all, which sums `reps × kg`. Without this,
+    // - a past day's tonnage, above all, which sums `reps × kg`. Without this,
     // Monday's farmer carry contributed metre-kilograms to a total measured in
     // kilograms.
     const monday = dateForWeekDay(weekPlan(8), 0);
@@ -93,7 +93,7 @@ describe("liftProgress", () => {
     expect(squat.points[1].value).toBeCloseTo(151.7, 1);
   });
 
-  it("drops a lift with only one logged day — that is a reading, not a trend", () => {
+  it("drops a lift with only one logged day - that is a reading, not a trend", () => {
     const logs = {
       "2025-01-06": { "w1-d0-squat": [{ reps: 5, kg: 120 }], "w1-d0-bench": [{ reps: 5, kg: 80 }] },
       "2025-01-13": { "w2-d0-squat": [{ reps: 5, kg: 130 }] },
@@ -226,7 +226,7 @@ describe("summariseProgress", () => {
     expect(summary.verdict).toBe("best");
   });
 
-  it("never calls a bodyweight a best — neither direction is good news", () => {
+  it("never calls a bodyweight a best - neither direction is good news", () => {
     const summary = summariseProgress(
       [
         { date: "2025-01-06", value: 88 },
@@ -287,7 +287,7 @@ describe("summariseProgress", () => {
 });
 
 describe("MIN_POINTS_FOR_TREND", () => {
-  it("is two — one point is a dot on an axis", () => {
+  it("is two - one point is a dot on an axis", () => {
     expect(MIN_POINTS_FOR_TREND).toBe(2);
   });
 });

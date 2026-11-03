@@ -8,7 +8,7 @@ import { SessionTask } from "./programmeSessions";
  *
  * The app has recorded sets since the set logger went in, and then never
  * showed them again on the screen where they would change a decision. Standing
- * in front of a rack, the question is not "what is my e1RM trend" — it is
+ * in front of a rack, the question is not "what is my e1RM trend" - it is
  * "what did I do last Monday, and should today be heavier". That needs the
  * previous performance beside the prescription, and a verdict rather than a
  * chart.
@@ -17,14 +17,14 @@ import { SessionTask } from "./programmeSessions";
  *
  * Two kinds of lift are prescribed here and they take opposite advice:
  *
- *  - **Percentage-driven.** "3 × 4 @ 120 kg · 83% of tested max" — the load is
+ *  - **Percentage-driven.** "3 × 4 @ 120 kg · 83% of tested max" - the load is
  *    the block's, computed from tested strength. Adding 2.5 kg because last
  *    week felt easy is not progression, it is opting out of the periodisation;
  *    the load moves when the block moves it, and rises for real when the max is
  *    retested. So the advice here is a *comparison*, never an instruction to
  *    add weight.
  *  - **Self-selected.** "3 × 5 @ RPE 7", "3 × 5/leg @ RPE 7 · 24–28 kg
- *    dumbbells as tolerated" — the programme names an effort and leaves the
+ *    dumbbells as tolerated" - the programme names an effort and leaves the
  *    load to the athlete. This is where progression advice belongs, and where
  *    its absence meant the same dumbbells came off the rack for months.
  *
@@ -41,8 +41,8 @@ import { SessionTask } from "./programmeSessions";
  *
  * Double progression, which is the ordinary answer: hold the load until every
  * prescribed set reaches the top of the prescribed rep range, then add the
- * smallest useful increment. It is conservative by construction — it cannot
- * advance on a single good set — and it is the rule most likely to match what
+ * smallest useful increment. It is conservative by construction - it cannot
+ * advance on a single good set - and it is the rule most likely to match what
  * a coach standing there would say.
  */
 
@@ -71,7 +71,7 @@ export interface PrescribedShape {
   /**
    * What that target counts. A farmer carry writes `2 × 20 m` in exactly the
    * shape a squat writes `2 × 20`, and double progression works the same way on
-   * both — hold the number, add load once every set reaches it. Only the words
+   * both - hold the number, add load once every set reaches it. Only the words
    * differ, and telling an athlete they cleared "20 reps" of a carry is the
    * kind of wrong that makes them stop reading the advice.
    */
@@ -98,7 +98,7 @@ export function prescribedShape(prescription: string): PrescribedShape | null {
     unit: setUnit({ prescription: text } as Pick<SessionTask, "prescription">),
     kg,
     // A percentage of a tested max is the block's number. So is a bare load
-    // with no RPE beside it — "4 × 3 @ 94 kg · every rep maximal intent" is the
+    // with no RPE beside it - "4 × 3 @ 94 kg · every rep maximal intent" is the
     // measured optimal power load, not a suggestion. A load offered *with* an
     // RPE ("24–28 kg dumbbells as tolerated") is a starting point.
     fixedLoad: PERCENT_OF_MAX.test(text) || (kg !== null && !RPE.test(text)),
@@ -139,7 +139,7 @@ export function liftHistory(
   return out.sort((a, b) => (a.date < b.date ? 1 : -1));
 }
 
-/** The load carried through the whole performance — the lightest working set. */
+/** The load carried through the whole performance - the lightest working set. */
 export function workingLoad(sets: LoggedSet[]): number {
   return Math.min(...sets.map((set) => set.kg));
 }
@@ -149,7 +149,7 @@ export function workingLoad(sets: LoggedSet[]): number {
  *
  * This, and not the heaviest set, is what says whether a load was too much. On
  * a straight-sets prescription every set is at the same weight, so "the
- * heaviest set" is just the first one — and reading its reps meant a session
+ * heaviest set" is just the first one - and reading its reps meant a session
  * that went 5, 3, 2 looked like a clean five.
  */
 export function worstReps(sets: LoggedSet[]): number {
@@ -175,7 +175,7 @@ export interface Advice {
  * The smallest increment worth adding, by implement.
  *
  * Dumbbells are checked first because the accessory that names them is also a
- * squat — "Rear-foot-elevated split squat · 24–28 kg dumbbells" — and jumping
+ * squat - "Rear-foot-elevated split squat · 24–28 kg dumbbells" - and jumping
  * it 2.5 kg a hand is a 5 kg jump the rack usually cannot make anyway.
  */
 const INCREMENTS: { match: RegExp; kg: number; unit: string }[] = [
@@ -193,7 +193,7 @@ function incrementFor(task: Pick<SessionTask, "name" | "prescription">): { kg: n
  *
  * Everything in a gym stage carrying a `sets × reps` shape was getting a
  * verdict, and for a third of them the verdict was nonsense. The rule's entire
- * output is "hold the load, or add the smallest useful increment" — and there
+ * output is "hold the load, or add the smallest useful increment" - and there
  * is no increment to add to a broad jump, no load to raise on an anti-rotation
  * press, and adding 2.5 kg to a 2 kg medicine ball is a 125% jump on an
  * implement that only comes in whole kilos.
@@ -218,7 +218,7 @@ function incrementFor(task: Pick<SessionTask, "name" | "prescription">): { kg: n
  * A *loaded* jump is the one member of that family that does get a verdict,
  * and it is worth saying why the exception is not a hole. The trap bar jump
  * carries a stated kilogram load, so "should this be heavier" is at least a
- * question you can ask of it — and the answer this file gives is the
+ * question you can ask of it - and the answer this file gives is the
  * comparison, never an instruction to add plates, because the load is a
  * position on a power curve rather than a target. See `LOADED_JUMP` below and
  * `withJumpPowerLoad` in `programmeUpdates.ts`, which is where the load
@@ -227,7 +227,7 @@ function incrementFor(task: Pick<SessionTask, "name" | "prescription">): { kg: n
  * That used to be a claim this file could not honour. Monday's `Pallof press +
  * farmer carry` was a single task holding one of each, so the whole task had to
  * be excluded: the `2 × 8/side` the rule would have read off it is the *press's*
- * — advising on that task would have been advising on the press. The athlete
+ * - advising on that task would have been advising on the press. The athlete
  * has since asked for the two apart, and `programmeContent.ts` now ships them
  * as separate tasks, so each gets the answer it should. The press matches
  * `pallof` here and takes no advice; the carry matches nothing here and
@@ -240,10 +240,10 @@ const NOT_PROGRESSED =
 /**
  * A jump carrying an external load, which the exclusion above lets through.
  *
- * The `@ N kg` form is deliberate and does the whole of the work. "Depth jump —
+ * The `@ N kg` form is deliberate and does the whole of the work. "Depth jump -
  * 15–20 cm box" and "Pogo 2 × 6 · vertical jump 2 × 2" carry numbers and no
  * load; the retest battery mentions "bar velocity at 94 kg and 116 kg", which
- * is a measurement taken at a load rather than a load prescribed — and none of
+ * is a measurement taken at a load rather than a load prescribed - and none of
  * the three writes a load with an `@` in front of it, because none of them has
  * one.
  */
@@ -289,7 +289,7 @@ function describe(sets: LoggedSet[], unit: SetUnit): string {
 }
 
 /**
- * A prescribed target with its unit attached — "5 reps", or "20 m".
+ * A prescribed target with its unit attached - "5 reps", or "20 m".
  *
  * Every verdict below quotes the target back at the athlete, and every one of
  * them used to call it reps. On a carry that is not a wording quibble: "every
@@ -333,8 +333,8 @@ export function progressionFor(
     return {
       verdict: "first_time",
       headline: shape.fixedLoad && shape.kg
-        ? `First logged session — the plan sets today at ${shape.kg} kg.`
-        : "First logged session — pick a load and log it.",
+        ? `First logged session - the plan sets today at ${shape.kg} kg.`
+        : "First logged session - pick a load and log it.",
       reason:
         "Nothing logged for this lift yet. Log today's sets and every session after this one opens with what you did last time and whether to move up.",
       ...(shape.kg !== null ? { suggestedKg: shape.kg } : {}),
@@ -354,10 +354,10 @@ export function progressionFor(
     const jump = isLoadedJump(task);
     const headline =
       step > 0
-        ? `Up ${step} kg on last time — ${load} kg → ${shape.kg} kg.`
+        ? `Up ${step} kg on last time - ${load} kg → ${shape.kg} kg.`
         : step < 0
-          ? `Lighter than last time by ${Math.abs(step)} kg — that is the ${jump ? "power load" : "block"}, not a mistake.`
-          : `Same load as last time — ${shape.kg} kg.`;
+          ? `Lighter than last time by ${Math.abs(step)} kg - that is the ${jump ? "power load" : "block"}, not a mistake.`
+          : `Same load as last time - ${shape.kg} kg.`;
     return {
       verdict: "follow_plan",
       headline,
@@ -365,11 +365,11 @@ export function progressionFor(
       // difference matters standing in front of the bar: the block owns a
       // squat's load, but a jump's load is owned by physics. Peak power in a
       // loaded jump sits at a low load and falls away either side, so a good
-      // day is not a reason to add weight — adding it makes this a slower
+      // day is not a reason to add weight - adding it makes this a slower
       // lift, which is the one already programmed beside it.
       reason: jump
-        ? `${when} you moved ${did}. This load is a position on your power curve rather than a target: a loaded jump makes peak power at a light load and adding weight past it turns it into a slower, more force-dominant lift — which is what the trap bar deadlift is for. It is ${shape.kg} kg because that is ${BASELINE_ANCHORS.jumpPowerPercentOf1Rm}% of your tested squat max, so it goes up when the max does. Chase bar speed and landing quality; the plates follow a retest.`
-        : `${when} you lifted ${did}. Today's load is set by the block from your tested max, so it moves when the block moves it — the way to make this number bigger is to retest, not to add plates.`,
+        ? `${when} you moved ${did}. This load is a position on your power curve rather than a target: a loaded jump makes peak power at a light load and adding weight past it turns it into a slower, more force-dominant lift - which is what the trap bar deadlift is for. It is ${shape.kg} kg because that is ${BASELINE_ANCHORS.jumpPowerPercentOf1Rm}% of your tested squat max, so it goes up when the max does. Chase bar speed and landing quality; the plates follow a retest.`
+        : `${when} you lifted ${did}. Today's load is set by the block from your tested max, so it moves when the block moves it - the way to make this number bigger is to retest, not to add plates.`,
       suggestedKg: shape.kg,
       last,
     };
@@ -386,12 +386,12 @@ export function progressionFor(
       headline:
         allReps && enoughSets
           ? shape.unit === "m"
-            ? `Add distance or slow it down — you cleared ${shape.sets} × ${shape.reps} m.`
-            : `Add a rep or slow the tempo — you cleared ${shape.sets} × ${shape.reps}.`
-          : `Same again — you are chasing ${shape.sets} × ${shape.reps}${shape.unit === "m" ? " m" : ""}.`,
+            ? `Add distance or slow it down - you cleared ${shape.sets} × ${shape.reps} m.`
+            : `Add a rep or slow the tempo - you cleared ${shape.sets} × ${shape.reps}.`
+          : `Same again - you are chasing ${shape.sets} × ${shape.reps}${shape.unit === "m" ? " m" : ""}.`,
       reason:
         shape.unit === "m"
-          ? `${when} you did ${did}. Nothing was logged in the load column, so this one has to progress by distance or tempo — put the load in and it progresses by getting heavier, which is what a carry is for.`
+          ? `${when} you did ${did}. Nothing was logged in the load column, so this one has to progress by distance or tempo - put the load in and it progresses by getting heavier, which is what a carry is for.`
           : `${when} you did ${did}. This one carries no external load, so it progresses by reps, tempo or range rather than by weight.`,
       last,
     };
@@ -402,7 +402,7 @@ export function progressionFor(
     return {
       verdict: "back_off",
       headline: `Drop to ${suggested} kg${increment.unit ? ` ${increment.unit}` : ""}.`,
-      reason: `${when} a set came in at ${amount(worst, shape.unit)} against ${amount(shape.reps, shape.unit)} prescribed. That is far enough short that repeating ${load} kg means failing it again — take about 10% off and build back.`,
+      reason: `${when} a set came in at ${amount(worst, shape.unit)} against ${amount(shape.reps, shape.unit)} prescribed. That is far enough short that repeating ${load} kg means failing it again - take about 10% off and build back.`,
       suggestedKg: suggested,
       last,
     };
@@ -413,7 +413,7 @@ export function progressionFor(
     return {
       verdict: "increase",
       headline: `Go up to ${suggested} kg${increment.unit ? ` ${increment.unit}` : ""}.`,
-      reason: `${when} you completed ${did} — every set at ${amount(shape.reps, shape.unit)} or better. That is the signal to add the smallest useful jump, ${increment.kg} kg${increment.unit ? ` ${increment.unit}` : ""}.`,
+      reason: `${when} you completed ${did} - every set at ${amount(shape.reps, shape.unit)} or better. That is the signal to add the smallest useful jump, ${increment.kg} kg${increment.unit ? ` ${increment.unit}` : ""}.`,
       suggestedKg: suggested,
       last,
     };

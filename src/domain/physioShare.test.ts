@@ -70,7 +70,7 @@ describe("share links", () => {
     const key = newShareKey();
     expect(key).toMatch(/^[a-f0-9]{64}$/);
     expect(key).not.toBe(generateSyncKey());
-    // Distinct every time — two links must not open each other.
+    // Distinct every time - two links must not open each other.
     expect(new Set(Array.from({ length: 20 }, () => newShareKey())).size).toBe(20);
     expect(new Set(Array.from({ length: 20 }, () => newShareId())).size).toBe(20);
   });
@@ -138,9 +138,9 @@ describe("the summary", () => {
   it("carries the protocol's own words for the day", () => {
     const summary = buildPhysioSummary({
       today: TODAY,
-      recoveryLabel: (date) => (date === TODAY ? "heavy protocol, day 1 — Offload" : null),
+      recoveryLabel: (date) => (date === TODAY ? "heavy protocol, day 1 - Offload" : null),
     });
-    expect(summary.days[0].recovery).toBe("heavy protocol, day 1 — Offload");
+    expect(summary.days[0].recovery).toBe("heavy protocol, day 1 - Offload");
   });
 
   it("stops at the window, however much history exists", () => {

@@ -12,8 +12,8 @@ import { ChartEmpty } from "./Page";
  * Is the training working?
  *
  * The recovery trends answer "is today normal for me", against a rolling
- * fortnight. These answer a different question over a longer window — did the
- * number move since the day this started — so they are framed differently:
+ * fortnight. These answer a different question over a longer window - did the
+ * number move since the day this started - so they are framed differently:
  *
  *   - The hero is the latest measurement, as before.
  *   - The verdict compares against *where the athlete started*, not against a
@@ -30,12 +30,12 @@ import { ChartEmpty } from "./Page";
 
 export interface ProgressSpec {
   key: string;
-  /** Plain English, and specific — "Back squat", not "Lower body". */
+  /** Plain English, and specific - "Back squat", not "Lower body". */
   title: string;
   /** What the number is, for a reader who has not met it before. */
   explain: string;
   points: TrendPoint[];
-  /** null where neither direction is good news — bodyweight. */
+  /** null where neither direction is good news - bodyweight. */
   higherIsBetter?: boolean | null;
   unit?: string;
   precision?: number;
@@ -49,7 +49,7 @@ const VERDICT_COPY: Record<ProgressVerdict, { label: string; glyph: string }> = 
 };
 
 /**
- * The verdict, as a word plus an arrow plus a tint — never the tint alone.
+ * The verdict, as a word plus an arrow plus a tint - never the tint alone.
  *
  * `down` is intentionally not tinted as a warning here. Bodyweight coming down
  * may be the goal, and a squat off its best by 2 kg in a deload week is the
@@ -150,7 +150,7 @@ export function ProgressTrends({ specs }: { specs: ProgressSpec[] }) {
       <div className="disclosure-body">
         <p className="fineprint disclosure-intro">
           <strong>How to read these:</strong> each chart plots what you actually logged, one point
-          per session, against where you started. Nothing is estimated between points — a gap is a
+          per session, against where you started. Nothing is estimated between points - a gap is a
           gap. Strength figures are <em>estimated</em> one-rep maxes worked back from the reps and
           load you recorded, not maxes you lifted.
         </p>

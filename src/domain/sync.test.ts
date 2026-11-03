@@ -246,12 +246,12 @@ describe("mergeCloudSnapshot", () => {
 });
 
 /**
- * Fields the merge has no record-level rule for — set logs, profile,
+ * Fields the merge has no record-level rule for - set logs, profile,
  * nutrition. They used to be taken from the cloud whole, so autosave (which
  * pulls and merges before every push) reverted each change a second after it
  * was made.
  */
-describe("mergeCloudSnapshot — whole fields", () => {
+describe("mergeCloudSnapshot - whole fields", () => {
   const SETS = { "2026-10-14": { "w14-d2-summer-deadlift": [{ reps: 3, kg: 112.5 }] } };
 
   it("keeps sets logged since the last upload", () => {
@@ -309,7 +309,7 @@ describe("conflict detection", () => {
 
 /**
  * Lists of records with ids, which the snapshot merge used to resolve
- * whole-list — remote replaced local, and anything added on this device since
+ * whole-list - remote replaced local, and anything added on this device since
  * the last sync was gone. `mergeRecordsById` was written and tested for this
  * and had never been connected to `mergeCloudSnapshot`.
  */
@@ -329,7 +329,7 @@ describe("merging id-keyed lists", () => {
 
   it("keeps a pain report made on this device when the remote has not seen it", () => {
     // The failure that matters: the phone logs a sore elbow, the laptop syncs
-    // first, and the app stops knowing about it — putting the throwing back in.
+    // first, and the app stops knowing about it - putting the throwing back in.
     const merged = mergeCloudSnapshot(
       { soreness: [{ id: "old", region: "knee" }] },
       { ...local, soreness: [{ id: "fresh", region: "elbow_medial" }] }

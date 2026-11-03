@@ -49,7 +49,7 @@ export type Unit = MassUnit | VolumeUnit | CountUnit;
  */
 export type UnitSystem = "metric" | "us";
 
-/** Exact by definition — the international pound and ounce. */
+/** Exact by definition - the international pound and ounce. */
 const GRAMS_PER: Record<MassUnit, number> = Object.freeze({
   g: 1,
   kg: 1000,

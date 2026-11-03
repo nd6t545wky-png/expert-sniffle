@@ -26,8 +26,8 @@ import { armCareForDay, describeSession, movementCount } from "./treadArmCare";
  *
  * Every addition below traces to an explicit recommendation in the VALD
  * ForceDecks report. Nothing here is invented programming. What the reports
- * did not speak to — total session volume, what to drop to make room, the
- * balance between these additions and the existing lifts — is left alone,
+ * did not speak to - total session volume, what to drop to make room, the
+ * balance between these additions and the existing lifts - is left alone,
  * because that is a coaching decision and not one the report makes.
  */
 
@@ -38,7 +38,7 @@ const [PCT_MIN, PCT_MAX] = BASELINE_ANCHORS.strengthPercentRange;
  * The stages this file treats as "the lift".
  *
  * "Whole-Body Gym" was missing, and it is the summer competition block's only
- * gym stage — so on all nineteen GBL weeks `gymIndex` came back −1, the
+ * gym stage - so on all nineteen GBL weeks `gymIndex` came back −1, the
  * function returned early, and none of the testing-driven work existed at all:
  * no depth jump, no speed squat, no back squat, and the broad jump the report
  * asked to replace survived untouched. Over a third of the year silently
@@ -51,14 +51,14 @@ const [PCT_MIN, PCT_MAX] = BASELINE_ANCHORS.strengthPercentRange;
  * "Whole-Body Rebuild" was missing, and it is the whole gym block of a
  * transition Wednesday. Without it `gymIndex` came back -1, the session looked
  * like a Thursday-style stageless day, and `applyBaselineProgramming` returned
- * early — so *no* overlay addition reached those four sessions in the year.
+ * early - so *no* overlay addition reached those four sessions in the year.
  * The velocity squat that Wednesday is supposed to carry was gated correctly
  * and then dropped on the floor by a list that did not know the stage existed.
  *
  * Same shape of bug as `LOGGABLE_STAGE` missing "rebuild": every gym stage in
  * the programme is named `Whole-Body <something>`, and a hand-maintained list
  * of them will keep missing one. "Whole-Body Primer" is deliberately still out
- * — the pre-game primer is not a session anything should be inserted into.
+ * - the pre-game primer is not a session anything should be inserted into.
  */
 const GYM_STAGE_TITLES = [
   "Whole-Body Force",
@@ -72,7 +72,7 @@ const GYM_STAGE_TITLES = [
  *
  * The report is specific: drop-jump RSI 0.96 with a 0.348 s ground contact
  * against a sub-0.25 s target, so the limiter is the *fast* stretch-shortening
- * cycle. A broad jump is a long-contact horizontal jump — it trains the slow
+ * cycle. A broad jump is a long-contact horizontal jump - it trains the slow
  * one, which this athlete is already better at.
  *
  * That swap was only ever applied to a task whose name contained "primer",
@@ -81,7 +81,7 @@ const GYM_STAGE_TITLES = [
  * both went straight through. Matching on the movement rather than on the
  * task's name is the difference between a rule and a coincidence.
  *
- * Returns null where the task was nothing but a broad jump — there is nothing
+ * Returns null where the task was nothing but a broad jump - there is nothing
  * left to tick.
  */
 function withoutBroadJump(task: SessionTask): SessionTask | null {
@@ -93,7 +93,7 @@ function withoutBroadJump(task: SessionTask): SessionTask | null {
     .filter((part) => part && !/broad jump/i.test(part))
     .join(" · ");
 
-  // Compound names — "Broad jump + trap bar jump" — lose the half that went.
+  // Compound names - "Broad jump + trap bar jump" - lose the half that went.
   const remaining = task.name
     .split(/\s*\+\s*/)
     .filter((part) => !/broad jump/i.test(part));
@@ -118,7 +118,7 @@ function withoutBroadJump(task: SessionTask): SessionTask | null {
  *
  * The plan renders the name in bold with the dose directly beneath it, so
  * "Trap bar deadlift / Trap bar deadlift 3 × 5 @ RPE 6" says it twice and
- * buries the numbers — which are the only part being read mid-session. Two
+ * buries the numbers - which are the only part being read mid-session. Two
  * transition Wednesdays arrived that way from the week plan, whose `mondayLift`
  * string names the lift because it was written to stand alone.
  *
@@ -142,7 +142,7 @@ function withoutSelfReference(task: SessionTask): SessionTask {
  * Add a sentence to a field, unless it is already there.
  *
  * Every annotation in this file appends to text the programme wrote, and this
- * whole function is applied to whatever session it is handed — including, in
+ * whole function is applied to whatever session it is handed - including, in
  * the app, one it has already touched. Appending unconditionally meant a
  * second pass produced "…time to peak force. …time to peak force." The task
  * counts were guarded from the start; the prose was not, because nothing
@@ -169,7 +169,7 @@ export function strengthWindowKg(oneRepMaxKg: number = BASELINE_ANCHORS.backSqua
  * target. It prescribes low-box depth jumps with a stiffness and
  * contact-time focus.
  *
- * The existing primer's broad jump is a long-contact horizontal jump — it
+ * The existing primer's broad jump is a long-contact horizontal jump - it
  * trains the slow stretch-shortening cycle the athlete is already better at,
  * not the fast one the report flagged. This replaces it and keeps the
  * med-ball throw, so the primer stays a primer.
@@ -180,7 +180,7 @@ function depthJumpTask(
   stageDescription: string,
   /**
    * Three sets normally, two in a week with two games in it. The dose is not
-   * the interesting part of a depth jump — the contact time is — so the set
+   * the interesting part of a depth jump - the contact time is - so the set
    * that gets cut in season is the one most likely to be the slow one anyway.
    */
   sets = 3
@@ -190,12 +190,12 @@ function depthJumpTask(
     stage: 4,
     stageTitle,
     stageDescription,
-    name: `Depth jump — ${BOX_MIN}–${BOX_MAX} cm box`,
+    name: `Depth jump - ${BOX_MIN}–${BOX_MAX} cm box`,
     prescription: `${sets} × 3 · full recovery · contact under 0.25 s`,
-    cue: "Minimise ground contact. Think stiff and quick off the floor, not high — height without a fast contact is the wrong adaptation.",
+    cue: "Minimise ground contact. Think stiff and quick off the floor, not high - height without a fast contact is the wrong adaptation.",
     setup: `Use a ${BOX_MIN}–${BOX_MAX} cm box on a non-slip surface with a clear landing area. Low box height is deliberate: the aim is contact time, not drop height.`,
     execution:
-      "Step off — do not jump off — land and rebound immediately. Stop the set the moment contact time visibly lengthens or landings get noisy.",
+      "Step off - do not jump off - land and rebound immediately. Stop the set the moment contact time visibly lengthens or landings get noisy.",
     rest: "60–90 seconds between sets. This is a quality exposure, never conditioning.",
     stop: "Stop for any knee, ankle or Achilles pain, or when contacts slow. Fatigued depth jumps train the opposite of what this is for.",
   };
@@ -212,7 +212,7 @@ function velocitySquatTask(prefix: string, stageTitle: string, stageDescription:
     stage: 4,
     stageTitle,
     stageDescription,
-    name: "Speed squat — optimal power load",
+    name: "Speed squat - optimal power load",
     prescription: `4 × 3 @ ${BASELINE_ANCHORS.optimalPowerLoadKg} kg · every rep maximal intent`,
     cue: "The load is fixed; the only variable is how fast the bar moves. Stop the set when bar speed drops.",
     setup: `${BASELINE_ANCHORS.optimalPowerLoadKg} kg is the measured optimal load for peak power (L0/2 from the load-velocity profile). Use a rack with safeties.`,
@@ -228,7 +228,7 @@ function velocitySquatTask(prefix: string, stageTitle: string, stageDescription:
  * The ballistic half of Wednesday's velocity work, for a week that lost it.
  *
  * An in-season Wednesday carries a trap bar jump of its own, out of
- * `programmeContent`. The transition week's rebuild session does not — it was
+ * `programmeContent`. The transition week's rebuild session does not - it was
  * written for an athlete whose season had ended, so it drops the jump along
  * with the speed squat and the push press. On a week that turns out to hold a
  * final, that is the wrong thing to have dropped: nine total reps at a load
@@ -250,7 +250,7 @@ function trapBarJumpTask(prefix: string, stageTitle: string, stageDescription: s
     stageDescription,
     name: "Trap bar jump",
     prescription: `3 × 3 @ ${kg} kg · ${percent}% of tested squat max`,
-    cue: "Chase height and a quiet landing, not load. The load is a position on your power curve, not a target — it goes up when the squat max does.",
+    cue: "Chase height and a quiet landing, not load. The load is a position on your power curve, not a target - it goes up when the squat max does.",
     setup: `Hex bar loaded to ${kg} kg, which is ${percent}% of the tested ${max} kg squat. Clear floor, room to land.`,
     execution:
       "Dip and jump in one movement, driving through the whole foot. Reset between reps rather than bouncing them together; land softly and stand up before the next one.",
@@ -265,13 +265,13 @@ function trapBarJumpTask(prefix: string, stageTitle: string, stageDescription: s
  *
  * ForceDecks asked for a progressive back squat at 4–8 reps × 3–5 sets,
  * 77–87% of max, with bar-speed intent. Nothing in the gym block sat in that
- * window: the trap bar runs 6 × 2, and the speed squat is 94 kg — 65% of max,
+ * window: the trap bar runs 6 × 2, and the speed squat is 94 kg - 65% of max,
  * deliberately light because it trains bar speed, not strength.
  *
  * The load comes from the tested 145 kg rather than an estimate, which is the
  * whole reason the testing was worth wiring in.
  *
- * This raises Monday's lower-body count to four loaded movements — squat,
+ * This raises Monday's lower-body count to four loaded movements - squat,
  * trap bar, split squat and RDL. That is a real cost and it is a coaching
  * decision, not one this file should make silently; it is flagged rather than
  * resolved by dropping something on its own initiative.
@@ -285,7 +285,7 @@ function backSquatTask(
 ): SessionTask {
   const window = strengthWindowKg();
   // The week's own dose, from the programme's fifty-two-week block table. Null
-  // only where the session carries no readable week — then the original fixed
+  // only where the session carries no readable week - then the original fixed
   // window stands, because a guessed week would be worse than a static one.
   const dose = squatDose(week);
   const easy = isEasyWeek(focus);
@@ -299,7 +299,7 @@ function backSquatTask(
       name: "Back squat",
       prescription: `4 × 5 @ ${window.low}–${window.high} kg · ${PCT_MIN}–${PCT_MAX}% of tested max`,
       cue: "Drive the bar with intent on every rep. Depth consistent, brace before the descent.",
-      setup: `From a rack with safeties. ${window.low}–${window.high} kg is ${PCT_MIN}–${PCT_MAX}% of the tested ${BASELINE_ANCHORS.backSquat1RmKg} kg max — start at the bottom of the window and progress across the block.`,
+      setup: `From a rack with safeties. ${window.low}–${window.high} kg is ${PCT_MIN}–${PCT_MAX}% of the tested ${BASELINE_ANCHORS.backSquat1RmKg} kg max - start at the bottom of the window and progress across the block.`,
       execution:
         "Controlled down, fast up. Stop the set if bar speed drops sharply or depth changes, rather than grinding a rep out.",
       rest: "3 minutes between work sets.",
@@ -321,18 +321,18 @@ function backSquatTask(
     // "drive the bar maximally" reads as a contradiction; the honest version is
     // that a deload is where intent matters most, because the load is off.
     cue: easy
-      ? `${character} — the load is deliberately light. Every rep still moves fast; end the set the moment one does not. A deload is for quality, not for grinding the volume back.`
+      ? `${character} - the load is deliberately light. Every rep still moves fast; end the set the moment one does not. A deload is for quality, not for grinding the volume back.`
       : `${character}. Drive the bar with intent on every rep. Depth consistent, brace before the descent.`,
-    setup: `From a rack with safeties. ${dose.kg} kg is ${dose.percent}% of the tested ${BASELINE_ANCHORS.backSquat1RmKg} kg max. The sets, reps and percentage all change week to week — check them rather than repeating last week's session.`,
+    setup: `From a rack with safeties. ${dose.kg} kg is ${dose.percent}% of the tested ${BASELINE_ANCHORS.backSquat1RmKg} kg max. The sets, reps and percentage all change week to week - check them rather than repeating last week's session.`,
     execution:
       "Controlled down, fast up. Stop the set if bar speed drops sharply or depth changes, rather than grinding a rep out.",
     rest: dose.percent >= 85 ? "3–4 minutes between work sets." : "3 minutes between work sets.",
     stop: "End the set for loss of spinal position or knee pain, or if bar speed collapses.",
-    evidence: `Sets, reps and relative intensity come from the programme's own fifty-two-week block table — week ${week} is ${dose.sets} × ${dose.reps} at ${dose.percent}%. That table was written for the trap bar deadlift, which came off Monday when this squat went in, so its periodisation was going unread and every Monday of the block prescribed identical work.${
+    evidence: `Sets, reps and relative intensity come from the programme's own fifty-two-week block table - week ${week} is ${dose.sets} × ${dose.reps} at ${dose.percent}%. That table was written for the trap bar deadlift, which came off Monday when this squat went in, so its periodisation was going unread and every Monday of the block prescribed identical work.${
       dose.rebalanced
         ? ` The table asks for ${WEEK_SPECS[week!][0]} × ${WEEK_SPECS[week!][1]} here; the reps are raised to the ForceDecks report's floor of ${SQUAT_MIN_REPS} for the squat and the sets cut to ${dose.sets} so the week's total reps are unchanged.`
         : ""
-    } The percentage is carried across as relative intensity — which weeks are heavy and by how much — not as a claim that the two lifts share a max. Across the winter block that lands the squat at 79–86% of tested, inside the report's ${PCT_MIN}–${PCT_MAX}% window.`,
+    } The percentage is carried across as relative intensity - which weeks are heavy and by how much - not as a claim that the two lifts share a max. Across the winter block that lands the squat at 79–86% of tested, inside the report's ${PCT_MIN}–${PCT_MAX}% window.`,
   };
 }
 
@@ -346,8 +346,8 @@ function backSquatTask(
  * 24–48 hours. Thursday puts it 48 hours from Saturday's first pitch; Friday
  * would put it 24, which is the worst case.
  *
- * Friday is also the wrong character for it. Everything there — pogo,
- * vertical jump, landmine push press at RPE 5–6, split-squat isometric — is
+ * Friday is also the wrong character for it. Everything there - pogo,
+ * vertical jump, landmine push press at RPE 5–6, split-squat isometric - is
  * sub-maximal and fast, deliberately potentiating. A loaded hinge changes
  * what that day is. And dropping the RDL to Friday's intensity to make it fit
  * would leave it rehearsing the pattern rather than training it, which
@@ -363,16 +363,16 @@ function rdlTask(prefix: string, stageTitle: string, stageDescription: string): 
     stage: 4,
     stageTitle,
     stageDescription,
-    name: "Romanian deadlift — microdose",
+    name: "Romanian deadlift - microdose",
     prescription: `3 × 6 @ RPE 7 · hinge to mid-shin`,
     // The name and this line carry what the stage header used to. Thursday's
     // stage 4 opens with the conditioning task, so the header reads "Condition
-    // — maintain the aerobic base", and a hinge underneath it needs to explain
+    // - maintain the aerobic base", and a hinge underneath it needs to explain
     // itself rather than rely on a title the athlete cannot see.
     //
     // Deliberately not "first of two": a soreness report can remove either
     // lift, and a cue that counts them is wrong the moment one goes.
-    cue: "Microdose — three working sets, then stop. Push the hips back and keep the bar close; feel the hamstrings load rather than the lower back.",
+    cue: "Microdose - three working sets, then stop. Push the hips back and keep the bar close; feel the hamstrings load rather than the lower back.",
     setup: `Barbell from a rack at hip height. For reference, the report's strength window on the tested squat max is ${window.low}–${window.high} kg; the RDL is loaded by feel against that, not by the same percentage.`,
     execution:
       "Soft knees, long spine, bar tracking the legs. Drive the floor away to stand. Deliberate tempo down, purposeful up.",
@@ -385,7 +385,7 @@ function rdlTask(prefix: string, stageTitle: string, stageDescription: string): 
  * The soleus dose, for the tissue the testing flagged and the programme never
  * trained.
  *
- * The baseline report names the soleus as this athlete's limiter — carnosine
+ * The baseline report names the soleus as this athlete's limiter - carnosine
  * at Z −1.51, the lowest value on the scan, alongside a drop-jump ground
  * contact of 0.348 s against a sub-0.25 s target. The response to that so far
  * has been the daily ankle pogos, which are explicitly priming: `2 × 10 · low
@@ -395,8 +395,8 @@ function rdlTask(prefix: string, stageTitle: string, stageDescription: string): 
  * never loaded.
  *
  * Thursday is the right day for it precisely because it is the light one. A
- * seated raise is close to purely local work — no systemic cost, no neural
- * cost, nothing that shows up in Friday's legs — which is what belongs in a
+ * seated raise is close to purely local work - no systemic cost, no neural
+ * cost, nothing that shows up in Friday's legs - which is what belongs in a
  * microdose the day before a game block. Put it on Monday or Wednesday and it
  * is the ninth movement of a long session, which is the one that gets skipped.
  *
@@ -405,7 +405,7 @@ function rdlTask(prefix: string, stageTitle: string, stageDescription: string): 
  * standing raise trains the calf the report did not flag.
  *
  * The dose is conventional strength programming for a slow-twitch postural
- * muscle — moderate reps, slow eccentric, loaded stretch at the bottom —
+ * muscle - moderate reps, slow eccentric, loaded stretch at the bottom -
  * rather than anything lifted from a particular trial, and the note says so.
  */
 function soleusTask(prefix: string, stageTitle: string, stageDescription: string): SessionTask {
@@ -414,17 +414,17 @@ function soleusTask(prefix: string, stageTitle: string, stageDescription: string
     stage: 4,
     stageTitle,
     stageDescription,
-    name: "Seated calf raise — microdose",
+    name: "Seated calf raise - microdose",
     prescription: "3 × 12 @ RPE 7–8 · 3 s lowering · 1 s pause at the bottom",
-    cue: "Microdose — three sets, then stop. Knee bent is the whole point: it takes the gastrocnemius out of it and leaves the soleus, which is the one your testing flagged.",
+    cue: "Microdose - three sets, then stop. Knee bent is the whole point: it takes the gastrocnemius out of it and leaves the soleus, which is the one your testing flagged.",
     setup:
-      "Seated, knee bent to about 90°, ball of the foot on a plate or step so the heel can drop below it. Load across the thigh just above the knee — a dumbbell, a padded barbell, or the seated calf machine if the gym has one.",
+      "Seated, knee bent to about 90°, ball of the foot on a plate or step so the heel can drop below it. Load across the thigh just above the knee - a dumbbell, a padded barbell, or the seated calf machine if the gym has one.",
     execution:
       "Drive through the ball of the foot to full height and hold the top for a beat. Lower over three seconds until you feel the stretch, then pause a second at the bottom before the next rep. The bottom is where the work is; bouncing out of it is what makes this exercise useless.",
     rest: "90 seconds.",
     stop: "Stop for Achilles pain or for calf cramping that does not settle between sets. Calf soreness for a day or two is expected for the first fortnight and is not a reason to drop it.",
     evidence:
-      "From your own baseline report rather than from a trial: soleus carnosine at Z −1.51, the lowest value on the scan, with drop-jump ground contact at 0.348 s against a sub-0.25 s target. The daily pogos prime that tissue; nothing in the 52-week programme loaded it. The sets and reps are conventional strength programming for a slow-twitch postural muscle — moderate reps, slow eccentric, loaded stretch — not a dose taken from a particular study. Seated rather than standing is anatomy: gastrocnemius crosses the knee, so bending it leaves the soleus to work.",
+      "From your own baseline report rather than from a trial: soleus carnosine at Z −1.51, the lowest value on the scan, with drop-jump ground contact at 0.348 s against a sub-0.25 s target. The daily pogos prime that tissue; nothing in the 52-week programme loaded it. The sets and reps are conventional strength programming for a slow-twitch postural muscle - moderate reps, slow eccentric, loaded stretch - not a dose taken from a particular study. Seated rather than standing is anatomy: gastrocnemius crosses the knee, so bending it leaves the soleus to work.",
   };
 }
 
@@ -432,7 +432,7 @@ function soleusTask(prefix: string, stageTitle: string, stageDescription: string
  * The summer block's primary lift, which never said how many reps to do.
  *
  * On a GBL Wednesday the trap bar is prescribed `Wednesday full body 2–3 sets
- * @ RPE 6` — the week plan's whole-session summary, handed to one exercise as
+ * @ RPE 6` - the week plan's whole-session summary, handed to one exercise as
  * if it were a dose. It names sets and an effort and no rep count, on the only
  * lift of a two-game week.
  *
@@ -460,7 +460,7 @@ function withTrapBarDose(week: number | null) {
         task.cue,
         "Sets and reps come from the programme's own block table for this week; the effort cap is the programme's."
       ),
-      evidence: `The week plan prescribed this as "${task.prescription}" — the summary for the whole Wednesday session, with no rep count on it. Week ${week} of the block table is ${spec[0]} × ${spec[1]} at ${spec[2]}% relative intensity; the sets and reps are taken from there and the ${effort} cap kept, because in season this is a maintenance lift rather than a percentage-driven one.`,
+      evidence: `The week plan prescribed this as "${task.prescription}" - the summary for the whole Wednesday session, with no rep count on it. Week ${week} of the block table is ${spec[0]} × ${spec[1]} at ${spec[2]}% relative intensity; the sets and reps are taken from there and the ${effort} cap kept, because in season this is a maintenance lift rather than a percentage-driven one.`,
     };
   };
 }
@@ -476,9 +476,9 @@ function withTrapBarDose(week: number | null) {
  * week rather than less.
  *
  * So the sets and reps come down and the bar does not. That is the whole
- * distinction the rest of this week is built on — a taper cuts volume and
+ * distinction the rest of this week is built on - a taper cuts volume and
  * holds intensity, an unload cuts both (Bosquet 2007, Med Sci Sports Exerc
- * 39(8):1358–65; Mujika & Padilla 2003, 35(7):1182–7) — applied to the one
+ * 39(8):1358–65; Mujika & Padilla 2003, 35(7):1182–7) - applied to the one
  * exercise where the volume actually is. 65% of the training max is not a
  * stressful intensity to hold two days before a semi-final; five reps a set of
  * it, three times over, is a stressful volume.
@@ -508,7 +508,7 @@ function withTaperedHinge(tapering: boolean) {
       prescription: task.prescription.replace(LEADING_SETS_REPS, `${TAPER_SETS} × ${TAPER_REPS}`),
       cue: appendOnce(
         task.cue,
-        "Volume is cut for the game week; the bar is not. Every rep should move like the first one — if it does not, that set is finished."
+        "Volume is cut for the game week; the bar is not. Every rep should move like the first one - if it does not, that set is finished."
       ),
       evidence:
         `The block table writes this week as ${sets} × ${reps}, which is the transition block's rebuild dose for a season that has ended. ` +
@@ -522,8 +522,8 @@ function withTaperedHinge(tapering: boolean) {
 /**
  * The second reactive exposure of the week.
  *
- * Reactive strength is the limiter the testing named first — drop-jump RSI
- * 0.96, ground contact 0.348 s against a sub-0.25 s target — and it was trained
+ * Reactive strength is the limiter the testing named first - drop-jump RSI
+ * 0.96, ground contact 0.348 s against a sub-0.25 s target - and it was trained
  * once a week, on Monday. One exposure is a maintenance dose for the quality
  * the whole velocity problem is supposed to hinge on.
  *
@@ -540,7 +540,7 @@ function withTaperedHinge(tapering: boolean) {
  *
  * Hurdles stay deliberately low. The point is the floor contact, not the
  * clearance, and a hurdle high enough to force a tuck has turned the drill into
- * a jump-height contest — which is the exact error the report warns against.
+ * a jump-height contest - which is the exact error the report warns against.
  */
 function reactiveDoseTask(prefix: string, stageTitle: string, stageDescription: string): SessionTask {
   return {
@@ -548,18 +548,18 @@ function reactiveDoseTask(prefix: string, stageTitle: string, stageDescription: 
     stage: 4,
     stageTitle,
     stageDescription,
-    name: "Reactive microdose — pogo and low hurdle hops",
+    name: "Reactive microdose - pogo and low hurdle hops",
     prescription: "Pogo 3 × 10 · low hurdle hops 3 × 4 · full recovery between sets",
     cue: "Reactive work, aimed squarely at your slowest number. Short, stiff, fast off the floor. If a contact feels heavy, that set is finished.",
     setup:
-      "Firm, non-slip surface. Hurdles at ankle to mid-shin — 15–25 cm — and no higher. If you have no hurdles, a line of shoes or a rolled towel does the job; the height is not what makes this work.",
+      "Firm, non-slip surface. Hurdles at ankle to mid-shin - 15–25 cm - and no higher. If you have no hurdles, a line of shoes or a rolled towel does the job; the height is not what makes this work.",
     execution:
-      "Pogo: bounce from the ankles with the knees almost straight, minimum ground time, full 10 without a pause. Hurdle hops: two feet, over and immediately off again — land and leave, do not settle between hurdles. Rest fully between sets so every contact is a fast one.",
+      "Pogo: bounce from the ankles with the knees almost straight, minimum ground time, full 10 without a pause. Hurdle hops: two feet, over and immediately off again - land and leave, do not settle between hurdles. Rest fully between sets so every contact is a fast one.",
     rest: "90 seconds between sets. This is a quality exposure and it stops being one the moment it is rushed.",
     stop:
       "Stop for Achilles, calf, knee or heel pain, and stop the set when contacts lengthen. Fatigued reactive work trains the opposite of what it is for.",
     evidence:
-      "From the athlete's own testing rather than a trial: drop-jump RSI 0.96 (poor), ground contact 0.348 s against a sub-0.25 s target, and 354 ms to peak force on the squat jump — the slowest figures on the report. The programme trained that quality once a week; this is the second exposure. Dose and hurdle height follow the constraint profile's own early-option prescription (pogo 3 × 10, low hurdle hops 3 × 4), and the box and hurdle heights are kept deliberately low because contact time, not height, is the target.",
+      "From the athlete's own testing rather than a trial: drop-jump RSI 0.96 (poor), ground contact 0.348 s against a sub-0.25 s target, and 354 ms to peak force on the squat jump - the slowest figures on the report. The programme trained that quality once a week; this is the second exposure. Dose and hurdle height follow the constraint profile's own early-option prescription (pogo 3 × 10, low hurdle hops 3 × 4), and the box and hurdle heights are kept deliberately low because contact time, not height, is the target.",
   };
 }
 
@@ -575,7 +575,7 @@ function reactiveDoseTask(prefix: string, stageTitle: string, stageDescription: 
  * Wednesday already throws eight measured pulldowns with a radar on them, and
  * check-out has recorded a best velocity with a type since the app was written.
  * Nothing joined the two up, so the number was thrown, read aloud and lost
- * every week. This adds no throws — it asks for the one that already happened.
+ * every week. This adds no throws - it asks for the one that already happened.
  */
 function withMeasuredPulldown(task: SessionTask): SessionTask {
   if (!/pulldown/i.test(String(task.name))) return task;
@@ -587,7 +587,7 @@ function withMeasuredPulldown(task: SessionTask): SessionTask {
     ),
     stop: appendOnce(
       task.stop,
-      "Log the best reading even on a day the set is cut short — a low number taken honestly is still information."
+      "Log the best reading even on a day the set is cut short - a low number taken honestly is still information."
     ),
   };
 }
@@ -598,7 +598,7 @@ function withMeasuredPulldown(task: SessionTask): SessionTask {
  * Every force-plate number this programme is built on was taken once, in April.
  * The squat block, the depth jumps, the speed squat and the calf dose are all
  * aimed at qualities in that report, and nothing has ever asked whether any of
- * them moved — which makes the whole thing unfalsifiable.
+ * them moved - which makes the whole thing unfalsifiable.
  *
  * It runs in place of the depth jump rather than beside it. The battery
  * *contains* drop jumps; performing a training dose and then measuring the same
@@ -606,7 +606,7 @@ function withMeasuredPulldown(task: SessionTask): SessionTask {
  *
  * Monday because readiness is highest and the day is already a force day, and
  * every third week because that is the practical end of the two-to-four the
- * constraint profile asks for. Jumps come first while completely fresh — a
+ * constraint profile asks for. Jumps come first while completely fresh - a
  * squat jump after sprinting is a different test.
  */
 function retestTask(prefix: string, stageTitle: string, stageDescription: string, week: number): SessionTask {
@@ -615,12 +615,12 @@ function retestTask(prefix: string, stageTitle: string, stageDescription: string
     stage: 4,
     stageTitle,
     stageDescription,
-    name: "Retest battery — jumps, sprint, bar speed",
+    name: "Retest battery - jumps, sprint, bar speed",
     prescription:
       "SJ 3 · CMJ 3 · drop jump 3 · 10 m sprint 2 · bar velocity at 94 kg and 116 kg · med-ball scoop 3",
-    cue: "Testing first, then train as normal — this replaces the depth jumps rather than joining them. Full recovery between every effort; a tired rep measures your fatigue, not your ability. The two bar-speed sets at 94 and 116 kg are also your ramp into the squat below, so nothing is done twice. Enter the numbers on the Athlete page.",
+    cue: "Testing first, then train as normal - this replaces the depth jumps rather than joining them. Full recovery between every effort; a tired rep measures your fatigue, not your ability. The two bar-speed sets at 94 and 116 kg are also your ramp into the squat below, so nothing is done twice. Enter the numbers on the Athlete page.",
     setup:
-      "Force plate or jump mat, a 15–20 cm box, 10 m marked out, a velocity tracker on the bar and a 3 kg med ball. Same equipment, same surface, same order every time — a retest that changes its own conditions measures the conditions.",
+      "Force plate or jump mat, a 15–20 cm box, 10 m marked out, a velocity tracker on the bar and a 3 kg med ball. Same equipment, same surface, same order every time - a retest that changes its own conditions measures the conditions.",
     execution:
       "Squat jump: paused half-squat, no dip, hands on hips. Countermovement jump: one continuous movement. Drop jump: step off the box, do not jump off, and chase the contact time rather than the height. Sprint from a two-point start. Bar velocity: mean concentric on the best single rep at each load. Med-ball scoop: dominant side, mark the landing.",
     rest: "Two to three minutes between every measured effort. There is no such thing as rushing this usefully.",
@@ -643,7 +643,7 @@ function retestTask(prefix: string, stageTitle: string, stageDescription: string
  *
  * A loaded jump is not trying to get heavier. Peak power in one occurs at a
  * low external load and falls away either side of it, so adding weight past
- * that point does not make the exercise better — it makes it a different
+ * that point does not make the exercise better - it makes it a different
  * exercise, slower and more force-dominant, which is what the trap bar
  * deadlift beside it is already for. Double progression, which is the right
  * rule for that deadlift, would walk this straight out of the quality it
@@ -651,7 +651,7 @@ function retestTask(prefix: string, stageTitle: string, stageDescription: string
  *
  * What legitimately moves it is the athlete's force capacity. Thirty kilos is
  * 20% of their tested 145 kg squat, so writing it that way is not a change to
- * the dose today — it resolves to the same 30 kg — and is a change to what
+ * the dose today - it resolves to the same 30 kg - and is a change to what
  * happens after the next retest.
  *
  * ## What the number rests on
@@ -666,7 +666,7 @@ function retestTask(prefix: string, stageTitle: string, stageDescription: string
  * the reason the implement is a hex bar rather than a straight one.
  *
  * The athlete's measured 94 kg optimal power load is deliberately *not* used
- * here. That is L0/2 from a back-squat load-velocity profile — a non-ballistic
+ * here. That is L0/2 from a back-squat load-velocity profile - a non-ballistic
  * lift where the load is all external. In a jump the athlete's own 89 kg is
  * part of the system being accelerated, and the external load that maximises
  * power is far lower. Reading one number as the other would be a fivefold
@@ -697,7 +697,7 @@ function withJumpPowerLoad(task: SessionTask): SessionTask {
     ),
     setup: appendOnce(
       String(task.setup ?? ""),
-      `${kg} kg is ${percent}% of the tested ${max} kg squat — the programme's own 30 kg, written so it follows a retest instead of standing still.`
+      `${kg} kg is ${percent}% of the tested ${max} kg squat - the programme's own 30 kg, written so it follows a retest instead of standing still.`
     ),
     evidence: `The programme wrote this as a flat "${prescription}", unchanged in all fifty-two weeks, while every other loaded lift in it is a percentage of a tested number. ${percent}% is back-derived from that 30 kg against the tested ${max} kg max rather than taken from a trial. It is a load for power, not a load to progress: peak power in a loaded jump occurs low and falls away either side, so adding weight past it makes this the slower, more force-dominant lift the trap bar deadlift beside it already is. Reported optimal loads for the jump squat sit between bodyweight and roughly 30% of squat 1RM and disagree within that band, which is why Cormie, McGuigan & Newton (Sports Med 2011;41(1):17–38, 41(2):125–146) conclude it has to be individualised rather than looked up; Swinton et al. (J Strength Cond Res 2012;26(4):906–13) is why the implement is a hexagonal bar, which produced greater peak power, force and velocity than a straight barbell across the loads they tested. The measured 94 kg optimal power load is not used here: that is L0/2 from a back-squat profile, where the load is all external, and in a jump the athlete's own body mass is most of the system.`,
   };
@@ -707,8 +707,8 @@ function withJumpPowerLoad(task: SessionTask): SessionTask {
  * Bar-speed intent cueing on primary strength lifts.
  *
  * The report calls this out explicitly to address a 354 ms time to peak
- * force. It changes nothing about the load or the set count — only what the
- * athlete is trying to do with the bar — so it is applied as an annotation
+ * force. It changes nothing about the load or the set count - only what the
+ * athlete is trying to do with the bar - so it is applied as an annotation
  * rather than as a new prescription.
  */
 const BAR_SPEED_LIFTS = ["deadlift", "squat", "bench press", "push press"];
@@ -732,7 +732,7 @@ function withBarSpeedIntent(task: SessionTask): SessionTask {
     ...task,
     cue: appendOnce(
       task.cue,
-      "Move the bar with maximal intent on every concentric, even at heavy loads — testing flagged a slow 354 ms time to peak force."
+      "Move the bar with maximal intent on every concentric, even at heavy loads - testing flagged a slow 354 ms time to peak force."
     ),
     execution: appendOnce(
       task.execution,
@@ -751,8 +751,8 @@ function withBarSpeedIntent(task: SessionTask): SessionTask {
  * 88 minor-league pitchers (2025) found higher arm and trunk injury
  * prevalence (39.1% vs 23.8%) and roughly double the days lost among users.
  *
- * That evidence does not make sub-maximal constraint work indefensible —
- * which is how most of these throws are prescribed here — but it does mean
+ * That evidence does not make sub-maximal constraint work indefensible -
+ * which is how most of these throws are prescribed here - but it does mean
  * the athlete should see it rather than have it decided for them.
  */
 export const PLYO_EVIDENCE_NOTE =
@@ -778,7 +778,7 @@ function withPlyoEvidence(task: SessionTask): SessionTask {
 /**
  * State the reduced dose instead of describing how to compute it.
  *
- * The programme replaces a prescription with guidance when readiness drops —
+ * The programme replaces a prescription with guidance when readiness drops -
  * "Remove the final work set · use no more than 90% of the listed load".
  * That is arithmetic handed to a fatigued athlete mid-session. The numbers
  * come first now, with the rule that produced them kept underneath so the
@@ -787,8 +787,8 @@ function withPlyoEvidence(task: SessionTask): SessionTask {
 function withExplicitReducedDose(level: ReducedLevel | null) {
   return (task: SessionTask): SessionTask => {
     if (!level || !task.adapted) return task;
-    // A second pass would read its own output back as the "original" — the
-    // note it leaves behind is itself of the form the parser accepts — and
+    // A second pass would read its own output back as the "original" - the
+    // note it leaves behind is itself of the form the parser accepts - and
     // reduce an already-reduced dose again.
     if (typeof task.adaptationNote === "string" && task.adaptationNote.includes("· Reduced to ")) {
       return task;
@@ -815,7 +815,7 @@ function withExplicitReducedDose(level: ReducedLevel | null) {
 /**
  * The 2 kg plyo ball, removed at the athlete's request.
  *
- * It appeared once — Monday's reverse throw, 1 × 5 at 50% — as low-intent
+ * It appeared once - Monday's reverse throw, 1 × 5 at 50% - as low-intent
  * patterning work. It goes for two reasons. It is heavier than any implement
  * used in the injury and velocity trials this programme cites (Reinold's RCT
  * topped out at 32 oz / 907 g; the 2025 professional cohort reported 4–9 oz),
@@ -838,7 +838,7 @@ function isRemovedImplement(task: SessionTask): boolean {
  * The trap bar deadlift comes off Monday.
  *
  * Once the tested back squat is in at 77–87%, Monday carries two heavy
- * bilateral primaries back to back — roughly twenty heavy squat reps and
+ * bilateral primaries back to back - roughly twenty heavy squat reps and
  * twelve heavy pulls of axial load, on a day that also throws 45–60 balls.
  * Neither lift progresses cleanly when they compete for the same recovery,
  * and the trap bar's 6 × 2 only does its job if the bar moves fast, which it
@@ -863,20 +863,20 @@ function isDisplacedByBackSquat(task: SessionTask, day: number | null): boolean 
  * Everything the testing called for was landing on Monday, which already
  * carried seven lifts, while Tuesday ran speed work only and Thursday carried
  * no loading at all. That is not a programme, it is one hard day and three
- * light ones — and it is the opposite of what the MFT profile suggested, which
+ * light ones - and it is the opposite of what the MFT profile suggested, which
  * was that this athlete tolerates frequency.
  *
  * So the work is spread:
  *
  *  Monday    reactive + heavy strength. The primary force day.
- *  Wednesday bar-speed work. Wednesday is already the power day — med-ball,
- *            jumps, push press — so the speed squat belongs with them, not
+ *  Wednesday bar-speed work. Wednesday is already the power day - med-ball,
+ *            jumps, push press - so the speed squat belongs with them, not
  *            stacked behind Monday's heavy squat.
  *  Thursday  the posterior-chain hinge, as a microdose. Thursday had no
  *            loading whatsoever, and an RDL is cheap systemically: it fits
  *            beside recovery work without competing with it.
  *
- * Friday is left alone — it is the pre-game microdose and already exists.
+ * Friday is left alone - it is the pre-game microdose and already exists.
  * Saturday is competition, Sunday is rest.
  */
 const DAY_MONDAY = 0;
@@ -888,7 +888,7 @@ const PRIMER_STAGE = "Whole-Body Primer";
 // --- Supersets --------------------------------------------------------------
 
 /**
- * Pairs that should be run together, and — just as important — what must not.
+ * Pairs that should be run together, and - just as important - what must not.
  *
  * Antagonist and non-competing pairs cost nothing in quality and buy back a
  * lot of session time, which is the difference between an eleven-item Monday
@@ -951,7 +951,7 @@ function withSupersets(day: number | null) {
       supersetOf: partners,
       rest:
         position < partners
-          ? "No rest — go straight into the next movement in this superset."
+          ? "No rest - go straight into the next movement in this superset."
           : appendOnce(task.rest, `Rest here, then return to ${rule.group}1.`),
     };
   };
@@ -970,7 +970,7 @@ function withSupersets(day: number | null) {
  * sub-0.25 s target, and 354 ms to peak force. The soleus is the ground-
  * contact muscle and it is the weakest tissue on the report.
  *
- * That quality was trained twice a week — Friday's pogos and Monday's depth
+ * That quality was trained twice a week - Friday's pogos and Monday's depth
  * jumps. This is the classic case for a microdose: about a minute, negligible
  * fatigue cost, and it tolerates daily frequency, so it runs every day the
  * session has a warm-up. Sunday has no warm-up stage and correctly gets none.
@@ -1015,7 +1015,7 @@ function forearmPrepTask(prefix: string): SessionTask {
     setup: "No load, or the lightest implement available.",
     execution: "Move through comfortable range at an easy tempo, both directions.",
     rest: "Straight into the throwing prep.",
-    stop: "Stop for medial elbow or wrist pain — that is a reason to review the day, not to warm up harder.",
+    stop: "Stop for medial elbow or wrist pain - that is a reason to review the day, not to warm up harder.",
   };
 }
 
@@ -1023,7 +1023,7 @@ function forearmPrepTask(prefix: string): SessionTask {
  * Hip preparation, which the warm-up barely touched.
  *
  * The mobility flow already has the ankle rock, the 90/90 switch, the adductor
- * rock, the World's Greatest Stretch and the open book — a good general flow,
+ * rock, the World's Greatest Stretch and the open book - a good general flow,
  * and it stays exactly as it is. What it does not have is anything that asks
  * the hip to *produce* rotation rather than be moved through it, anything for
  * hip extension range, and anything for the lateral hip that holds the pelvis
@@ -1031,7 +1031,7 @@ function forearmPrepTask(prefix: string): SessionTask {
  *
  * That matters more for a pitcher than for most athletes. In nineteen
  * professional pitchers measured with fluid goniometry against 3-D motion
- * capture, the total rotation arc of the *non-dominant* hip — the lead leg —
+ * capture, the total rotation arc of the *non-dominant* hip - the lead leg -
  * correlated with ball velocity at r = 0.50, and the pitchers had significantly
  * less passive range on that side than on the dominant one across every
  * direction measured (Robb 2010). Nineteen subjects and a correlation is not a
@@ -1043,7 +1043,7 @@ function forearmPrepTask(prefix: string): SessionTask {
  *
  * The side-lying clamshell is there for the deep rotators. The block worked
  * the hip flexor, internal rotation and the lateral hip, and nothing asked the
- * external rotators — the piriformis among them — to do anything before the
+ * external rotators - the piriformis among them - to do anything before the
  * drive leg rotated the pelvis at full speed. It goes before the band walk so
  * the rotators are awake before the lateral hip is asked to work around them.
  * Deliberately a short hold rather than a piriformis stretch: a stretched,
@@ -1056,18 +1056,18 @@ function hipPrepTask(prefix: string): SessionTask {
     stage: 1,
     stageTitle: "Prepare",
     stageDescription: "Raise temperature before mobility or throwing.",
-    name: "Hip prep — rotation and glutes",
+    name: "Hip prep - rotation and glutes",
     prescription:
       "Half-kneeling hip flexor with posterior tilt 2 × 20 s/side · 90/90 internal rotation lift-off 6/side · side-lying clamshell 10/side, 3 s hold at the top · lateral band walk 10 steps each way · single-leg glute bridge 8/side",
     cue: "Own the range rather than sink into it. Every rep is your own muscle moving the joint, not gravity. The lift-off uses the same 90/90 position as the switch in the flow above and does the opposite job: that one moves you through the range, this one makes you hold the end of it under your own power.",
     setup:
       "A mat or soft surface for the kneeling and bridging work, and a light band above the knees for the walks.",
     execution:
-      "Half-kneeling hip flexor: back knee down, tuck the tailbone under until you feel the front of the hip, then stay tall — do not arch to get deeper. 90/90 lift-off: sit in the 90/90 position and lift the back shin off the floor without leaning, hold a second, lower under control. Side-lying clamshell: band above the knees, hips stacked, feet together; open the top knee without rolling the pelvis back, hold three seconds, lower slowly — the deep rotators should be doing it, so it is a small range. Lateral band walk: knees out, feet quiet, small steps. Single-leg glute bridge: drive through the heel, keep the pelvis level, no arch through the lower back.",
-    rest: "Straight through — this is a warm-up, not a set.",
+      "Half-kneeling hip flexor: back knee down, tuck the tailbone under until you feel the front of the hip, then stay tall - do not arch to get deeper. 90/90 lift-off: sit in the 90/90 position and lift the back shin off the floor without leaning, hold a second, lower under control. Side-lying clamshell: band above the knees, hips stacked, feet together; open the top knee without rolling the pelvis back, hold three seconds, lower slowly - the deep rotators should be doing it, so it is a small range. Lateral band walk: knees out, feet quiet, small steps. Single-leg glute bridge: drive through the heel, keep the pelvis level, no arch through the lower back.",
+    rest: "Straight through - this is a warm-up, not a set.",
     stop: "Stop for groin or front-of-hip pinching. Pinching at end of range means less range today, not more effort. Deep buttock pain, or anything that runs down the leg, means stop and log it on the soreness card rather than stretching into it.",
     evidence:
-      "Robb 2010, Am J Sports Med — 19 professional pitchers, fluid goniometry with 3-D motion analysis. Total rotation arc of the non-dominant (lead) hip correlated with ball velocity, r = 0.50; the non-dominant hip had less passive range than the dominant one in every direction measured. Correlational, and small.",
+      "Robb 2010, Am J Sports Med - 19 professional pitchers, fluid goniometry with 3-D motion analysis. Total rotation arc of the non-dominant (lead) hip correlated with ball velocity, r = 0.50; the non-dominant hip had less passive range than the dominant one in every direction measured. Correlational, and small.",
   };
 }
 
@@ -1081,7 +1081,7 @@ function hipPrepTask(prefix: string): SessionTask {
  * change that capacity. Strengthening it does.
  *
  * Two movements. The hip airplane is single-leg pelvic rotation under control
- * — the drive leg's job in the delivery, slowed down. The side-lying hip
+ * - the drive leg's job in the delivery, slowed down. The side-lying hip
  * abduction in slight extension is the strengthening dose for the lateral and
  * posterior hip that hold the pelvis while it turns. An extra set on the
  * drive leg because that is the side that keeps breaking down.
@@ -1114,20 +1114,20 @@ function hipRotationStrengthTasks(
     {
       ...shared,
       id: `${prefix}-hip-rotation-strength`,
-      name: "Hip airplane — drive leg",
+      name: "Hip airplane - drive leg",
       prescription: "3 × 5/side, slow · one extra set on the drive leg",
       cue: "Slow and owned. The pelvis turns over a still standing leg; if the knee caves or the foot rolls, the range is too big.",
       setup: "A wall or rack within reach.",
       execution:
         "Stand on one leg, hinge until the trunk is near horizontal, then rotate the pelvis open toward the ceiling and back closed toward the floor, the standing knee soft and pointing forward. Touch the wall when you need to.",
-      rest: "No rest — go straight into the side-lying abduction.",
-      stop: "Stop for deep buttock pain above 3/10 or anything that runs down the leg — log it on the soreness card.",
+      rest: "No rest - go straight into the side-lying abduction.",
+      stop: "Stop for deep buttock pain above 3/10 or anything that runs down the leg - log it on the soreness card.",
       superset: `${group}1`,
     },
     {
       ...shared,
       id: `${prefix}-hip-abduction-strength`,
-      name: "Side-lying hip abduction — drive leg",
+      name: "Side-lying hip abduction - drive leg",
       prescription: "3 × 12/side · one extra set on the drive leg",
       cue: "Top leg straight and slightly behind the body, toes forward. The side of the hip should do it, not the lower back.",
       setup: "A mat; ankle weight or band optional once 12 is easy.",
@@ -1169,8 +1169,8 @@ function hamstringPrepTask(prefix: string): SessionTask {
     cue: "Feel it in the back of the thigh, not the lower back. Contract, don't stretch.",
     setup: "A mat. A wall or post within reach for the single-leg reach.",
     execution:
-      "Bridge heel digs: on your back, knees bent to about 90°, lift into a bridge and drive your heels down and back toward your hips as if dragging the floor — hold five seconds. Bridge walk-out: from the top of a bridge, walk the heels out in small steps until the knees are nearly straight, then walk them back in without dropping the hips. Single-leg RDL reach: stand on one leg, knee soft, hinge forward reaching toward the floor until you feel a mild pull, then drive the hip forward to stand.",
-    rest: "Straight through — this is a warm-up, not a set.",
+      "Bridge heel digs: on your back, knees bent to about 90°, lift into a bridge and drive your heels down and back toward your hips as if dragging the floor - hold five seconds. Bridge walk-out: from the top of a bridge, walk the heels out in small steps until the knees are nearly straight, then walk them back in without dropping the hips. Single-leg RDL reach: stand on one leg, knee soft, hinge forward reaching toward the floor until you feel a mild pull, then drive the hip forward to stand.",
+    rest: "Straight through - this is a warm-up, not a set.",
     stop: "Stop for a cramp-like grab, or any pain or tingling that runs down the leg. On the reach, stop short of a pull behind the knee or into the calf; that is the nerve, not the hamstring.",
   };
 }
@@ -1180,8 +1180,8 @@ function hamstringPrepTask(prefix: string): SessionTask {
  * behind it.
  *
  * The warm-up prepared the shoulder, the forearm and the ankle, and left the
- * segment between them out. The gap that matters is not spinal mobility — the
- * open book covers thoracic rotation — but lumbopelvic *control*: whether the
+ * segment between them out. The gap that matters is not spinal mobility - the
+ * open book covers thoracic rotation - but lumbopelvic *control*: whether the
  * pelvis holds its position when the athlete stands on one leg, which is the
  * position a pitcher is in for the whole delivery.
  *
@@ -1194,7 +1194,7 @@ function hamstringPrepTask(prefix: string): SessionTask {
  * measured on a test that costs nothing to rehearse.
  *
  * So the last drill here is deliberately the test itself, held rather than
- * scored. Bird dog and the side plank are left out on purpose — they belong to
+ * scored. Bird dog and the side plank are left out on purpose - they belong to
  * the soreness protocol's lower-back prescription, and putting them in both
  * places would give a sore back the same exercise twice on the same day.
  */
@@ -1210,11 +1210,11 @@ function trunkPrepTask(prefix: string): SessionTask {
     cue: "The last one is the one that counts. Pelvis dead level, and nothing above the hips moves.",
     setup: "A mat for the first two. For the hold, stand tall with something at hand's reach to touch if you wobble.",
     execution:
-      "Cat-camel: move one segment at a time, slowly, through the whole spine — this is motion, not a stretch. Dead bug: press the lower back into the floor and keep it there as the opposite arm and leg reach away; the moment the back lifts, you have found your range. Single-leg pelvic-control hold: come to the single-leg stance you pitch from and hold with the pelvis level — no hip drop, no tilt, no arch. Watch the front of your hips in a mirror or a window if you have one.",
+      "Cat-camel: move one segment at a time, slowly, through the whole spine - this is motion, not a stretch. Dead bug: press the lower back into the floor and keep it there as the opposite arm and leg reach away; the moment the back lifts, you have found your range. Single-leg pelvic-control hold: come to the single-leg stance you pitch from and hold with the pelvis level - no hip drop, no tilt, no arch. Watch the front of your hips in a mirror or a window if you have one.",
     rest: "No rest needed. Move on when the last hold is clean.",
     stop: "Stop for lower-back pain rather than working through it, and report it on the daily plan so tomorrow is adjusted.",
     evidence:
-      "Chaudhari 2014, Am J Sports Med 42(11):2734–2740 — prospective, 347 professional pitchers across five organisations. Pelvic deviation ≥8° on a single-leg raise carried a 3.0× risk of missing 30+ days versus <4°; among those injured, that group averaged 98.6 days missed against 43.8 in the best-controlled group.",
+      "Chaudhari 2014, Am J Sports Med 42(11):2734–2740 - prospective, 347 professional pitchers across five organisations. Pelvic deviation ≥8° on a single-leg raise carried a 3.0× risk of missing 30+ days versus <4°; among those injured, that group averaged 98.6 days missed against 43.8 in the best-controlled group.",
   };
 }
 
@@ -1223,12 +1223,12 @@ function trunkPrepTask(prefix: string): SessionTask {
  *
  * Three days in the programme contain sprinting and they are not equivalent:
  *
- *   - **Wednesday** — "Sprint mechanics": A-march, ankling and three
+ *   - **Wednesday** - "Sprint mechanics": A-march, ankling and three
  *     progressive starts. That *is* a sprint warm-up, and a good one.
- *   - **Friday/Saturday/Sunday** — "Sprint build-ups": 2 × 10 m, 2 × 20 m,
+ *   - **Friday/Saturday/Sunday** - "Sprint build-ups": 2 × 10 m, 2 × 20 m,
  *     final rep about 90%. A ramp, on a day the athlete may pitch. Adding
  *     running in front of a game buys nothing and costs legs.
- *   - **Tuesday** — "Acceleration quality": 2 × 10 m build-up straight into
+ *   - **Tuesday** - "Acceleration quality": 2 × 10 m build-up straight into
  *     3 × 20 m at 85–90%. The fastest running of the week, off a warm-up with
  *     no sprint drills in it at all.
  *
@@ -1247,17 +1247,17 @@ function sprintPrepTask(prefix: string): SessionTask {
     stage: 1,
     stageTitle: "Prepare",
     stageDescription: "Raise temperature before mobility or throwing.",
-    name: "Sprint drills — before the build-ups",
+    name: "Sprint drills - before the build-ups",
     prescription:
       "Leg swings forward–back 10/side · leg swings lateral 10/side · A-skip 2 × 15 m · ankle dribble 2 × 15 m",
-    cue: "Rehearse the shapes slowly so the build-ups below are the first fast running, not the first running. The 10 m build-ups in the speed set are still your ramp — this does not replace them.",
+    cue: "Rehearse the shapes slowly so the build-ups below are the first fast running, not the first running. The 10 m build-ups in the speed set are still your ramp - this does not replace them.",
     setup: "About 20 m of flat, even ground. Trainers, not spikes.",
     execution:
-      "Leg swings: hold something solid and swing through a range you control — no ballistic end-range. A-skip: tall, knee up, foot down underneath the hip, quick off the ground. Ankle dribble: knees almost straight, feet cycling low and fast underneath you — this is the one that teaches the foot to land under the hip rather than out in front, which is where a hamstring gets caught at speed.",
+      "Leg swings: hold something solid and swing through a range you control - no ballistic end-range. A-skip: tall, knee up, foot down underneath the hip, quick off the ground. Ankle dribble: knees almost straight, feet cycling low and fast underneath you - this is the one that teaches the foot to land under the hip rather than out in front, which is where a hamstring gets caught at speed.",
     rest: "Walk back between reps. None of this should raise your breathing much.",
     stop: "Any hamstring twinge ends the sprinting for the day, and report it on the plan. That is a warning, not a niggle to run off.",
     evidence:
-      "van Dyk 2019, BJSM 53:1362–1370 — meta-analysis, 15 studies, 8,459 athletes: injury-prevention programmes including the Nordic hamstring exercise roughly halved hamstring injury rates (RR 0.49, 95% CI 0.32–0.74). That is the evidence for the Nordic already in Monday's session, not for these drills. Warm-up drills rehearse the pattern and raise tissue temperature; the evidence that drills alone prevent anything is thin, and the Nordic finding itself has been challenged on methodological grounds (Impellizzeri 2021).",
+      "van Dyk 2019, BJSM 53:1362–1370 - meta-analysis, 15 studies, 8,459 athletes: injury-prevention programmes including the Nordic hamstring exercise roughly halved hamstring injury rates (RR 0.49, 95% CI 0.32–0.74). That is the evidence for the Nordic already in Monday's session, not for these drills. Warm-up drills rehearse the pattern and raise tissue temperature; the evidence that drills alone prevent anything is thin, and the Nordic finding itself has been challenged on methodological grounds (Impellizzeri 2021).",
   };
 }
 
@@ -1276,7 +1276,7 @@ function needsSprintDrills(tasks: SessionTask[]): boolean {
  * Three sessions were captured from the athlete's Tread Athletics programme,
  * and the dates on them are the placement: 29 January was a Wednesday, 13
  * February a Thursday, 17 January a Friday. They are not interchangeable
- * sessions to rotate through — each one belongs to a kind of day.
+ * sessions to rotate through - each one belongs to a kind of day.
  *
  *   Wednesday   scapular, serratus and grip   the high-intent throwing day
  *   Thursday    recovery and mobility          "a low workload throwing day",
@@ -1301,12 +1301,12 @@ function withTreadArmCare(day: number | null, sessionTasks: readonly SessionTask
     const minutes = session.minutes ? `, about ${session.minutes} min` : "";
     return {
       ...task,
-      name: `Arm care — ${session.title}`,
+      name: `Arm care - ${session.title}`,
       prescription: `${movementCount(session)} movements${minutes}. ${describeSession(session)}`,
       cue: appendOnce(
         task.cue,
         session.id === "tread-mobility"
-          ? "Your own programme. The coach's note: a low workload throwing day, before or after throwing — your preference."
+          ? "Your own programme. The coach's note: a low workload throwing day, before or after throwing - your preference."
           : "Your own programme, on the day it was written for. Doses are the coach's."
       ),
     };
@@ -1362,7 +1362,7 @@ export function applyBaselineProgramming(
     // first and the drills belong last instead.
     // Thursday's pogos are promoted to a real dose in the training block, so
     // the priming set comes out of the warm-up rather than sitting in front of
-    // it. Every other day keeps the primer — and so does a Thursday that has
+    // it. Every other day keeps the primer - and so does a Thursday that has
     // become the day before a game, because there the reactive dose is not
     // added either and dropping this would leave the day with no ankle priming
     // at all. See `primerToday` below.
@@ -1381,7 +1381,7 @@ export function applyBaselineProgramming(
     //
     // The two regional blocks go in beside the general mobility flow, *not* at
     // the end of the stage. Appended, they landed between "Scapular and cuff
-    // activation" and the throwing — putting six minutes of hip and trunk work
+    // activation" and the throwing - putting six minutes of hip and trunk work
     // between the shoulder being primed and the first ball leaving the hand,
     // and displacing the most throwing-specific piece of the warm-up into the
     // middle of it.
@@ -1401,10 +1401,10 @@ export function applyBaselineProgramming(
   const gymIndex = tasks.findIndex((task) => GYM_STAGE_TITLES.includes(task.stageTitle));
 
   // Thursday carries no gym stage at all, which is exactly why it was chosen
-  // for the microdose — but it means there is no stage to insert into.
+  // for the microdose - but it means there is no stage to insert into.
   //
   // The stage is synthesised as *values*, not as a task. It used to be a real
-  // task called "Microdose block", prescribed "One movement, done well" —
+  // task called "Microdose block", prescribed "One movement, done well" -
   // scaffolding that existed only to carry the stage title and the id prefix,
   // and that reached the athlete as a tickable row naming no movement, no sets
   // and no reps. There was never a second thing to do: the hinge below is the
@@ -1419,7 +1419,7 @@ export function applyBaselineProgramming(
    *
    * Every task builder in this file hardcoded `stage: 4`, and on Monday and
    * Wednesday the gym is stage 4, so it was right by coincidence. The summer
-   * block's gym is stage 3 — so the depth jump added there arrived carrying a
+   * block's gym is stage 3 - so the depth jump added there arrived carrying a
    * stage number nothing else on the day had, and the plan rendered it as a
    * whole extra stage of its own, one item long, sitting below the session it
    * belonged to.
@@ -1432,7 +1432,7 @@ export function applyBaselineProgramming(
 
   const stageTitle = synthesised ? "Whole-Body Force" : tasks[gymIndex].stageTitle;
   const stageDescription = synthesised
-    ? "Microdose — one hinge, kept cheap so it does not compete with recovery."
+    ? "Microdose - one hinge, kept cheap so it does not compete with recovery."
     : tasks[gymIndex].stageDescription;
   const prefix = String((synthesised ? tasks[0]?.id : tasks[gymIndex].id) ?? "day")
     .split("-")
@@ -1444,9 +1444,9 @@ export function applyBaselineProgramming(
   // Placement is not cosmetic here. Reactive and velocity work has to happen
   // while the athlete is fresh: a depth jump after a heavy deadlift trains a
   // slow contact, which is the exact quality the testing flagged as the
-  // limiter. So these go early — right behind the primer, ahead of the heavy
-  // strength work — and only the hinge goes at the end with the accessories.
-  // A null day means "wherever this session is" — used by tests and by any
+  // limiter. So these go early - right behind the primer, ahead of the heavy
+  // strength work - and only the hinge goes at the end with the accessories.
+  // A null day means "wherever this session is" - used by tests and by any
   // caller that has not said. It gets everything, as before.
   const onMonday = day === null || day === DAY_MONDAY;
   const onWednesday = day === null || day === DAY_WEDNESDAY;
@@ -1456,16 +1456,16 @@ export function applyBaselineProgramming(
    *
    * Four exist, and they are a different session from an in-season Wednesday:
    * the rebuild block is written for an athlete whose season has ended. It
-   * drops every piece of speed-strength work — the speed squat, the trap bar
-   * jump, the push press — and replaces them with moderate-rep strength, which
+   * drops every piece of speed-strength work - the speed squat, the trap bar
+   * jump, the push press - and replaces them with moderate-rep strength, which
    * is right for rebuilding and wrong for a week with a final in it.
    *
    * Measured against the last in-season week, that leaves the finals week down
    * 34% on working sets while its *tonnage* is up 7%: the cut falls entirely on
    * the lowest-volume, highest-velocity work in the week (the speed squat is
    * twelve total reps) and not at all on the accumulation work. A taper is the
-   * other way round — cut volume, hold intensity (Bosquet 2007; Mujika &
-   * Padilla 2003) — so on a week that actually holds a game this flag does
+   * other way round - cut volume, hold intensity (Bosquet 2007; Mujika &
+   * Padilla 2003) - so on a week that actually holds a game this flag does
    * both halves of that: the velocity work goes back in (`wantsVelocityWork`
    * and the trap bar jump, below), and the accumulation volume comes off the
    * hinge at the same load (`withTaperedHinge`, in the pipeline above).
@@ -1481,7 +1481,7 @@ export function applyBaselineProgramming(
    * is what belongs in a microdose the day before a game block". That is an
    * argument about the day's position, not about its name. On a finals weekend
    * the game moves to Friday, `buildSession` puts the programme's pre-game
-   * primer on Thursday, and the position the argument depends on is gone —
+   * primer on Thursday, and the position the argument depends on is gone -
    * this is now the day before the game itself.
    *
    * What would otherwise land there is a hinge at RPE 7, a calf raise at RPE
@@ -1498,14 +1498,14 @@ export function applyBaselineProgramming(
    * The GBL blocks carry one gym session between two games, and the fix for the
    * summer weeks is a swap, not a pile-on: the broad jump comes out and the
    * depth jump the report asked for goes in, at two sets rather than three.
-   * The speed squat and the back squat are deliberately held back — with the
+   * The speed squat and the back squat are deliberately held back - with the
    * trap bar and the split squat already there, adding them would put four
    * lower-body lifts forty-eight hours before a game, which is precisely the
    * stacking that took the trap bar off Monday in the first place.
    */
   // Deliberately the *planned* block, with no fixture override. This decides
   // which lifts a week's single gym day can carry, which is a fact about the
-  // shape of the summer block rather than about intensity — a winter finals
+  // shape of the summer block rather than about intensity - a winter finals
   // week resolving to "two_game" for intent reasons has a full winter gym week
   // underneath it and must not be handed the summer week's exercise budget.
   const twoGameWeek =
@@ -1516,8 +1516,8 @@ export function applyBaselineProgramming(
   /**
    * Reactive work goes wherever the week's lift is, not only on Monday.
    *
-   * Gating it on the weekday meant the summer block — whose only gym day is a
-   * Wednesday — never got the drill for the quality the report called the
+   * Gating it on the weekday meant the summer block - whose only gym day is a
+   * Wednesday - never got the drill for the quality the report called the
    * primary limiter, while keeping the broad jump that trains the wrong one.
    * One depth jump per session, and never a second if the session already has
    * one.
@@ -1562,8 +1562,8 @@ export function applyBaselineProgramming(
 
   // The hinge, then the calf. Both are microdoses and neither competes with
   // the other: one is a posterior-chain lift, the other is local ankle work.
-  // The hip rotation work goes on every real gym day — Monday and Wednesday in
-  // winter, the single Wednesday in summer — and never on Thursday's
+  // The hip rotation work goes on every real gym day - Monday and Wednesday in
+  // winter, the single Wednesday in summer - and never on Thursday's
   // synthesised microdose, which exists to stay cheap.
   const late = [
     ...(onThursday
@@ -1616,7 +1616,7 @@ export function applyBaselineProgramming(
   // than displacing them.
   // Whatever the session already opens the gym with. On Monday that is the
   // named primer; on a summer Wednesday it is the med-ball throw, and without
-  // it there the depth jump landed as the very first thing in the session —
+  // it there the depth jump landed as the very first thing in the session -
   // stepping off a box before anything had thrown or moved.
   const anchor = tasks.findIndex(
     (task) =>
@@ -1643,7 +1643,7 @@ export function applyBaselineProgramming(
  * would have been silent.
  */
 /**
- * What the week's own plan calls this week — "Force peak", "Deload and assess".
+ * What the week's own plan calls this week - "Force peak", "Deload and assess".
  *
  * Only the deload/taper/review wording is read from it, and only to change how
  * the squat is *described*: the numbers come from the block table either way,
@@ -1672,7 +1672,7 @@ function withVelocityPolicy(session: Session, tasks: SessionTask[], level: Reduc
   );
   // After the policy, not before it. On a develop week the policy replaces the
   // pulldown task's cue outright, so an instruction added ahead of it is
-  // discarded on the first pass and re-added on the second — which is a
+  // discarded on the first pass and re-added on the second - which is a
   // function that does not agree with itself.
   return { ...policed, tasks: policed.tasks.map(withMeasuredPulldown) };
 }

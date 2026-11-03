@@ -236,10 +236,10 @@ export function ProfileForm({
                   <div>
                     <strong>{lookup.league ? `${team} · ${lookup.league}` : team}</strong>
                     <small>
-                      {lookup.colours ? "Colours found. " : "No colours found — pick them below. "}
+                      {lookup.colours ? "Colours found. " : "No colours found - pick them below. "}
                       {lookup.fixtures.length
                         ? `${lookup.fixtures.length} game${lookup.fixtures.length === 1 ? "" : "s"} found on the draw.`
-                        : "No draw found — your week follows the game days you pick below."}
+                        : "No draw found - your week follows the game days you pick below."}
                     </small>
                     {lookup.sourceUrl && (
                       <a href={lookup.sourceUrl} target="_blank" rel="noreferrer">
@@ -381,7 +381,7 @@ export function ProfileSetup({
 }) {
   return (
     <Card className="profile-setup" aria-label="Set up your profile">
-      <CardHead title="Welcome — a few questions first" detail="This sets up your team, your colours and what the app tracks for you." />
+      <CardHead title="Welcome - a few questions first" detail="This sets up your team, your colours and what the app tracks for you." />
       <ProfileForm profile={profile} submitLabel="Start" onSave={onSave} onLookup={onLookup} />
     </Card>
   );

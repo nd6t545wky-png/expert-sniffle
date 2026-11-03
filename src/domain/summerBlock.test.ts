@@ -64,7 +64,7 @@ describe("the movement the report asked to replace", () => {
     for (const task of everyTask()) {
       expect(
         String(task.prescription).toLowerCase().startsWith(String(task.name).toLowerCase()),
-        `${task.id}: "${task.name}" — "${task.prescription}"`
+        `${task.id}: "${task.name}" - "${task.prescription}"`
       ).toBe(false);
     }
   });
@@ -119,7 +119,7 @@ describe("every gym stage in the year gets looked at", () => {
  * The stage a task claims and the stage it is placed in have to agree.
  *
  * The plan groups by the stage *number*, so a task spliced into stage 3 while
- * carrying `stage: 4` does not join that stage — it renders as an extra stage
+ * carrying `stage: 4` does not join that stage - it renders as an extra stage
  * of its own, one item long, below the session it belongs to. Every builder in
  * the overlay hardcoded 4, which was right on Monday and Wednesday by
  * coincidence and wrong on the summer block, whose gym is stage 3.
@@ -187,7 +187,7 @@ describe("a week with two games in it", () => {
       );
       expect(jump?.prescription, `week ${week}`).toMatch(/^2 × 3/);
     }
-    // A winter Monday keeps the full dose. Week 8 rather than 7 — week 7 is a
+    // A winter Monday keeps the full dose. Week 8 rather than 7 - week 7 is a
     // retest week, where the battery stands in for the depth jump.
     const winter = tasksFor(8, 0).find((task) => /depth jump/i.test(task.name));
     expect(winter?.prescription).toMatch(/^3 × 3/);
@@ -217,7 +217,7 @@ describe("a week with two games in it", () => {
 
 describe("the summer block's primary lift", () => {
   it("says how many reps to do", () => {
-    // It was prescribed "Wednesday full body 2–3 sets @ RPE 6" — the summary
+    // It was prescribed "Wednesday full body 2–3 sets @ RPE 6" - the summary
     // for the whole session, handed to one exercise, with no rep count on it.
     for (const week of SUMMER) {
       const trap = DAYS.flatMap((day) => tasksFor(week, day)).find(

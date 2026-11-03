@@ -43,7 +43,7 @@ describe("Integrations", () => {
   it("requires cloud autosave before connecting anything", () => {
     render(<Integrations api={apiWith({})} hasSyncKey={false} />);
     // The wearable cards stay on the page and say why they are unavailable,
-    // and their actions are genuinely unreachable — not merely explained.
+    // and their actions are genuinely unreachable - not merely explained.
     expect(screen.getByText(/Turn this on before connecting/)).toBeDefined();
     expect(screen.getAllByText("Cloud autosave required")).toHaveLength(2);
     expect(screen.getByRole("button", { name: /Connect Oura/ }).hasAttribute("disabled")).toBe(true);
@@ -254,7 +254,7 @@ describe("Nutrition", () => {
     fireEvent.change(screen.getByLabelText("Meal description"), { target: { value: "chicken and rice" } });
     fireEvent.click(screen.getByRole("button", { name: /Estimate from description/ }));
 
-    await waitFor(() => expect(screen.getByText(/Chicken and rice — 650 kcal/)).toBeDefined());
+    await waitFor(() => expect(screen.getByText(/Chicken and rice - 650 kcal/)).toBeDefined());
     expect(screen.getByText(/editable estimate/)).toBeDefined();
     expect(screen.getByText(/Portion assumed/)).toBeDefined();
     // Nothing logged until the athlete accepts.
@@ -359,7 +359,7 @@ describe("Account", () => {
   });
 });
 
-describe("HealthForm — connected health data reaching the check-in", () => {
+describe("HealthForm - connected health data reaching the check-in", () => {
   const LOCKED = { status: "locked", message: "Submit the check-in." } as const;
 
   /** The daily-health payload the Worker returns. */
@@ -463,7 +463,7 @@ describe("HealthForm — connected health data reaching the check-in", () => {
   });
 
   it("offers a retry when nothing has been imported yet", () => {
-    // A submitted day is history, so no fetch fires — which leaves the
+    // A submitted day is history, so no fetch fires - which leaves the
     // already-fetched empty payload on screen.
     setup({
       api: apiWith({}),
@@ -517,7 +517,7 @@ describe("HealthForm — connected health data reaching the check-in", () => {
   });
 });
 
-describe("Recovery trends — readable without prior knowledge", () => {
+describe("Recovery trends - readable without prior knowledge", () => {
   function withOura(date: string, oura: Record<string, unknown>) {
     return { [date]: { day: date, merged: {}, sources: { oura: { connected: true, data: oura } } } };
   }
@@ -574,7 +574,7 @@ describe("Recovery trends — readable without prior knowledge", () => {
   });
 
   it("judges today against the athlete's own usual range", () => {
-    // Six days at ~70, then an 83 — better than this athlete's normal.
+    // Six days at ~70, then an 83 - better than this athlete's normal.
     show(run("readinessScore", [70, 72, 68, 71, 69, 83]));
     expect(screen.getByText("Better than usual")).toBeDefined();
     expect(screen.getByText(/you usually sit/)).toBeDefined();
@@ -663,8 +663,8 @@ describe("Recovery trends — readable without prior knowledge", () => {
   });
 
   it("renders a stored report that carries no date of its own", () => {
-    // Reports are keyed by date, and records written by earlier builds — or
-    // restored from a backup of the `post` map — have no `date` field inside
+    // Reports are keyed by date, and records written by earlier builds - or
+    // restored from a backup of the `post` map - have no `date` field inside
     // them. Sorting read `report.date.localeCompare`, which threw, and the
     // whole Progress page went behind the error boundary. The key is the
     // authority on the day, so the row renders.
@@ -732,7 +732,7 @@ describe("Check-out velocity capture", () => {
 
     const { unmount } = render(<Tracking {...props} />);
     fireEvent.submit(document.querySelector("#post-form")!);
-    // A blank field means "not measured" — storing 0 would put 0 mph on the
+    // A blank field means "not measured" - storing 0 would put 0 mph on the
     // recap card and read as a recorded attempt.
     expect(saved[0].bestVelocity).toBeUndefined();
     unmount();
@@ -745,7 +745,7 @@ describe("Check-out velocity capture", () => {
   });
 });
 
-describe("SessionRecap — the Strava-style share card", () => {
+describe("SessionRecap - the Strava-style share card", () => {
   const stats = [
     { id: "throws", label: "Throws", value: "42" },
     { id: "tonnage", label: "Volume lifted", value: "3,870 kg" },
@@ -860,7 +860,7 @@ describe("SessionRecap — the Strava-style share card", () => {
   });
 });
 
-describe("Training trends — is the work moving the numbers", () => {
+describe("Training trends - is the work moving the numbers", () => {
   const points = (values: [string, number][]) =>
     values.map(([date, value]) => ({ date, value }));
 
@@ -926,7 +926,7 @@ describe("Training trends — is the work moving the numbers", () => {
     expect(screen.getByText("Up on where you started")).toBeDefined();
   });
 
-  it("never calls a bodyweight a best — neither direction is good news", () => {
+  it("never calls a bodyweight a best - neither direction is good news", () => {
     show([
       {
         key: "bodyweight",
@@ -975,7 +975,7 @@ describe("Training trends — is the work moving the numbers", () => {
   });
 });
 
-describe("Movement plot — where each pitch finishes", () => {
+describe("Movement plot - where each pitch finishes", () => {
   let n = 0;
   const throwPitch = (over: Partial<Pitch>): Pitch => ({
     id: `mp${(n += 1)}`,
@@ -1006,7 +1006,7 @@ describe("Movement plot — where each pitch finishes", () => {
         priorPitches={[]}
       />
     );
-    // Identity is text on the chart — it never depends on matching a hue.
+    // Identity is text on the chart - it never depends on matching a hue.
     // Read off the plot itself; the table below carries the same names.
     const onPlot = [...document.querySelectorAll(".movement-label")].map((n) => n.textContent);
     expect(onPlot).toContain("Fastball");
@@ -1092,7 +1092,7 @@ describe("Movement plot — where each pitch finishes", () => {
   });
 });
 
-describe("Micronutrients — the difference between zero and 'the label did not say'", () => {
+describe("Micronutrients - the difference between zero and 'the label did not say'", () => {
   it("marks a total as a floor when some foods stayed silent", () => {
     render(<Micronutrients foods={[{ iron: 4 }, {}]} />);
     expect(screen.getByText("at least")).toBeDefined();
@@ -1138,7 +1138,7 @@ describe("Micronutrients — the difference between zero and 'the label did not 
   });
 });
 
-describe("Kinematics capture — measured angles from the athlete's own video", () => {
+describe("Kinematics capture - measured angles from the athlete's own video", () => {
   const noop = () => {};
 
   it("offers only the measurements the chosen camera view can see", () => {
@@ -1179,7 +1179,7 @@ describe("Kinematics capture — measured angles from the athlete's own video", 
   });
 });
 
-describe("Data backup — the only way data leaves this app", () => {
+describe("Data backup - the only way data leaves this app", () => {
   const state = { version: 1, pre: { "2026-08-10": { score: 78 } } } as never;
 
   it("warns that the recovery key is the only way back in", () => {
@@ -1249,7 +1249,7 @@ describe("Data backup — the only way data leaves this app", () => {
   });
 });
 
-describe("ConfirmButton — destructive actions ask once", () => {
+describe("ConfirmButton - destructive actions ask once", () => {
   it("does nothing on the first tap", () => {
     const fired: number[] = [];
     render(<ConfirmButton label="Remove" describe="the slider" onConfirm={() => fired.push(1)} />);
@@ -1344,7 +1344,7 @@ describe("destructive actions across the app are guarded", () => {
   });
 });
 
-describe("Game log — the outings the training exists to serve", () => {
+describe("Game log - the outings the training exists to serve", () => {
   const game = (over: Partial<Game> = {}): Game => ({
     id: "g1",
     date: "2026-08-07",
@@ -1393,7 +1393,7 @@ describe("Game log — the outings the training exists to serve", () => {
     fireEvent.change(screen.getByLabelText("Batters faced"), { target: { value: "20" } });
     fireEvent.click(screen.getByRole("button", { name: "Save game" }));
     expect(saved).toHaveLength(0);
-    expect(screen.getByText("More strikes than pitches — one of the two is wrong.")).toBeDefined();
+    expect(screen.getByText("More strikes than pitches - one of the two is wrong.")).toBeDefined();
   });
 
   it("refuses an innings figure that cannot exist", () => {
@@ -1448,7 +1448,7 @@ describe("Game log — the outings the training exists to serve", () => {
 /**
  * The ring's active-energy figure has been imported and stored since Apple
  * Health was connected, and displayed nowhere. It is context, not an input to
- * the target — the failure to avoid is it quietly becoming one.
+ * the target - the failure to avoid is it quietly becoming one.
  */
 describe("active calories on the fuelling card", () => {
   const fuel = {
@@ -1477,12 +1477,22 @@ describe("active calories on the fuelling card", () => {
   it("shows the figure and says it is not in the target", () => {
     render(<Nutrition {...props} fuel={fuel} activeCalories={812.4} />);
     expect(screen.getByText(/812 kcal active today/)).toBeTruthy();
-    expect(screen.getByText(/not added to the target above/)).toBeTruthy();
+    expect(screen.getByText(/Not added to the target/)).toBeTruthy();
+  });
+
+  it("goes away once its figures are the saved targets, and returns when they differ", () => {
+    const saved = { calories: 3400, protein: 180, carbs: 450, fat: 95, fluid: 4.5 };
+    const { unmount } = render(<Nutrition {...props} fuel={fuel} targets={saved} />);
+    expect(screen.queryByText(/Today.s fuelling/)).toBeNull();
+    expect(screen.getByText("of 3400 target")).toBeTruthy();
+    unmount();
+    render(<Nutrition {...props} fuel={fuel} targets={{ ...saved, carbs: 300 }} />);
+    expect(screen.getByText(/Today.s fuelling/)).toBeTruthy();
   });
 
   it("leaves the calorie target exactly where it was", () => {
     render(<Nutrition {...props} fuel={fuel} activeCalories={812} />);
-    // The target is the fuelling figure alone — 3400, not 4212.
+    // The target is the fuelling figure alone - 3400, not 4212.
     expect(screen.getByText("3400")).toBeTruthy();
     expect(screen.queryByText("4212")).toBeNull();
   });

@@ -43,7 +43,7 @@ export interface CrowdSample {
 // --- Picking the pitcher out of the frame ------------------------------------
 
 /**
- * Hip centre, which is the most stable point to track a person by — it stays
+ * Hip centre, which is the most stable point to track a person by - it stays
  * visible through a delivery where wrists and ankles do not.
  */
 function centre(person: PoseLandmark[]): { x: number; y: number } | null {
@@ -71,13 +71,13 @@ interface Track {
 /**
  * Follow each person through the clip and return the one who is pitching.
  *
- * A bullpen video almost always has someone else in it — a catcher, a coach, a
+ * A bullpen video almost always has someone else in it - a catcher, a coach, a
  * team-mate waiting their turn. Asking the model for one pose gives whichever
  * body it likes, and on a real clip it took the team-mate standing still: the
  * knees never moved for seven seconds and every checkpoint was nonsense.
  *
  * The pitcher is the person who moves. Bodies are followed frame to frame by
- * hip centre, and the track with the most accumulated motion is the subject —
+ * hip centre, and the track with the most accumulated motion is the subject -
  * which is true whoever is in shot, wherever they stand, and however many of
  * them there are.
  */
@@ -120,7 +120,7 @@ export function chooseSubject(frames: CrowdSample[]): PoseSample[] {
 
   if (tracks.length === 0) return [];
   // Longer tracks accumulate motion simply by lasting, so it is compared per
-  // frame — a person present throughout who barely moves must not win over the
+  // frame - a person present throughout who barely moves must not win over the
   // one who is actually throwing.
   return tracks.reduce((best, track) =>
     track.motion / Math.max(1, track.samples.length) >
@@ -153,7 +153,7 @@ function usableSamples(samples: PoseSample[]): PoseSample[] {
  * version measured the pitcher's own shoulder span instead, on the theory that
  * a wide span means you are looking at his chest. That is a fact about which
  * way the athlete is facing, not about the camera, and a pitcher rotates
- * roughly ninety degrees during the delivery — so it mostly reported whichever
+ * roughly ninety degrees during the delivery - so it mostly reported whichever
  * way he happened to be standing for the longest. On a real side-on bullpen
  * clip it averaged 0.995 and confidently returned "front", which is the view
  * that measures hip–shoulder separation. That angle cannot be seen from the
@@ -201,8 +201,8 @@ export function viewTravel(samples: PoseSample[]): number | null {
  * Which way the camera was pointing, or null if the clip cannot say.
  *
  * Null is a real answer here. Between the two thresholds the shot is neither
- * clearly down the line nor clearly side-on — a diagonal, or a clip that never
- * shows a stride — and picking one anyway is how you end up reporting a
+ * clearly down the line nor clearly side-on - a diagonal, or a clip that never
+ * shows a stride - and picking one anyway is how you end up reporting a
  * rotation angle measured from a camera that could not see rotation.
  */
 export function inferView(samples: PoseSample[]): KinematicView | null {
@@ -263,7 +263,7 @@ export const MOVEMENT_THRESHOLD = 0.02;
  *
  * Found in the order the delivery happens, each constrained to fall after the
  * one before, because a foot strike earlier than the leg lift is not a
- * detection — it is a failure that would otherwise be stored as data.
+ * detection - it is a failure that would otherwise be stored as data.
  */
 export function detectCheckpoints(
   samples: PoseSample[],
@@ -309,7 +309,7 @@ export function detectCheckpoints(
 
   // --- foot strike: after the lift, the first frame where the lead ankle has
   // both come down and stopped. Landing is the ankle's motion ending, which is
-  // more robust than looking for its lowest point — the ankle often rolls
+  // more robust than looking for its lowest point - the ankle often rolls
   // slightly lower afterwards.
   let footStrike: number | null = null;
   const afterLift = usable.filter((s) => maxLegLift === null || s.timeSeconds > maxLegLift);
@@ -393,13 +393,13 @@ export interface SequenceReading {
  * `known` is the athlete's throwing arm from their profile, and it is used in
  * preference to anything the clip suggests. Which arm someone throws with is a
  * fact about the person, not about the video, and the app has had it since
- * onboarding — so inferring it per clip was solving a problem that did not
+ * onboarding - so inferring it per clip was solving a problem that did not
  * exist, badly. On a real bullpen clip the wrist-speed test came out at a
  * ratio of 1.1 to 1.2 between the two arms, well inside the noise: the glove
  * arm whips down about as fast as the throwing arm, and the throwing wrist is
  * motion-blurred exactly when it is quickest, so the model loses it. Sampled
  * one way it answered "right", sampled more finely it answered nothing at all.
- * Getting it backwards is not a small error — it swaps the lead leg, and the
+ * Getting it backwards is not a small error - it swaps the lead leg, and the
  * four checkpoints then land after the ball has already gone.
  *
  * The guess survives only for the case where nothing is known.
@@ -430,7 +430,7 @@ const CHECKPOINT_NAMES: Record<keyof DetectedCheckpoints, string> = {
 /** What the clip gave up, in words, including what it did not. */
 export function sequenceSummary(reading: SequenceReading): string {
   if (reading.usable < 5) {
-    return "Could not find a body in enough of this clip. Make sure the whole delivery is in shot, then try again — or place the points yourself.";
+    return "Could not find a body in enough of this clip. Make sure the whole delivery is in shot, then try again - or place the points yourself.";
   }
   if (!reading.hand) {
     return "Could not tell which arm is throwing from this clip, so the checkpoints were not placed. Set the throwing arm and try again.";
@@ -448,12 +448,12 @@ export function sequenceSummary(reading: SequenceReading): string {
       ? "a front-on delivery"
       : reading.view === "side"
         ? "a side-on delivery"
-        : "a delivery, though not clearly enough to tell front-on from side-on — check the camera view above";
+        : "a delivery, though not clearly enough to tell front-on from side-on - check the camera view above";
 
   if (missing.length === 0) {
     return `Read ${shot} from a ${reading.hand}-hander and placed all four checkpoints. Check each one and adjust anything that looks wrong.`;
   }
   return `Read ${shot} from a ${reading.hand}-hander and placed ${found} of 4 checkpoints. Could not find ${missing
     .map((key) => CHECKPOINT_NAMES[key])
-    .join(" or ")} — scrub to those yourself rather than trusting a guess.`;
+    .join(" or ")} - scrub to those yourself rather than trusting a guess.`;
 }

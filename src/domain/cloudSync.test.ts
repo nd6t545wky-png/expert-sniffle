@@ -114,7 +114,7 @@ describe("pushState", () => {
     const payload = await encryptCloudSnapshot(remote, KEY, subtle);
     const { api, store } = fakeServer({ payload, revision: 5 });
 
-    // We think we're at revision 2 — stale.
+    // We think we're at revision 2 - stale.
     const local = state({ pre: { "2026-08-05": { score: 90, submittedAt: "2026-08-05T00:00:00Z" } } });
     const result = await pushState({ api, syncKey: KEY, subtle }, local, 2);
 

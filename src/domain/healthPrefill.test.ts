@@ -64,7 +64,7 @@ describe("sleepQualityFromScore", () => {
   });
 
   it("returns null rather than a number when there is no score", () => {
-    // A missing score must not become a 1 — that would read as the worst
+    // A missing score must not become a 1 - that would read as the worst
     // possible night and drag the check-in down on no evidence at all.
     expect(sleepQualityFromScore(null)).toBeNull();
     expect(sleepQualityFromScore(undefined)).toBeNull();
@@ -266,7 +266,7 @@ describe("personalCheckInBaseline", () => {
   });
 });
 
-describe("readinessContextFor — the wiring the scorer was missing", () => {
+describe("readinessContextFor - the wiring the scorer was missing", () => {
   it("lets a depressed HRV reach the scorer once a baseline exists", () => {
     const record = readPrefill({ d: payload({ hrvMs: 40, sleepHours: 8, sleepScore: 80 }) }, "d");
     const pre = history(BASELINE_MIN_COUNT, 80);
@@ -289,8 +289,8 @@ describe("readinessContextFor — the wiring the scorer was missing", () => {
     expect(withContext.signals.some((signal) => signal.type === "hrv")).toBe(true);
     expect(withContext.hrvSource).toBe("oura");
 
-    // The same day scored the way the rebuilt form used to score it — no
-    // context at all — sees nothing. That gap is the bug this module closes.
+    // The same day scored the way the rebuilt form used to score it - no
+    // context at all - sees nothing. That gap is the bug this module closes.
     const without = computeReadiness(values);
     expect(without.signals.some((signal) => signal.type === "hrv")).toBe(false);
   });

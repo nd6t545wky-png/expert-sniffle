@@ -30,7 +30,7 @@ import { IsoDate } from "./state";
  * SI throughout, because the athlete tests in Australia and every Australian
  * pathology report reads in SI. Testosterone in nmol/L, glucose in mmol/L,
  * ferritin in µg/L. Copying US reference ranges onto an Australian report is
- * the single easiest way to make this feature dangerous — a testosterone of
+ * the single easiest way to make this feature dangerous - a testosterone of
  * "15" is mid-range in nmol/L and profoundly low in ng/dL.
  */
 
@@ -66,7 +66,7 @@ export interface Marker {
   typical: { low: number | null; high: number | null };
   places: number;
   /**
-   * Why a thrower might care, and — where it applies — why the population
+   * Why a thrower might care, and - where it applies - why the population
    * range is the wrong lens. Never an interpretation of a result.
    */
   note: string;
@@ -85,7 +85,7 @@ export interface Marker {
  * Chosen for a throwing athlete rather than copied from a consumer product:
  * every one of these is routinely orderable through a GP in Australia, and
  * each has a plausible connection to training availability, recovery or
- * fatigue. It is deliberately shorter than WHOOP's sixty-five — a marker
+ * fatigue. It is deliberately shorter than WHOOP's sixty-five - a marker
  * nobody will act on is a number that makes the page harder to read.
  */
 export const MARKERS: readonly Marker[] = Object.freeze([
@@ -106,7 +106,7 @@ export const MARKERS: readonly Marker[] = Object.freeze([
     group: "oxygen",
     typical: { low: 30, high: 300 },
     places: 0,
-    note: "Iron stores. Worth watching even inside the range — a low-normal ferritin is a common and treatable cause of unexplained fatigue in athletes, and it is the number to take to a doctor rather than to self-manage with supplements.",
+    note: "Iron stores. Worth watching even inside the range - a low-normal ferritin is a common and treatable cause of unexplained fatigue in athletes, and it is the number to take to a doctor rather than to self-manage with supplements.",
   },
   {
     id: "transferrinSat",
@@ -127,7 +127,7 @@ export const MARKERS: readonly Marker[] = Object.freeze([
     typical: { low: 40, high: 200 },
     places: 0,
     expectedToVary: true,
-    note: "Muscle damage. Routinely several times the population range in a trained athlete for days after hard work, so the population range is close to meaningless here — the useful comparison is against your own previous draws taken at a similar point in the week.",
+    note: "Muscle damage. Routinely several times the population range in a trained athlete for days after hard work, so the population range is close to meaningless here - the useful comparison is against your own previous draws taken at a similar point in the week.",
   },
   {
     id: "urea",
@@ -148,7 +148,7 @@ export const MARKERS: readonly Marker[] = Object.freeze([
     group: "hormonal",
     typical: { low: 10, high: 30 },
     places: 1,
-    note: "Anabolic status. A single reading says little — it varies through the day and falls with acute fatigue — so the trend across draws taken at the same time of morning is what carries information.",
+    note: "Anabolic status. A single reading says little - it varies through the day and falls with acute fatigue - so the trend across draws taken at the same time of morning is what carries information.",
   },
   {
     id: "shbg",
@@ -166,7 +166,7 @@ export const MARKERS: readonly Marker[] = Object.freeze([
     group: "hormonal",
     typical: { low: 130, high: 550 },
     places: 0,
-    note: "Take it at the same hour every time — cortisol falls steeply through the morning, so a draw at 7am and one at 10am are not comparable.",
+    note: "Take it at the same hour every time - cortisol falls steeply through the morning, so a draw at 7am and one at 10am are not comparable.",
   },
 
   // --- inflammation and immune
@@ -198,7 +198,7 @@ export const MARKERS: readonly Marker[] = Object.freeze([
     group: "metabolic",
     typical: { low: 3.0, high: 5.5 },
     places: 1,
-    note: "Fasting only — a reading taken after breakfast means nothing against this range.",
+    note: "Fasting only - a reading taken after breakfast means nothing against this range.",
   },
   {
     id: "hba1c",
@@ -229,7 +229,7 @@ export const MARKERS: readonly Marker[] = Object.freeze([
     typical: { low: null, high: 41 },
     places: 0,
     expectedToVary: true,
-    note: "Liver enzyme, but also released by skeletal muscle — so it rises after hard training too. Read beside CK before reading anything into it.",
+    note: "Liver enzyme, but also released by skeletal muscle - so it rises after hard training too. Read beside CK before reading anything into it.",
   },
   {
     id: "tsh",
@@ -258,7 +258,7 @@ export const MARKERS: readonly Marker[] = Object.freeze([
     group: "micronutrient",
     typical: { low: 0.7, high: 1.1 },
     places: 2,
-    note: "Serum magnesium is a blunt instrument — most of the body's magnesium is not in serum — so treat it as a rough screen rather than a verdict.",
+    note: "Serum magnesium is a blunt instrument - most of the body's magnesium is not in serum - so treat it as a rough screen rather than a verdict.",
   },
   {
     id: "zinc",
@@ -344,7 +344,7 @@ export type Flag = "in-range" | "below" | "above" | "expected-to-vary" | "no-ran
 export interface Reading {
   marker: Marker;
   result: MarkerResult;
-  /** The range actually used — the athlete's if entered, otherwise typical. */
+  /** The range actually used - the athlete's if entered, otherwise typical. */
   low: number | null;
   high: number | null;
   /** True when the range came from the athlete's own report. */
@@ -425,7 +425,7 @@ export function formatRange(reading: Pick<Reading, "marker" | "low" | "high">): 
  * day and something quite different thirty-six hours after a start, and the
  * laboratory has no way of knowing which it was.
  *
- * It reports what happened. It does not say what any of it caused — that
+ * It reports what happened. It does not say what any of it caused - that
  * inference is a doctor's, and it is a better one for having these numbers in
  * front of them.
  */

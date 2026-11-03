@@ -10,7 +10,7 @@ import type { Session, SessionTask, WeekPlan } from "./programmeSessions";
  *
  * So the mound stays in every week of the break, and the pitch count climbs:
  * a light touch in the unload week, then 25–30, then 35–40, then a simulated
- * game of three short innings — about 45 pitches with sit-downs — the week
+ * game of three short innings - about 45 pitches with sit-downs - the week
  * before games resume. The catch volume in the unload week comes down, but not
  * so far that the arm loses its base.
  */
@@ -54,7 +54,7 @@ const MOUND: readonly Partial<Record<number, Mound>>[] = [
       rest: "A short break every 10–12 pitches.",
     },
   },
-  // Week 3: force — the pulldowns stay on Wednesday, the bullpen goes on Saturday.
+  // Week 3: force - the pulldowns stay on Wednesday, the bullpen goes on Saturday.
   {
     5: {
       name: "Bullpen",
@@ -65,7 +65,7 @@ const MOUND: readonly Partial<Record<number, Mound>>[] = [
       rest: "Work in sets of 12–15 with a minute between them.",
     },
   },
-  // Week 4: re-entry — a simulated game, then a short pen to stay sharp.
+  // Week 4: re-entry - a simulated game, then a short pen to stay sharp.
   {
     2: {
       name: "Simulated game",

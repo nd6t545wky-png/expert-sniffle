@@ -1,8 +1,8 @@
 /**
  * The day's throw count, read off the session instead of typed in twice.
  *
- * Every throwing task in the programme states its own volume — "45–60 total
- * throws", "2 × 5" of a plyo ball, "8 pulldowns" — and the athlete was then
+ * Every throwing task in the programme states its own volume - "45–60 total
+ * throws", "2 × 5" of a plyo ball, "8 pulldowns" - and the athlete was then
  * asked to add them up in their head and retype the total on the Workload tab.
  * Two records of the same afternoon, kept by hand, in two places. They drifted,
  * and the one that drifted is the one the acute:chronic ratio is built on.
@@ -29,7 +29,7 @@
  *
  * Baseball throws, from the three stages that produce them: the throwing
  * stages, the plyo-ball ladder (weighted baseballs, thrown), and a logged game
- * appearance. Medicine-ball work is not here — a scoop toss is a gym exercise
+ * appearance. Medicine-ball work is not here - a scoop toss is a gym exercise
  * that happens to be thrown, it loads the trunk rather than the elbow, and
  * counting it would put a lower-body power drill into an arm workload figure.
  *
@@ -55,7 +55,7 @@ const THROWING_STAGE = /^(throw|team throwing|plyo ball preparation)$/i;
  */
 /**
  * A stated count, allowing the adjectives the programme puts in front of the
- * noun — "10 *measured* throws", "6–8 *high-quality* pulldowns", "25–40 *pitch*
+ * noun - "10 *measured* throws", "6–8 *high-quality* pulldowns", "25–40 *pitch*
  * bullpen". Two words at most, so a number early in one clause cannot reach
  * across a separator and claim a noun belonging to the next.
  */
@@ -72,7 +72,7 @@ const BANDS: readonly ThrowIntent[] = Object.freeze(["high", "moderate", "low", 
  * The intent word a stated effort percentage belongs to.
  *
  * Nearest published value, not a threshold. `INTENT_PERCENT` holds the single
- * number each word is *prescribed at* — 40, 60, 75, 95 — and reading those as
+ * number each word is *prescribed at* - 40, 60, 75, 95 - and reading those as
  * lower bounds files a 90% throw as moderate and a 70% one as low, because
  * both sit just under the next figure up. `velocity.ts` makes the same choice
  * for its own four bands, and for the same reason.
@@ -90,7 +90,7 @@ export function intentForPercent(
   scale: Record<string, number> = INTENT_PERCENT
 ): ThrowIntent {
   const value = (band: ThrowIntent) => scale[band] ?? INTENT_PERCENT[band];
-  // Ascending, so the first band at the minimum distance is the lowest one —
+  // Ascending, so the first band at the minimum distance is the lowest one -
   // which is the downward tie-break.
   return [...BANDS]
     .reverse()
@@ -109,7 +109,7 @@ export function isThrowingTask(task: Pick<SessionTask, "stageTitle">): boolean {
  *
  * Two shapes cover the programme: a plyo ladder writes `sets × reps` and a
  * throwing set writes a count in words. The sets-and-reps form is checked first
- * because a plyo prescription — "2 × 5 · 70% · hybrid B intent" — has no throw
+ * because a plyo prescription - "2 × 5 · 70% · hybrid B intent" - has no throw
  * noun in it at all, while a throwing set never writes `×`.
  */
 export function throwsPrescribed(task: Pick<SessionTask, "stageTitle" | "prescription">): number | null {
@@ -120,7 +120,7 @@ export function throwsPrescribed(task: Pick<SessionTask, "stageTitle" | "prescri
   if (shape) return Number(shape[1]) * Number(shape[2]);
 
   const stated = text.match(TOTAL_THROWS);
-  // The bottom of the range — see the note at the top of this file.
+  // The bottom of the range - see the note at the top of this file.
   if (stated) return Number(stated[1]);
 
   return null;
@@ -143,7 +143,7 @@ export function intentPrescribed(
   const name = String(task.name ?? "");
 
   const effort = text.match(EFFORT);
-  // The top of the range — see the note at the top of this file.
+  // The top of the range - see the note at the top of this file.
   if (effort) return intentForPercent(Number(effort[2] ?? effort[1]), scale);
 
   if (/pulldown|high[- ]intent|max(?:imal)? intent/i.test(`${name} ${text}`)) return "high";
@@ -166,7 +166,7 @@ export interface ThrowTally {
    * The hardest intent reached today.
    *
    * Not an average. A day of easy catch play with eight pulldowns in the middle
-   * of it is a high-intent day, and averaging would file it as a light one —
+   * of it is a high-intent day, and averaging would file it as a light one -
    * which is the reading the acute:chronic ratio must not be given.
    */
   intent: ThrowIntent;
@@ -187,7 +187,7 @@ export interface ThrowTally {
  * What the day's throwing adds up to, from what has actually been ticked.
  *
  * Completed tasks only. A prescribed session is an intention and this is a
- * record — the same rule the set log runs on, and for the same reason: a
+ * record - the same rule the set log runs on, and for the same reason: a
  * workload figure that counts work nobody did is worse than no figure.
  *
  * Games are counted whether or not a task was ticked, because a logged
@@ -246,7 +246,7 @@ export function tallyThrows(
  *
  * `source` is the whole of the reconciliation. An entry the athlete typed is
  * theirs and is never overwritten by a tally, however out of date the tally
- * thinks it is — the alternative is an app that silently corrects a number the
+ * thinks it is - the alternative is an app that silently corrects a number the
  * person standing in the bullpen entered on purpose.
  *
  * Entries written before this field existed carry no `source`. They were all
@@ -274,7 +274,7 @@ export type TallyOutcome =
  * Called when completion changes, so it runs on every tick and every untick.
  * Unticking the last throwing task of the day clears an entry this wrote,
  * because leaving a stale figure behind would be the same drift the automatic
- * count exists to end — but it will not clear one the athlete typed.
+ * count exists to end - but it will not clear one the athlete typed.
  */
 export function adoptTally(
   existing: ThrowingRecord | undefined | null,

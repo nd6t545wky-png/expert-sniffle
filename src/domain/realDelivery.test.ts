@@ -4,7 +4,7 @@
  * Everything else in this suite is built from generated landmarks that move
  * the way the code expects them to, which makes those tests good at catching
  * regressions and useless at catching wrong assumptions. This fixture is the
- * pose output from an actual phone clip of a bullpen — a right-hander filmed
+ * pose output from an actual phone clip of a bullpen - a right-hander filmed
  * side-on, at 540x960, with the motion blur and dropped landmarks that come
  * with real footage.
  *
@@ -13,7 +13,7 @@
  *   - the view classifier read the athlete's body instead of the camera's
  *     position, and called a side-on clip front-on;
  *   - wrist speed does not identify the throwing arm on footage like this;
- *   - the checkpoint heuristics, given the right hand, are actually correct —
+ *   - the checkpoint heuristics, given the right hand, are actually correct -
  *     the four times below were checked against the frames by eye.
  *
  * The timings are hard-coded deliberately. If a change to the heuristics moves

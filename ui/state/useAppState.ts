@@ -8,7 +8,7 @@ import { stampChangedFields } from "../../src/domain/sync";
 /**
  * Bridges the pure storage layer to React.
  *
- * All the data rules live in src/domain — this hook only owns React state and
+ * All the data rules live in src/domain - this hook only owns React state and
  * persistence timing, so the logic stays testable without a renderer.
  */
 
@@ -26,14 +26,14 @@ export interface AppStateHandle {
   load: LoadResult | null;
   /**
    * Apply a change. By default it is also appended to the training history;
-   * pass `{ record: false }` for state that arrived from elsewhere — a sync
-   * merge or a restored backup — which this device did not do.
+   * pass `{ record: false }` for state that arrived from elsewhere - a sync
+   * merge or a restored backup - which this device did not do.
    */
   update: (mutate: (draft: AppState) => AppState, options?: UpdateOptions) => void;
   submissions: Record<IsoDate, ReadinessSubmission | undefined>;
   planFor: (date: IsoDate) => PlanState;
   /**
-   * Start this device over with empty state — when a different account signs
+   * Start this device over with empty state - when a different account signs
    * in, or on sign-out. Bypasses `update`, whose history merge exists precisely
    * to stop events being dropped and would carry the last person's over.
    */
@@ -61,8 +61,8 @@ export function useAppState(): AppStateHandle {
     setState((current) => {
       if (!current) return current;
       let next = mutate(current);
-      // The history is append-only. A mutation that builds a fresh state — a
-      // sync merge computed from an older copy, an import — must not be able
+      // The history is append-only. A mutation that builds a fresh state - a
+      // sync merge computed from an older copy, an import - must not be able
       // to drop events by omission, so the two copies are unioned.
       if (next !== current && next.trainingHistory !== current.trainingHistory && current.trainingHistory !== undefined) {
         next = { ...next, trainingHistory: mergeTrainingHistories(current.trainingHistory, next.trainingHistory) };

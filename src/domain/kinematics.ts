@@ -2,7 +2,7 @@
  * Measured kinematics from the athlete's own video.
  *
  * The mechanics screen rated six qualities one to five. Useful, and entirely
- * qualitative — "your sequencing is a 2" is a judgement, not a measurement,
+ * qualitative - "your sequencing is a 2" is a judgement, not a measurement,
  * and nothing in the app produced a joint angle or a timing in milliseconds.
  * This does: the athlete scrubs their video to a checkpoint, taps a handful of
  * body points on the frame, and the app works out the angles.
@@ -24,12 +24,12 @@
  *   - **A missing landmark is missing.** A measurement whose points were not
  *     all placed is absent, never estimated from the ones that were.
  *   - **Reference bands are real measurements of other pitchers, not targets.**
- *     They come from the OpenBiomechanics Project — 411 pitches from 100
+ *     They come from the OpenBiomechanics Project - 411 pitches from 100
  *     college and professional pitchers, marker-based 3D capture in a lab. Two
  *     things follow. The population is elite, so the middle of their range
  *     describes them rather than setting a goal for anyone else. And they were
  *     measured in three dimensions where this app sees a projection, so a band
- *     is only published where the two constructions actually correspond — four
+ *     is only published where the two constructions actually correspond - four
  *     of the six measurements here. The athlete's own history remains the
  *     better comparison and the UI leads with it.
  */
@@ -64,7 +64,7 @@ export const LANDMARKS: Record<KinematicView, Landmark[]> = {
     { id: "elbow", label: "Throwing elbow", hint: "The point of the elbow." },
     { id: "wrist", label: "Throwing wrist", hint: "The middle of the wrist." },
     { id: "hip", label: "Hip", hint: "The hip joint on the same side as the camera." },
-    { id: "leadKnee", label: "Lead knee", hint: "The front knee — the leg you land on." },
+    { id: "leadKnee", label: "Lead knee", hint: "The front knee - the leg you land on." },
     { id: "leadAnkle", label: "Lead ankle", hint: "The front ankle." },
   ],
   front: [
@@ -84,7 +84,7 @@ export type Frame = Partial<Record<string, Point>>;
  * Undo the normalisation before measuring an angle.
  *
  * Points are stored as fractions of width and height, which makes them
- * resolution-independent — and makes every angle wrong if used directly. On a
+ * resolution-independent - and makes every angle wrong if used directly. On a
  * 16:9 frame a horizontal step of 0.1 is nearly twice the real distance of a
  * vertical one, so an arm at a true 45° digitises as 62°. Scaling x by the
  * aspect ratio puts both axes back in the same unit.
@@ -100,7 +100,7 @@ function degrees(radians: number): number {
 /**
  * The angle at `vertex`, between the rays to `a` and `b`, in degrees 0–180.
  *
- * Returns null on a degenerate placement — two taps on the same pixel have no
+ * Returns null on a degenerate placement - two taps on the same pixel have no
  * angle between them, and returning 0 would look like a measurement.
  */
 export function angleAt(vertex: Point, a: Point, b: Point, aspect = 1): number | null {
@@ -138,8 +138,8 @@ export function tiltFromVertical(from: Point, to: Point, aspect = 1): number | n
 /**
  * The angle between two lines, folded to 0–90.
  *
- * Lines here are undirected — the shoulder line does not have a front and a
- * back — so 170° and 10° are the same separation and must not read as
+ * Lines here are undirected - the shoulder line does not have a front and a
+ * back - so 170° and 10° are the same separation and must not read as
  * opposites.
  */
 export function angleBetweenLines(
@@ -201,7 +201,7 @@ const LAB = `measured across ${OBP_SOURCE.pitches} pitches from ${OBP_SOURCE.ath
  * shoulder tilt get none: the lab splits trunk angle into signed anterior and
  * lateral components, while this app reports one unsigned lean off vertical.
  * They are different quantities, and a band over the wrong quantity is worse
- * than no band — it turns an individual, coachable trait into a mark out of ten
+ * than no band - it turns an individual, coachable trait into a mark out of ten
  * against something that was never measured.
  */
 export const MEASUREMENTS: Measurement[] = [
@@ -223,7 +223,7 @@ export const MEASUREMENTS: Measurement[] = [
     unit: "°",
     view: "side",
     needs: ["hip", "shoulder", "elbow"],
-    why: "How far the upper arm is lifted away from the trunk. Highly individual — the number to watch is your own, session to session.",
+    why: "How far the upper arm is lifted away from the trunk. Highly individual - the number to watch is your own, session to session.",
     compute: (frame, aspect) =>
       frame.shoulder && frame.hip && frame.elbow
         ? angleAt(frame.shoulder, frame.hip, frame.elbow, aspect)
@@ -289,8 +289,8 @@ export const MEASUREMENTS: Measurement[] = [
 /**
  * Attach the measured reference bands.
  *
- * Done here rather than inline so the numbers have exactly one source — the
- * generated table — and a measurement with no honest counterpart in that table
+ * Done here rather than inline so the numbers have exactly one source - the
+ * generated table - and a measurement with no honest counterpart in that table
  * simply never gets a `band`, which every reader downstream already handles.
  *
  * The band is the middle half of the reference population, matching how the
@@ -374,7 +374,7 @@ export function leadLegBlock(capture: Capture): number | null {
 /**
  * Milliseconds between two checkpoints.
  *
- * Precision is bounded by the video's frame rate — 60 fps is 17 ms a frame —
+ * Precision is bounded by the video's frame rate - 60 fps is 17 ms a frame -
  * so the UI rounds to whole milliseconds and says where that limit is.
  */
 export function intervalMs(capture: Capture, from: string, to: string): number | null {
@@ -451,7 +451,7 @@ export interface KinematicFinding {
  * What the frame says, in words.
  *
  * Every finding names the measurement, the number and the band it fell
- * outside, so it can be argued with — and every one of them ends up beside the
+ * outside, so it can be argued with - and every one of them ends up beside the
  * standing caveat that a phone camera measures a projection. Nothing here says
  * what to do about it; that is a coaching decision.
  */
@@ -480,7 +480,7 @@ export function kinematicFindings(readings: Reading[], block: number | null): Ki
       severity: block > 0 ? "note" : "watch",
       text:
         block > 0
-          ? `Your front knee straightened ${block}° between foot strike and release — that is the lead leg blocking.${where}`
+          ? `Your front knee straightened ${block}° between foot strike and release - that is the lead leg blocking.${where}`
           : `Your front knee bent a further ${Math.abs(block)}° between foot strike and release rather than straightening.${where}`,
     });
   }

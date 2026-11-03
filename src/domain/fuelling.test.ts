@@ -51,7 +51,7 @@ describe("fuelTargets", () => {
     const rest = fuelTargets({ bodyweightKg: weight, hasSession: false })!;
 
     expect(hard.carbs).toBeGreaterThan(rest.carbs);
-    // Protein is for recovery — it does not fall on the day off.
+    // Protein is for recovery - it does not fall on the day off.
     expect(hard.protein).toBe(rest.protein);
   });
 
@@ -75,7 +75,7 @@ describe("fuelTargets", () => {
     expect(targets.fat / weight).toBeGreaterThanOrEqual(0.8);
   });
 
-  it("adds up — calories match the macros it prescribes", () => {
+  it("adds up - calories match the macros it prescribes", () => {
     const t = fuelTargets({ bodyweightKg: weight, stress: "Moderate" })!;
     const fromMacros = t.protein * 4 + t.carbs * 4 + t.fat * 9;
     // Calories are rounded to the nearest 50, so allow that much drift.
@@ -93,7 +93,7 @@ describe("fuelTargets", () => {
   });
 });
 
-describe("fuelTargets — built on the athlete's own measurements", () => {
+describe("fuelTargets - built on the athlete's own measurements", () => {
   // The DEXA figures: 89.4 kg total, 65.6 kg lean, BMR 2028.
   const scan = { bodyweightKg: 89.4, leanMassKg: 65.6, basalKcal: 2028 };
 

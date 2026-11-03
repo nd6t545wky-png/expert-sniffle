@@ -4,8 +4,8 @@
  * Ballclubz hosts the GBL's published draw and stats, and every player has a
  * public page with a "Pitching Game Log": one row per outing with the date,
  * the opponent, IP, H, R, ER, K, BB, HBP and the pitch count. That page is the
- * only source of a league game line that needs nothing from the athlete — no
- * export, no file, no typing — so the app reads it and files each outing in
+ * only source of a league game line that needs nothing from the athlete - no
+ * export, no file, no typing - so the app reads it and files each outing in
  * the game log by itself.
  *
  * The page itself stops at the pitch count. Strikes, batters faced and
@@ -190,7 +190,7 @@ export const BALLCLUBZ_ID_PREFIX = "ballclubz-";
  *
  * - A date with no game gets one, marked as coming from Ballclubz.
  * - A game Ballclubz added before is refreshed, because the league corrects
- *   its scorebook after the fact — keeping anything the athlete added to it
+ *   its scorebook after the fact - keeping anything the athlete added to it
  *   (strikes, first-pitch strikes, batters faced, notes).
  * - A game the athlete entered themselves is never touched: their line wins.
  *
@@ -212,7 +212,7 @@ export function mergeBallclubzOutings(
         id,
         ...outing,
         competition: "GBL",
-        // When the box score could not be read these stay absent, not zero —
+        // When the box score could not be read these stay absent, not zero -
         // see the module comment.
         battersFaced: (outing.battersFaced ?? null) as number,
         strikes: (outing.strikes ?? null) as number,
@@ -258,7 +258,7 @@ export interface ScheduleGame {
   monthDay: string;
   /** "/gbld1/live/2ceff3f". */
   path: string;
-  /** The box's text — venue, teams, score. */
+  /** The box's text - venue, teams, score. */
   text: string;
 }
 
@@ -394,7 +394,7 @@ export function parseRoster(html: string): RosterPlayer[] {
 
 const fold = (value: string) => value.normalize("NFKD").replace(/[^\p{L}]/gu, "").toLowerCase();
 
-/** A roster player by full name — first and last, in either order, ignoring case and accents. */
+/** A roster player by full name - first and last, in either order, ignoring case and accents. */
 export function findOnRoster(roster: readonly RosterPlayer[], name: string): RosterPlayer | null {
   const words = name.split(/\s+/).map(fold).filter(Boolean);
   if (words.length < 2) return null;
@@ -540,7 +540,7 @@ export function battingTotals(lines: readonly BattingLine[]) {
   const tb = singles + 2 * t.doubles + 3 * t.triples + 4 * t.hr;
   // The log has no HBP or sacrifice column. Plate appearances not accounted
   // for by at-bats and walks are counted as reaching base over all plate
-  // appearances, which is how Ballclubz computes its own published OBP — the
+  // appearances, which is how Ballclubz computes its own published OBP - the
   // test checks a real player's line comes out the same.
   const other = Math.max(0, t.pa - t.ab - t.bb);
   return {

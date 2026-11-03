@@ -9,8 +9,8 @@
  * That fallback is the reason this module exists. It is a sensible default and
  * it is also silent: "3 × 5 @ RPE 6" looks like a deliberate RPE prescription
  * rather than what it is, a percentage table with nothing to multiply. The
- * trap bar spent the whole year in that state — a periodised table, a
- * percentage for all fifty-two weeks, and no number behind it — and nothing in
+ * trap bar spent the whole year in that state - a periodised table, a
+ * percentage for all fifty-two weeks, and no number behind it - and nothing in
  * the app said so.
  *
  * So the maxes are editable, they carry where they came from, and a lift with
@@ -112,7 +112,7 @@ export function isUsableMax(value: number): boolean {
  *
  * A value the athlete typed is always `entered`: it outranks a derived figure
  * and it does not claim to be a test. Passing `null` removes the entry, which
- * puts that lift back on the programme's written fallback — the honest way to
+ * puts that lift back on the programme's written fallback - the honest way to
  * say "I do not know this one" rather than leaving a guess in place.
  */
 export function setTrainingMax(pbs: unknown, key: string, value: number | null): Record<string, unknown> {

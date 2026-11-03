@@ -24,15 +24,15 @@ import { Alert, EmptyState } from "./Page";
  *
  * Written for a reader who has never seen a movement plot:
  *
- *   - The four directions are labelled in words — "ride", "drop", "arm side",
- *     "glove side" — not as signed inches on an unlabelled axis.
+ *   - The four directions are labelled in words - "ride", "drop", "arm side",
+ *     "glove side" - not as signed inches on an unlabelled axis.
  *   - The centre is a ball with no break at all, and it says so.
  *   - Each pitch type's name is printed on the plot at its own cluster, so
  *     identity never depends on matching a colour to a legend.
  *
  * That last point is also why nothing here is coloured by pitch type. A
  * scatter puts every pair of series side by side at once, and past three hues
- * no ordering keeps them apart for a colour-blind reader — checked with the
+ * no ordering keeps them apart for a colour-blind reader - checked with the
  * palette validator, not guessed. A printed name works for everyone.
  */
 
@@ -60,7 +60,7 @@ function Plot({ clusters, half }: { clusters: MovementCluster[]; half: number })
         .map((c) => `${c.pitchType} averages ${c.avgHorzBreakIn} inches horizontal and ${c.avgInducedVertBreakIn} inches vertical break`)
         .join("; ")}`}
     >
-      {/* Solid hairline gridlines, one shade off the surface — never dashed. */}
+      {/* Solid hairline gridlines, one shade off the surface - never dashed. */}
       {scale.ticks.map((tick) => (
         <g key={tick}>
           <line
@@ -234,7 +234,7 @@ export function MovementPlot({ pitches, priorPitches }: MovementPlotProps) {
   const shifts = movementShift(pitches, priorPitches);
 
   // How many readings had no break at all. Said out loud rather than quietly
-  // omitted — a plot showing four of a session's forty pitches, with nothing
+  // omitted - a plot showing four of a session's forty pitches, with nothing
   // explaining the other thirty-six, is worse than no plot.
   const withoutBreak = shown.length - plotted.length;
   const hasHistory = plottablePitches(priorPitches).length > 0;
@@ -323,7 +323,7 @@ export function MovementPlot({ pitches, priorPitches }: MovementPlotProps) {
               </table>
             </div>
             <p className="fineprint">
-              Repeatability is how far a pitch of that type sits from its own average, on average —
+              Repeatability is how far a pitch of that type sits from its own average, on average -
               a smaller number means the pitch repeats more tightly.
             </p>
           </details>

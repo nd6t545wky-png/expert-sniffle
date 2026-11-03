@@ -1,7 +1,7 @@
 /**
  * The velocity block card.
  *
- * The domain tests prove the policy. These prove the athlete can see it — in
+ * The domain tests prove the policy. These prove the athlete can see it - in
  * particular on the weeks where the answer is "not this week", which is the
  * case a capped session most needs explaining.
  */

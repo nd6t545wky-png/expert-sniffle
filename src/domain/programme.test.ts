@@ -20,7 +20,7 @@ describe("programme structure", () => {
     );
   });
 
-  it("is contiguous — each phase starts the week after the previous ends", () => {
+  it("is contiguous - each phase starts the week after the previous ends", () => {
     for (let index = 1; index < PROGRAMME_PHASES.length; index += 1) {
       expect(PROGRAMME_PHASES[index].startWeek).toBe(PROGRAMME_PHASES[index - 1].endWeek + 1);
     }
@@ -37,7 +37,7 @@ describe("programme structure", () => {
   });
 });
 
-describe("phaseForWeek — boundaries", () => {
+describe("phaseForWeek - boundaries", () => {
   // Every documented boundary, checked on both sides of the seam.
   const boundaries: [number, string][] = [
     [1, "Winter Ball"],
@@ -63,7 +63,7 @@ describe("phaseForWeek — boundaries", () => {
   });
 });
 
-describe("phaseForWeek — out of range and invalid input", () => {
+describe("phaseForWeek - out of range and invalid input", () => {
   it.each([0, -1, 53, 100])("returns null for week %i", (week) => {
     expect(phaseForWeek(week)).toBeNull();
   });

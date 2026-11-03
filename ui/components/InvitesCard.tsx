@@ -67,7 +67,7 @@ export function InvitesCard({ api }: { api: PitchingOsApi }) {
     <Card aria-label="Invite players">
       <CardHead
         title="Invite players"
-        detail="Accounts are invite-only. Each link works once — make one per player and send it to them."
+        detail="Accounts are invite-only. Each link works once - make one per player and send it to them."
       />
       <div className="form-grid">
         <div className="field">

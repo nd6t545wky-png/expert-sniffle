@@ -1,7 +1,7 @@
 /**
  * Monday's primary lift, and the thing that went wrong with it.
  *
- * The defect was not a wrong number — every individual prescription was
+ * The defect was not a wrong number - every individual prescription was
  * defensible. It was that the number never *changed*: eight consecutive weeks
  * of a block labelled baseline → force peak → strength-speed peak → deload all
  * prescribed an identical squat. So the test that matters most here is not
@@ -37,7 +37,7 @@ describe("the imported block table", () => {
     // copied, so drift is no longer possible. What is still worth checking is
     // the shape: that file is `@ts-nocheck`, its entries type as `number[]`,
     // and reaching them needs a cast. Reading the source as text is how that
-    // cast gets held to account — 52 weeks, three numbers each.
+    // cast gets held to account - 52 weeks, three numbers each.
     const here = dirname(fileURLToPath(import.meta.url));
     const source = readFileSync(join(here, "programmeContent.ts"), "utf8");
     const block = source.match(/const TRAP_BAR_WEEK_SPECS = \{([\s\S]*?)\};/);
@@ -71,7 +71,7 @@ describe("translating a week into a squat", () => {
     // the hardest week of the block, so this is the load-bearing invariant.
     //
     // Not exact equality: four does not divide fifteen, so a 5 × 3 week lands
-    // on 4 × 4 and gains one rep. The bound is half a set — any more and the
+    // on 4 × 4 and gains one rep. The bound is half a set - any more and the
     // rounding, not the block plan, is deciding the week's volume.
     for (const week of WEEKS) {
       const dose = squatDose(week)!;

@@ -23,7 +23,7 @@ import { formatIsoDate } from "../state/formatDate";
 /**
  * The scorebook line, and what a season of them says.
  *
- * The app tracked throwing *load* and nothing about competition — no opponent,
+ * The app tracked throwing *load* and nothing about competition - no opponent,
  * no innings, no pitch count, no result. For a pitcher in a season that was
  * the largest hole in the whole thing: the training exists to serve outings,
  * and the outings were invisible.
@@ -153,7 +153,7 @@ export function GameLog({ date, games: allGames, onSave, onRemove, compact = fal
     const outs = outsFromInnings(draft.innings);
     if (outs === null) {
       setProblems([
-        'Innings must be written as the scorebook does — "5" for five, "3.2" for three and two outs.',
+        'Innings must be written as the scorebook does - "5" for five, "3.2" for three and two outs.',
       ]);
       return;
     }
@@ -220,7 +220,7 @@ export function GameLog({ date, games: allGames, onSave, onRemove, compact = fal
             </ul>
 
             <p className="fineprint">
-              {/* Strikes and batters faced only where some game recorded them —
+              {/* Strikes and batters faced only where some game recorded them -
                   a Ballclubz line carries neither, and "0 strikes" would say
                   something false. */}
               {[
@@ -250,7 +250,7 @@ export function GameLog({ date, games: allGames, onSave, onRemove, compact = fal
       <Card>
         <CardHead
           title={compact ? "Log today's game" : "Game log"}
-          detail={compact ? "Pitches, strikes and the line — tomorrow's plan reads the pitch count" : "One line per outing"}
+          detail={compact ? "Pitches, strikes and the line - tomorrow's plan reads the pitch count" : "One line per outing"}
         />
 
         {games.length === 0 ? null : (
@@ -373,7 +373,7 @@ export function GameLog({ date, games: allGames, onSave, onRemove, compact = fal
                 onChange={(event) => set("innings", event.target.value)}
               />
               {/* The scorebook's own notation, because that is what the athlete
-                  has in front of them — and because ".3" is not a third of an
+                  has in front of them - and because ".3" is not a third of an
                   inning, it is the next one. */}
               <small>As the scorebook writes it: 5 for five, 3.2 for three and two outs</small>
             </Field>
@@ -473,7 +473,7 @@ export function GameLog({ date, games: allGames, onSave, onRemove, compact = fal
                 {report.skipped.length} row{report.skipped.length === 1 ? "" : "s"} skipped:{" "}
                 {report.skipped
                   .slice(0, 3)
-                  .map((row) => `line ${row.line} — ${row.reason}`)
+                  .map((row) => `line ${row.line} - ${row.reason}`)
                   .join("; ")}
                 {report.skipped.length > 3 ? ` and ${report.skipped.length - 3} more.` : ""}
               </span>
@@ -488,7 +488,7 @@ export function GameLog({ date, games: allGames, onSave, onRemove, compact = fal
         )}
 
         <p className="fineprint">
-          Strike rate and first-pitch strikes are the two command numbers worth chasing — being
+          Strike rate and first-pitch strikes are the two command numbers worth chasing - being
           around the zone, and getting ahead. Neither can be worked out from a pitch count, which is
           why they are asked for here.
         </p>

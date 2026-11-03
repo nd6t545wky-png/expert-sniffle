@@ -6,7 +6,7 @@
  * request 404'd with an empty body, so the button led to a blank page and no
  * request ever reached Google.
  *
- * Nothing in the app could have caught that — the mistake was in the URL
+ * Nothing in the app could have caught that - the mistake was in the URL
  * itself, and a mock that answers every path would have passed. So the fetch
  * stub below answers exactly the one route better-auth actually mounts and
  * 404s everything else, the same way the deployed Worker does.

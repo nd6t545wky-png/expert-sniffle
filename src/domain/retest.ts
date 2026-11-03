@@ -6,7 +6,7 @@ import { IsoDate } from "./state";
  * Every force-plate number this programme is built on was taken once, in April
  * 2026, and displayed ever since as a static record. The squat block, the depth
  * jumps, the speed squat, the calf dose and the capped plyo intent were all
- * aimed at qualities in that report — and there has been no way to find out
+ * aimed at qualities in that report - and there has been no way to find out
  * whether any of them moved.
  *
  * That is the difference between a programme and a guess with good citations.
@@ -46,8 +46,8 @@ export interface RetestMetric {
 /**
  * The battery, in the order it should be performed.
  *
- * Jumps first while completely fresh — a squat jump after sprinting is a
- * different test — then the sprint, then the loaded velocities, then the
+ * Jumps first while completely fresh - a squat jump after sprinting is a
+ * different test - then the sprint, then the loaded velocities, then the
  * med-ball. Contact-time metrics come before anything that fatigues the calf.
  */
 export const RETEST_METRICS: readonly RetestMetric[] = Object.freeze([
@@ -163,7 +163,7 @@ export const RETEST_INTERVAL_WEEKS = 3;
  * Whether a programme week carries the battery.
  *
  * Anchored to week 1 so the cadence is predictable rather than drifting with
- * whichever week happens to be a deload — weeks 1, 4, 7, 10 and so on. A
+ * whichever week happens to be a deload - weeks 1, 4, 7, 10 and so on. A
  * predictable date is one an athlete can plan a rested Monday around.
  */
 export function isRetestWeek(week: number | null): boolean {
@@ -213,7 +213,7 @@ export function readRetests(value: unknown): RetestEntry[] {
       ...(typeof entry.note === "string" && entry.note.trim() ? { note: entry.note.trim() } : {}),
     });
   }
-  // Newest first, and one entry per date — a re-entry replaces the day.
+  // Newest first, and one entry per date - a re-entry replaces the day.
   const byDate = new Map(out.map((entry) => [entry.date, entry]));
   return [...byDate.values()].sort((a, b) => (a.date < b.date ? 1 : -1));
 }

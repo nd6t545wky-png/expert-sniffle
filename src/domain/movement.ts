@@ -2,7 +2,7 @@
  * The movement plot: where each pitch actually goes.
  *
  * The pitch log stored break for every imported pitch and showed it as two
- * numbers in a table. Break is not a number, it is a *place* — the whole
+ * numbers in a table. Break is not a number, it is a *place* - the whole
  * question of pitch design is whether two pitches leave the hand looking alike
  * and end up somewhere different, and no table answers that. This is the
  * standard horizontal-break × induced-vertical-break view, built so it can be
@@ -14,7 +14,7 @@
  *     so the picture has the shape the ball has. A plot stretched to fill a
  *     wide card would show a sweeper as a slider and would be lying.
  *   - **The origin is always on screen.** Zero break is a real, meaningful
- *     place — a ball moving only under gravity — so every cluster is read
+ *     place - a ball moving only under gravity - so every cluster is read
  *     against it rather than against a floating window.
  *   - **A pitch is only plotted when both breaks were measured.** Speed-only
  *     exports (a Pocket Radar file, most hand-typed readings) carry no break,
@@ -59,7 +59,7 @@ export interface MovementCluster {
  * The null and empty-string guards are the whole point: `Number(null)` is 0,
  * and 0 is a perfectly finite break. Without them every speed-only export
  * would have been read as a pitch that broke exactly zero inches in both
- * directions and piled onto the origin — the precise failure this module is
+ * directions and piled onto the origin - the precise failure this module is
  * built to avoid. Its own test caught it.
  */
 function finite(value: unknown): number | null {
@@ -172,7 +172,7 @@ export function movementScale(half: number): MovementScale {
 /**
  * Where each cluster's name goes.
  *
- * Pushing every label outward from the origin — the obvious rule — put the
+ * Pushing every label outward from the origin - the obvious rule - put the
  * slider's "9 thrown · 79.2 mph" straight through the "← glove side" axis
  * label and stacked it on the cutter's name. Two pitches on the same side of
  * the plate are common, so the naive rule fails on ordinary data.
@@ -260,7 +260,7 @@ export function labelLayout(clusters: MovementCluster[], scale: MovementScale): 
      * How bad a position is: any collision outranks any amount of spill.
      *
      * Spill matters on its own because on a phone the plot fills the width and
-     * the page clips horizontal overflow — a name running past the right edge
+     * the page clips horizontal overflow - a name running past the right edge
      * came back as "14 thrown · 87.9 mp". Scored rather than rejected outright
      * so a crowded plot still places every name somewhere sensible instead of
      * dropping them all on the first candidate.
@@ -310,7 +310,7 @@ export function labelLayout(clusters: MovementCluster[], scale: MovementScale): 
 /**
  * How close two clusters may sit before they are worth mentioning, in inches.
  *
- * Not a rule of the sport — a conversation starter. Two pitches inside six
+ * Not a rule of the sport - a conversation starter. Two pitches inside six
  * inches of each other are landing in the same place, which matters only if
  * they also arrive at the same speed, so the finding says both.
  */
@@ -331,7 +331,7 @@ export interface MovementFinding {
  * Plain-English readings of the plot.
  *
  * Deliberately says what was measured and against which threshold, so it can
- * be argued with, and stops short of prescribing anything — what to do about
+ * be argued with, and stops short of prescribing anything - what to do about
  * two pitches that overlap is a coaching decision, not an app's.
  */
 export function movementFindings(clusters: MovementCluster[]): MovementFinding[] {
@@ -361,14 +361,14 @@ export function movementFindings(clusters: MovementCluster[]): MovementFinding[]
       if (speedGap !== null && speedGap >= SEPARATING_MPH) {
         findings.push({
           severity: "note",
-          text: `Your ${a.pitchType.toLowerCase()} and ${b.pitchType.toLowerCase()} land ${gap}″ apart but ${speedGap} mph apart — same place, different timing.`,
+          text: `Your ${a.pitchType.toLowerCase()} and ${b.pitchType.toLowerCase()} land ${gap}″ apart but ${speedGap} mph apart - same place, different timing.`,
         });
       } else {
         findings.push({
           severity: "watch",
           text: `Your ${a.pitchType.toLowerCase()} and ${b.pitchType.toLowerCase()} average ${gap}″ apart${
             speedGap === null ? "" : ` and ${speedGap} mph apart`
-          }, inside the ${OVERLAP_INCHES}″ mark — they finish in much the same place.`,
+          }, inside the ${OVERLAP_INCHES}″ mark - they finish in much the same place.`,
         });
       }
     }
@@ -395,7 +395,7 @@ export interface MovementShift {
 /**
  * Today's shape against every earlier session's.
  *
- * Only pitch types thrown in both windows appear — a pitch thrown for the
+ * Only pitch types thrown in both windows appear - a pitch thrown for the
  * first time today has nothing to be compared with, and showing it beside a
  * blank column invites the blank to be read as zero.
  */

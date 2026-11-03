@@ -6,7 +6,7 @@
  * here from the two colours the athlete gives at sign-up, so it reads in light
  * and dark mode: the main colour fills buttons and the active day, a lighter
  * shade of it carries text on dark backgrounds, and the second colour is the
- * accent — the progress bar, ticks and stage markers.
+ * accent - the progress bar, ticks and stage markers.
  */
 
 export interface TeamColours {
@@ -122,7 +122,7 @@ export function teamThemeVars({ primary, secondary }: TeamColours): Record<strin
     "--tc-accent-dark-dark": mix(readableOnDark(primary), "#ffffff", 0.2),
     "--tc-accent-soft-dark": mix(primary, "#0b0b0c", 0.8),
     // The second colour also labels things (the date and step headings), so it
-    // is darkened or lightened just enough to read — 3:1, the large-text bar.
+    // is darkened or lightened just enough to read - 3:1, the large-text bar.
     "--tc-secondary-light": readableOnLight(secondary, 3),
     "--tc-secondary-dark": readableOnDark(secondary, 3),
     "--tc-on-secondary": inkOn(secondary),

@@ -2,7 +2,7 @@
  * The two settings the recovery protocol used to hardcode.
  *
  * Tested through the card rather than only through the readers, because the
- * failure that matters is a toggle that silently drops the rest of the kit —
+ * failure that matters is a toggle that silently drops the rest of the kit -
  * the athlete would see one box change and lose four blocks from tomorrow's
  * plan with nothing to connect the two.
  */

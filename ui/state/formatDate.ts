@@ -1,7 +1,7 @@
 /**
  * Date wording, matching the prototype's `formatDate`.
  *
- * The original never showed a bare ISO string to the athlete — every date in
+ * The original never showed a bare ISO string to the athlete - every date in
  * the interface reads "Monday, 10 August". Brisbane is fixed here for the same
  * reason it is fixed everywhere else in the app: it is the single source of
  * what "today" means, and a device in another timezone must not shift it.

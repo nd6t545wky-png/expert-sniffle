@@ -35,7 +35,7 @@ export type DayName = (typeof DAY_NAMES)[number];
 /**
  * High-intent throwing is restricted to Wednesday and Saturday, so there is
  * never back-to-back high-intent work. This is a programme rule, not a
- * preference — it is enforced here rather than left to the UI.
+ * preference - it is enforced here rather than left to the UI.
  */
 export const HIGH_INTENT_DAYS: readonly DayName[] = Object.freeze(["Wednesday", "Saturday"]);
 
@@ -66,7 +66,7 @@ export interface ReadinessSubmission {
   /**
    * The answers this score came from, kept so later check-ins can build
    * rolling baselines from them. Optional because records written before
-   * check-ins stored their inputs are still valid submissions — they simply
+   * check-ins stored their inputs are still valid submissions - they simply
    * do not contribute to a median.
    */
   inputs?: ReadinessInputs;
@@ -138,7 +138,7 @@ export type PlanState =
 
 /**
  * The day's plan is gated behind a readiness submission for that same date.
- * A red-risk reading does not unlock the planned session at all — it is
+ * A red-risk reading does not unlock the planned session at all - it is
  * replaced by recovery work pending qualified review.
  */
 export function planStateForDate(
@@ -153,7 +153,7 @@ export function planStateForDate(
     return {
       status: "held",
       workloadFactor: 0,
-      message: "Health hold — the planned session is replaced with recovery and qualified review.",
+      message: "Health hold - the planned session is replaced with recovery and qualified review.",
     };
   }
   const effective = submission.manualOverride?.to ?? submission.planLevel;
@@ -223,8 +223,8 @@ export type ThrowingCheck =
  * recovery plan caps intent below high regardless of the weekday.
  *
  * `options.gameDay` is the one exemption, and it is narrow on purpose. The
- * weekday rule exists to keep the programme's own high-intent work spaced —
- * one such day either side of the Saturday game — and it was written when the
+ * weekday rule exists to keep the programme's own high-intent work spaced -
+ * one such day either side of the Saturday game - and it was written when the
  * app assumed the only game was on a Saturday. A finals series puts one on a
  * Friday, and refusing to record what was thrown in it does not make the
  * throwing not have happened; it just loses the number the workload ratio is
@@ -289,7 +289,7 @@ export function totalThrowLoad(sessions: readonly Pick<ThrowingSessionInput, "in
 
 /**
  * Prescribed session volume after the readiness workload factor is applied.
- * Rounded to whole units — you cannot throw two thirds of a ball.
+ * Rounded to whole units - you cannot throw two thirds of a ball.
  */
 export function adjustedSessionLoad(baseLoad: number, workloadFactor: number): number {
   const base = Number(baseLoad);
@@ -298,7 +298,7 @@ export function adjustedSessionLoad(baseLoad: number, workloadFactor: number): n
 }
 
 /**
- * Acute:chronic workload ratio — 7-day load over the average week of the
+ * Acute:chronic workload ratio - 7-day load over the average week of the
  * preceding 28 days. Returns null when there is not enough history to make
  * the number meaningful, rather than a misleading value.
  */
@@ -367,7 +367,7 @@ export const UNSKIPPABLE_STAGE = "Health Hold";
 
 /**
  * Record a skip. A skip resolves a task for check-out without recording it as
- * completed, so it always carries a reason — an unexplained gap in the log is
+ * completed, so it always carries a reason - an unexplained gap in the log is
  * indistinguishable from work that was never assigned.
  */
 export function skipTask(
@@ -411,7 +411,7 @@ export function skipTask(
  * Skip a whole stage at once.
  *
  * The plan is nineteen tasks on a Monday and they are skipped one at a time,
- * each behind its own modal — so a session cut short at the gym meant eight
+ * each behind its own modal - so a session cut short at the gym meant eight
  * separate confirmations, and what actually happened was that nobody resolved
  * any of them and the day stayed permanently half-finished. A stage is the
  * unit an athlete abandons: the lift got missed, not the third exercise in it.
@@ -455,7 +455,7 @@ export function skipStage(
       applied += 1;
       continue;
     }
-    // A locked plan or a missing reason stops the whole thing — neither is
+    // A locked plan or a missing reason stops the whole thing - neither is
     // about the individual task, so applying it to some of them would be
     // arbitrary.
     if (outcome.reason === "locked" || outcome.reason === "no-reason") return outcome;
@@ -479,7 +479,7 @@ export function undoSkipTask(
 }
 
 /**
- * Session progress. Skipped work is resolved but never counted as completed —
+ * Session progress. Skipped work is resolved but never counted as completed -
  * the two are reported separately so a session finished by skipping half of it
  * cannot read as a session that was done.
  */
@@ -521,7 +521,7 @@ export type ReportOutcome =
   | { ok: false; reason: "duplicate" | "invalid-date" | "not-unlocked"; message: string };
 
 /**
- * Record a post-session report. One per date — a duplicate would double-count
+ * Record a post-session report. One per date - a duplicate would double-count
  * the day's workload in every downstream calculation.
  */
 export function submitSessionReport(

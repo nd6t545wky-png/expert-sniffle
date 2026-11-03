@@ -18,7 +18,7 @@ export interface Env {
   // Config
   APP_ORIGIN: string;
 
-  // Secrets — set with `wrangler secret put <NAME>`, never commit values
+  // Secrets - set with `wrangler secret put <NAME>`, never commit values
   BETTER_AUTH_SECRET: string;
   GOOGLE_CLIENT_ID: string;
   GOOGLE_CLIENT_SECRET: string;

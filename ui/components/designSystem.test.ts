@@ -17,7 +17,7 @@
  *     plus a severity ramp that means something.
  *
  * Each check states the rule and, where it matters, the exception it allows and
- * why. An exception list is the honest way to write this — the alternative is a
+ * why. An exception list is the honest way to write this - the alternative is a
  * rule so loose it never fails.
  */
 
@@ -53,14 +53,14 @@ const CHROME = /\.(sidebar|topbar|bottom-nav|mobile-sheet|toast|card|hero-sessio
 
 /**
  * Every declaration in the sheet, with the line it starts on, its enclosing
- * selector, and comments stripped — the comments in these files quote plenty of
+ * selector, and comments stripped - the comments in these files quote plenty of
  * the colours and radii the rules below forbid.
  *
  * Whole declarations rather than lines, because a value spanning four lines
  * (the photo scrim does) is one decision and has to be judged as one.
  */
 function declarations(css: string): { line: number; selector: string; text: string }[] {
-  // Blank the comments in place so offsets — and so line numbers — still match
+  // Blank the comments in place so offsets - and so line numbers - still match
   // the original.
   const bare = css.replace(/\/\*[\s\S]*?\*\//g, (comment) => comment.replace(/[^\n]/g, " "));
   const out: { line: number; selector: string; text: string }[] = [];
@@ -109,7 +109,7 @@ function valuesOf(property: string): { where: string; selector: string; value: s
 describe("design system", () => {
   it("ships one stylesheet, not two that have drifted", () => {
     // `public/styles.css` is served to the prototype at `/` and `ui/styles.css`
-    // is bundled for the app at `/next/`. They are the same file, copied — and
+    // is bundled for the app at `/next/`. They are the same file, copied - and
     // a change made to one and not the other is invisible until someone opens
     // the other route.
     expect(read("styles.css")).toBe(
@@ -118,7 +118,7 @@ describe("design system", () => {
   });
 
   it("takes every corner from the radius scale", () => {
-    // `calc(var(--radius) / 2)` is still on the scale — it is derived from it,
+    // `calc(var(--radius) / 2)` is still on the scale - it is derived from it,
     // which is what a nested control's corner should be. A bare `14px` is not.
     const offenders = valuesOf("border-radius")
       .filter(({ value }) => value !== "inherit")
@@ -167,7 +167,7 @@ describe("design system", () => {
 
   it("takes every shadow from the elevation scale", () => {
     // What survives: `none`, the three tokens, the focus ring, and a hairline
-    // ring drawn with zero blur — `inset 0 0 0 1px` is a border on an element
+    // ring drawn with zero blur - `inset 0 0 0 1px` is a border on an element
     // that cannot take one, not a shadow.
     const offenders = valuesOf("box-shadow")
       .filter(({ value }) => {
@@ -189,7 +189,7 @@ describe("design system", () => {
 
   it("keeps display type on the scale", () => {
     // Small sizes are still written as literals in a few hundred places, and
-    // that is fine — they are body and caption text. Anything above 17px is
+    // that is fine - they are body and caption text. Anything above 17px is
     // display type, is a design decision, and comes from a token.
     const offenders = valuesOf("font-size|font")
       .filter(({ value }) => !value.includes("cqw"))
@@ -225,8 +225,8 @@ describe("design system", () => {
   });
 
   it("declares every colour as a token, never at the point of use", () => {
-    // A literal is allowed in a custom-property declaration — that is what the
-    // palette is — and nowhere else. The exception is a neutral black or white
+    // A literal is allowed in a custom-property declaration - that is what the
+    // palette is - and nowhere else. The exception is a neutral black or white
     // with an alpha: a modal scrim, a material and a caption shadow are dimming
     // or frosting, not hue, and there is no sensible token for "70% of whatever
     // is behind this".
@@ -299,7 +299,7 @@ describe("design system", () => {
     const rootAliases = [...STYLES.matchAll(/^\s*(--[a-z-]+):\s*var\(--accent[a-z-]*\)/gm)].map(
       (match) => match[1]
     );
-    expect(rootAliases.length, "no accent aliases found — has the palette moved?").toBeGreaterThan(3);
+    expect(rootAliases.length, "no accent aliases found - has the palette moved?").toBeGreaterThan(3);
 
     for (const alias of new Set(rootAliases)) {
       expect(
@@ -313,7 +313,7 @@ describe("design system", () => {
   it("has no green, because colour here means attention", () => {
     // `--green` is kept as a name so several hundred call sites keep resolving,
     // and it points at the accent. A real green would reappear as a literal,
-    // which the token check above catches — this names the intent so the next
+    // which the token check above catches - this names the intent so the next
     // person reads it as a decision rather than a gap.
     expect(STYLES).toMatch(/--green:\s*var\(--accent\)/);
   });

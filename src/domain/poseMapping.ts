@@ -3,12 +3,12 @@
  *
  * The manual tool asks for six taps a frame. A pose model finds thirty-three
  * landmarks in one pass, and four of the six measurements only need a handful
- * of them — so the tapping becomes a correction step rather than the work.
+ * of them - so the tapping becomes a correction step rather than the work.
  *
  * What this deliberately does *not* change: the measurement, the projection
  * caveat, or the reference bands. The model places the points; the same
  * trigonometry runs on them, and a placed point is still visible and still
- * adjustable. Auto-detection removes the tedium, not the 2D-versus-3D error —
+ * adjustable. Auto-detection removes the tedium, not the 2D-versus-3D error -
  * a model that finds a shoulder in a photograph is still looking at a
  * photograph.
  *
@@ -71,7 +71,7 @@ function usable(landmark: PoseLandmark | undefined): Point | null {
   if (!landmark) return null;
   if (!Number.isFinite(landmark.x) || !Number.isFinite(landmark.y)) return null;
   // Absent visibility means the model did not report one, which is treated as
-  // usable — only an explicit low score rejects the point.
+  // usable - only an explicit low score rejects the point.
   if (landmark.visibility !== undefined && landmark.visibility < VISIBILITY_FLOOR) return null;
   // Outside the frame entirely: the model extrapolates past the edges, and a
   // point off-picture cannot have been seen.
@@ -160,5 +160,5 @@ export function poseSummary(result: PoseResult, total: number): string {
   if (placed === 0) {
     return "Could not find the body in this frame. Try a frame where more of you is visible, or tap the points yourself.";
   }
-  return `Found ${placed} of ${total} points. Tap the rest yourself — the ones it was unsure of are left out rather than guessed.`;
+  return `Found ${placed} of ${total} points. Tap the rest yourself - the ones it was unsure of are left out rather than guessed.`;
 }

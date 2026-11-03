@@ -126,7 +126,7 @@ function rawRecoveryKeyHash(token: string): Promise<string> {
  *
  * Any 64-hex string used to pass as a recovery key, so anyone could call the
  * paid endpoints (the nutrition AI, video analysis, uploads) by making one up.
- * A key now counts only if an account workspace holds it — which, with
+ * A key now counts only if an account workspace holds it - which, with
  * accounts invite-only, means only invited players get in.
  */
 const REGISTERED_KEYS = new Map<string, number>();
@@ -143,7 +143,7 @@ async function isRegisteredKey(env: Env, keyHash: string): Promise<boolean> {
   return true;
 }
 
-/** The caller's recovery key hash — only when it belongs to an account. */
+/** The caller's recovery key hash - only when it belongs to an account. */
 async function recoveryKeyHash(request: Request, env: Env): Promise<string | null> {
   const token = bearerToken(request);
   if (!token) return null;
@@ -178,8 +178,8 @@ async function enforceAccountRateLimit(
   const keyHash = await nutritionKeyHash(request, env, url);
   // Security fix: this previously returned null (= allow) whenever the request
   // wasn't attributable to an account, so unauthenticated callers skipped rate
-  // limiting entirely and could hammer these endpoints — and the session/D1
-  // lookups behind them — without bound. Fall back to the caller's IP instead.
+  // limiting entirely and could hammer these endpoints - and the session/D1
+  // lookups behind them - without bound. Fall back to the caller's IP instead.
   const key = keyHash
     ? `${category}:${keyHash}`
     : `${category}:ip:${clientIp(request)}`;
@@ -188,7 +188,7 @@ async function enforceAccountRateLimit(
   const outcome = await limiter.limit({ key });
   if (!outcome.success) return tooMany;
 
-  // The binding's production behaviour is unverified — see `overLimit`. These
+  // The binding's production behaviour is unverified - see `overLimit`. These
   // are the endpoints that spend money per call, so the count that can be
   // demonstrated is the one in D1.
   const { limit, period } =
@@ -255,7 +255,7 @@ function clientIp(request: Request): string {
 }
 
 // The Apple Health ingest endpoint is the one route reachable from outside the
-// browser (by design — an iPhone Shortcut posts to it with a bearer token), and
+// browser (by design - an iPhone Shortcut posts to it with a bearer token), and
 // it previously had no rate limiting at all. Bound it by IP first so token
 // guessing and unauthenticated floods are capped regardless, then by the
 // presented token so a single compromised Shortcut can't flood either.
@@ -264,8 +264,8 @@ function clientIp(request: Request): string {
  *
  * The Workers Rate Limiting binding is configured the documented way and
  * enforces exactly as specified under `wrangler dev`. Whether it enforces in
- * production is still unproven: the tests that concluded it did not — 90
- * sequential requests to a 60-per-minute endpoint returning zero 429s — were
+ * production is still unproven: the tests that concluded it did not - 90
+ * sequential requests to a 60-per-minute endpoint returning zero 429s - were
  * invalid. Each request took about 1.4 seconds, so 90 of them spanned more
  * than two 60-second windows and at most ~42 ever landed in one. The limit
  * could not have been reached. Fired as a parallel burst instead, the same
@@ -278,13 +278,13 @@ function clientIp(request: Request): string {
  * The binding is still called first: it is cheaper, it works at the edge, and
  * if it does enforce it does so before this runs.
  *
- * Under a burst this refuses slightly early — concurrent requests each
+ * Under a burst this refuses slightly early - concurrent requests each
  * increment before reading, so a caller can see a count inflated by requests
  * still in flight. Erring towards refusing is the right direction for a
  * limiter, and the increment itself is atomic, so the count never drifts low.
  *
  * Fails open. If D1 is unavailable the request is allowed rather than the app
- * being taken down by its own rate limiter — the failure mode of a broken
+ * being taken down by its own rate limiter - the failure mode of a broken
  * limiter must not be worse than the abuse it prevents.
  */
 async function overLimit(
@@ -297,7 +297,7 @@ async function overLimit(
   const windowStart = now - (now % periodSeconds);
   // Two statements rather than one INSERT ... RETURNING. The single-statement
   // form works under wrangler dev but returns no row from the deployed D1, so
-  // the count read back was always zero and nothing was ever over the limit —
+  // the count read back was always zero and nothing was ever over the limit -
   // a limiter that looked like it worked and silently allowed everything. The
   // read-back is a separate SELECT because it has to be right, not clever.
   const count = async (): Promise<number> => {
@@ -1494,7 +1494,7 @@ async function ingestAppleHealth(request: Request, env: Env): Promise<Response> 
   if (!validDay(day)) return json({ error: "Apple Health payload needs a valid day" }, 400);
 
   // Validated against the shared field table, which the setup instructions are
-  // also generated from — two hand-kept lists would drift, and the failure is
+  // also generated from - two hand-kept lists would drift, and the failure is
   // silent: a Shortcut built from a documented name the Worker no longer takes
   // gets a 400 the phone never shows, which reads as the ring not syncing.
   const read = readApplePayload(body);
@@ -1839,7 +1839,7 @@ async function deleteMechanicsVideo(request: Request, env: Env, id: string): Pro
  *
  * Deliberately has no database table. Ownership is *structural*: the object
  * key is `${keyHash}/session/${day}`, so a request can only ever address its
- * own photo — there is no lookup that could return someone else's row, and no
+ * own photo - there is no lookup that could return someone else's row, and no
  * schema to migrate. The caption travels in the encrypted sync blob with the
  * rest of the athlete's data, which is where it belongs.
  *
@@ -2270,7 +2270,7 @@ async function analyzeMealPhoto(request: Request, env: Env, url: URL): Promise<R
     photoRetained: false,
     notice:
       basis === "database"
-        ? "Portions were read from the photo; the nutrition behind them came from USDA FoodData Central. Check the weights — they are the estimate, and oil in the pan is invisible to a camera."
+        ? "Portions were read from the photo; the nutrition behind them came from USDA FoodData Central. Check the weights - they are the estimate, and oil in the pan is invisible to a camera."
         : "The photo was processed for this estimate and was not stored. Review portions and edit values before saving.",
   });
 }
@@ -2859,7 +2859,7 @@ async function handleInvites(request: Request, env: Env, url: URL): Promise<Resp
 // -- Games sent to one player ---------------------------------------------------
 //
 // A player's data is encrypted on their device, so the owner cannot write
-// into it. Games for one player — a tournament, a rep squad — are held here
+// into it. Games for one player - a tournament, a rep squad - are held here
 // against that player's account; their app adds them to their own games.
 
 async function ensurePlayerEventsTable(env: Env): Promise<void> {
@@ -3238,8 +3238,8 @@ async function teamWebLookup(env: Env, url: URL): Promise<Response> {
 }
 
 /**
- * A team's draw from whichever league it plays in — and, where the league's
- * source has player pages, that player's own page — for the team and name a
+ * A team's draw from whichever league it plays in - and, where the league's
+ * source has player pages, that player's own page - for the team and name a
  * new account gave. See src/domain/leagues.ts for the leagues followed.
  */
 async function leagueTeamDraw(url: URL): Promise<Response> {
@@ -3334,9 +3334,9 @@ async function routeApi(request: Request, env: Env, url: URL): Promise<Response 
   // The athlete's league game log, read off their public Ballclubz player
   // page. Proxied because Ballclubz sends no CORS headers; parsed here so the
   // page's HTML never reaches the client. Only a ballclubz.com player page is
-  // fetched — the URL is rebuilt from validated parts, never passed through.
+  // fetched - the URL is rebuilt from validated parts, never passed through.
   // A GBL team's draw and, when a name is given, that player's own page on
-  // the team roster — what a new account's team and name hook up to.
+  // the team roster - what a new account's team and name hook up to.
   if (url.pathname === "/api/me/events" || url.pathname === "/api/players" || url.pathname.startsWith("/api/players/")) {
     const limited = await enforceAccountRateLimit(request, env, url, env.INTEGRATION_RATE_LIMITER, "invites");
     return limited ?? handlePlayerEvents(request, env, url);
@@ -3372,8 +3372,8 @@ async function routeApi(request: Request, env: Env, url: URL): Promise<Response 
   }
   if (url.pathname === "/api/history") return handleTrainingHistory(request, env, url);
   if (url.pathname === "/api/share" || url.pathname.startsWith("/api/share/")) {
-    // A physio opening a link is cross-origin by nature — they are following a
-    // URL, not using the app — so only the writing routes are same-origin
+    // A physio opening a link is cross-origin by nature - they are following a
+    // URL, not using the app - so only the writing routes are same-origin
     // guarded. Reading is guarded by the id itself.
     const writing = request.method !== "GET";
     const blocked = writing ? requireSameOrigin(request, url, env) : null;
@@ -3450,7 +3450,7 @@ async function routeApi(request: Request, env: Env, url: URL): Promise<Response 
   const sessionPhotoMatch = /^\/api\/session-photos\/(\d{4}-\d{2}-\d{2})$/.exec(url.pathname);
   if (sessionPhotoMatch) {
     const day = sessionPhotoMatch[1];
-    // The photo is read with the bearer key, so a GET needs no origin check —
+    // The photo is read with the bearer key, so a GET needs no origin check -
     // but anything that writes does.
     if (request.method === "GET") return sessionPhotoContent(request, env, day);
     const blocked = requireSameOrigin(request, url, env);
@@ -3516,7 +3516,7 @@ async function routeApi(request: Request, env: Env, url: URL): Promise<Response 
  * So the fallback is done here instead, where the two cases can be told
  * apart. A path that names a file is a file: if it is not there, that is a
  * 404, and a broken deploy announces itself. A path with no extension is a
- * route, and gets the shell that owns it — `/next/` routes get the React
+ * route, and gets the shell that owns it - `/next/` routes get the React
  * shell rather than the prototype, which is the same distinction the service
  * worker makes offline.
  */
@@ -3655,9 +3655,9 @@ async function handleShares(request: Request, env: Env, url: URL): Promise<Respo
  * Send the front door to the app the athlete is actually meant to use.
  *
  * Two applications are served here: the original prototype at `/`, frozen at
- * v60, and the rebuilt app at `/next/`. Everything built since — recovery
+ * v60, and the rebuilt app at `/next/`. Everything built since - recovery
  * trends, progress charts, the movement plot, micronutrients, the automatic
- * delivery analysis, game import, Apple Health setup — exists only in the
+ * delivery analysis, game import, Apple Health setup - exists only in the
  * second one. The prototype contains no link to it whatsoever, and the PWA
  * manifest pointed `start_url` at `/`.
  *
@@ -3667,7 +3667,7 @@ async function handleShares(request: Request, env: Env, url: URL): Promise<Respo
  * go. It read as the app having reverted, or as a feature never shipping.
  *
  * `/` now sends a browser to `/next/`. The prototype is still there and still
- * served — `/?legacy=1` reaches it, and nothing has been deleted — because it
+ * served - `/?legacy=1` reaches it, and nothing has been deleted - because it
  * is the fallback if the rebuilt app ever cannot start, and because the
  * migration path reads its stored data.
  *
@@ -3728,7 +3728,7 @@ export default {
       // ?v=-versioned app.js/styles.css/etc.) is set via public/_headers.
       // Cloudflare serves static-asset-shaped requests directly from the
       // Assets binding without invoking this fetch handler, so header
-      // rewrites attempted here never actually run for those requests —
+      // rewrites attempted here never actually run for those requests -
       // _headers is the mechanism that does.
       return serveAsset(request, env, url);
     } catch (error) {

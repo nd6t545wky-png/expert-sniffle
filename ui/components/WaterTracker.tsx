@@ -1,14 +1,14 @@
 /**
  * Hydration tracker, ported from the prototype's `renderWaterTracker`.
  *
- * The stylesheet already carries the whole widget — `.water-tracker`,
+ * The stylesheet already carries the whole widget - `.water-tracker`,
  * `.water-bottle-svg`, `.water-liquid`, `.water-wave`, `.water-readout`,
  * `.water-progress-track`, `.water-buttons`. A card with a row of `.btn`s in
  * its place is not a simplification, it is a different component that happens
  * to add litres: the tap-the-bottle interaction, the animated fill and the
  * progress readout are all the original's, so they are reproduced here.
  *
- * Geometry (fill range, wave offsets, bottle path) is copied verbatim — the
+ * Geometry (fill range, wave offsets, bottle path) is copied verbatim - the
  * numbers are tuned to the SVG's 180×350 viewBox and mean nothing on their own.
  */
 
@@ -102,11 +102,7 @@ export function WaterTracker({ date, logged, goal, presets = [0.5, 0.75], onChan
         </div>
 
         <div className="water-panel">
-          <div>
-            <p className="eyebrow">Hydration</p>
-            <h3>Fill your bottle.</h3>
-            <p>Log what you actually drink. The moving water follows today's saved total.</p>
-          </div>
+          <h3>Water</h3>
           <div className="water-readout" role="status" aria-live="polite">
             <strong>{logged} L</strong>
             <span>{goal ? `of ${goal} L · ${rawPercent}%` : "No target set"}</span>
@@ -137,10 +133,6 @@ export function WaterTracker({ date, logged, goal, presets = [0.5, 0.75], onChan
               onConfirm={() => onChange("reset")}
             />
           </div>
-          <p className="fineprint">
-            This records fluid volume only. Your target should reflect your sports-dietitian plan and
-            measured sweat losses rather than a generic formula.
-          </p>
         </div>
       </div>
     </article>

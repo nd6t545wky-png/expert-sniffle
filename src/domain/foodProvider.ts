@@ -69,7 +69,7 @@ export interface FoodSearchResult {
  * What any provider must do.
  *
  * Deliberately three methods. Search and barcode lookup are different queries
- * with different failure modes — a barcode either matches or does not, and
+ * with different failure modes - a barcode either matches or does not, and
  * falling back to a text search on a miss is the caller's decision, not the
  * adapter's.
  */

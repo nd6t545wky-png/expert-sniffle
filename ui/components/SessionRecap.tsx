@@ -8,10 +8,10 @@ import { formatIsoDate } from "../state/formatDate";
 import { ConfirmButton } from "./ConfirmButton";
 
 /**
- * The session recap — a photo with the day's work on it, for sharing.
+ * The session recap - a photo with the day's work on it, for sharing.
  *
  * Laid out like a Strava story card: 9:16, the photo full-bleed, and the
- * numbers set over it — a small label above a large value, two columns.
+ * numbers set over it - a small label above a large value, two columns.
  *
  * The on-screen card is HTML so it themes and reflows like everything else;
  * the *exported* card is drawn separately onto a canvas at a fixed 1080×1920,
@@ -127,8 +127,8 @@ export function SessionRecap({
   }
 
   /**
-   * Hand the card to the OS share sheet — Instagram, Messages, whatever is
-   * installed — falling back to a download where that is not available.
+   * Hand the card to the OS share sheet - Instagram, Messages, whatever is
+   * installed - falling back to a download where that is not available.
    *
    * `canShare({ files })` is the only reliable test: several browsers expose
    * `navigator.share` but reject files, so checking for the method alone
@@ -194,7 +194,7 @@ export function SessionRecap({
           <div className="recap-photo recap-photo-empty" aria-hidden="true" />
         )}
 
-        {/* Stats sit high over the photo, as on the reference card — label
+        {/* Stats sit high over the photo, as on the reference card - label
             small above, value large below, two columns. The photo stays
             visible; only a light wash and a text shadow carry legibility. */}
         <div className="recap-overlay">
@@ -233,7 +233,7 @@ export function SessionRecap({
       </div>
 
       {/* Which numbers go on the card. Only what the day can actually
-          support is offered — a stat with nothing behind it would print
+          support is offered - a stat with nothing behind it would print
           blank. */}
       <details className="recap-picker">
         <summary>
@@ -323,7 +323,7 @@ export function SessionRecap({
 
       {!hasSyncKey && (
         <p className="fineprint">
-          <strong>Cloud autosave required</strong> to attach a photo — it is stored privately against
+          <strong>Cloud autosave required</strong> to attach a photo - it is stored privately against
           your recovery key. You can still save the card without one.
         </p>
       )}
@@ -335,7 +335,7 @@ export function SessionRecap({
       )}
 
       <p className="fineprint">
-        Share opens your phone’s share sheet with a {RECAP_CARD.width}×{RECAP_CARD.height} image —
+        Share opens your phone’s share sheet with a {RECAP_CARD.width}×{RECAP_CARD.height} image -
         Instagram, messages, anywhere. Save image writes the same file to your device. Nothing is
         posted automatically; where it goes is up to you.
       </p>

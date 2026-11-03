@@ -6,19 +6,19 @@ import { Session, SessionTask } from "./programmeSessions";
  *
  * The programme was written around one club at a time: winter weeks assume the
  * athlete trains alone Tuesday and Thursday, summer weeks assume Coomera Cubs
- * practice on both. Reality does not switch over on a phase boundary — Cubs
+ * practice on both. Reality does not switch over on a phase boundary - Cubs
  * training started on Tuesdays part-way through the FNCBA winter season, which
  * the winter plan has no idea about.
  *
  * Left alone, that Tuesday reads: 2 × 10 m plus 3 × 20 m of near-maximal
- * running, a plyo ladder, and **45–55 command throws** — and then the athlete
+ * running, a plyo ladder, and **45–55 command throws** - and then the athlete
  * goes to a full club practice and throws again. Eighty-five to a hundred and
  * fifteen throws on the day before the week's velocity day, from a plan that
  * believes it prescribed fifty.
  *
  * So a training night replaces the solo throwing rather than adding to it. The
- * replacement is the programme's own summer wording, verbatim — "40–60 throws
- * · distance and intensity set by team plan" — because that is precisely the
+ * replacement is the programme's own summer wording, verbatim - "40–60 throws
+ * · distance and intensity set by team plan" - because that is precisely the
  * situation it was written for, and inventing a second phrasing for the same
  * thing would just be a second thing to keep in step.
  *
@@ -105,7 +105,7 @@ function teamThrowingTask(prefix: string, stage: number, club: string): SessionT
     stageDescription: "Record team throwing and any mound work accurately.",
     name: `${club} practice throwing`,
     prescription: "40–60 throws · distance and intensity set by team plan",
-    cue: "This replaces the solo command set rather than sitting in front of it — the throws you make at practice are the day's throws. Count them; a practice nobody counted is how a week's workload goes missing.",
+    cue: "This replaces the solo command set rather than sitting in front of it - the throws you make at practice are the day's throws. Count them; a practice nobody counted is how a week's workload goes missing.",
     setup: "Warm up as you would for your own session before joining the team's throwing.",
     execution:
       "Take the team's assigned work. If the session runs long or the intensity climbs, stop at the top of the range rather than matching whoever is throwing beside you.",
@@ -124,7 +124,7 @@ function teamPracticeTask(prefix: string, stage: number, club: string): SessionT
     name: `Complete ${club} training`,
     prescription: "Complete assigned baseball work · record session duration and RPE",
     cue: "Log the duration and how hard it felt. Practice is real workload, and a week that does not count it will happily prescribe a hard Wednesday on top of it.",
-    setup: "Nothing to set up — this is the club session.",
+    setup: "Nothing to set up - this is the club session.",
     execution: "Take part as assigned. Any extra bullpen counts as throwing and belongs in the workload log.",
     rest: "As the session runs.",
     stop: "Stop for pain, and report it rather than finishing the drill.",
@@ -139,7 +139,7 @@ function teamPracticeTask(prefix: string, stage: number, club: string): SessionT
  * say what happened, but the heading is the largest text on the page and it
  * would still be naming work that is not there.
  *
- * Only the first descriptor changes — the acceleration work survives and stays
+ * Only the first descriptor changes - the acceleration work survives and stays
  * in the title. A title this cannot parse is left alone rather than mangled.
  */
 function retitle(title: string): string {
@@ -153,8 +153,8 @@ function retitle(title: string): string {
 /**
  * Fold a club training night into a day the programme wrote as a solo session.
  *
- * A day that already carries team practice — the summer weeks, which were
- * written around it — is left completely alone. Adding a second practice to a
+ * A day that already carries team practice - the summer weeks, which were
+ * written around it - is left completely alone. Adding a second practice to a
  * plan that already has one is the failure this exists to prevent, in the
  * other direction.
  */
@@ -177,7 +177,7 @@ export function applyTeamTraining(
     const noted = tasks.map((task) => {
       if (annotated || !/pulldown|velocity day|high-intent/i.test(String(task.name))) return task;
       annotated = true;
-      const sentence = `${settings.club} trained last night, so today follows a practice the original plan did not know about — if the arm is not fresh, this is the set to cut rather than push through.`;
+      const sentence = `${settings.club} trained last night, so today follows a practice the original plan did not know about - if the arm is not fresh, this is the set to cut rather than push through.`;
       const cue = String(task.cue ?? "");
       return cue.includes(sentence) ? task : { ...task, cue: `${cue} ${sentence}`.trim() };
     });
@@ -212,7 +212,7 @@ export function applyTeamTraining(
     withPractice.splice(after === -1 ? withPractice.length : after, 0, {
       ...teamPracticeTask(prefix, throwStage + 1, settings.club),
       prescription: "Complete assigned baseball work · no extra bullpen · keep throwing to a catch",
-      cue: `The bullpen is today's throwing. At ${settings.club} training, field and hit, but keep throwing to an easy catch — the bullpen pitches already count.`,
+      cue: `The bullpen is today's throwing. At ${settings.club} training, field and hit, but keep throwing to an easy catch - the bullpen pitches already count.`,
     });
     return {
       session: {
@@ -220,7 +220,7 @@ export function applyTeamTraining(
         tasks: withPractice,
         description: `${session.description} ${settings.club} training is on tonight too: the bullpen stays, and practice throwing is kept to an easy catch.`.trim(),
       },
-      note: `${settings.club} training tonight — the bullpen stays; keep practice throwing to a catch.`,
+      note: `${settings.club} training tonight - the bullpen stays; keep practice throwing to a catch.`,
     };
   }
 
@@ -235,8 +235,8 @@ export function applyTeamTraining(
   ];
   replaced.splice(insertAt === -1 ? replaced.length : insertAt, 0, ...additions);
 
-  // The speed set is kept — it is the week's only true acceleration exposure
-  // and eighty metres of it is not what makes this day hard — but it loses a
+  // The speed set is kept - it is the week's only true acceleration exposure
+  // and eighty metres of it is not what makes this day hard - but it loses a
   // rep, because practice brings running of its own and the hamstring does not
   // care which session it happened in.
   const trimmed = replaced.map((task) => {
@@ -258,6 +258,6 @@ export function applyTeamTraining(
       tasks: trimmed,
       description: `${session.description} ${settings.club} training is on tonight, so practice throwing replaces the solo set.`.trim(),
     },
-    note: `${settings.club} training tonight — ${dropped} is replaced by practice throwing, not added to it.`,
+    note: `${settings.club} training tonight - ${dropped} is replaced by practice throwing, not added to it.`,
   };
 }

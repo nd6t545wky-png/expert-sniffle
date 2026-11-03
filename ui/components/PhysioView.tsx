@@ -3,7 +3,7 @@
  *
  * A whole application of its own, deliberately: it mounts instead of the
  * athlete's app rather than as a page inside it. There is no state to load, no
- * check-in to submit, no sync key on the device — so there is nothing here
+ * check-in to submit, no sync key on the device - so there is nothing here
  * that could write to the workspace even if it wanted to. Read-only is the
  * shape of the code, not a flag somewhere.
  *
@@ -127,13 +127,13 @@ function BloodPanelCard({ panel }: { panel: PhysioBloodPanel }) {
       {outside.length > 0 && (
         <p className="physio-detail">
           Outside the reference range on the athlete's report:{" "}
-          {outside.map((marker) => marker.label).join(", ")}. Reported as measured — the athlete has
+          {outside.map((marker) => marker.label).join(", ")}. Reported as measured - the athlete has
           been told to take these to the doctor who ordered the test.
         </p>
       )}
       {panel.markers.some((marker) => marker.flag === "expected-to-vary") && (
         <p className="physio-detail">
-          Markers shown as <em>expected to vary</em> — CK, urea, hs-CRP, creatinine, ALT — routinely
+          Markers shown as <em>expected to vary</em> - CK, urea, hs-CRP, creatinine, ALT - routinely
           sit outside a population range in a trained athlete, so they are not counted as out of range
           here. The draw's place in the training week is the line above.
         </p>
@@ -160,7 +160,7 @@ export function PhysioView({ api = new PitchingOsApi() }: { api?: PitchingOsApi 
     let live = true;
     const link = readShareLink(window.location.search, window.location.hash);
     if (!link) {
-      setStatus({ state: "error", message: "This link is incomplete. Ask for the full link again — the part after the # is what unlocks it." });
+      setStatus({ state: "error", message: "This link is incomplete. Ask for the full link again - the part after the # is what unlocks it." });
       return;
     }
 
@@ -218,7 +218,7 @@ export function PhysioView({ api = new PitchingOsApi() }: { api?: PitchingOsApi 
     <main className="physio-page">
       <PageHead
         eyebrow="Shared with you"
-        title={`${summary.athlete} — training summary`}
+        title={`${summary.athlete} - training summary`}
         intro={`${summary.throwingHand} handed. Last updated ${
           generated && Number.isFinite(generated.getTime()) ? generated.toLocaleString() : status.updatedAt
         }. Read-only.`}
@@ -231,7 +231,7 @@ export function PhysioView({ api = new PitchingOsApi() }: { api?: PitchingOsApi 
           <p className="muted">
             {summary.workload.inBand
               ? "Inside the 0.8–1.3 band."
-              : "Outside the 0.8–1.3 band — worth a look at the throwing column below."}
+              : "Outside the 0.8–1.3 band - worth a look at the throwing column below."}
           </p>
         </Card>
       )}
@@ -322,7 +322,7 @@ export function PhysioView({ api = new PitchingOsApi() }: { api?: PitchingOsApi 
       </Card>
 
       {/* After the arm screen, because it is reference material rather than the
-          reason the link gets opened — and because the athlete had to opt in
+          reason the link gets opened - and because the athlete had to opt in
           per link for it to be here at all. */}
       {summary.bloodPanels?.map((panel) => <BloodPanelCard key={panel.date} panel={panel} />)}
 

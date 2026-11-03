@@ -3,7 +3,7 @@
  *
  * A bare `<input type="range">` inside a `.field` is not what the stylesheet
  * expects. The original wraps it in `.field.range-field` with a label row, a
- * live `<output>`, a reset button, a `.range-wrap` and a min/max scale — and,
+ * live `<output>`, a reset button, a `.range-wrap` and a min/max scale - and,
  * critically, sets `--range-progress` on the input itself, which is what
  * paints the filled portion of the track. Without that custom property the
  * slider renders as an unstyled stub and reads as broken.
@@ -49,8 +49,8 @@ const RPE_LABELS = [
 const SORENESS_FIELDS = ["shoulder", "elbow", "forearm", "lat", "lower", "postShoulder", "postElbow"];
 
 /**
- * Arm feel has no counterpart in the prototype — it is the rebuild's own
- * field — but it still needs words. Without them the output pill reads
+ * Arm feel has no counterpart in the prototype - it is the rebuild's own
+ * field - but it still needs words. Without them the output pill reads
  * "8 8", the number twice, which is what an unlabelled slider degrades to.
  * Higher is better here, so the scale runs the opposite way to soreness.
  */

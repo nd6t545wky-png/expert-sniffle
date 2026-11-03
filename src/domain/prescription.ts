@@ -10,8 +10,8 @@
  *     "2 × 10 · low amplitude · minimal ground contact"
  *          one movement, a dose, and two qualifiers
  *
- * Rendered as a paragraph both look the same, and the first kind — the warm-up
- * tasks especially — arrives as five wrapped lines you cannot read one at a
+ * Rendered as a paragraph both look the same, and the first kind - the warm-up
+ * tasks especially - arrives as five wrapped lines you cannot read one at a
  * time. Rendered as a list, the second kind would be mangled into three
  * exercises that do not exist.
  *
@@ -22,12 +22,12 @@
  * The rule, derived from every prescription the programme can produce:
  *
  *   1. at least two segments; and
- *   2. every segment carries a number of its own — a movement without a dose
+ *   2. every segment carries a number of its own - a movement without a dose
  *      is a qualifier, not an exercise; and
  *   3. no segment *opens* with a dose. This is the one that does the work.
  *      "45–60 total throws", "2 × 10", "RPE 2–3/10" and "15–20 minutes bike"
  *      all begin with a measurement, which is what a parameter looks like.
- *      A movement begins with its name — including "90/90 switch 6/side",
+ *      A movement begins with its name - including "90/90 switch 6/side",
  *      where the digits are the name of a position rather than a count.
  */
 
@@ -36,7 +36,7 @@
  *
  * Anchored, so it only ever matches at the start. The unit list is closed on
  * purpose: an unrecognised unit means the segment is treated as a movement and
- * the prescription splits, which is the recoverable direction to be wrong in —
+ * the prescription splits, which is the recoverable direction to be wrong in -
  * a cosmetic mis-split rather than an invented exercise.
  */
 const OPENS_WITH_DOSE =
@@ -48,7 +48,7 @@ const TRAILING_DOSE = /^(.*?)\s(\d[^·]*)$/;
 /**
  * Doses that are instructions rather than numbers.
  *
- * "Max reps" is a real prescription — the coach writes it, and it says
+ * "Max reps" is a real prescription - the coach writes it, and it says
  * something a number cannot. Without this the movement it belongs to renders
  * with no dose at all, which reads as an oversight rather than as the
  * instruction it is. Deliberately a closed list: anything not on it is a name,
@@ -57,9 +57,9 @@ const TRAILING_DOSE = /^(.*?)\s(\d[^·]*)$/;
 const TRAILING_NAMED_DOSE = /^(.*?)\s((?:max(?:imum)?(?:\s+reps?)?|amrap|to failure|each side|per side))$/i;
 
 export interface Movement {
-  /** What to do — "Half-kneeling hip flexor with posterior tilt". */
+  /** What to do - "Half-kneeling hip flexor with posterior tilt". */
   name: string;
-  /** How much of it — "2 × 20 s/side". Absent when it cannot be separated. */
+  /** How much of it - "2 × 20 s/side". Absent when it cannot be separated. */
   dose?: string;
 }
 

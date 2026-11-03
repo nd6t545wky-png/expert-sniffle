@@ -45,7 +45,7 @@ function submission(overrides: Partial<ReadinessSubmission> = {}): ReadinessSubm
   };
 }
 
-describe("DailyPlan — the readiness gate is visible in the UI", () => {
+describe("DailyPlan - the readiness gate is visible in the UI", () => {
   it("shows the session as locked before readiness is submitted", () => {
     render(
       <DailyPlan date={WEDNESDAY} plan={locked} tasks={TASKS} completed={{}} skipped={{}} onCompleteTask={vi.fn()} onSkipTask={vi.fn()} onOverride={vi.fn()} />
@@ -117,14 +117,14 @@ describe("DailyPlan — the readiness gate is visible in the UI", () => {
     );
     expect(screen.getByText("Preparation")).toBeDefined();
     expect(screen.getByText("Throwing")).toBeDefined();
-    // One stage finished, one not — and the sidebar agrees.
+    // One stage finished, one not - and the sidebar agrees.
     expect(screen.getByLabelText("1 of 1 tasks resolved")).toBeDefined();
     expect(screen.getByLabelText("0 of 1 tasks resolved")).toBeDefined();
     expect(screen.getByText("1 of 2 resolved")).toBeDefined();
   });
 });
 
-describe("DailyPlan — skipping", () => {
+describe("DailyPlan - skipping", () => {
   function renderPlan(overrides: Partial<DailyPlanProps> = {}) {
     const props: DailyPlanProps = {
       date: WEDNESDAY,
@@ -267,7 +267,7 @@ describe("DailyPlan — skipping", () => {
   });
 });
 
-describe("Workload — high-intent restriction reaches the user", () => {
+describe("Workload - high-intent restriction reaches the user", () => {
   it("refuses high intent on a non-permitted day and explains why", () => {
     const onLog = vi.fn();
     render(<Workload date={THURSDAY} plan={unlocked} entries={[]} onLog={onLog} />);
@@ -303,7 +303,7 @@ describe("Workload — high-intent restriction reaches the user", () => {
   });
 });
 
-describe("AnnualPlan — the year as a calendar", () => {
+describe("AnnualPlan - the year as a calendar", () => {
   it("shows every month the programme touches, July 2026 to July 2027", () => {
     render(<AnnualPlan selectedWeek={1} onSelectWeek={vi.fn()} />);
     expect(screen.getByText("July 2026")).toBeDefined();
@@ -383,7 +383,7 @@ describe("AnnualPlan — the year as a calendar", () => {
   });
 });
 
-describe("DayTabs — the week's days", () => {
+describe("DayTabs - the week's days", () => {
   const pre = { "2026-08-05": {} };
   const post = { "2026-08-04": {} };
 
@@ -425,7 +425,7 @@ describe("DayTabs — the week's days", () => {
   });
 });
 
-describe("DailyPlan — looking at a day that is not today", () => {
+describe("DailyPlan - looking at a day that is not today", () => {
   const tabs = [
     { day: 0, date: "2026-08-03", name: "Monday", status: "locked" as const },
     { day: 1, date: WEDNESDAY, name: "Tuesday", status: "locked" as const },
@@ -574,10 +574,10 @@ describe("list rows keep the shape the stylesheet expects", () => {
  * They used to arrive as one middot-separated run wrapping to five lines,
  * which cannot be read a movement at a time while you are doing it. The
  * splitting rule lives in the domain and is swept there; these check the
- * rendering — that a list becomes rows, and that a single movement with
+ * rendering - that a list becomes rows, and that a single movement with
  * parameters is left exactly as it was.
  */
-describe("TaskStages — multi-movement prescriptions", () => {
+describe("TaskStages - multi-movement prescriptions", () => {
   const task = (overrides: Partial<SessionTask> = {}): SessionTask => ({
     id: "t1",
     stage: 1,
@@ -640,7 +640,7 @@ describe("TaskStages — multi-movement prescriptions", () => {
 describe("the check-out's game pitch count", () => {
   /**
    * It used to open at zero and be typed from memory, beside a game log that
-   * already held the number — and this is not a display figure. Summer's
+   * already held the number - and this is not a display figure. Summer's
    * Saturday reads it to decide whether the day after a start is recovery or a
    * primer, so two records of one appearance meant the programme followed
    * whichever was typed second.
@@ -666,7 +666,7 @@ describe("the check-out's game pitch count", () => {
 
   it("keeps a count the athlete typed when the log changes underneath it", () => {
     // A number typed into this field is an answer. Following the log after
-    // that would overwrite it — which is the failure the prefill exists to
+    // that would overwrite it - which is the failure the prefill exists to
     // avoid, pointed the other way.
     const { rerender } = render(<Tracking {...props} loggedGamePitches={62} />);
     fireEvent.change(screen.getByLabelText("Game pitches"), { target: { value: "74" } });

@@ -2,13 +2,13 @@
  * What an Apple Fitness upload may contain.
  *
  * Apple keeps Health and Fitness data on the phone and watch. There is no
- * cloud API, no account to connect and nothing to OAuth against — the only way
+ * cloud API, no account to connect and nothing to OAuth against - the only way
  * these numbers reach a server is if the phone pushes them, which in practice
  * means a Shortcut posting JSON. That makes this table the whole contract.
  *
  * It lives here, in one place, because it is used twice: the Worker validates
  * against it, and the setup instructions are generated from it. Two hand-kept
- * lists would drift, and the failure mode is silent — the athlete builds a
+ * lists would drift, and the failure mode is silent - the athlete builds a
  * Shortcut from a documented name the Worker no longer accepts, gets a 400 it
  * never shows them, and concludes the ring is not syncing.
  *
@@ -37,7 +37,7 @@ export const APPLE_FIELDS: AppleField[] = [
     aliases: ["activeEnergy", "activeEnergyBurned", "move"],
     min: 0,
     max: 20_000,
-    describe: "Active Energy, in kilocalories — the Move ring",
+    describe: "Active Energy, in kilocalories - the Move ring",
     ring: true,
   },
   {
@@ -45,7 +45,7 @@ export const APPLE_FIELDS: AppleField[] = [
     aliases: ["exercise", "appleExerciseTime"],
     min: 0,
     max: 1440,
-    describe: "Exercise Minutes — the Exercise ring",
+    describe: "Exercise Minutes - the Exercise ring",
     ring: true,
   },
   {
@@ -53,7 +53,7 @@ export const APPLE_FIELDS: AppleField[] = [
     aliases: ["stand", "appleStandHours"],
     min: 0,
     max: 24,
-    describe: "Stand Hours — the Stand ring",
+    describe: "Stand Hours - the Stand ring",
     ring: true,
   },
   { id: "steps", aliases: ["stepCount"], min: 0, max: 200_000, describe: "Step Count" },
@@ -122,7 +122,7 @@ function inRange(value: unknown, min: number, max: number): number | null {
  *
  * Names are matched without regard to case. Someone building a Shortcut by
  * hand types "ActiveCalories" as readily as "activeCalories", and a
- * case-sensitive match would reject it with a 400 the phone never shows them —
+ * case-sensitive match would reject it with a 400 the phone never shows them -
  * which reads exactly like the ring not syncing.
  *
  * A field the payload did not carry is `null`, never zero: a Shortcut that

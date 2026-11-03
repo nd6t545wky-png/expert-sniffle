@@ -7,7 +7,7 @@ import { Alert, Card, CardHead, Disclosure } from "./Page";
  *
  * A rating on its own tells an athlete they are bad at something without
  * telling them what to do about it. This shows each rated quality, then the
- * routine built from the ones that scored low — in the order it should be
+ * routine built from the ones that scored low - in the order it should be
  * done, not grouped by which number produced it.
  *
  * Qualities the capture could not rate are shown as not assessed rather than
@@ -69,7 +69,7 @@ export function MechanicsRoutine({ analysis }: { analysis: MechanicsAnalysis | n
           ))}
         </div>
         <p className="fineprint">
-          A qualitative screen from a single phone camera — not laboratory biomechanics. Ratings are
+          A qualitative screen from a single phone camera - not laboratory biomechanics. Ratings are
           a starting point for a coach's eye, not a measurement.
         </p>
       </Card>
@@ -78,7 +78,7 @@ export function MechanicsRoutine({ analysis }: { analysis: MechanicsAnalysis | n
         <Alert tone={analysis.analyzable ? "info" : "warn"}>
           <strong>No drills prescribed</strong>
           {/* The capture's blockers are already listed above by the screen
-              result — repeating them here says the same thing twice. */}
+              result - repeating them here says the same thing twice. */}
           <p>
             {analysis.analyzable
               ? routine.reason
@@ -103,7 +103,7 @@ export function MechanicsRoutine({ analysis }: { analysis: MechanicsAnalysis | n
                   </strong>
                 </span>
               ))}
-              . Everything else is left alone deliberately — a list of eighteen drills is not a plan.
+              . Everything else is left alone deliberately - a list of eighteen drills is not a plan.
             </p>
 
             {routine.weightedBallNote && (

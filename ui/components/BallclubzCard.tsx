@@ -33,7 +33,7 @@ export function BallclubzCard({
     <Card aria-label="Ballclubz game log">
       <CardHead
         title="League games from Ballclubz"
-        detail="Your GBL pitching lines come in by themselves when the app opens — pitches, strikes, batters faced, first-pitch strikes, innings, hits, walks and strikeouts, read from each game's box score."
+        detail="Your GBL pitching lines come in by themselves when the app opens - pitches, strikes, batters faced, first-pitch strikes, innings, hits, walks and strikeouts, read from each game's box score."
       />
       <div className="form-grid">
         <div className="field full">
@@ -51,7 +51,7 @@ export function BallclubzCard({
               ? "That isn't a Ballclubz player page. Open your name on the team roster and copy that link."
               : draft.trim() === ""
                 ? "Empty turns the import off."
-                : "A new season has a new link — paste it here when it changes."}
+                : "A new season has a new link - paste it here when it changes."}
           </small>
         </div>
         <div className="form-actions">
@@ -68,7 +68,7 @@ export function BallclubzCard({
         </div>
       </div>
       {!hasSyncKey ? (
-        <p className="fineprint">Turn on cloud autosave (Account &amp; backup) — the check runs through your account.</p>
+        <p className="fineprint">Turn on cloud autosave (Account &amp; backup) - the check runs through your account.</p>
       ) : (
         status && <p className="fineprint">{status}</p>
       )}

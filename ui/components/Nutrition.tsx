@@ -11,7 +11,7 @@ import { ConfirmButton } from "./ConfirmButton";
  * Meals, hydration and food lookup.
  *
  * Every AI estimate is presented as editable, and the server's notice about
- * whether an official source was verified is shown rather than dropped — the
+ * whether an official source was verified is shown rather than dropped - the
  * difference between "matched an official menu" and "guessed from a photo"
  * matters and should not be flattened.
  */
@@ -29,7 +29,7 @@ export interface Meal {
    * What this food's label declared beyond the macros, keyed by nutrient id.
    *
    * Absent entirely when nothing was declared, and individual nutrients are
-   * absent when that one was not — the distinction between "zero" and "the
+   * absent when that one was not - the distinction between "zero" and "the
    * label did not say" is the whole point of the micronutrient card.
    */
   micronutrients?: Record<string, number>;
@@ -54,7 +54,7 @@ export interface NutritionProps {
   onHydration: (litres: number | "reset") => void;
   /** Targets derived from today's session, when a bodyweight is known. */
   fuel?: FuelTargets | null;
-  /** Active energy the ring reported today. Context only — see FuelCard. */
+  /** Active energy the ring reported today. Context only - see FuelCard. */
   activeCalories?: number | null;
   onAdoptFuel?: (targets: FuelTargets) => void;
 }
@@ -62,7 +62,7 @@ export interface NutritionProps {
 /**
  * What today's session says to eat.
  *
- * No general nutrition app can do this — none of them know what training is
+ * No general nutrition app can do this - none of them know what training is
  * scheduled. Carbohydrate moves with the day's demand; protein does not,
  * because recovery is when it is used.
  */
@@ -108,29 +108,26 @@ function FuelCard({
         </div>
       )}
       {/* The ring reports an active-energy figure every day, the app stores it,
-          and nothing has ever shown it — which reads as data going missing. It
+          and nothing has ever shown it - which reads as data going missing. It
           is shown here, next to the target it looks like it should change, with
           the reason it does not. */}
       {typeof activeCalories === "number" && activeCalories > 0 && (
         <p className="fineprint">
-          <strong>Your watch says {Math.round(activeCalories)} kcal active today.</strong> That is
-          not added to the target above, and deliberately. The activity factor already covers the
-          day&rsquo;s training, so adding it would count the session twice — and wrist-worn
-          estimates of energy expenditure carry error in the tens of percent, which is far too wide
-          to move a daily intake by. It is here as context: a day far above or below your usual is
-          worth noticing, the absolute number is not worth eating to.
+          Your watch: {Math.round(activeCalories)} kcal active today. Not added to the target, since the
+          activity factor already covers training.
         </p>
       )}
-      <p className="fineprint">
+      <details className="why fineprint">
+        <summary>How these are worked out</summary>
         {fuel.energyFromMeasuredBmr
           ? "Energy is your measured basal rate from the DEXA scan, times an activity factor for the day. "
           : "Energy is built up from the macros, since no measured basal rate is on file. "}
         {fuel.proteinFromLeanMass
-          ? "Protein is 2.4 g per kg of your measured lean mass — not total mass, so the target holds as fat comes off. "
+          ? "Protein is 2.4 g per kg of your measured lean mass - not total mass, so the target holds as fat comes off. "
           : "Protein is 1.8 g per kg of bodyweight, pending a body-composition scan. "}
         Carbohydrate is 3&ndash;6 g/kg of bodyweight by the day&rsquo;s demand; fat takes what is left,
         never below 0.8 g/kg. Guidance for a healthy training day, not clinical advice.
-      </p>
+      </details>
     </article>
   );
 }
@@ -212,7 +209,7 @@ export function Nutrition({
       carbs: Math.round(Number(per.carbs ?? 0)),
       fat: Math.round(Number(per.fat ?? 0)),
       // Whichever column the macros came from, take the micronutrients from
-      // the same one — mixing a per-serving macro with a per-100 g iron would
+      // the same one - mixing a per-serving macro with a per-100 g iron would
       // silently rescale one nutrient against another.
       ...(micros && Object.keys(micros).length ? { micronutrients: micros } : {}),
       source: "openfoodfacts",
@@ -223,6 +220,23 @@ export function Nutrition({
     setBarcode("");
   }
 
+  const goal = {
+    calories: targets.calories || fuel?.calories || 0,
+    protein: targets.protein || fuel?.protein || 0,
+    carbs: targets.carbs || fuel?.carbs || 0,
+    fat: targets.fat || fuel?.fat || 0,
+    fluid: targets.fluid || fuel?.fluid || 0,
+  };
+
+  const adopted = Boolean(
+    fuel &&
+      targets.calories === fuel.calories &&
+      targets.protein === fuel.protein &&
+      targets.carbs === fuel.carbs &&
+      targets.fat === fuel.fat &&
+      targets.fluid === fuel.fluid
+  );
+
   return (
     <>
       <PageHead
@@ -232,7 +246,10 @@ export function Nutrition({
         className="nutrition-page-head"
       />
 
-      {fuel && (
+      {/* Once today's figures are the saved targets, the suggestion has done
+          its job: the tiles below carry them, so the card goes. It comes back
+          when the day's fuelling changes (a game day, a rest day). */}
+      {fuel && !adopted && (
         <FuelCard
           fuel={fuel}
           activeCalories={activeCalories}
@@ -240,25 +257,27 @@ export function Nutrition({
         />
       )}
 
+      {/* Saved targets win; until some are saved, the day's fuelling figures
+          are the targets, rather than four tiles saying "No target set". */}
       <section className="grid metrics">
         <Metric
           label="Calories"
           value={totals.calories || "—"}
-          detail={targets.calories ? `of ${targets.calories} target` : "No target set"}
+          detail={goal.calories ? `of ${goal.calories} target` : "No target set"}
         />
         <Metric
           label="Protein"
           value={`${totals.protein}g`}
-          detail={targets.protein ? `of ${targets.protein}g target` : "No target set"}
+          detail={goal.protein ? `of ${goal.protein}g target` : "No target set"}
         />
-        <Metric label="Carbs" value={`${totals.carbs}g`} />
-        <Metric label="Fat" value={`${totals.fat}g`} />
+        <Metric label="Carbs" value={`${totals.carbs}g`} detail={goal.carbs ? `of ${goal.carbs}g target` : undefined} />
+        <Metric label="Fat" value={`${totals.fat}g`} detail={goal.fat ? `of ${goal.fat}g target` : undefined} />
       </section>
 
       <WaterTracker
         date={date}
         logged={hydrationLitres}
-        goal={targets.fluid}
+        goal={goal.fluid}
         onChange={onHydration}
       />
 
@@ -295,7 +314,7 @@ export function Nutrition({
           </div>
 
           <Field id="photo" label="Meal photo" hint={busy === "photo" ? "Analysing photo…" : "JPEG, PNG, WebP or HEIC"} full>
-            {/* The prototype never shows a bare file control — the browser's
+            {/* The prototype never shows a bare file control - the browser's
                 own "Choose File / No file chosen" is the one widget on the
                 page that cannot be styled. A label acting as the button, with
                 the input hidden behind it, is its pattern. */}
@@ -324,7 +343,7 @@ export function Nutrition({
       {estimate && (
         <Alert>
           <strong>
-            {estimate.name} — {estimate.calories} kcal
+            {estimate.name} - {estimate.calories} kcal
           </strong>
           <p className="muted">
             P {estimate.protein}g · C {estimate.carbs}g · F {estimate.fat}g · confidence {estimate.confidence}

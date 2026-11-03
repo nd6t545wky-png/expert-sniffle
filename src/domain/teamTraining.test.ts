@@ -4,7 +4,7 @@
  * The failure this exists to prevent is additive, so that is what most of
  * these check: a Tuesday that carries both the solo command set *and* a club
  * practice is a hundred-throw day inside a plan that thinks it prescribed
- * fifty. The mirror failure matters just as much — the summer weeks were
+ * fifty. The mirror failure matters just as much - the summer weeks were
  * written around practice already, and folding a second one into them would
  * be the same bug wearing the opposite sign.
  */
@@ -38,7 +38,7 @@ function fold(week: number, index: number, settings: TeamTraining = DEFAULT_TEAM
 const names = (session: { tasks: { name: unknown }[] }) => session.tasks.map((task) => String(task.name));
 
 describe("reading the setting", () => {
-  it("defaults to what is true now — Tuesdays, from the week they started", () => {
+  it("defaults to what is true now - Tuesdays, from the week they started", () => {
     expect(readTeamTraining(undefined)).toEqual(DEFAULT_TEAM_TRAINING);
     expect(DEFAULT_TEAM_TRAINING.days).toEqual([TUESDAY]);
   });
@@ -115,7 +115,7 @@ describe("a winter Tuesday, now that training is on", () => {
   });
 
   it("keeps the warm-up, plyos and arm care untouched", () => {
-    for (const name of ["Wrist and forearm prep", "Hip prep — rotation and glutes", "Post-throw arm-care circuit"]) {
+    for (const name of ["Wrist and forearm prep", "Hip prep - rotation and glutes", "Post-throw arm-care circuit"]) {
       expect(names(tuesday.session)).toContain(name);
     }
     expect(tuesday.session.tasks.filter((t) => t.stageTitle === "Plyo Ball Preparation").length).toBeGreaterThan(0);

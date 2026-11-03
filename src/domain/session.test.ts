@@ -321,7 +321,7 @@ describe("task completion", () => {
     if (outcome.ok) expect(outcome.completed).toEqual(["warmup", "bullpen"]);
   });
 
-  it("is allowed under a hold — recovery work still gets logged", () => {
+  it("is allowed under a hold - recovery work still gets logged", () => {
     const outcome = completeTask({}, { status: "held", workloadFactor: 0, message: "" }, "2026-08-05", "mobility");
     expect(outcome.ok).toBe(true);
   });

@@ -16,13 +16,13 @@ import { formatIsoDate } from "../state/formatDate";
  * One metric, written so someone who has never seen an Oura ring can read it.
  *
  * v60 drew a bare line on an unlabelled axis and titled it "HRV". That is
- * legible only to a reader who already knows what a good HRV is — which is
+ * legible only to a reader who already knows what a good HRV is - which is
  * the one reader who did not need the chart. Four things fix that, and they
  * are the reason this component is more than an SVG:
  *
  *   1. A plain title and a sentence saying what the number means and which
  *      direction is good. "Higher is better" is not obvious for stress minutes.
- *   2. The latest value, large, with its unit — the answer to "how am I doing"
+ *   2. The latest value, large, with its unit - the answer to "how am I doing"
  *      is a number, not a shape.
  *   3. A verdict against the athlete's *own* usual range, in words. There is
  *      no universal good HRV; there is only whether today is normal for you.
@@ -37,7 +37,7 @@ import { formatIsoDate } from "../state/formatDate";
 
 export interface SeriesSpec {
   key: string;
-  /** Plain English — "Recovery score", not "Oura readiness". */
+  /** Plain English - "Recovery score", not "Oura readiness". */
   title: string;
   /** What the number means, for someone who has never seen it before. */
   explain: string;
@@ -161,8 +161,8 @@ export function TrendCard({ days, series }: { days: OuraTrendDay[]; series: Seri
  * The chart itself: axis, line, marks, and the table that carries every value.
  *
  * Shared by the recovery trends and the training trends. The two cards say
- * different things above it — "worse than usual" against a rolling normal, and
- * "personal best" against a season — but the drawing is the same drawing, and
+ * different things above it - "worse than usual" against a rolling normal, and
+ * "personal best" against a season - but the drawing is the same drawing, and
  * one implementation means one place where a scaling bug can live.
  */
 export function TrendPlot({
@@ -178,7 +178,7 @@ export function TrendPlot({
   title: string;
   unit?: string;
   precision?: number;
-  /** Class suffix on the latest marker — the one mark that carries colour. */
+  /** Class suffix on the latest marker - the one mark that carries colour. */
   tone: string;
   /** High-water mark to ring, where the series has one worth naming. */
   best?: ChartPoint | null;
@@ -218,7 +218,7 @@ export function TrendPlot({
       >
         {/* The athlete's usual range, behind everything. A point outside this
             band is the whole message of the chart, so the band is a neutral
-            wash — it must not compete with the one mark that carries meaning. */}
+            wash - it must not compete with the one mark that carries meaning. */}
         {band && (
           <rect
             className="trend-band"
@@ -229,7 +229,7 @@ export function TrendPlot({
           />
         )}
 
-        {/* Solid hairline gridlines, one shade off the surface — never dashed. */}
+        {/* Solid hairline gridlines, one shade off the surface - never dashed. */}
         {ticks.map((tick) => (
           <g key={tick.value}>
             <line className="trend-gridline" x1={plotLeft} y1={tick.y} x2={plotRight} y2={tick.y} />
@@ -267,7 +267,7 @@ export function TrendPlot({
           </>
         )}
 
-        {/* Nudged clear of the marker — anchored flush to it, the halo and the
+        {/* Nudged clear of the marker - anchored flush to it, the halo and the
             dot sat on top of each other. */}
         <text
           className="trend-endlabel"
@@ -279,7 +279,7 @@ export function TrendPlot({
           {unit ?? ""}
         </text>
 
-        {/* Invisible, generous hover targets — the visible marks are too small
+        {/* Invisible, generous hover targets - the visible marks are too small
             to land on, and a tooltip must never be the only way to read a
             value, so these only supplement the table. */}
         {points.map((point) => (

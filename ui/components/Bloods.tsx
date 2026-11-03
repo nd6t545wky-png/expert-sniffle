@@ -115,7 +115,7 @@ export function Bloods({ panels, today, contextFor, onChange }: BloodsProps) {
       <PageHead
         eyebrow="Bloods"
         title="What the lab measured"
-        intro="Your panel, kept beside the training week it was drawn in — because a result taken two days after a start is a different result from the same number on a rest day."
+        intro="Your panel, kept beside the training week it was drawn in - because a result taken two days after a start is a different result from the same number on a rest day."
       />
 
       <Alert tone="info">
@@ -124,7 +124,7 @@ export function Bloods({ panels, today, contextFor, onChange }: BloodsProps) {
           It records what the laboratory measured, compares each value against the reference range on
           your own report, and shows what you were doing that week. It does not interpret anything and
           it is not a substitute for the doctor who ordered the test. Anything outside range goes to
-          them — take this page with you.
+          them - take this page with you.
         </p>
       </Alert>
 
@@ -132,7 +132,7 @@ export function Bloods({ panels, today, contextFor, onChange }: BloodsProps) {
         <Card>
           <CardHead
             title="Nothing recorded yet"
-            detail="Add a panel once you have a report in front of you. Enter the reference range printed beside each result too — ranges differ between laboratories, and yours beats any general figure."
+            detail="Add a panel once you have a report in front of you. Enter the reference range printed beside each result too - ranges differ between laboratories, and yours beats any general figure."
           />
           <div className="form-actions">
             <button className="btn btn-dark" type="button" onClick={() => setOpen(true)}>
@@ -156,7 +156,7 @@ export function Bloods({ panels, today, contextFor, onChange }: BloodsProps) {
                 </strong>
                 <p>
                   {review.map((reading) => reading.marker.label).join(", ")}. That is a fact about the
-                  numbers, not a diagnosis — book it in with your doctor rather than acting on it here.
+                  numbers, not a diagnosis - book it in with your doctor rather than acting on it here.
                 </p>
               </Alert>
             )}
@@ -218,7 +218,7 @@ export function Bloods({ panels, today, contextFor, onChange }: BloodsProps) {
         <Card>
           <CardHead
             title="Add a panel"
-            detail="Leave anything the panel did not test blank. Enter the reference range printed beside each result — yours is the one that counts."
+            detail="Leave anything the panel did not test blank. Enter the reference range printed beside each result - yours is the one that counts."
           />
           <div className="intent-grid">
             <div className="field">

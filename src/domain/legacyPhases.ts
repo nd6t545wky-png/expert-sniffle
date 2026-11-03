@@ -2,7 +2,7 @@
  * The prototype's fixture-based phase layout, preserved verbatim.
  *
  * NOT the canonical structure. `programme.ts` holds that, and the two do not
- * agree — see the note there. This file exists so the prototype's layout is
+ * agree - see the note there. This file exists so the prototype's layout is
  * not lost if it turns out to be the correct one for a given season, and so
  * the difference can be inspected rather than argued about from memory.
  *

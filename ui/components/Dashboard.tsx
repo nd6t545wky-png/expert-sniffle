@@ -15,7 +15,7 @@ import { PageId } from "./Shell";
  * The split is why the wrapper exists. The two sections were stacked full-width,
  * which put one decision and four numbers on a 1440px screen and left the lower
  * half of it empty. Side by side, the day's session and every number that
- * qualifies it are read without scrolling — the shortcuts become a dense list
+ * qualifies it are read without scrolling - the shortcuts become a dense list
  * rather than four tiles with a lot of air in them. Below 1150px the wrapper
  * collapses to a single column and the stack returns.
  */
@@ -140,7 +140,7 @@ export function Dashboard({
             {submission ? `Plan level ${submission.planLevel}` : "Complete today’s check-in"}
           </span>
           {/* Whether this score came off a device or out of a questionnaire is
-              the whole point of the tag — it must not claim a ring that did
+              the whole point of the tag - it must not claim a ring that did
               not report. */}
           <span
             className={`data-source ${source.kind}`}
@@ -198,7 +198,7 @@ export function Dashboard({
           onClick={() => onNavigate("nutrition")}
         >
           <span className="metric-label">Hydration</span>
-          {/* v60 prints the stored value with a unit — "0.5 L", not "0.50".
+          {/* v60 prints the stored value with a unit - "0.5 L", not "0.50".
               Two views of one number must not format it differently. */}
           <span className="metric-value">{hydrationLitres ? `${hydrationLitres} L` : "—"}</span>
           <span className="metric-detail">

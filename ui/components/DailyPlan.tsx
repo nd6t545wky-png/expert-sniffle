@@ -58,7 +58,7 @@ export interface DailyPlanProps {
    */
   recoveryNote?: string | null;
   /**
-   * A game in a week the programme planned as having none — a finals series,
+   * A game in a week the programme planned as having none - a finals series,
    * usually. Loud rather than folded into the note line: this one says the
    * whole week may be wrong, not that today was adjusted.
    */
@@ -77,7 +77,7 @@ export interface DailyPlanProps {
    * way the card and the workload figure cannot disagree.
    */
   throwTally?: ThrowTally | null;
-  /** What is stored for the day — the athlete's number, or ours. */
+  /** What is stored for the day - the athlete's number, or ours. */
   throwEntry?: ThrowingRecord | null;
   /** Record a count the athlete typed. Marks the day as theirs. */
   onSetThrows?: (date: IsoDate, entry: { throws: number; intent: ThrowIntent }) => void;
@@ -86,7 +86,7 @@ export interface DailyPlanProps {
   /**
    * Fixtures in this week, for the velocity panel.
    *
-   * The tasks already carry the fixture-aware policy — it is applied when the
+   * The tasks already carry the fixture-aware policy - it is applied when the
    * session is built. This is so the panel explaining the week's intent
    * ceiling agrees with them.
    */
@@ -103,8 +103,6 @@ export interface DailyPlanProps {
   onSelectDay?: (day: number) => void;
   /** Jumps the selection back to today. */
   onToday?: () => void;
-  onPreviousWeek?: () => void;
-  onNextWeek?: () => void;
   /** Eyebrow line, e.g. "Week 5 · Monday 10 August". */
   weekLabel?: string;
   /**
@@ -125,7 +123,7 @@ export interface DailyPlanProps {
   beforeWorkout?: React.ReactNode;
   /**
    * Show the readiness, throws and velocity panels beside the workout. Off on
-   * Today — throws and velocity live on the Throwing tab, and the readiness
+   * Today - throws and velocity live on the Throwing tab, and the readiness
    * score is one line above the workout.
    */
   sidePanel?: boolean;
@@ -140,6 +138,22 @@ const GUARDRAILS: [string, string][] = [
   ["Quality over volume", "Rest enough to preserve the assigned intent."],
   ["Log actual work", "Use PULSE values when available."],
 ];
+
+/** Long text shown as three lines, with a toggle for the rest. */
+function ClampedText({ text, className }: { text: string; className?: string }) {
+  const [open, setOpen] = useState(false);
+  const long = text.length > 180;
+  return (
+    <div className={className}>
+      <p className={long && !open ? "clamped" : undefined}>{text}</p>
+      {long && (
+        <button type="button" className="text-button clamp-toggle" onClick={() => setOpen((value) => !value)}>
+          {open ? "Less" : "More"}
+        </button>
+      )}
+    </div>
+  );
+}
 
 export function DailyPlan({
   date,
@@ -166,8 +180,6 @@ export function DailyPlan({
   today,
   onSelectDay,
   onToday,
-  onPreviousWeek,
-  onNextWeek,
   weekLabel,
   progression,
   throwTally,
@@ -264,32 +276,29 @@ export function DailyPlan({
           title={sessionTitle || "Today's session"}
           intro={sessionDescription || formatIsoDate(date)}
           className="session-page-head"
-          controls={
-            onPreviousWeek && onNextWeek ? (
-              <>
-                <button className="btn btn-outline" type="button" onClick={onPreviousWeek}>
-                  ← Week
-                </button>
-                <button className="btn btn-outline" type="button" onClick={onNextWeek}>
-                  Week →
-                </button>
-              </>
-            ) : undefined
-          }
         />
       ) : (
         <>
-          {onPreviousWeek && onNextWeek && (
-            <div className="today-week-nav">
-              <button className="btn btn-outline" type="button" aria-label="Previous week" onClick={onPreviousWeek}>
-                ‹
-              </button>
-              <span>{weekLabel}</span>
-              <button className="btn btn-outline" type="button" aria-label="Next week" onClick={onNextWeek}>
-                ›
-              </button>
+          {/* The day first: what it is and what it asks. The week strip
+              below is for moving between days. */}
+          {(
+        <section className="today-head">
+          <div className="dashboard-heading">
+            {/* The team badge sits in the top bar now. */}
+            <div>
+              <p className="eyebrow">
+                {formatIsoDate(date)}
+                {day && isHighIntentDay(day) ? " · High-intent day" : ""}
+              </p>
+              <h2>{(sessionTitle || "Today's session").replace(/^[A-Za-z]+ · /, "")}</h2>
+              {team && <span className="team-wordmark">{team.name}</span>}
             </div>
+          </div>
+          {sessionDescription && <ClampedText className="today-blurb" text={sessionDescription} />}
+        </section>
           )}
+          {recoveryNote && <p className="plan-recovery-note">{recoveryNote}</p>}
+          {weekLabel && <p className="today-week-label">{weekLabel}</p>}
         </>
       )}
 
@@ -303,7 +312,6 @@ export function DailyPlan({
         </Alert>
       )}
 
-      {recoveryNote && <p className="plan-recovery-note">{recoveryNote}</p>}
 
       {dayTabs && onSelectDay && selectedDay !== undefined && (
         <DayTabs
@@ -319,7 +327,7 @@ export function DailyPlan({
       {today && date !== today && (
         <Alert tone="warn">
           {/* `.alert strong` is display:block, so the emphasised part has to be
-              the banner's title line — used inline it splits the sentence. */}
+              the banner's title line - used inline it splits the sentence. */}
           <strong>Viewing {formatIsoDate(date)}, not today</strong>
           <p>Anything you log here is recorded against that date.</p>
           {/* Without this, returning from a distant week means clicking the
@@ -332,26 +340,6 @@ export function DailyPlan({
         </Alert>
       )}
 
-      {!sidePanel && (
-        <section className="today-head">
-          <div className="dashboard-heading">
-            {team?.logo && (
-              <div className="team-logo-wrap">
-                <img src={team.logo} alt={team.alt} />
-              </div>
-            )}
-            <div>
-              <p className="eyebrow">
-                {formatIsoDate(date)}
-                {day && isHighIntentDay(day) ? " · High-intent day" : ""}
-              </p>
-              <h2>{(sessionTitle || "Today's session").replace(/^[A-Za-z]+ · /, "")}</h2>
-              {team && <span className="team-wordmark">{team.name}</span>}
-            </div>
-          </div>
-          {sessionDescription && <p className="today-blurb">{sessionDescription}</p>}
-        </section>
-      )}
     </>
   );
 
@@ -404,18 +392,12 @@ export function DailyPlan({
 
       <div className={sidePanel ? "session-layout" : ""}>
         <div>
-          {!sidePanel && (
-            <div className="today-progress" aria-label="Session progress">
-              {submission && (
-                <span className={`status ${risk}`}>
-                  {submission.manualOverride ? "Full session" : `${submission.planLevel} · ${submission.score}`}
-                </span>
-              )}
-              <div className="session-progress">
-                <span style={{ width: `${progress.percent}%` }} />
-              </div>
-              <span>
-                {progress.resolved}/{progress.total} done
+          {/* The progress bar sits along the top bar now; the readiness
+              result stays here with the session it set. */}
+          {!sidePanel && submission && (
+            <div className="today-progress" aria-label="Readiness">
+              <span className={`status ${risk}`}>
+                {submission.manualOverride ? "Full session" : `${submission.planLevel} · ${submission.score}`}
               </span>
             </div>
           )}
@@ -450,7 +432,7 @@ export function DailyPlan({
               <div className="gate-icon" aria-hidden="true">
                 ✓
               </div>
-              <h3>Plan resolved—check out</h3>
+              <h3>Plan resolved. Check out</h3>
               <p>
                 Record what actually happened.
                 {progress.skipped

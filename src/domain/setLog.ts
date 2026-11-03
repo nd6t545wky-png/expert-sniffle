@@ -1,7 +1,7 @@
 /**
  * What was actually lifted, set by set.
  *
- * Until now the app recorded that a lift was *done*, never what was done — so
+ * Until now the app recorded that a lift was *done*, never what was done - so
  * every number downstream was really a number about the prescription. The
  * recap card's "volume lifted" was the clearest symptom: drop to 110 kg on a
  * bad day and it still reported 130, because nothing had ever asked.
@@ -9,7 +9,7 @@
  * The rule here is the same one the rest of the app runs on: a logged set is
  * evidence, a prescribed set is an intention, and the two are never added
  * together. Tonnage counts logged sets only. A day with nothing logged has no
- * tonnage — not a plausible-looking estimate.
+ * tonnage - not a plausible-looking estimate.
  *
  * The prescription still earns its keep as a *starting point* for the inputs,
  * which is the difference between logging four sets in ten seconds and not
@@ -20,14 +20,14 @@ import { SessionTask } from "./programmeSessions";
 
 export interface LoggedSet {
   /**
-   * What was completed in this set, in the task's own unit — repetitions for
+   * What was completed in this set, in the task's own unit - repetitions for
    * everything that has them, metres for a carry. `setUnit` says which, read
    * off the prescription; the field is one number because the athlete enters
    * one number, and a second nullable column in every stored set to serve the
    * one movement that is measured in metres would be paid for by all of them.
    */
   reps: number;
-  /** Load in kilograms. Zero is legitimate — bodyweight work. */
+  /** Load in kilograms. Zero is legitimate - bodyweight work. */
   kg: number;
 }
 
@@ -41,14 +41,14 @@ export type DaySetLog = Record<string, TaskSetLog>;
  * Stages whose work is worth logging as sets and load.
  *
  * "Primer" is in the list because Friday's pre-game primer carries real loaded
- * work — a landmine push press and a band row — and leaving it out meant the
+ * work - a landmine push press and a band row - and leaving it out meant the
  * one session the athlete asked to keep was the one that could not be logged.
  * Sprint stages are deliberately absent: "3 × 20 m @ 85–90%" has a set×rep
  * shape but no load, and a reps-and-kilograms table is the wrong record for it.
  *
  * "Rebuild" was missing, and it was the whole of a session. Every gym stage in
- * the programme is named "Whole-Body <something>" — Force, Gym, Power, Primer,
- * Rebuild — and this pattern caught four of the five. So a transition
+ * the programme is named "Whole-Body <something>" - Force, Gym, Power, Primer,
+ * Rebuild - and this pattern caught four of the five. So a transition
  * Wednesday's trap bar deadlift and split squat could not be logged, got no
  * progression advice, and carried no load: three separate silences on the same
  * three lifts, each of which looked like a different feature not applying.
@@ -62,7 +62,7 @@ export const LOGGABLE_STAGE = /strength|gym|lift|force|power|primer|rebuild/i;
  * inside a gym stage rather than beside one. A depth jump is judged on ground
  * contact and a pogo on stiffness; neither has a load to enter, and offering
  * the logger against them produced a progression verdict reading "first logged
- * session — pick a load and log it" on a barefoot jumping drill.
+ * session - pick a load and log it" on a barefoot jumping drill.
  *
  * Chin-ups are deliberately not here. They carry no load either, but reps
  * against bodyweight are exactly how they progress, and they can be weighted.
@@ -74,7 +74,7 @@ const SETS_REPS = /(\d+)\s*×\s*(\d+)/;
  * The load, in either shape the programme writes it.
  *
  * The `@` used to be required, which read "3 × 5 @ 130 kg" and missed
- * "3 × 5 @ 65% · 97.5 kg" — where the `@` introduces the percentage and the
+ * "3 × 5 @ 65% · 97.5 kg" - where the `@` introduces the percentage and the
  * kilograms follow it. That is the shape every percentage-driven lift in the
  * programme uses, so the logger opened at zero on exactly the lifts whose load
  * the programme had already worked out. `progression.ts` reads the same figure
@@ -86,7 +86,7 @@ const SETS_REPS = /(\d+)\s*×\s*(\d+)/;
 const LOAD_KG = /(?:@\s*)?(\d+(?:\.\d+)?)\s*(?:[–-]\s*(\d+(?:\.\d+)?)\s*)?kg/i;
 
 /**
- * A `sets × distance` prescription — "2 × 20 m (no straps)".
+ * A `sets × distance` prescription - "2 × 20 m (no straps)".
  *
  * The unit has to be read off the prescription, because a carry and a squat
  * write the same shape and mean different things by the second number. Anchored
@@ -103,7 +103,7 @@ export type SetUnit = "reps" | "m";
  *
  * Only the farmer carry is metres today. It matters anyway: the logger's column
  * heading, the progression verdict's wording and the day's tonnage each say
- * something false if they read 20 metres as 20 repetitions — and the last of
+ * something false if they read 20 metres as 20 repetitions - and the last of
  * those adds metre-kilograms into a total measured in kilograms.
  */
 export function setUnit(task: Pick<SessionTask, "prescription">): SetUnit {
@@ -115,7 +115,7 @@ export function isLoggable(task: Pick<SessionTask, "stageTitle" | "prescription"
   if (!LOGGABLE_STAGE.test(String(task.stageTitle ?? ""))) return false;
   if (NOT_A_LOADED_LIFT.test(String(task.name ?? ""))) return false;
   // A prescription with no `sets × number` shape at all is a hold or an
-  // untimed piece of work — real, but not something this table describes.
+  // untimed piece of work - real, but not something this table describes.
   // "2 × 20 m" does have the shape, and a farmer carry is logged and progressed
   // like any other loaded lift; `setUnit` is what keeps its second number
   // labelled metres rather than reps.
@@ -168,7 +168,7 @@ export function readDayLog(map: Record<string, unknown> | undefined, date: strin
  * Distance work is left out rather than converted. A 20 m carry at 32 kg is 640
  * metre-kilograms and there is no exchange rate to kilograms lifted; adding it
  * in would have put roughly a tenth of a Monday's reported tonnage into a
- * number that had never been lifted at all. Pass `units` — task id to unit — to
+ * number that had never been lifted at all. Pass `units` - task id to unit - to
  * exclude it. Without the map every task counts as reps, which is what every
  * caller meant before carries had their own task.
  */
@@ -209,7 +209,7 @@ export function bestOneRepMax(sets: TaskSetLog): number | null {
  * The best e1RM for a named lift across every logged day.
  *
  * Matched on the task *name* rather than its id, because ids carry the week
- * and day — the same back squat is a different id every session.
+ * and day - the same back squat is a different id every session.
  */
 export function oneRepMaxHistory(
   logs: Record<string, unknown> | undefined,
