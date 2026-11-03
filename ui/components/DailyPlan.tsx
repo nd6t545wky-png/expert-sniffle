@@ -103,8 +103,6 @@ export interface DailyPlanProps {
   onSelectDay?: (day: number) => void;
   /** Jumps the selection back to today. */
   onToday?: () => void;
-  onPreviousWeek?: () => void;
-  onNextWeek?: () => void;
   /** Eyebrow line, e.g. "Week 5 · Monday 10 August". */
   weekLabel?: string;
   /**
@@ -182,8 +180,6 @@ export function DailyPlan({
   today,
   onSelectDay,
   onToday,
-  onPreviousWeek,
-  onNextWeek,
   weekLabel,
   progression,
   throwTally,
@@ -280,18 +276,6 @@ export function DailyPlan({
           title={sessionTitle || "Today's session"}
           intro={sessionDescription || formatIsoDate(date)}
           className="session-page-head"
-          controls={
-            onPreviousWeek && onNextWeek ? (
-              <>
-                <button className="btn btn-outline" type="button" onClick={onPreviousWeek}>
-                  ← Week
-                </button>
-                <button className="btn btn-outline" type="button" onClick={onNextWeek}>
-                  Week →
-                </button>
-              </>
-            ) : undefined
-          }
         />
       ) : (
         <>
@@ -314,17 +298,7 @@ export function DailyPlan({
         </section>
           )}
           {recoveryNote && <p className="plan-recovery-note">{recoveryNote}</p>}
-          {onPreviousWeek && onNextWeek && (
-            <div className="today-week-nav">
-              <button className="btn btn-outline" type="button" aria-label="Previous week" onClick={onPreviousWeek}>
-                ‹
-              </button>
-              <span>{weekLabel}</span>
-              <button className="btn btn-outline" type="button" aria-label="Next week" onClick={onNextWeek}>
-                ›
-              </button>
-            </div>
-          )}
+          {weekLabel && <p className="today-week-label">{weekLabel}</p>}
         </>
       )}
 

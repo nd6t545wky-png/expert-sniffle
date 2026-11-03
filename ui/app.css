@@ -3107,9 +3107,7 @@ h1, h2, h3, h4 { font-weight: 600; }
 .today-head .eyebrow { margin: 0 0 4px; }
 .today-head h2 { margin: 0; font-size: var(--t-2xl); line-height: 1.1; }
 .today-head p { margin: 6px 0 0; color: var(--muted); font-size: 13px; line-height: 1.45; }
-.today-week-nav { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
-.today-week-nav span { color: var(--muted); font-size: 12px; font-weight: 700; }
-.today-week-nav button { padding: 6px 12px; }
+.today-week-label { margin: 0 0 8px; color: var(--muted); font-size: 12px; font-weight: 700; }
 .today-step { margin: 18px 0 8px; color: var(--muted); font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
 .today-progress { display: flex; align-items: center; gap: 10px; margin: 0 0 12px; color: var(--muted); font-size: 12px; font-weight: 700; }
 .today-progress .session-progress { flex: 1; margin: 0; }

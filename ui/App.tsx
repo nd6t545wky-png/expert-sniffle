@@ -2043,9 +2043,7 @@ export function App() {
           today={today.openDate}
           onSelectDay={setSelectedDay}
           onToday={() => setSelection({ week: today.selectedWeek, day: today.selectedDay })}
-          onPreviousWeek={() => setSelectedWeek(Math.max(1, selectedWeek - 1))}
-          onNextWeek={() => setSelectedWeek(Math.min(52, selectedWeek + 1))}
-          weekLabel={`Week ${selectedWeek} · ${weekMeta.heading}`}
+          weekLabel={`Week ${selectedWeek}`}
           tasks={tasks}
           sessionTitle={session?.title}
           sessionDescription={session?.description}
