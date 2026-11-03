@@ -31,7 +31,7 @@ function delivery(frames = 40): PoseSample[] {
     const wristX = t < 0.6 ? 0.35 : 0.35 + (t - 0.6) * 2.2;
     // Side-on, so the stride is laid out across the frame and the hips carry
     // most of the way with it. Torso here is 0.25, so this is 1.2 torso
-    // lengths of travel — what a camera off to the side sees.
+    // lengths of travel - what a camera off to the side sees.
     const hipX = 0.35 + Math.min(t, 0.6) * 0.5;
 
     const mark = (x: number, y: number) => ({ x, y, visibility: 0.95 });

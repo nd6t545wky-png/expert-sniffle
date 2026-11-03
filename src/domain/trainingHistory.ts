@@ -1,7 +1,7 @@
 /**
  * Immutable training history: what happened, when, and in what order.
  *
- * The snapshot in `sync_snapshots` is the *current* state — a corrected
+ * The snapshot in `sync_snapshots` is the *current* state - a corrected
  * check-in replaces the old one, a reopened task disappears from the list.
  * This is the record underneath it: every submission, correction and tick is
  * appended as its own event and never rewritten, so "what did the app say on
@@ -224,7 +224,7 @@ function datesIn(...maps: DateMap[]): IsoDate[] {
 }
 
 /**
- * A whole-record field — check-in, check-out, throwing entry — on one date.
+ * A whole-record field - check-in, check-out, throwing entry - on one date.
  * First write is "submitted", a later change "corrected", removal "removed",
  * and the full record goes in the payload each time so nothing has to be
  * reconstructed from deltas.
@@ -296,7 +296,7 @@ function taskChanges(before: AppState, after: AppState, occurredAt: string): App
  * Append an event for everything that changed between two states.
  *
  * Call this for changes made *on this device* only. A sync merge brings in
- * another device's edits, and that device has already logged them — logging
+ * another device's edits, and that device has already logged them - logging
  * them again here would double every one.
  */
 export function recordStateChanges(

@@ -2,7 +2,7 @@
  * Objective arm testing.
  *
  * The largest gap in the app for a pitcher: arm health was a soreness slider,
- * which is the weakest signal available. This is the measured version — a
+ * which is the weakest signal available. This is the measured version - a
  * repeatable hand-held dynamometer battery, scored against the athlete's own
  * history rather than a population.
  *
@@ -52,7 +52,7 @@ export interface ArmExam {
   notes?: string;
 }
 
-/** The tests that make up the composite. Elbow and grip included — the whole
+/** The tests that make up the composite. Elbow and grip included - the whole
  * limb carries throwing load, not just the cuff. */
 const SCORE_TESTS: ArmTestId[] = [
   "shoulderIr",
@@ -94,7 +94,7 @@ export interface ArmScore {
 /**
  * Arm Score: summed throwing-arm strength ÷ bodyweight × 100.
  *
- * Returns null without a bodyweight or without any reading — a score built
+ * Returns null without a bodyweight or without any reading - a score built
  * from a guessed bodyweight is wrong in a way nobody can see afterwards.
  *
  * A partial battery still scores, but is flagged incomplete: comparing a
@@ -124,7 +124,7 @@ export interface RatioResult {
  * External over internal rotation on the throwing arm.
  *
  * Throwing drives internal-rotation dominance over a season. 0.70 is the
- * conventional screening floor — a threshold for a conversation, not a
+ * conventional screening floor - a threshold for a conversation, not a
  * diagnosis.
  */
 export const ER_IR_FLOOR = 0.7;
@@ -141,7 +141,7 @@ export function erIrRatio(side: SideReadings): RatioResult | null {
 export const SYMMETRY_BAND: [number, number] = [85, 115];
 
 export function limbSymmetry(exam: Pick<ArmExam, "throwing" | "nonThrowing">): RatioResult | null {
-  // Only tests taken on *both* sides may be compared — summing four throwing
+  // Only tests taken on *both* sides may be compared - summing four throwing
   // readings against six non-throwing ones manufactures an asymmetry.
   const shared = SCORE_TESTS.filter(
     (test) => positive(exam.throwing[test]) !== null && positive(exam.nonThrowing[test]) !== null
@@ -227,7 +227,7 @@ export function armTrend(exams: ArmExam[]): ArmTrend | null {
     Math.round((priors.reduce((sum, row) => sum + row.score.score, 0) / priors.length) * 10) / 10;
   const changePct = Math.round(((latest.score.score - average) / average) * 1000) / 10;
 
-  // A 5% band around the athlete's own average is treated as unchanged —
+  // A 5% band around the athlete's own average is treated as unchanged -
   // dynamometry is not precise enough to call a 2% move a real one.
   const verdict = changePct > 5 ? "stronger" : changePct < -5 ? "weaker" : "steady";
 
@@ -278,7 +278,7 @@ export interface ArmFinding {
  *
  * Deliberately conservative: each finding names the measurement and the
  * threshold it crossed, so it can be argued with. Nothing here says what to do
- * about it — that is a decision for the athlete and whoever is qualified to
+ * about it - that is a decision for the athlete and whoever is qualified to
  * advise them.
  */
 export function armFindings(exam: ArmExam, trend: ArmTrend | null, fatigue: RatioResult | null): ArmFinding[] {
@@ -317,7 +317,7 @@ export function armFindings(exam: ArmExam, trend: ArmTrend | null, fatigue: Rati
   if (trend?.verdict === "stronger" && trend.changePct !== null) {
     findings.push({
       severity: "note",
-      text: `Arm Score is ${trend.changePct}% above your average — strength is trending up.`,
+      text: `Arm Score is ${trend.changePct}% above your average - strength is trending up.`,
     });
   }
 

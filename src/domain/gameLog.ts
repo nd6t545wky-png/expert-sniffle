@@ -1,7 +1,7 @@
 /**
  * What actually happened in a game.
  *
- * The app tracked throwing *load* — intent and a throw count — and nothing
+ * The app tracked throwing *load* - intent and a throw count - and nothing
  * about competition. No opponent, no date, no innings, no pitch count by
  * inning, no result. For a pitcher in a season that is the largest hole of
  * all: the training exists to serve outings, and the outings were invisible.
@@ -13,7 +13,7 @@
  *
  *   - **Innings are stored as outs.** Baseball writes 3.2 innings meaning
  *     three and two thirds, and every app that stores that as a decimal
- *     eventually adds 3.2 + 3.2 and prints 6.4 — an innings count that cannot
+ *     eventually adds 3.2 + 3.2 and prints 6.4 - an innings count that cannot
  *     exist. Outs add correctly, and the decimal is produced only for display.
  *   - **A rate is never shown without its sample.** ERA over four innings is
  *     arithmetic, not information. Every rate here carries how much it was
@@ -72,7 +72,7 @@ export function formatInnings(outs: number): string {
  * An out count that can be counted with.
  *
  * A game restored from a backup, or imported before the log stored outs at
- * all, carries no `outs` field — and `Math.max(0, undefined)` is NaN, which
+ * all, carries no `outs` field - and `Math.max(0, undefined)` is NaN, which
  * printed "NaN.NaN" in the innings column and poisoned every rate below it.
  * A line with no innings on it has pitched none; that is what is shown.
  */
@@ -110,7 +110,7 @@ export interface Appearance {
   /** First-pitch strikes as a percentage of batters faced. */
   firstPitchStrikePct: number | null;
   pitchesPerInning: number | null;
-  /** Pitches per batter faced — efficiency, in the unit a pitcher feels. */
+  /** Pitches per batter faced - efficiency, in the unit a pitcher feels. */
   pitchesPerBatter: number | null;
 }
 
@@ -197,7 +197,7 @@ function sumWhere(games: Game[], keep: (game: Game) => boolean, pick: (game: Gam
 /**
  * Innings below which a rate is not worth reading.
  *
- * Not a rule of the sport — a line drawn so the app stops presenting four
+ * Not a rule of the sport - a line drawn so the app stops presenting four
  * innings of results as though they described a pitcher.
  */
 export const THIN_SAMPLE_INNINGS = 10;
@@ -206,7 +206,7 @@ export interface SeasonRate {
   id: string;
   label: string;
   value: number | null;
-  /** How it is written — "3.60", "62.4%". */
+  /** How it is written - "3.60", "62.4%". */
   display: string;
   /** What it means, for a reader who does not already know. */
   why: string;
@@ -218,7 +218,7 @@ export interface SeasonRate {
  * The season's rates.
  *
  * Percentages of batters faced are given alongside the per-nine figures, and
- * for a small sample they are the better read — K/9 swings wildly on a short
+ * for a small sample they are the better read - K/9 swings wildly on a short
  * outing, while K% moves with each batter.
  */
 export function seasonRates(totals: SeasonTotals): SeasonRate[] {
@@ -342,7 +342,7 @@ export function gameProblems(game: Partial<Game>): string[] {
   if (!game.date) problems.push("Pick the date the game was played.");
   if (!String(game.opponent ?? "").trim()) problems.push("Name the opponent.");
   if (both(game.strikes, game.pitches, (s, p) => s > p)) {
-    problems.push("More strikes than pitches — one of the two is wrong.");
+    problems.push("More strikes than pitches - one of the two is wrong.");
   }
   if (both(game.firstPitchStrikes, game.battersFaced, (f, b) => f > b)) {
     problems.push("More first-pitch strikes than batters faced.");
@@ -354,7 +354,7 @@ export function gameProblems(game: Partial<Game>): string[] {
     problems.push("More strikeouts than batters faced.");
   }
   if (both(game.outs, game.battersFaced, (o, b) => o > 0 && b < o / 3)) {
-    problems.push("Fewer batters faced than innings pitched — check both.");
+    problems.push("Fewer batters faced than innings pitched - check both.");
   }
   return problems;
 }
@@ -385,7 +385,7 @@ export function seasonFindings(totals: SeasonTotals, rates: SeasonRate[]): GameF
   if (innings > 0 && innings < THIN_SAMPLE_INNINGS) {
     findings.push({
       severity: "note",
-      text: `${formatInnings(totals.outs)} innings on record. These rates will move a lot until there are ${THIN_SAMPLE_INNINGS} or so — read them as a description of what happened, not as a measure of you.`,
+      text: `${formatInnings(totals.outs)} innings on record. These rates will move a lot until there are ${THIN_SAMPLE_INNINGS} or so - read them as a description of what happened, not as a measure of you.`,
     });
     return findings;
   }
@@ -404,7 +404,7 @@ export function seasonFindings(totals: SeasonTotals, rates: SeasonRate[]): GameF
   if (fps !== null && fps < FIRST_PITCH_STRIKE_MARK) {
     findings.push({
       severity: "watch",
-      text: `First-pitch strikes are ${fps.toFixed(1)}%, under the ${FIRST_PITCH_STRIKE_MARK}% mark — the count you start in shapes the whole at-bat.`,
+      text: `First-pitch strikes are ${fps.toFixed(1)}%, under the ${FIRST_PITCH_STRIKE_MARK}% mark - the count you start in shapes the whole at-bat.`,
     });
   }
   if (fps !== null && fps >= FIRST_PITCH_STRIKE_MARK) {

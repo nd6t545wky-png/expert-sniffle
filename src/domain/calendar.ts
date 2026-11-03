@@ -7,7 +7,7 @@ import { LEGACY_PHASES, LegacyPhase } from "./legacyPhases";
  * The programme is 52 numbered weeks starting Monday 13 July 2026. A calendar
  * is months and days. This maps between them once, so the year view, the
  * month view and the phase legend all read from the same structure rather
- * than each doing its own arithmetic — the same reason the session pages
+ * than each doing its own arithmetic - the same reason the session pages
  * derive their date from a single (week, day) pair.
  *
  * Phases come from LEGACY_PHASES, the eight fixture-anchored cycles the rest
@@ -74,7 +74,7 @@ export interface CalendarMonth {
   label: string;
   shortLabel: string;
   year: number;
-  /** Six rows of seven, Monday-first — a fixed shape so months do not jump
+  /** Six rows of seven, Monday-first - a fixed shape so months do not jump
    *  height as the grid changes, which is what Apple's calendar does too. */
   weeks: CalendarDay[][];
 }
@@ -87,7 +87,7 @@ const MONTH_NAMES = [
 /**
  * Calendar fields are read from the ISO string, never from a Date's UTC
  * getters. `parseIso` anchors midnight in Brisbane, which is 14:00 the
- * previous day in UTC — so `getUTCDate()` on it returns yesterday. Splitting
+ * previous day in UTC - so `getUTCDate()` on it returns yesterday. Splitting
  * the string removes the hazard rather than compensating for it.
  */
 export function isoParts(iso: IsoDate): { year: number; month: number; day: number } {
@@ -133,7 +133,7 @@ export function buildMonth(year: number, monthIndex: number): CalendarMonth {
 }
 
 /**
- * Every month the programme touches, in order — July 2026 through July 2027.
+ * Every month the programme touches, in order - July 2026 through July 2027.
  * Derived from the actual first and last dates rather than hardcoded, so a
  * change to the start date or the week count carries through.
  */

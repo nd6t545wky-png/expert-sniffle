@@ -4,7 +4,7 @@
  * Each event is encrypted whole under the sync key, exactly as the prototype
  * does it, so the server holds only the day, the coarse event type and
  * ciphertext. Reading back checks the decrypted event against the row it came
- * in — a row whose ciphertext says a different id, day or type than the row
+ * in - a row whose ciphertext says a different id, day or type than the row
  * itself is refused rather than imported.
  *
  * Uploads are idempotent: the server ignores an id it already has, so a batch

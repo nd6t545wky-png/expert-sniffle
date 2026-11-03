@@ -2,18 +2,18 @@
  * Canonical annual programme structure.
  *
  * This is the single source of truth for the 52-week phase layout. Nothing
- * else in the codebase should hard-code week ranges or phase names — import
+ * else in the codebase should hard-code week ranges or phase names - import
  * from here so the UI, the storage layer and any reporting all agree.
  *
  * ---------------------------------------------------------------------------
- * KNOWN CONFLICT WITH THE PROTOTYPE — needs a human decision.
+ * KNOWN CONFLICT WITH THE PROTOTYPE - needs a human decision.
  *
  * The layout below is the one specified for the rebuild, described as matching
  * the confirmed pitching programme (Dylan_Pitching_Manual_v1.docx, which was
  * not available to verify against).
  *
  * The deployed prototype uses a completely different, fixture-anchored layout:
- * eight phases keyed to FNCBA/GBL season dates — weeks 1-8, 9-10, 11, 12-22,
+ * eight phases keyed to FNCBA/GBL season dates - weeks 1-8, 9-10, 11, 12-22,
  * 23-28, 29-36, 37-38, 39-52. It is preserved verbatim in `legacyPhases.ts`.
  *
  * These are not reconcilable by rounding: different phase count, different
@@ -21,7 +21,7 @@
  * told to do in a given week, so it must not be resolved by guesswork.
  *
  * This file implements the specified layout. If the prototype's is correct for
- * the current season, swap the import — `legacyPhases.ts` carries the data and
+ * the current season, swap the import - `legacyPhases.ts` carries the data and
  * `phaseForWeek` has the same shape.
  * ---------------------------------------------------------------------------
  */
@@ -48,7 +48,7 @@ export interface ProgrammePhase {
 /**
  * Weeks 1-12 Winter Ball, 13-14 Transition, 15-26 Velocity Development,
  * 27-36 Preseason, 37-52 Summer Season. Contiguous and exhaustive over
- * weeks 1..52 — enforced by assertions below and by the test suite.
+ * weeks 1..52 - enforced by assertions below and by the test suite.
  */
 export const PROGRAMME_PHASES: readonly ProgrammePhase[] = Object.freeze([
   { id: "winter_ball", name: "Winter Ball", startWeek: 1, endWeek: 12 },

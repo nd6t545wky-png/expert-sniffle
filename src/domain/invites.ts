@@ -1,7 +1,7 @@
 /**
  * Invite codes: how a new player gets an account.
  *
- * Accounts are invite-only. The owner (the first account ever created — the
+ * Accounts are invite-only. The owner (the first account ever created - the
  * athlete this app was built for) makes a code per player and sends it as a
  * link. A code works once; the owner can revoke one that has not been used.
  *

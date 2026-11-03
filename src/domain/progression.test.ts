@@ -3,7 +3,7 @@
  *
  * The test that carries the most weight here is the one asserting the app
  * never tells the athlete to add plates to a percentage-driven lift. Adding
- * 2.5 kg to the back squat because last Monday felt easy is not progression —
+ * 2.5 kg to the back squat because last Monday felt easy is not progression -
  * it is opting out of the block, and it is exactly what a naive
  * "did-you-hit-your-reps" rule would say every single week.
  */
@@ -106,7 +106,7 @@ describe("finding the last time", () => {
       { reps: 3, kg: 115 },
     ];
     expect(workingLoad(sets)).toBe(100);
-    // The reps that decide whether the load was too much — on straight sets
+    // The reps that decide whether the load was too much - on straight sets
     // the "heaviest set" is just the first one, which hides a fade.
     expect(worstReps(sets)).toBe(3);
     expect(worstReps([{ reps: 5, kg: 70 }, { reps: 3, kg: 70 }, { reps: 2, kg: 70 }])).toBe(2);
@@ -306,7 +306,7 @@ describe("lifts that are not trying to get heavier", () => {
     // jump on distance. None of them has a load, so there is nothing for a
     // rule whose whole vocabulary is "put more on the bar" to say.
     for (const [name, prescription] of [
-      ["Depth jump — 15–20 cm box", "2 × 3 · full recovery · contact under 0.25 s"],
+      ["Depth jump - 15–20 cm box", "2 × 3 · full recovery · contact under 0.25 s"],
       ["Pogo + vertical jump", "Pogo 2 × 6 · vertical jump 2 × 2"],
       ["Ankle stiffness pogos", "2 × 10 · low amplitude · minimal ground contact"],
       ["Broad jump + trap bar jump", "Broad jump 2 × 2"],
@@ -319,8 +319,8 @@ describe("lifts that are not trying to get heavier", () => {
   it("does advise a loaded jump, and never tells it to get heavier", () => {
     // The athlete asked for this one, on the condition that the advice be
     // research-backed. A loaded jump makes peak power at a light load and
-    // falls away either side, so double progression — the rule that is right
-    // for the trap bar deadlift beside it — would walk it out of the quality
+    // falls away either side, so double progression - the rule that is right
+    // for the trap bar deadlift beside it - would walk it out of the quality
     // it exists to train. The verdict is the comparison, and the load moves
     // with the tested max rather than with a good day.
     const jump = task("Trap bar jump", "3 × 3 @ 30 kg · 20% of tested squat max");
@@ -336,9 +336,9 @@ describe("lifts that are not trying to get heavier", () => {
   it("does not read a measurement taken at a load as a load", () => {
     // The retest battery says "bar velocity at 94 kg and 116 kg". That is a
     // number recorded during a test, not a prescription, and there is no `@`
-    // in front of it — which is the whole of why the check looks for one.
+    // in front of it - which is the whole of why the check looks for one.
     const battery = task(
-      "Retest battery — jumps, sprint, bar speed",
+      "Retest battery - jumps, sprint, bar speed",
       "SJ 3 · CMJ 3 · drop jump 3 · 10 m sprint 2 · bar velocity at 94 kg and 116 kg · med-ball scoop 3"
     );
     expect(progressesByLoad(battery)).toBe(false);
@@ -377,7 +377,7 @@ describe("lifts that are not trying to get heavier", () => {
   });
 
   it("talks to a carry in metres, because that is what it did", () => {
-    // Double progression works identically on a carry — hold the distance until
+    // Double progression works identically on a carry - hold the distance until
     // every set reaches it, then add load. Only the words change, and they have
     // to: "every set at 20 reps or better" describes an exercise nobody did.
     const carry = task("Farmer carry", "2 × 20 m (no straps)");

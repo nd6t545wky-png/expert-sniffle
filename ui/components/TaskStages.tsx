@@ -6,12 +6,12 @@ import { splitPrescription } from "../../src/domain/prescription";
 import { Advice, VERDICT_LABELS } from "../../src/domain/progression";
 
 /**
- * The day's work, grouped into collapsible stages — v60's `renderTasks`.
+ * The day's work, grouped into collapsible stages - v60's `renderTasks`.
  *
  * The shape matters more than it looks. `.task` is a three-column grid:
  * checkbox, text column, actions. Rendering a task as a two-child list item
  * collapses that grid, which is what wrapped every task name into a narrow
- * ribbon beside an oversized button. And `.task-stage` is a `<details>` — the
+ * ribbon beside an oversized button. And `.task-stage` is a `<details>` - the
  * stage headers are what make a nineteen-task session readable at all, because
  * only the stage you are working through is open.
  */
@@ -39,14 +39,14 @@ export interface TaskStagesProps {
    * Details, so the workout reads as a list instead of a page of text.
    */
   showCues?: boolean;
-  /** Extra content inside a stage, keyed by stage title — the game log in Compete. */
+  /** Extra content inside a stage, keyed by stage title - the game log in Compete. */
   stageExtras?: Record<string, ReactNode>;
 }
 
 /**
  * The prescription, as a paragraph or as a list.
  *
- * A task holding several movements — most of the warm-up — arrived as one run
+ * A task holding several movements - most of the warm-up - arrived as one run
  * of middot-separated text that wrapped to five lines, which cannot be read
  * one movement at a time while you are doing it. Where the prescription really
  * is a list, each movement gets its own row with the dose in a column beside
@@ -93,7 +93,7 @@ function Prescription({ text, collapse = false }: { text: string; collapse?: boo
  *
  * The sets have been recorded since the logger went in and were never shown
  * again anywhere a decision gets made. This is that: the previous session's
- * actual loads, and a verdict — go up, stay, back off, or follow the block —
+ * actual loads, and a verdict - go up, stay, back off, or follow the block -
  * sitting directly under the prescription while the athlete is at the rack.
  *
  * The reasoning is one tap away rather than on the face of it. "Go up to
@@ -137,7 +137,7 @@ function LastTime({ advice }: { advice: Advice }) {
  *
  * Opens pre-filled from the prescription, because the difference between
  * logging four sets in ten seconds and not bothering is exactly this. Nothing
- * is stored until Save — a pre-filled row is a suggestion, not a record.
+ * is stored until Save - a pre-filled row is a suggestion, not a record.
  */
 function SetLogger({
   task,
@@ -155,7 +155,7 @@ function SetLogger({
    * Open on the recommendation, not on the prescription.
    *
    * The advice above says "go up to 62.5 kg" and the logger used to open on
-   * whatever the programme wrote — so taking the advice meant retyping it into
+   * whatever the programme wrote - so taking the advice meant retyping it into
    * three rows, and the path of least resistance was to ignore it. Reps still
    * come from the prescription; only the load is overridden.
    */
@@ -171,7 +171,7 @@ function SetLogger({
   // A farmer carry's sets are metres, not repetitions. Labelling the column
   // "Reps" against "2 × 20 m" asks the athlete to enter one thing under the
   // name of another, and an e1RM estimated from 20 metres is not a number about
-  // anything — Epley already declines above ten reps, but a shorter carry would
+  // anything - Epley already declines above ten reps, but a shorter carry would
   // slip through and be reported as a one-rep max.
   const unit = setUnit(task);
   const countLabel = unit === "m" ? "Metres" : "Reps";
@@ -347,8 +347,8 @@ export function TaskStages({
             </summary>
 
             {/* Skip the section, not eight tasks one at a time. A stage is the
-                unit that actually gets abandoned — the lift got missed, not
-                the third exercise in it — and eight separate confirmations is
+                unit that actually gets abandoned - the lift got missed, not
+                the third exercise in it - and eight separate confirmations is
                 why days were left permanently half-resolved. Hidden once
                 everything here is resolved, and absent entirely on the health
                 hold, which cannot be skipped at all. */}

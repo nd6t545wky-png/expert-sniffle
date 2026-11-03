@@ -63,7 +63,7 @@ export interface Session {
    * the session the way its week does. A fourth argument to
    * `applyBaselineProgramming` would have been forgotten by most of its eighty
    * call sites, and a policy that silently does nothing when an argument is
-   * forgotten is a policy that will eventually be forgotten — the same
+   * forgotten is a policy that will eventually be forgotten - the same
    * reasoning that made `weekFromTasks` read the week off the task ids.
    *
    * Absent means "nobody has said", which is the safe reading: the programme's
@@ -81,7 +81,7 @@ export interface Session {
 
 export interface WeekPlan {
   week: number;
-  /** Week start/end are Date objects, not ISO strings — the prototype's
+  /** Week start/end are Date objects, not ISO strings - the prototype's
    *  helpers operate on Dates and `dateForWeekDay` converts at the boundary. */
   start: Date;
   end: Date;
@@ -147,15 +147,15 @@ export function sessionHasGame(session: Pick<Session, "tasks">): boolean {
 /**
  * The programme's game day, moved onto another weekday.
  *
- * The programme writes exactly one game-day session — Saturday's "prepare,
- * compete, recover" — and nothing in its content is Saturday-specific. A
+ * The programme writes exactly one game-day session - Saturday's "prepare,
+ * compete, recover" - and nothing in its content is Saturday-specific. A
  * finals series that runs Friday and Saturday needs it twice, so it is rebuilt
  * for the day in question rather than invented a second time.
  *
  * The ids are re-keyed, and that is the whole reason this is a function rather
  * than a call. Every task id carries its day (`w9-d5-catch`), and handing
  * Friday a session full of `-d5-` ids would file Friday's ticks, set logs and
- * skips against Saturday's tasks — two days sharing one record, in a week with
+ * skips against Saturday's tasks - two days sharing one record, in a week with
  * a game on both.
  */
 function gameDayFor(week: WeekPlan, day: number): unknown {
@@ -177,7 +177,7 @@ export function sessionIsPrimer(session: Pick<Session, "tasks">): boolean {
 /**
  * The programme's pre-game day, moved onto the day before the game.
  *
- * The programme writes exactly one of these — Friday's "Primer + Whole-Body
+ * The programme writes exactly one of these - Friday's "Primer + Whole-Body
  * Microdose", whose own description says it is what happens "before Saturday
  * competition" and whose focus line is "Finish fresher than you started". It
  * is a session about the day *after* it, and nothing in it is Friday-specific.
@@ -185,7 +185,7 @@ export function sessionIsPrimer(session: Pick<Session, "tasks">): boolean {
  * On a finals weekend that day is Thursday, and what the phase table had
  * planned there is a post-season recovery day carrying the overlay's
  * microdoses: a Romanian deadlift at RPE 7, a calf raise at RPE 7–8, three
- * sets of pogos and twenty-five minutes of aerobic work — on a day whose own
+ * sets of pogos and twenty-five minutes of aerobic work - on a day whose own
  * description reads "no step-behinds, underload velocity throws, lifting or
  * sprinting". Fine in a week that ends in nothing. Not what belongs eighteen
  * hours before a semi-final.
@@ -215,9 +215,9 @@ function primerFor(week: WeekPlan, day: number): unknown {
 export type GameRole = "pitching" | "playing" | "not_playing";
 
 export const GAME_ROLES: readonly { value: GameRole; label: string; help: string }[] = [
-  { value: "pitching", label: "Pitching", help: "Starting or scheduled to pitch — the full game-day plan." },
-  { value: "playing", label: "Playing, not pitching", help: "In the game but not on the mound — catch only, no pregame bullpen." },
-  { value: "not_playing", label: "Not playing", help: "Not in the game — a light catch and recovery instead." },
+  { value: "pitching", label: "Pitching", help: "Starting or scheduled to pitch - the full game-day plan." },
+  { value: "playing", label: "Playing, not pitching", help: "In the game but not on the mound - catch only, no pregame bullpen." },
+  { value: "not_playing", label: "Not playing", help: "Not in the game - a light catch and recovery instead." },
 ];
 
 export function readGameRole(value: unknown): GameRole | null {
@@ -231,7 +231,7 @@ function withGameRole(session: Session, role: GameRole, day: number): Session {
   if (role === "playing") {
     return {
       ...session,
-      focus: "Playing, not pitching — keep the arm game-ready without a bullpen",
+      focus: "Playing, not pitching - keep the arm game-ready without a bullpen",
       tasks: session.tasks
         // A separate pregame bullpen goes; a combined catch-and-bullpen keeps its catch.
         .filter((task) => !/^pregame bullpen$/i.test(String(task.name)))
@@ -247,7 +247,7 @@ function withGameRole(session: Session, role: GameRole, day: number): Session {
           if (task.stageTitle === "Compete") {
             return {
               ...task,
-              prescription: "Not scheduled to pitch — log 0, or the real count if you are called in",
+              prescription: "Not scheduled to pitch - log 0, or the real count if you are called in",
               cue: "If you do end up on the mound, log the pitches: tomorrow's plan reads them.",
             };
           }
@@ -267,18 +267,18 @@ function withGameRole(session: Session, role: GameRole, day: number): Session {
     name: "Light catch",
     prescription: "20–30 throws · 45–90 ft · 50–60%",
     cue: "Loose and easy. No mound, no long toss, no pulldowns.",
-    setup: "A relaxed partner — at the ground before the game is fine.",
+    setup: "A relaxed partner - at the ground before the game is fine.",
     execution: "Build distance only as far as feels loose, then come back in. Count the throws.",
     rest: "Natural rhythm.",
     stop: "Stop if the arm does not loosen.",
   };
-  // Where the game's throwing was — ahead of arm care and recovery — so the stages stay in order.
+  // Where the game's throwing was - ahead of arm care and recovery - so the stages stay in order.
   const after = tasks.findIndex((task) => Number(task.stage) > catchTask.stage);
   const insertAt = after < 0 ? tasks.length : after;
   return {
     ...session,
     title: `${DAY_NAMES[day] ?? "Game day"} · Not Playing`,
-    focus: "Not in the game — light catch and recovery",
+    focus: "Not in the game - light catch and recovery",
     stress: "Low",
     description: `You said you are not playing today, so the game day's sprints, pregame throwing and game appearance are replaced by a light catch. ${session.description ?? ""}`.trim(),
     tasks: [...tasks.slice(0, insertAt), catchTask, ...tasks.slice(insertAt)],
@@ -305,19 +305,19 @@ const DAY_NAMES = [
  *
  * `options.game` is the one addition, and it is the fixture list talking. The
  * programme's calendar is fixed at fifty-two weeks and guesses, by phase,
- * which days hold a game — `nonCompetitionSaturdaySession` says so in its own
+ * which days hold a game - `nonCompetitionSaturdaySession` says so in its own
  * description: "No league game is assumed in this calendar block." A fixture
  * the athlete has entered is not an assumption, so where the two disagree the
  * fixture wins and the day is built as a game day.
  *
  * `options.gameTomorrow` is the same idea one day earlier. The programme
- * prepares for a game on the day before it — that is what Friday's primer is —
+ * prepares for a game on the day before it - that is what Friday's primer is -
  * and it knew which day that was only for the games its calendar assumed. A
  * game the athlete entered gets the same preparation in front of it.
  *
  * Both only ever add. A day the programme already planned as a game, or
  * already primes, is left exactly as it was, and a day with no fixture beside
- * it is untouched — nothing here takes a game *away*, because the absence of an
+ * it is untouched - nothing here takes a game *away*, because the absence of an
  * entry means nobody has told the app about that week yet, not that the week is
  * empty.
  */
@@ -355,7 +355,7 @@ export function buildSession(
   let session: unknown;
   const schedule = options.schedule ?? null;
   // The Christmas break follows the athlete's league. A league that plays
-  // through Christmas keeps them in season — its game weeks as normal, a week
+  // through Christmas keeps them in season - its game weeks as normal, a week
   // without a game a bye. A league that stops gets the programme's Christmas
   // block, a mini off-season.
   const inSeason =
@@ -394,8 +394,8 @@ export function buildSession(
     options.gameTomorrow &&
     !sessionHasGame(session as Session) &&
     !sessionIsPrimer(session as Session) &&
-    // The summer block writes its own day-before-a-game sessions — Thursday's
-    // light catch, Saturday's primer or post-appearance recovery — and the
+    // The summer block writes its own day-before-a-game sessions - Thursday's
+    // light catch, Saturday's primer or post-appearance recovery - and the
     // athlete set that rhythm. The generic primer is for games it did not plan.
     !(session as { preGame?: boolean }).preGame
   ) {

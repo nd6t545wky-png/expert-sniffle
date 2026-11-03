@@ -4,7 +4,7 @@
  * The whole "is it mechanics or is it strength" question turns on one
  * comparison the app already had the ingredients for: the best pulldown
  * against the best mound reading. This shows it, and says which of the two
- * stories the numbers currently support — including, honestly, "neither yet".
+ * stories the numbers currently support - including, honestly, "neither yet".
  *
  * Placed on the plan rather than buried in progress, because its job is to
  * change what the next block is aimed at.

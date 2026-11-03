@@ -20,7 +20,7 @@ const TRACKMAN = `PitchNo,Date,Pitcher,TaggedPitchType,RelSpeed,SpinRate,SpinAxi
 2,2026-08-09,"Sippel, Dylan",Slider,82.1,2480,120,6.3,1.4,9.7,5.8,-1.9
 3,2026-08-09,"Sippel, Dylan",ChangeUp,83.6,1780,215,6.5,9.9,-12.4,5.9,-1.7`;
 
-/** Rapsodo writes a title block above the header — the classic gotcha. */
+/** Rapsodo writes a title block above the header - the classic gotcha. */
 const RAPSODO = `Rapsodo Pitching Report
 Player: Dylan Sippel,,,,,
 ,,,,,
@@ -87,7 +87,7 @@ describe("detectSource", () => {
   });
 });
 
-describe("parsePitchCsv — TrackMan", () => {
+describe("parsePitchCsv - TrackMan", () => {
   const result = parsePitchCsv(TRACKMAN, DAY);
 
   it("recognises the device and reads every pitch", () => {
@@ -115,7 +115,7 @@ describe("parsePitchCsv — TrackMan", () => {
   });
 });
 
-describe("parsePitchCsv — Rapsodo", () => {
+describe("parsePitchCsv - Rapsodo", () => {
   const result = parsePitchCsv(RAPSODO, DAY);
 
   it("skips the title block above the header", () => {
@@ -144,7 +144,7 @@ describe("parsePitchCsv — Rapsodo", () => {
   });
 });
 
-describe("parsePitchCsv — Pocket Radar", () => {
+describe("parsePitchCsv - Pocket Radar", () => {
   const result = parsePitchCsv(POCKET, DAY);
 
   it("reads a speed-only export", () => {
@@ -165,7 +165,7 @@ describe("parsePitchCsv — Pocket Radar", () => {
   });
 });
 
-describe("parsePitchCsv — bad input", () => {
+describe("parsePitchCsv - bad input", () => {
   it("reports a file it cannot recognise instead of returning nothing quietly", () => {
     const result = parsePitchCsv("name,age\nDylan,26", DAY);
     expect(result.pitches).toEqual([]);

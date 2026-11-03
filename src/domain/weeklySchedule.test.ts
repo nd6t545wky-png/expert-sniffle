@@ -122,7 +122,7 @@ describe("a week read off the team's draw", () => {
     // The same in-season week as any other: maintenance gym, bullpen between games.
     expect(sessions[0].title).toBe("Monday · Recovery + Strength Maintenance");
     expect(sessions[1].title).toBe("Tuesday · Bullpen + Whole-Body Strength");
-    // A week off over Christmas, mid-season, is a bye — not the off-season.
+    // A week off over Christmas, mid-season, is a bye - not the off-season.
     const bye = Array.from({ length: 7 }, (_, d) => day(breakWeek, d, { ...series, games: [] }));
     expect(bye.every((s) => /^No game for your team this week/.test(String(s.description)))).toBe(true);
     expect(bye.some((s) => s.tasks.some((t) => /^Bullpen$/.test(String(t.name))))).toBe(true);

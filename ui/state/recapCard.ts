@@ -7,7 +7,7 @@
  * 1080×1920 so the file is identical on every device.
  *
  * Laid out like the reference: the photo full-bleed and largely unobscured,
- * the numbers set over its upper half in two columns — a small label above a
+ * the numbers set over its upper half in two columns - a small label above a
  * large value. Type is sized for a phone screen at arm's length, which is the
  * only place this image is ever read.
  *
@@ -19,7 +19,7 @@ import { SessionRecap } from "../../src/domain/sessionRecap";
 import { formatIsoDate } from "./formatDate";
 
 /**
- * 9:16 — the story format the reference card uses, and what Instagram,
+ * 9:16 - the story format the reference card uses, and what Instagram,
  * TikTok and WhatsApp all expect. A 4:5 card gets letterboxed by all three.
  */
 export const RECAP_CARD = { width: 1080, height: 1920 } as const;
@@ -47,7 +47,7 @@ function loadImage(src: string): Promise<HTMLImageElement | null> {
  * Cover-fit: fill the frame, crop the overflow, never distort.
  *
  * Letterboxing a training photo looks broken, and stretching it to fit is
- * worse — it changes what the athlete looks like.
+ * worse - it changes what the athlete looks like.
  */
 function drawCover(
   context: CanvasRenderingContext2D,
@@ -64,7 +64,7 @@ function drawCover(
 /**
  * Trims a line to fit, ending with an ellipsis rather than mid-phrase.
  *
- * Plain wrapping left lines reading "… · 90–120 ft ·" — a dangling separator
+ * Plain wrapping left lines reading "… · 90–120 ft ·" - a dangling separator
  * that looks like a rendering fault rather than a shortened line.
  */
 function ellipsize(context: CanvasRenderingContext2D, text: string, maxWidth: number): string {
@@ -111,7 +111,7 @@ export async function drawRecapCard({ recap, caption, photoUrl }: RecapCardInput
   const { width, height } = RECAP_CARD;
 
   // Background: the photo, or a plain dark card when there is none. The card
-  // must be worth saving without a photo — most sessions will not have one.
+  // must be worth saving without a photo - most sessions will not have one.
   const image = await loadImage(photoUrl);
   if (image) {
     drawCover(context, image, width, height);
@@ -121,7 +121,7 @@ export async function drawRecapCard({ recap, caption, photoUrl }: RecapCardInput
   }
 
   // A light top-down wash only. The reference leaves the photo almost
-  // untouched, so legibility rests mainly on the text shadow below — a heavy
+  // untouched, so legibility rests mainly on the text shadow below - a heavy
   // scrim would hide the thing the athlete photographed.
   const scrim = context.createLinearGradient(0, 0, 0, height);
   scrim.addColorStop(0, "rgba(8,8,10,.52)");
@@ -167,7 +167,7 @@ export async function drawRecapCard({ recap, caption, photoUrl }: RecapCardInput
     y += 56;
   }
 
-  // A personal best is the reason to post at all — it gets its own row.
+  // A personal best is the reason to post at all - it gets its own row.
   if (recap.pb) {
     y += 22;
     context.fillStyle = PB_GOLD;

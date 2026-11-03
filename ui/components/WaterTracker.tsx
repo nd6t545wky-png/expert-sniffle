@@ -1,14 +1,14 @@
 /**
  * Hydration tracker, ported from the prototype's `renderWaterTracker`.
  *
- * The stylesheet already carries the whole widget — `.water-tracker`,
+ * The stylesheet already carries the whole widget - `.water-tracker`,
  * `.water-bottle-svg`, `.water-liquid`, `.water-wave`, `.water-readout`,
  * `.water-progress-track`, `.water-buttons`. A card with a row of `.btn`s in
  * its place is not a simplification, it is a different component that happens
  * to add litres: the tap-the-bottle interaction, the animated fill and the
  * progress readout are all the original's, so they are reproduced here.
  *
- * Geometry (fill range, wave offsets, bottle path) is copied verbatim — the
+ * Geometry (fill range, wave offsets, bottle path) is copied verbatim - the
  * numbers are tuned to the SVG's 180×350 viewBox and mean nothing on their own.
  */
 
@@ -137,10 +137,6 @@ export function WaterTracker({ date, logged, goal, presets = [0.5, 0.75], onChan
               onConfirm={() => onChange("reset")}
             />
           </div>
-          <p className="fineprint">
-            This records fluid volume only. Your target should reflect your sports-dietitian plan and
-            measured sweat losses rather than a generic formula.
-          </p>
         </div>
       </div>
     </article>

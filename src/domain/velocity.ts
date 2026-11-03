@@ -4,18 +4,18 @@ import { Session, SessionTask } from "./programmeSessions";
  * Velocity development, made explicit and made phase-aware.
  *
  * The athlete's stated goal is to throw harder. The programme did not have a
- * velocity plan — it had a velocity *day*, every week, at the same intent all
+ * velocity plan - it had a velocity *day*, every week, at the same intent all
  * year, whether or not there was a game on Saturday. Two things were wrong
  * with that, and they pull in opposite directions:
  *
  *  1. **In season it was too much.** Wednesday's plyo ladder finished with
- *     three light-ball throws at 85% — fourteen maximal-intent throws with a
- *     100–150 g ball — and then asked for measured pulldowns on top, three
+ *     three light-ball throws at 85% - fourteen maximal-intent throws with a
+ *     100–150 g ball - and then asked for measured pulldowns on top, three
  *     days before a game. Reinold's randomised trial is the reason to care:
  *     24% of the weighted-ball group were injured against none of the control,
  *     and the risk sits in exactly that light-ball, maximal-intent work.
  *  2. **Out of season it was too little.** The one genuine non-competitive
- *     window in the year — the GBL Christmas break — ran at the same 85%
+ *     window in the year - the GBL Christmas break - ran at the same 85%
  *     ceiling as an in-season week. The programme labels those Wednesdays
  *     "Velocity + power · Express" and then prescribes six pulldowns. That is
  *     a maintenance dose wearing a development label.
@@ -55,8 +55,8 @@ import { Session, SessionTask } from "./programmeSessions";
 /**
  * Driveline's four published intent bands.
  *
- * The programme had drifted to nine distinct effort values — 45, 50, 55, 60,
- * 65, 70, 75, 80 and 85% — which is a precision nobody can feel. No athlete
+ * The programme had drifted to nine distinct effort values - 45, 50, 55, 60,
+ * 65, 70, 75, 80 and 85% - which is a precision nobody can feel. No athlete
  * can reliably distinguish a 65% throw from a 70% one, so the extra numbers
  * bought nothing and made the ladder impossible to reason about. Four named
  * bands is what the source material actually uses.
@@ -117,7 +117,7 @@ export function bandFor(percent: number): IntentBand {
 /**
  * What each week of the year is for, as far as throwing hard is concerned.
  *
- *  - `in_season`   one game a week, so one high-intent day fits — placed as
+ *  - `in_season`   one game a week, so one high-intent day fits - placed as
  *                  far from it as the week allows.
  *  - `two_game`    games Friday *and* Sunday. Nothing fits; the programme's
  *                  own week plan says "no separate velocity day".
@@ -145,7 +145,7 @@ export interface VelocityPolicy {
   /** Whether the week carries a genuine high-intent throwing exposure. */
   velocityDay: boolean;
   /**
-   * The week's whole high-effort throw budget, Tread's number — or null where
+   * The week's whole high-effort throw budget, Tread's number - or null where
    * the programme's own week plan already states a count and this has no
    * business raising it.
    */
@@ -175,7 +175,7 @@ interface BlockRange {
 /**
  * The year, week by week.
  *
- * The boundaries are not invented here — every one of them is where the
+ * The boundaries are not invented here - every one of them is where the
  * programme's own phase table or week plan already changes character. Weeks
  * 22–23 are the break's "Christmas unload" and "Movement rebuild"; 24–25 are
  * its "Force emphasis" and "Strength-speed", which is where the programme
@@ -190,7 +190,7 @@ interface BlockRange {
  * calendar runs FNCBA winter into GBL summer into GBL summer again, and the
  * only real gap is the Christmas break. That is a reason to protect those
  * three weeks and to stop the in-season light-ball work from competing with
- * the one high-intent throw set each week — not a reason to pretend there is
+ * the one high-intent throw set each week - not a reason to pretend there is
  * an off-season there is not.
  */
 const BLOCKS: readonly BlockRange[] = [
@@ -201,7 +201,7 @@ const BLOCKS: readonly BlockRange[] = [
     plyoCeiling: "hybrid_b",
     velocityDay: true,
     highEffortThrows: null,
-    note: "FNCBA Division 1, a game every Saturday. Wednesday is three days either side of it, which is the one slot in the week a high-intent throw set belongs in. The plyo ladder in front of it is capped at hybrid B so fourteen light-ball throws at 85% do not spend the arm before the measured throws — and so the week's maximal-intent work is one set, on one day, rather than spread across the session.",
+    note: "FNCBA Division 1, a game every Saturday. Wednesday is three days either side of it, which is the one slot in the week a high-intent throw set belongs in. The plyo ladder in front of it is capped at hybrid B so fourteen light-ball throws at 85% do not spend the arm before the measured throws - and so the week's maximal-intent work is one set, on one day, rather than spread across the session.",
   },
   {
     from: 9,
@@ -246,7 +246,7 @@ const BLOCKS: readonly BlockRange[] = [
     plyoCeiling: "hybrid_a",
     velocityDay: true,
     highEffortThrows: 20,
-    note: "The one genuine velocity block in the year. It sits inside the four-week Christmas break between Round 10 and Round 11, which is the only stretch that can carry maximal-intent throwing without a fixture three days later. Intent goes up to hybrid A and volume comes down to match — twenty high-effort throws in the session, which is Tread's published dose for a high-intensity phase.",
+    note: "The one genuine velocity block in the year. It sits inside the four-week Christmas break between Round 10 and Round 11, which is the only stretch that can carry maximal-intent throwing without a fixture three days later. Intent goes up to hybrid A and volume comes down to match - twenty high-effort throws in the session, which is Tread's published dose for a high-intensity phase.",
   },
   {
     from: 26,
@@ -255,7 +255,7 @@ const BLOCKS: readonly BlockRange[] = [
     plyoCeiling: "hybrid_b",
     velocityDay: false,
     highEffortThrows: 10,
-    note: "The week Round 11 is played: Wednesday 6 January and Sunday 10 January. Intent comes off out of the velocity block so the first games back are not the first fatigued games — a taper, which is why the volume drops and the games stay. The Wednesday game is a week after the velocity block's last high-intent Wednesday, with the New Year weekend between them.",
+    note: "The week Round 11 is played: Wednesday 6 January and Sunday 10 January. Intent comes off out of the velocity block so the first games back are not the first fatigued games - a taper, which is why the volume drops and the games stay. The Wednesday game is a week after the velocity block's last high-intent Wednesday, with the New Year weekend between them.",
   },
   {
     from: 27,
@@ -283,7 +283,7 @@ const BLOCKS: readonly BlockRange[] = [
     velocityDay: true,
     highEffortThrows: null,
     provisional: true,
-    note: "Winter 2027 is planned on the 2026 draw — a Saturday game every week — so it is treated as in season, with one Wednesday exposure and the plyo ladder capped. If the published 2027 draw opens a real gap, that gap is where a second velocity block goes, and this table should be revised to put one there.",
+    note: "Winter 2027 is planned on the 2026 draw - a Saturday game every week - so it is treated as in season, with one Wednesday exposure and the plyo ladder capped. If the published 2027 draw opens a real gap, that gap is where a second velocity block goes, and this table should be revised to put one there.",
   },
 ];
 
@@ -293,14 +293,14 @@ const BLOCKS: readonly BlockRange[] = [
  * Weeks 9 and 10 are an unload, and the note above says exactly what they
  * assume: "Deliberate unload after the final *published* FNCBA round." A
  * finals series is a game after that round, and once the athlete enters one
- * the assumption is simply false — the week is a competition week wearing an
+ * the assumption is simply false - the week is a competition week wearing an
  * off-season policy.
  *
  * Two things stay separate here, because the tapering literature separates
  * them and the unload does not. Bosquet 2007 (Med Sci Sports Exerc
  * 39(8):1358–65, meta-analysis of tapering studies) finds performance is best
- * preserved by cutting training *volume* — the largest effects at a 41–60%
- * reduction — while holding intensity and session frequency where they were;
+ * preserved by cutting training *volume* - the largest effects at a 41–60%
+ * reduction - while holding intensity and session frequency where they were;
  * Mujika & Padilla 2003 (Med Sci Sports Exerc 35(7):1182–7) reach the same
  * conclusion reviewing the same question. A restore week cuts both. So the
  * volume reduction stays exactly as it is, and this lifts only the intensity
@@ -309,7 +309,7 @@ const BLOCKS: readonly BlockRange[] = [
  * It does not invent a policy to do that. A week with one game is structurally
  * an in-season week and a week with two is structurally a two-game week, and
  * this table already holds both, with their own reasoning and their own
- * numbers. Reusing them is the point — a third set of numbers written here
+ * numbers. Reusing them is the point - a third set of numbers written here
  * would be a third opinion about the same question.
  *
  * Note which way that lands for a finals *weekend*: two games resolves to
@@ -329,7 +329,7 @@ function competitionOverride(games: number): BlockRange | null {
     plyoCeiling: canonical.plyoCeiling,
     velocityDay: canonical.velocityDay,
     highEffortThrows: canonical.highEffortThrows,
-    note: `${games === 1 ? "A game is" : `${games} games are`} scheduled this week, so the unload this week was planned as does not apply: it was written for the weeks after the last published round, and these fixtures come after it. The volume reduction stands — a taper cuts volume and holds intensity (Bosquet 2007, best effects at a 41–60% volume cut with intensity and frequency maintained; Mujika & Padilla 2003), and an unload cuts both. Only the intensity suppression is lifted, to this year's own ${BLOCK_LABELS[block].toLowerCase()} policy. ${canonical.note}`,
+    note: `${games === 1 ? "A game is" : `${games} games are`} scheduled this week, so the unload this week was planned as does not apply: it was written for the weeks after the last published round, and these fixtures come after it. The volume reduction stands - a taper cuts volume and holds intensity (Bosquet 2007, best effects at a 41–60% volume cut with intensity and frequency maintained; Mujika & Padilla 2003), and an unload cuts both. Only the intensity suppression is lifted, to this year's own ${BLOCK_LABELS[block].toLowerCase()} policy. ${canonical.note}`,
   };
 }
 
@@ -400,7 +400,7 @@ const PULLDOWN = /pulldown/i;
  *
  * Tread's budget is 15–20 high-effort throws for the whole session. On a
  * develop Wednesday the light balls alone were fourteen of them at the
- * programme's own 85%, which left nothing for the measured set — so raising
+ * programme's own 85%, which left nothing for the measured set - so raising
  * the ceiling without cutting the sets would produce thirty-plus maximal
  * throws, which is the failure mode the guide names outright.
  *
@@ -410,7 +410,7 @@ const PULLDOWN = /pulldown/i;
 const HYBRID_A_PLYO_THROWS = 8;
 
 /**
- * The whole session's high-effort budget on a develop week — Tread's number.
+ * The whole session's high-effort budget on a develop week - Tread's number.
  *
  * The measured set is *not* a fixed count. It is whatever is left of this
  * after the plyo ladder has taken its share, which is the only way the two can
@@ -453,7 +453,7 @@ function plyoThrows(prescription: string): number {
 }
 
 /**
- * Cap — and on a develop week, deliberately raise — the plyo ladder.
+ * Cap - and on a develop week, deliberately raise - the plyo ladder.
  *
  * `reduced` is the readiness flag, and it only ever blocks the raise. The cap
  * still applies on a reduced day, because a cap that stops working when the
@@ -468,7 +468,7 @@ function applyToPlyos(
   let hybridAThrows = 0;
   // A reduced day never reaches hybrid A, whatever the block permits. The
   // week's ceiling and the day's readiness are two separate limits and the
-  // lower of them wins — a develop week does not entitle a tired athlete to a
+  // lower of them wins - a develop week does not entitle a tired athlete to a
   // velocity dose.
   const ceiling = reduced ? lowerBand(policy.plyoCeiling, "hybrid_b") : policy.plyoCeiling;
 
@@ -490,7 +490,7 @@ function applyToPlyos(
       // outright. Sets drop to one as soon as the ladder has spent its share
       // of the budget; reps are untouched, because the rep count is the shape
       // of the drill and one throw of a rocker throw is not a rocker throw.
-      // One set is the floor, so the total can land a little over — which is
+      // One set is the floor, so the total can land a little over - which is
       // why the measured set below is derived from the real count rather than
       // assumed.
       if (plyoThrows(prescription) > hybridABudget) prescription = trimSets(prescription, 1);
@@ -505,7 +505,7 @@ function applyToPlyos(
     return {
       ...task,
       prescription,
-      cue: `${task.cue} ${BAND_LABELS[target][0].toUpperCase()}${BAND_LABELS[target].slice(1)} band — ${BAND_RANGES[target]}, and that is a ceiling for the day, not a target to reach on every throw.`,
+      cue: `${task.cue} ${BAND_LABELS[target][0].toUpperCase()}${BAND_LABELS[target].slice(1)} band - ${BAND_RANGES[target]}, and that is a ceiling for the day, not a target to reach on every throw.`,
       evidence: policy.note,
     };
   });
@@ -519,7 +519,7 @@ function applyToPlyos(
  * On a develop week this becomes a genuine velocity day at Tread's dose. On
  * every other week the programme's own count stands and all that changes is
  * that the day says what it is and what the week's whole high-effort budget
- * is — because the reason the ladder in front of it mattered is that both come
+ * is - because the reason the ladder in front of it mattered is that both come
  * out of the same budget.
  */
 function applyToPulldowns(
@@ -533,8 +533,8 @@ function applyToPulldowns(
   return tasks.map((task) => {
     if (!PULLDOWN.test(task.name)) return task;
     // Both branches below append to text the task already carries, so running
-    // twice would say everything twice. The plyo pass is self-limiting — its
-    // rewrite removes the pattern it matches on — but this one is not, so it
+    // twice would say everything twice. The plyo pass is self-limiting - its
+    // rewrite removes the pattern it matches on - but this one is not, so it
     // is marked explicitly.
     if (task.velocityPolicy) return task;
 
@@ -542,22 +542,22 @@ function applyToPulldowns(
       return {
         ...task,
         velocityPolicy: policy.block,
-        name: "Velocity day — measured pulldowns",
+        name: "Velocity day - measured pulldowns",
         prescription: `${measured} measured throws · ${VELOCITY_DAY_INTENT} · regulation 5 oz ball · 90–120 s between throws`,
-        cue: `This is the day the programme actually tries to make you throw harder, and it is one of ${policy.blockWeeks} such weeks in the year — so it is worth doing properly and worth stopping on time. ${DEVELOP_HIGH_EFFORT_THROWS} high-effort throws in the whole session: the light balls above are ${hybridAThrows} of them, which leaves ${measured} here. Stop at ${measured} even if it feels good.`,
-        setup: `${task.setup ?? ""} Radar set up before the first throw, not after — an unmeasured velocity day is a hard throwing day with no information in it.`.trim(),
+        cue: `This is the day the programme actually tries to make you throw harder, and it is one of ${policy.blockWeeks} such weeks in the year - so it is worth doing properly and worth stopping on time. ${DEVELOP_HIGH_EFFORT_THROWS} high-effort throws in the whole session: the light balls above are ${hybridAThrows} of them, which leaves ${measured} here. Stop at ${measured} even if it feels good.`,
+        setup: `${task.setup ?? ""} Radar set up before the first throw, not after - an unmeasured velocity day is a hard throwing day with no information in it.`.trim(),
         execution:
           "Full run-in rhythm. First throw at about 90% and build only while direction and deceleration stay clean. Record peak and best-five average so the block can be judged on something other than how it felt.",
         rest: "90–120 seconds between measured throws. Under 90 seconds this stops being a velocity set and becomes conditioning.",
-        stop: `${task.stop ?? ""} Stop the set for pain, for a drop of more than 2 mph across two consecutive throws, or at ${measured} throws — whichever comes first.`.trim(),
-        evidence: `Tread Athletics (Brewster & Blanc), published guide: "our high intensity phases usually only have 15 or 20 high effort throws, twice per week". Driveline's published bands put maximal effort at one to two days a week and state that three times a week is not recommended — this week has one, because the plyo ladder and this set share a budget. Reinold 2018 (Sports Health 10(4):327–333) is the reason the count is a hard number: 38 pitchers randomised, +3.3% velocity and +4.3° shoulder external rotation in the weighted-ball group, against a 24% injury rate versus none in control. ${policy.note}`,
+        stop: `${task.stop ?? ""} Stop the set for pain, for a drop of more than 2 mph across two consecutive throws, or at ${measured} throws - whichever comes first.`.trim(),
+        evidence: `Tread Athletics (Brewster & Blanc), published guide: "our high intensity phases usually only have 15 or 20 high effort throws, twice per week". Driveline's published bands put maximal effort at one to two days a week and state that three times a week is not recommended - this week has one, because the plyo ladder and this set share a budget. Reinold 2018 (Sports Health 10(4):327–333) is the reason the count is a hard number: 38 pitchers randomised, +3.3% velocity and +4.3° shoulder external rotation in the weighted-ball group, against a 24% injury rate versus none in control. ${policy.note}`,
       };
     }
 
     const budget = policy.highEffortThrows;
     const budgetLine =
       budget === null
-        ? "The count above is the week's whole high-effort budget — the plyo ladder in front of it is capped below maximal intent so it does not spend any of it."
+        ? "The count above is the week's whole high-effort budget - the plyo ladder in front of it is capped below maximal intent so it does not spend any of it."
         : `Hold the week to ${budget} high-effort throws in total.`;
 
     return {

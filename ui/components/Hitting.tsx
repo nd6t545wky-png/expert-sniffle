@@ -34,7 +34,7 @@ const HIT_CODES = new Set(["1B", "2B", "3B", "HR", "BH"]);
 const dotColour = (res: string) =>
   HIT_CODES.has(res) ? "var(--hit-dot)" : res === "ROE" ? "var(--error-dot)" : "var(--out-dot)";
 
-/** The field, to scale — the BQ app's drawing. Tappable when `onTap` is given. */
+/** The field, to scale - the BQ app's drawing. Tappable when `onTap` is given. */
 export function Field({
   dots,
   onTap,

@@ -1,8 +1,8 @@
 /**
  * Micronutrients, tracked honestly.
  *
- * The app counted calories and three macros. Everything else a food carries —
- * iron, calcium, sodium, fibre — was fetched from the label database and
+ * The app counted calories and three macros. Everything else a food carries -
+ * iron, calcium, sodium, fibre - was fetched from the label database and
  * thrown away. That is the gap between a calorie counter and a nutrition tool.
  *
  * The hard part is not the arithmetic, it is refusing to lie. A food label
@@ -23,7 +23,7 @@
  *
  * Targets are the Australian NRVs (NHMRC/MoH) for a man aged 19–30, which is
  * the athlete's own jurisdiction, with two athlete-specific notes carried in
- * the copy rather than baked into the numbers — sodium and fluid both move
+ * the copy rather than baked into the numbers - sodium and fluid both move
  * with sweat, and a summer session in Brisbane is not a sedentary day.
  * Nothing here is clinical advice, and the UI says so.
  */
@@ -81,7 +81,7 @@ export const MICRONUTRIENTS: Micronutrient[] = [
     unit: "g",
     target: 90,
     kind: "ceiling",
-    why: "Includes the sugar in fruit and milk, not only added sugar — so a high number is not automatically a problem.",
+    why: "Includes the sugar in fruit and milk, not only added sugar - so a high number is not automatically a problem.",
     precision: 1,
   },
   {
@@ -207,7 +207,7 @@ export interface NutrientTotal {
 /**
  * The day, nutrient by nutrient.
  *
- * `foods` is every meal logged, including those that declared nothing — that
+ * `foods` is every meal logged, including those that declared nothing - that
  * is precisely the count that makes the coverage figure honest. Dropping them
  * would produce "declared by 2 of 2" on a day of five meals.
  */
@@ -220,7 +220,7 @@ export function dailyMicronutrients(
     let declaredBy = 0;
     for (const food of foods) {
       const value = Number(food?.[nutrient.id]);
-      // Zero is a real declaration — a label saying "sugars 0 g" is data. Only
+      // Zero is a real declaration - a label saying "sugars 0 g" is data. Only
       // an absent key means the label did not say.
       if (food?.[nutrient.id] === undefined || food?.[nutrient.id] === null) continue;
       if (!Number.isFinite(value) || value < 0) continue;
@@ -315,7 +315,7 @@ export function micronutrientFindings(totals: NutrientTotal[]): MicronutrientFin
     if (row.percent < SHORTFALL_PCT) {
       findings.push({
         severity: "watch",
-        text: `${row.nutrient.label} is ${row.percent}% of the ${row.target}${row.nutrient.unit} target, and every food today declared it — so that is the real figure.`,
+        text: `${row.nutrient.label} is ${row.percent}% of the ${row.target}${row.nutrient.unit} target, and every food today declared it - so that is the real figure.`,
       });
     }
   }

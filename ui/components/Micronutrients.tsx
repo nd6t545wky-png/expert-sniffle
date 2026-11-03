@@ -8,7 +8,7 @@ import {
 import { Alert } from "./Page";
 
 /**
- * The nutrients beyond the macros — and, just as loudly, the ones today's
+ * The nutrients beyond the macros - and, just as loudly, the ones today's
  * labels did not declare.
  *
  * Every calorie tracker on the market prints a confident daily iron figure
@@ -36,7 +36,7 @@ function amount(row: NutrientTotal): string {
 function Row({ row }: { row: NutrientTotal }) {
   const known = row.declaredBy > 0;
   // A ceiling fills toward a limit and a floor fills toward a goal, but the
-  // bar is the same bar — it is the words that say which direction is good.
+  // bar is the same bar - it is the words that say which direction is good.
   const filled = Math.min(100, Math.max(0, row.percent));
 
   return (
@@ -61,7 +61,7 @@ function Row({ row }: { row: NutrientTotal }) {
       </div>
 
       {/* No bar at all when nothing declared it. An empty track is exactly the
-          thing this card exists to avoid — it draws "the label did not say"
+          thing this card exists to avoid - it draws "the label did not say"
           with the same picture as "none of it". */}
       {known && (
         <div className="micro-bar" role="presentation">
@@ -76,7 +76,7 @@ function Row({ row }: { row: NutrientTotal }) {
         {known ? (
           <>
             {row.partial
-              ? `${row.declaredBy} of ${row.foods} foods declared it — the rest did not say, so this is a floor.`
+              ? `${row.declaredBy} of ${row.foods} foods declared it - the rest did not say, so this is a floor.`
               : `Every food today declared it.`}{" "}
             {row.nutrient.why}
           </>
@@ -113,7 +113,7 @@ export function Micronutrients({ foods, calorieTarget }: MicronutrientsProps) {
       <div className="disclosure-body">
         <p className="fineprint disclosure-intro">
           <strong>How to read these:</strong> {coverageSentence(coverage)} Figures come from the food
-          label itself, not an estimate — a nutrient a label does not declare is left out rather than
+          label itself, not an estimate - a nutrient a label does not declare is left out rather than
           counted as zero, which is why some totals read “at least”. Targets are the Australian
           reference values for a man 19–30; they are general guidance for a healthy athlete, not
           clinical advice.
@@ -133,7 +133,7 @@ export function Micronutrients({ foods, calorieTarget }: MicronutrientsProps) {
 
         <p className="fineprint">
           Sodium and fluid both move with sweat. A long session in the heat loses sodium, and
-          replacing it is not the same as overeating it — the limit above is written for a normal
+          replacing it is not the same as overeating it - the limit above is written for a normal
           day.
         </p>
       </div>

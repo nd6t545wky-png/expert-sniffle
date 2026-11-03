@@ -30,7 +30,7 @@ describe("angleAt", () => {
 
   it("corrects for the frame's aspect ratio", () => {
     // A true 45° on a 16:9 frame digitises as 62° if the normalised
-    // coordinates are used directly — an arm slot wrong by 17 degrees.
+    // coordinates are used directly - an arm slot wrong by 17 degrees.
     const wrong = angleAt(p(0.5, 0.5), p(0.6, 0.5), p(0.5, 0.4), 1);
     const right = angleAt(p(0.5, 0.5), p(0.6, 0.5), p(0.6, 0.4), 16 / 9);
     expect(wrong).toBe(90);
@@ -305,7 +305,7 @@ describe("the measurement set", () => {
 describe("reference bands", () => {
   it("bands only the measurements whose geometry matches the reference data", () => {
     // Trunk lean and shoulder tilt are a different construction from anything
-    // OBP publishes — the lab splits trunk angle into signed anterior and
+    // OBP publishes - the lab splits trunk angle into signed anterior and
     // lateral components. A band over the wrong quantity is worse than none.
     const banded = MEASUREMENTS.filter((m) => m.band).map((m) => m.id).sort();
     expect(banded).toEqual([

@@ -8,7 +8,7 @@ import { Alert, Card, CardHead, EmptyState } from "./Page";
  * Every check-in, check-out, task tick and throwing entry is logged as it
  * happens and uploaded to the server's write-once table. This card shows the
  * latest of those steps and, plainly, whether any are still only on this
- * device — an upload that is quietly behind is the failure worth seeing.
+ * device - an upload that is quietly behind is the failure worth seeing.
  */
 
 const LABELS: Record<string, string> = {

@@ -3,7 +3,7 @@
  *
  * The share card is checked for what it must never do: send the sync key, or
  * put the decryption key anywhere but the fragment. The viewer is checked for
- * what a physio will actually hit — a good link, a link with the fragment
+ * what a physio will actually hit - a good link, a link with the fragment
  * dropped by a chat app, and a revoked one.
  */
 
@@ -336,7 +336,7 @@ describe("what the physio opens", () => {
     locate(`?share=${id}`, `#${key}`);
 
     render(<PhysioView api={api} />);
-    expect(await screen.findByText(/Dylan — training summary/)).toBeTruthy();
+    expect(await screen.findByText(/Dylan - training summary/)).toBeTruthy();
     expect(screen.getByText("1.42")).toBeTruthy();
     expect(screen.getByText(/Three consecutive days throwing/)).toBeTruthy();
     expect(screen.getByText(/shoulder 2 · elbow 0 · forearm 1/)).toBeTruthy();
@@ -350,7 +350,7 @@ describe("what the physio opens", () => {
     locate(`?share=${id}`, `#${key}`);
 
     render(<PhysioView api={api} />);
-    await screen.findByText(/Dylan — training summary/);
+    await screen.findByText(/Dylan - training summary/);
     expect(calls).toHaveLength(1);
     expect(calls[0].path).not.toContain(key);
     expect(calls[0].body).toBe("");
@@ -361,7 +361,7 @@ describe("what the physio opens", () => {
     const api = apiRecording([], () => new Response(JSON.stringify({ payload, updatedAt: "" }), { status: 200 }));
     locate(`?share=${id}`, `#${key}`);
     render(<PhysioView api={api} />);
-    await screen.findByText(/Dylan — training summary/);
+    await screen.findByText(/Dylan - training summary/);
     expect(screen.queryByText(/Blood drawn/)).toBeNull();
   });
 
@@ -370,7 +370,7 @@ describe("what the physio opens", () => {
     const api = apiRecording([], () => new Response(JSON.stringify({ payload, updatedAt: "" }), { status: 200 }));
     locate(`?share=${id}`, `#${key}`);
     render(<PhysioView api={api} />);
-    await screen.findByText(/Dylan — training summary/);
+    await screen.findByText(/Dylan - training summary/);
 
     // Locale formatting of the date is the viewer's, not this test's business.
     expect(screen.getAllByText(/^Blood drawn /)).toHaveLength(2);

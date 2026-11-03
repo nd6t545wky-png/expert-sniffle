@@ -2,8 +2,8 @@
  * Every theme class the app writes must exist in the stylesheet.
  *
  * The rewrite renamed the summer theme from `theme-coomera` to `theme-cubs`
- * in `App.tsx` and nowhere else, so for every summer week — more than half the
- * year — the shell carried a class the stylesheet had never heard of. Nothing
+ * in `App.tsx` and nowhere else, so for every summer week - more than half the
+ * year - the shell carried a class the stylesheet had never heard of. Nothing
  * failed: the class applied cleanly, the custom properties under it simply did
  * not exist, and `var(--team-primary)` resolved to nothing everywhere it was
  * used. That is the kind of break no unit test catches and no screenshot of

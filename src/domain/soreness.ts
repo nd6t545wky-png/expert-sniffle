@@ -5,7 +5,7 @@
  * five 0–10 sliders, and all they could do was scale the *whole* day down:
  * full → reduced → recovery → hold. That is the right response to feeling
  * generally beaten up and the wrong response to one part hurting. A sore
- * medial elbow does not mean do less of everything — it means do not load the
+ * medial elbow does not mean do less of everything - it means do not load the
  * flexor-pronator mass or throw at intent today, and it means do something
  * specific for the elbow, while the legs, the trunk and the aerobic work carry
  * on untouched.
@@ -13,7 +13,7 @@
  * So this module reads a report of *where* it hurts, *what kind* of pain, and
  * *when it shows up*, and produces three things:
  *
- *   1. a **tier** — monitor, modify, hold or refer
+ *   1. a **tier** - monitor, modify, hold or refer
  *   2. a set of **exercises to take out** of the day, matched against the
  *      programme's actual task names
  *   3. a set of **exercises to put in**, with sets, reps and a dose
@@ -43,7 +43,7 @@
  * **What this does not do.** It does not diagnose, and it does not run a
  * rehabilitation programme. It gets the athlete safely through today and
  * writes down what happened. Anything with a red flag on it, or anything that
- * has not settled in ten days, is handed to the physio — who now has a live
+ * has not settled in ten days, is handed to the physio - who now has a live
  * link to this data. Prescribing a full tendinopathy progression autonomously
  * would be pretending to a competence this app does not have.
  */
@@ -58,7 +58,7 @@ export const PAIN_SOURCES = {
   silbernagel: {
     key: "Silbernagel 2007, Am J Sports Med",
     detail:
-      "RCT, n = 38. Athletes who continued running and jumping under a pain-monitoring model improved as much as those who stopped for six weeks — VISA-A 57 to 85 versus 57 to 91, no significant difference in rate of improvement. Continued loading under a pain ceiling showed no negative effect.",
+      "RCT, n = 38. Athletes who continued running and jumping under a pain-monitoring model improved as much as those who stopped for six weeks - VISA-A 57 to 85 versus 57 to 91, no significant difference in rate of improvement. Continued loading under a pain ceiling showed no negative effect.",
   },
   rioIsometric: {
     key: "Rio 2015, BJSM",
@@ -68,7 +68,7 @@ export const PAIN_SOURCES = {
   rioNeuroplastic: {
     key: "Rio 2016, BJSM",
     detail:
-      "Narrative review. Externally paced strength work — a metronome rather than self-selected tempo — modulates corticospinal excitability and inhibition, which self-paced work does not. The tempo is part of the prescription, not a detail.",
+      "Narrative review. Externally paced strength work - a metronome rather than self-selected tempo - modulates corticospinal excitability and inhibition, which self-paced work does not. The tempo is part of the prescription, not a detail.",
   },
   girgis: {
     key: "Girgis 2020, Phys Ther Sport",
@@ -78,7 +78,7 @@ export const PAIN_SOURCES = {
   zaremski: {
     key: "Zaremski 2018, Orthop J Sports Med",
     detail:
-      "Observational, 115 high-school starting-pitcher outings. Names pitching with arm pain and fatigue as a known risk factor, and found 42.4% of game-day pitches — bullpen and warm-up — go uncounted entirely.",
+      "Observational, 115 high-school starting-pitcher outings. Names pitching with arm pain and fatigue as a known risk factor, and found 42.4% of game-day pitches - bullpen and warm-up - go uncounted entirely.",
   },
   popchak: {
     key: "Popchak 2015, Am J Phys Med Rehabil",
@@ -92,8 +92,8 @@ export const PAIN_SOURCES = {
 /**
  * Where it hurts.
  *
- * Split finely enough that the prescription actually changes — medial and
- * lateral elbow load completely different tissue and want opposite work — and
+ * Split finely enough that the prescription actually changes - medial and
+ * lateral elbow load completely different tissue and want opposite work - and
  * coarsely enough to be picked on a phone in ten seconds while standing on a
  * mound.
  */
@@ -137,11 +137,11 @@ export const REGION_HINTS: Partial<Record<BodyRegion, string>> = {
   elbow_medial: "The UCL side. Where a pitcher's elbow usually talks.",
   elbow_lateral: "Outside, over the bony point.",
   elbow_posterior: "The point of the elbow at ball release.",
-  shoulder_front: "Anterior — biceps tendon, front of the joint.",
+  shoulder_front: "Anterior - biceps tendon, front of the joint.",
   shoulder_back: "Posterior cuff, behind the joint.",
   shoulder_top: "The AC joint, on top of the shoulder.",
   hip_groin: "Front of the hip or the inner thigh.",
-  glute_piriformis: "Deep in the buttock, behind the hip — the piriformis. Pick this even if it spreads down the back of the leg.",
+  glute_piriformis: "Deep in the buttock, behind the hip - the piriformis. Pick this even if it spreads down the back of the leg.",
 };
 
 /** Regions that carry the throwing arm, and therefore gate throwing. */
@@ -162,7 +162,7 @@ export const ARM_REGIONS: readonly BodyRegion[] = Object.freeze([
  *
  * The arm, plus the deep hip rotators. The drive leg's hip rotates the pelvis
  * on every pitch, so a sore piriformis that flares during throwing is
- * aggravated by the throwing, not by the lifting around it — and a plan that
+ * aggravated by the throwing, not by the lifting around it - and a plan that
  * rests the region while leaving the bullpen in has rested nothing.
  */
 export const THROWING_REGIONS: readonly BodyRegion[] = Object.freeze([...ARM_REGIONS, "glute_piriformis"]);
@@ -208,7 +208,7 @@ export const TIMING_LABELS: Record<PainTiming, string> = {
 export type PainTrend = "new" | "same" | "worse" | "better";
 
 export const TREND_LABELS: Record<PainTrend, string> = {
-  new: "New — first time",
+  new: "New - first time",
   same: "About the same",
   worse: "Getting worse",
   better: "Getting better",
@@ -296,7 +296,7 @@ function clampSeverity(value: unknown): number {
 /**
  * Turn one report into a decision.
  *
- * Rules are additive and the worst one wins — there is no scoring, because a
+ * Rules are additive and the worst one wins - there is no scoring, because a
  * score would let a low number average away a red flag. `daysRunning` lets a
  * report that has simply not gone away escalate on its own.
  */
@@ -306,7 +306,7 @@ export function triageReport(report: SorenessReport, daysRunning = 0): Triage {
   let referral: string | undefined;
 
   // Held as an index rather than a string so that "the worst rule wins" is a
-  // max() over one number. Tiers only ever move up here — a later rule cannot
+  // max() over one number. Tiers only ever move up here - a later rule cannot
   // talk an earlier, more serious one down, which is the property that keeps a
   // red flag from being averaged away.
   const ORDER: PainTier[] = ["monitor", "modify", "hold", "refer"];
@@ -321,7 +321,7 @@ export function triageReport(report: SorenessReport, daysRunning = 0): Triage {
       report.quality === "burning"
         ? "Burning, pins and needles or numbness is a nerve description, not a load description. Load management is not the answer to it."
         : report.quality === "radiating"
-          ? "Pain that travels down a limb usually means a nerve is involved — from the buttock, often the sciatic nerve where it passes the piriformis, or from the lower back. Which one decides the treatment, so it needs examining rather than training around, and stretching into it tends to make it worse."
+          ? "Pain that travels down a limb usually means a nerve is involved - from the buttock, often the sciatic nerve where it passes the piriformis, or from the lower back. Which one decides the treatment, so it needs examining rather than training around, and stretching into it tends to make it worse."
           : "Weakness, instability or a joint giving way needs examining before it is loaded again.";
     reasons.push(`Reported as ${QUALITY_LABELS[report.quality].toLowerCase()}.`);
   }
@@ -354,7 +354,7 @@ export function triageReport(report: SorenessReport, daysRunning = 0): Triage {
 
   if (report.timing === "next_morning") {
     raise("modify");
-    reasons.push("Still there the next morning — the pain-monitoring model's signal that yesterday was too much.");
+    reasons.push("Still there the next morning - the pain-monitoring model's signal that yesterday was too much.");
   }
 
   if (report.quality === "sharp" && severity > MONITOR_SEVERITY) {
@@ -364,11 +364,11 @@ export function triageReport(report: SorenessReport, daysRunning = 0): Triage {
 
   if (report.quality === "pinching" && report.timing !== "warms_up") {
     raise("modify");
-    reasons.push("Pinching at end of range — the range itself is the provocation.");
+    reasons.push("Pinching at end of range - the range itself is the provocation.");
   }
 
   // Warming up out of it is the most reassuring answer there is, and the one
-  // the model was built around — so it is the single rule allowed to lower a
+  // the model was built around - so it is the single rule allowed to lower a
   // tier. It can only undo `modify`, and only when nothing else is wrong: a
   // red flag, a 6/10 or a worsening trend all sit above it and stay.
   if (
@@ -430,7 +430,7 @@ export function readReports(value: unknown): SorenessReport[] {
  * How long this region has been complaining without a break.
  *
  * Counts back from the newest report through earlier ones for the same region,
- * allowing a gap of up to the report lifetime — an athlete who mentions their
+ * allowing a gap of up to the report lifetime - an athlete who mentions their
  * elbow on Monday and again on Friday has had a sore elbow all week, not two
  * separate elbows.
  */
@@ -457,7 +457,7 @@ function daysBetween(from: IsoDate, to: IsoDate): number {
 }
 
 /**
- * The reports that speak for today — one per region, newest first.
+ * The reports that speak for today - one per region, newest first.
  *
  * A report keeps applying after the day it was made, because pain does not
  * stop existing because nobody opened the app. It stops applying when the
@@ -531,7 +531,7 @@ export interface ExerciseRx {
   prescription: string;
   cue: string;
   why: string;
-  /** When to stop the set — the thing that keeps a pain protocol safe. */
+  /** When to stop the set - the thing that keeps a pain protocol safe. */
   stop?: string;
   citation?: Citation;
 }
@@ -560,7 +560,7 @@ export interface RegionPlaybook {
  * The isometric dose, used across every region.
  *
  * Five holds of 45 seconds at roughly 70% of a maximal effort, two minutes
- * between — the protocol that produced the analgesia in Rio 2015. Held at a
+ * between - the protocol that produced the analgesia in Rio 2015. Held at a
  * joint angle that does not provoke, and stopped if pain climbs above the
  * ceiling: the point is to load the tissue without stirring it up.
  */
@@ -582,7 +582,7 @@ const GRIP_TASKS = [/farmer carry/i, /Chin-up/i, /Trap bar deadlift/i];
 
 const STRAPPED_DEADLIFT: Swap = {
   match: /Trap bar deadlift/i,
-  name: "Trap bar deadlift — straps, same load",
+  name: "Trap bar deadlift - straps, same load",
   prescription: "As programmed, using lifting straps. Sets, reps and load unchanged.",
   why: "Straps take the forearm and grip out of the lift without touching the training stimulus the day was built around.",
 };
@@ -591,7 +591,7 @@ const STRAPPED_DEADLIFT: Swap = {
 // `Pallof press + farmer carry` down to just the press for the regions that
 // object to grip work. It is gone because the programme no longer bundles them:
 // `Farmer carry` is its own task and `/farmer carry/i` in GRIP_TASKS above
-// removes it outright, which leaves the Pallof press standing untouched — the
+// removes it outright, which leaves the Pallof press standing untouched - the
 // same outcome the swap was faking, reached by the ordinary rule.
 
 export const REGION_PLAYBOOK: Record<BodyRegion, RegionPlaybook> = {
@@ -607,8 +607,8 @@ export const REGION_PLAYBOOK: Record<BodyRegion, RegionPlaybook> = {
     modify: [
       isometric(
         "wrist-flexion-iso",
-        "Wrist flexion isometric — throwing arm",
-        "Forearm supported on a bench, palm up, light dumbbell. Hold the wrist just off neutral — not at end range.",
+        "Wrist flexion isometric - throwing arm",
+        "Forearm supported on a bench, palm up, light dumbbell. Hold the wrist just off neutral - not at end range.",
         "The flexor-pronator mass is the elbow's active defence against valgus load. Isometric holds load it and reduce pain without the range that provokes it."
       ),
       isometric(
@@ -621,7 +621,7 @@ export const REGION_PLAYBOOK: Record<BodyRegion, RegionPlaybook> = {
     hold: [
       isometric(
         "wrist-flexion-iso",
-        "Wrist flexion isometric — throwing arm",
+        "Wrist flexion isometric - throwing arm",
         "Forearm supported, palm up, light load. Pain-free angle only.",
         "Keeps a load stimulus on the tissue on a day nothing else is loading it, which is what stops a rested area from deconditioning."
       ),
@@ -663,7 +663,7 @@ export const REGION_PLAYBOOK: Record<BodyRegion, RegionPlaybook> = {
     modify: [
       isometric(
         "triceps-iso",
-        "Triceps isometric — elbow just short of lockout",
+        "Triceps isometric - elbow just short of lockout",
         "Press into an immovable bar with the elbow at about 20° of bend. Never into full lockout.",
         "Posterior elbow pain at release is usually the olecranon meeting its fossa. Loading short of lockout trains the tissue without repeating the impact."
       ),
@@ -671,7 +671,7 @@ export const REGION_PLAYBOOK: Record<BodyRegion, RegionPlaybook> = {
     hold: [
       isometric(
         "triceps-iso",
-        "Triceps isometric — elbow just short of lockout",
+        "Triceps isometric - elbow just short of lockout",
         "Press into an immovable object at about 20° of bend, pain-free.",
         "Keeps load on without repeating the end-range contact that provokes it."
       ),
@@ -683,9 +683,9 @@ export const REGION_PLAYBOOK: Record<BodyRegion, RegionPlaybook> = {
     swaps: [
       {
         match: /Bench press/i,
-        name: "Floor press — same load scheme",
+        name: "Floor press - same load scheme",
         prescription: "As programmed for the bench press, from the floor. Stop when the upper arms touch down.",
-        why: "The floor caps how far the shoulder can extend behind the body, which is the position that provokes an irritable anterior shoulder — the pressing stimulus is otherwise unchanged.",
+        why: "The floor caps how far the shoulder can extend behind the body, which is the position that provokes an irritable anterior shoulder - the pressing stimulus is otherwise unchanged.",
       },
     ],
     modify: [
@@ -725,7 +725,7 @@ export const REGION_PLAYBOOK: Record<BodyRegion, RegionPlaybook> = {
       ),
       {
         id: "prone-horizontal",
-        name: "Prone horizontal abduction — light",
+        name: "Prone horizontal abduction - light",
         prescription: "3 × 12 with 1–2 kg, thumb up, 3 s down on every rep.",
         cue: "Lift to shoulder height only. If the neck or the traps take over, the weight is too heavy.",
         why: "Low-load posterior cuff work that keeps the tissue moving on a day the throwing load is off it.",
@@ -747,7 +747,7 @@ export const REGION_PLAYBOOK: Record<BodyRegion, RegionPlaybook> = {
     swaps: [
       {
         match: /Bench press/i,
-        name: "Floor press — narrower grip",
+        name: "Floor press - narrower grip",
         prescription: "As programmed, from the floor, hands just inside your usual grip.",
         why: "Both the floor and the narrower grip reduce the horizontal-adduction load across the AC joint, which is what a sore point-of-the-shoulder objects to.",
       },
@@ -797,7 +797,7 @@ export const REGION_PLAYBOOK: Record<BodyRegion, RegionPlaybook> = {
     modify: [
       isometric(
         "wrist-iso-both",
-        "Wrist isometric — flexion and extension",
+        "Wrist isometric - flexion and extension",
         "Forearm supported. Hold against a light load palm-up, then palm-down. Both directions each set.",
         "Loading the wrist in both directions covers whichever side is irritable without needing to know which it is."
       ),
@@ -805,7 +805,7 @@ export const REGION_PLAYBOOK: Record<BodyRegion, RegionPlaybook> = {
     hold: [
       isometric(
         "wrist-iso-both",
-        "Wrist isometric — flexion and extension",
+        "Wrist isometric - flexion and extension",
         "Supported forearm, pain-free effort both directions.",
         "Maintains loading while catching and gripping are out."
       ),
@@ -819,7 +819,7 @@ export const REGION_PLAYBOOK: Record<BodyRegion, RegionPlaybook> = {
       isometric(
         "lat-iso",
         "Lat isometric pull-down hold",
-        "Half-kneeling, band overhead, pull to the ribs and hold. Ribs down — do not arch to get there.",
+        "Half-kneeling, band overhead, pull to the ribs and hold. Ribs down - do not arch to get there.",
         "The lat is a powerful internal rotator and it takes deceleration load in the throw. An isometric keeps it loaded without the end-range overhead position it objects to."
       ),
     ],
@@ -847,7 +847,7 @@ export const REGION_PLAYBOOK: Record<BodyRegion, RegionPlaybook> = {
     swaps: [
       {
         match: /Trap bar deadlift/i,
-        name: "Rear-foot-elevated split squat — same sets",
+        name: "Rear-foot-elevated split squat - same sets",
         prescription: "3 × 8 each leg at a load you could do 12 with. Torso upright, no forward lean.",
         why: "Keeps the lower-body strength work in the day without a loaded spine, which is the part an irritable back objects to.",
       },
@@ -859,14 +859,14 @@ export const REGION_PLAYBOOK: Record<BodyRegion, RegionPlaybook> = {
         prescription: "3 × 30 s each side, from the knees if 30 s from the feet breaks position.",
         cue: "Straight line ear to hip. Ribs down, do not let the hip sag or twist.",
         why: "Lateral trunk endurance is the quality most consistently reduced in athletes with recurrent low-back pain, and it loads the trunk without bending the spine.",
-        stop: `Stop the hold when position breaks or pain passes ${PAIN_CEILING}/10 — a longer hold in a bad position trains the wrong thing.`,
+        stop: `Stop the hold when position breaks or pain passes ${PAIN_CEILING}/10 - a longer hold in a bad position trains the wrong thing.`,
       },
       {
         id: "bird-dog",
         name: "Bird dog",
         prescription: "3 × 8 each side with a 5 s hold at the top.",
         cue: "Reach long rather than high. A glass of water on your lower back should not spill.",
-        why: "Trains the trunk to resist rotation and extension — the exact demand the throw makes of it — with almost no spinal load.",
+        why: "Trains the trunk to resist rotation and extension - the exact demand the throw makes of it - with almost no spinal load.",
       },
     ],
     hold: [
@@ -905,7 +905,7 @@ export const REGION_PLAYBOOK: Record<BodyRegion, RegionPlaybook> = {
       ),
       {
         id: "copenhagen-short",
-        name: "Copenhagen plank — short lever",
+        name: "Copenhagen plank - short lever",
         prescription: "3 × 20 s each side, top knee on the bench rather than the foot.",
         cue: "Hips stacked and lifted. Come down the moment the hip drops.",
         why: "The most effective adductor-strengthening exercise available without equipment; the short lever is the entry level, and it is where a sore groin starts.",
@@ -923,7 +923,7 @@ export const REGION_PLAYBOOK: Record<BodyRegion, RegionPlaybook> = {
   },
 
   /**
-   * Deep gluteal pain — the piriformis and the rotators under it.
+   * Deep gluteal pain - the piriformis and the rotators under it.
    *
    * Out: what loads the hip rotators fast or under stretch. Sprinting and
    * depth jumps are fast hip extension; the RDL and the Nordic stretch the
@@ -933,7 +933,7 @@ export const REGION_PLAYBOOK: Record<BodyRegion, RegionPlaybook> = {
    * the pitching pattern itself, at speed. Throwing is capped through
    * `THROWING_REGIONS`, not listed here.
    *
-   * In: isometrics, for the reason they are used everywhere else in this file —
+   * In: isometrics, for the reason they are used everywhere else in this file -
    * load without the motion that provokes. Deliberately no piriformis stretch.
    * When the pain spreads down the leg the nerve is part of it, and a stretch
    * that pulls on an irritated nerve is the commonest way this gets worse.
@@ -952,13 +952,13 @@ export const REGION_PLAYBOOK: Record<BodyRegion, RegionPlaybook> = {
       isometric(
         "glute-bridge-iso",
         "Glute bridge isometric hold",
-        "On your back, knees bent, feet flat. Lift to a straight line from knee to shoulder and hold — squeeze the glutes, do not arch the lower back.",
+        "On your back, knees bent, feet flat. Lift to a straight line from knee to shoulder and hold - squeeze the glutes, do not arch the lower back.",
         "Loads the glutes in hip extension with no hip rotation and no stretch on the back of the hip, which is the position deep buttock pain tolerates best."
       ),
       isometric(
         "hip-er-iso",
         "Side-lying hip external rotation isometric",
-        "Lie on the good side, knees bent to 45°, a band just above the knees. Lift the top knee a few centimetres and hold — feet together, pelvis still.",
+        "Lie on the good side, knees bent to 45°, a band just above the knees. Lift the top knee a few centimetres and hold - feet together, pelvis still.",
         "The piriformis is a hip external rotator. Holding it short and under light load works it without the deep flexion and internal rotation that compress it."
       ),
     ],
@@ -993,7 +993,7 @@ export const REGION_PLAYBOOK: Record<BodyRegion, RegionPlaybook> = {
     swaps: [
       {
         match: /Rear-foot-elevated split squat/i,
-        name: "Rear-foot-elevated split squat — reduced depth",
+        name: "Rear-foot-elevated split squat - reduced depth",
         prescription: "As programmed, stopping short of the depth where it complains. Load unchanged if that depth is pain-free.",
         why: "Depth, not load, is usually what an irritable knee objects to. Cutting the range keeps the strength work in the day.",
       },
@@ -1009,7 +1009,7 @@ export const REGION_PLAYBOOK: Record<BodyRegion, RegionPlaybook> = {
     hold: [
       isometric(
         "quad-iso-wall",
-        "Wall sit — pain-free depth",
+        "Wall sit - pain-free depth",
         "Back against the wall, knees bent only as far as stays comfortable. Hold.",
         "Loads the quadriceps at whatever depth is available, which keeps a hard-working muscle working on a day the jumping is out."
       ),

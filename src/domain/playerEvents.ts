@@ -2,8 +2,8 @@ import type { IsoDate } from "./state";
 import type { Game, GameSide } from "./gameLog";
 
 /**
- * Games sent to one player by the app's owner — a tournament, a rep squad's
- * schedule — that the player's own team draw does not have.
+ * Games sent to one player by the app's owner - a tournament, a rep squad's
+ * schedule - that the player's own team draw does not have.
  *
  * A player's data is encrypted on their device, so nobody else can write into
  * it. The owner sends the games to the server against that player's account;
@@ -189,7 +189,7 @@ export function withPlayerEvents(
  *
  * A line goes in as its own game, keyed to the event game, and is refreshed if
  * the owner corrects it. A game the player logged themselves on that date is
- * left alone — their own count of a game wins. Lines from an event that is no
+ * left alone - their own count of a game wins. Lines from an event that is no
  * longer sent are taken out.
  */
 export function withEventOutings(

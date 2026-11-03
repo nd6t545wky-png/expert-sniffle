@@ -1,7 +1,7 @@
 /**
  * Application state schema.
  *
- * Typing policy — deliberate and important:
+ * Typing policy - deliberate and important:
  *
  * Fields are typed precisely ONLY where the shape has been verified against
  * the live app (public/app.js). Everything else is modelled as a preserved
@@ -27,7 +27,7 @@ export function isIsoDate(value: unknown): value is IsoDate {
  *
  * DO NOT BUMP THIS while the legacy app (public/app.js) is still deployed.
  * That app gates on `stored.version === 1` and falls back to a fresh default
- * state for anything else — so writing version 2 would not "migrate" the
+ * state for anything else - so writing version 2 would not "migrate" the
  * user, it would silently erase every saved session the next time the live
  * app loaded. The version may only move once the legacy app is retired.
  *
@@ -38,13 +38,13 @@ export const SCHEMA_VERSION = 1;
 /** Storage keys, current and legacy. Order matters: current first. */
 export const STORAGE_KEY = "dylan-pitching-os-v1";
 export const LEGACY_STORAGE_KEYS: readonly string[] = Object.freeze([
-  // Referenced by the Phase 1 brief. No occurrences exist in the live app —
+  // Referenced by the Phase 1 brief. No occurrences exist in the live app -
   // kept so that if such data does exist on a device, it is adopted rather
   // than ignored.
   "dylanCleanV1",
 ]);
 
-/** Keys that are UI position, not user data — safe to reset on load. */
+/** Keys that are UI position, not user data - safe to reset on load. */
 export const EPHEMERAL_KEYS: readonly string[] = Object.freeze([
   "page",
   "selectedWeek",

@@ -1,7 +1,7 @@
 /**
  * Putting the recovery protocol into the day's own session.
  *
- * The protocol is not a second programme running beside the training — it is
+ * The protocol is not a second programme running beside the training - it is
  * part of the day, and it belongs in the same task list the athlete already
  * works through. This is the overlay that puts it there: the day's blocks
  * become tasks in the Arm Care and Recover stages, and the two blocks that
@@ -9,8 +9,8 @@
  * note instead.
  *
  * Nothing here asks the athlete anything. The tier and the day come from what
- * they already logged — how many they threw, at what intent, whether it was a
- * game — so the plan simply knows.
+ * they already logged - how many they threw, at what intent, whether it was a
+ * game - so the plan simply knows.
  *
  * Kept separate from `programmeUpdates` because that overlay is about the
  * written programme's own prescriptions, and this one is about what a
@@ -47,8 +47,8 @@ const RECOVER_STAGE = { stage: 6, title: "Recover" };
  *
  * One of these is a contradiction rather than a duplicate, and worth naming.
  * The programme's post-throw circuit is loaded cuff work immediately after
- * throwing; the protocol deliberately moves that off day 0 — throwing is
- * already the endurance stimulus — and puts a mobility cool-down there
+ * throwing; the protocol deliberately moves that off day 0 - throwing is
+ * already the endurance stimulus - and puts a mobility cool-down there
  * instead, with the band work returning on day 3. So on day 0 the cool-down
  * takes that slot, and on day 3 the band routine takes it back.
  */
@@ -58,12 +58,12 @@ interface Supersession {
   /**
    * How the block and the programme task combine.
    *
-   * `replace` — the block *is* the work, and its prescription is the one to
+   * `replace` - the block *is* the work, and its prescription is the one to
    * follow. This is right where the protocol deliberately changes what the
    * programme asked for: on day 0 the cool-down exists precisely because the
    * loaded circuit should not be done then.
    *
-   * `annotate` — the programme already prescribes this work, at its own dose,
+   * `annotate` - the programme already prescribes this work, at its own dose,
    * and the protocol only wants to say why today is a day for it. The
    * prescription is left exactly as written and the block's reasoning and
    * citation are attached to it. Used where the two are the same session:
@@ -74,17 +74,17 @@ interface Supersession {
 }
 
 const SUPERSEDES: Record<string, Supersession> = {
-  // Day 0 — the cool-down replaces the loaded circuit at T+0.
+  // Day 0 - the cool-down replaces the loaded circuit at T+0.
   "mobility-cooldown": { targets: ["Post-throw arm-care circuit"] },
   feed: { targets: ["Post-session fuel and fluids"] },
   walkdown: { targets: ["Recovery plan"] },
   sleep: { targets: ["Recovery plan"] },
-  // Day 1 — the scapular block is the day's arm-care work, not an addition to
+  // Day 1 - the scapular block is the day's arm-care work, not an addition to
   // it. Left beside the programme's circuit it repeated three of its four
   // movements: band row, external rotation and the serratus wall slide were
   // each prescribed twice on the same day, once light and once heavy.
   "scap-strength": { targets: ["Post-throw arm-care circuit"] },
-  // Day 3 — the band work returns to the slot it belongs in.
+  // Day 3 - the band work returns to the slot it belongs in.
   "band-routine": { targets: ["Post-throw arm-care circuit"] },
   // Gym track.
   "protein-spread": { targets: ["Post-session fuel and fluids"] },
@@ -93,7 +93,7 @@ const SUPERSEDES: Record<string, Supersession> = {
   // The aerobic flush and the programme's own conditioning are the same
   // session: easy bike or walk, conversational, fifteen to thirty minutes.
   // Prescribed separately they gave a Thursday 20–25 minutes of "Low-intensity
-  // aerobic base" *and* 15–20 minutes of "Low-intensity aerobic flush" — 45
+  // aerobic base" *and* 15–20 minutes of "Low-intensity aerobic flush" - 45
   // minutes of easy cardio on a day whose own description is "move, throw
   // easily, restore". Annotated rather than replaced, so the programme keeps
   // its dose and gains the reason.
@@ -135,7 +135,7 @@ function taskFor(block: RecoveryBlock, stage: { stage: number; title: string }, 
     // the whole point; a dose the athlete cannot trace back to a study is just
     // an assertion, and an assertion is what he can already get anywhere.
     ...(block.citation
-      ? { evidence: `${block.citation.key} — ${block.citation.detail}` }
+      ? { evidence: `${block.citation.key} - ${block.citation.detail}` }
       : {}),
   };
 }
@@ -157,7 +157,7 @@ export interface RecoveryOverlay {
  * is created, because a recovery day may legitimately have no arm-care stage
  * of its own.
  *
- * A block already present — by id — is never added twice, so re-running this
+ * A block already present - by id - is never added twice, so re-running this
  * on an already-merged session changes nothing.
  */
 export interface RecoveryInputs {
@@ -182,7 +182,7 @@ const THROWING_STAGES = new Set([
  *
  * Only the stretch: it is the one with a documented acute strength cost. The
  * scraper stays, because its literature is range of motion and pain, and
- * nothing in it reports a strength decrement — but that is a reason to allow
+ * nothing in it reports a strength decrement - but that is a reason to allow
  * it, not a reason to be silent, so its own caveat says as much.
  */
 const PRE_THROW_HELD = new Set(["sleeper-stretch"]);
@@ -200,13 +200,13 @@ export function applyRecoveryProtocol(
   let added = 0;
 
   // The two tracks share modalities, so the gym's version of a block is
-  // dropped where the throwing day already prescribes it — the protocol's own
+  // dropped where the throwing day already prescribes it - the protocol's own
   // rules: protein is per day, and one compression period covers both.
   // The sleeper stretch acutely reduces external rotator strength, so on a day
   // that still has throwing to come it is held rather than prescribed. The
   // caveat said this already; saying it is not the same as doing it.
   //
-  // Stage order does most of the work — Arm Care sits after Throw — but a day
+  // Stage order does most of the work - Arm Care sits after Throw - but a day
   // whose throwing has not been resolved yet is a day where the athlete could
   // reasonably do the stretch first, and the block belongs to the app.
   const throwingPending = session.tasks.some(
@@ -219,8 +219,8 @@ export function applyRecoveryProtocol(
   const blocks = [...(recovery?.tasks ?? []), ...gymBlocks].filter((block) => !held.has(block.id));
 
   // Blocks that take over a programme task are folded into it first, so the
-  // day never carries the same work twice. Several can land on one task —
-  // "Recovery plan" is down-regulation *and* sleep — in which case their
+  // day never carries the same work twice. Several can land on one task -
+  // "Recovery plan" is down-regulation *and* sleep - in which case their
   // prescriptions are joined rather than one of them being dropped.
   const claims = new Map<string, RecoveryBlock[]>();
   for (const block of blocks) {
@@ -241,7 +241,7 @@ export function applyRecoveryProtocol(
       ...(replacing.length
         ? { prescription: replacing.map((block) => block.prescription).join(" · ") }
         : {}),
-      // The reason always comes through, whichever mode applied — it is why
+      // The reason always comes through, whichever mode applied - it is why
       // the task is on today's list at all.
       cue: [
         ...(replacing.length ? [] : [tasks[index].cue]),
@@ -255,7 +255,7 @@ export function applyRecoveryProtocol(
       ...(citing.length
         ? {
             evidence: citing
-              .map((block) => `${block.citation!.key} — ${block.citation!.detail}`)
+              .map((block) => `${block.citation!.key} - ${block.citation!.detail}`)
               .join(" "),
           }
         : {}),

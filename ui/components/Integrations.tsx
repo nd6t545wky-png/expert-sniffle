@@ -33,7 +33,7 @@ interface AppleStatus {
  * What each Oura callback outcome means, in the athlete's words.
  *
  * The Worker redirects back with one of these on the query string. Anything
- * not listed is shown verbatim rather than swallowed — an unknown failure the
+ * not listed is shown verbatim rather than swallowed - an unknown failure the
  * athlete can read out is more useful than a silent one.
  */
 const OURA_CALLBACK_MESSAGES: Record<string, string> = {
@@ -54,7 +54,7 @@ export function Integrations({ api, hasSyncKey }: IntegrationsProps) {
 
   // What the Oura callback said, read once from the URL it returned to.
   //
-  // The provider redirects back with ?oura=connected — or with why it failed.
+  // The provider redirects back with ?oura=connected - or with why it failed.
   // Nothing read it, so a connection that had just been refused looked
   // identical to one that had never been attempted. Read once and cleared
   // from the address bar, so a reload does not keep re-announcing it.
@@ -114,7 +114,7 @@ export function Integrations({ api, hasSyncKey }: IntegrationsProps) {
 
       {/* The prototype leads this page with autosave, because everything below
           depends on it. Without a key the wearable cards stay on the page and
-          say why they are unavailable — an almost-blank page reads as broken
+          say why they are unavailable - an almost-blank page reads as broken
           rather than as a prerequisite that has not been met. */}
       <Card className="integration">
         <div className="integration-icon" aria-hidden="true">
@@ -143,7 +143,7 @@ export function Integrations({ api, hasSyncKey }: IntegrationsProps) {
             {!hasSyncKey
               ? "Cloud autosave required"
               : oura?.connected
-                ? `Connected${oura.updatedAt ? ` — updated ${oura.updatedAt}` : ""}`
+                ? `Connected${oura.updatedAt ? ` - updated ${oura.updatedAt}` : ""}`
                 : "Not connected"}
           </p>
           {oura && !oura.configured && (
@@ -192,7 +192,7 @@ export function Integrations({ api, hasSyncKey }: IntegrationsProps) {
             {!hasSyncKey
               ? "Cloud autosave required"
               : apple?.connected
-                ? `Connected${apple.lastUploadAt ? ` — last upload ${apple.lastUploadAt}` : " — no uploads yet"}`
+                ? `Connected${apple.lastUploadAt ? ` - last upload ${apple.lastUploadAt}` : " - no uploads yet"}`
                 : "Not connected"}
           </p>
         </div>
@@ -230,7 +230,7 @@ export function Integrations({ api, hasSyncKey }: IntegrationsProps) {
       {uploadToken && (
         <Alert tone="warn">
           <strong>This token is shown once.</strong>
-          <p>Paste it into your iPhone Shortcut now — it cannot be retrieved again, only replaced.</p>
+          <p>Paste it into your iPhone Shortcut now - it cannot be retrieved again, only replaced.</p>
           <div className="setup-secret">
             <span>Upload address</span>
             <code>{endpoint}</code>
@@ -249,8 +249,8 @@ export function Integrations({ api, hasSyncKey }: IntegrationsProps) {
       )}
 
       {/* A token with no recipe is not an integration. Apple keeps Health and
-          Fitness data on the device — there is no cloud API to connect to and
-          no OAuth to click through — so a Shortcut posting the numbers is the
+          Fitness data on the device - there is no cloud API to connect to and
+          no OAuth to click through - so a Shortcut posting the numbers is the
           only route, and it has to be spelled out to be usable. */}
       <details className="card disclosure-card quiet-disclosure">
         <summary>
@@ -263,7 +263,7 @@ export function Integrations({ api, hasSyncKey }: IntegrationsProps) {
         <div className="disclosure-body">
           <p className="fineprint disclosure-intro">
             Apple keeps Health and Fitness data on your phone and watch. There is no account to
-            connect and no Apple server to ask, so nothing can pull these numbers — the phone has to
+            connect and no Apple server to ask, so nothing can pull these numbers - the phone has to
             push them. A Shortcut set to run each morning does that in about a minute of setup.
           </p>
 
@@ -272,9 +272,9 @@ export function Integrations({ api, hasSyncKey }: IntegrationsProps) {
               Open <strong>Shortcuts</strong> on the iPhone and make a new shortcut.
             </li>
             <li>
-              Add a <strong>Find Health Samples</strong> action for each figure you want — Active
+              Add a <strong>Find Health Samples</strong> action for each figure you want - Active
               Energy, Exercise Minutes, Stand Hours, Steps, Resting Heart Rate, Heart Rate
-              Variability, Sleep, Weight — set each to <em>Today</em> and to the right total
+              Variability, Sleep, Weight - set each to <em>Today</em> and to the right total
               (<em>Sum</em> for energy, minutes, hours and steps; <em>Average</em> for heart rate and
               HRV; <em>Latest</em> for weight).
             </li>
@@ -289,7 +289,7 @@ export function Integrations({ api, hasSyncKey }: IntegrationsProps) {
               <code>Bearer &lt;your upload key&gt;</code>.
             </li>
             <li>
-              In the <strong>Automation</strong> tab, run it daily — first thing in the morning, so
+              In the <strong>Automation</strong> tab, run it daily - first thing in the morning, so
               the day is complete before the check-in asks about it.
             </li>
           </ol>
@@ -307,7 +307,7 @@ export function Integrations({ api, hasSyncKey }: IntegrationsProps) {
                   <td>
                     <code>day</code>
                   </td>
-                  <td>The date as 2026-08-12. Required — everything else is optional.</td>
+                  <td>The date as 2026-08-12. Required - everything else is optional.</td>
                 </tr>
                 {/* Generated from the same table the Worker validates against,
                     so what this page tells you to send is what it accepts. */}
@@ -324,7 +324,7 @@ export function Integrations({ api, hasSyncKey }: IntegrationsProps) {
           </div>
 
           <p className="fineprint">
-            Send whatever you have — a payload with only <code>day</code> and{" "}
+            Send whatever you have - a payload with only <code>day</code> and{" "}
             <code>activeCalories</code> is fine. Anything missing stays missing rather than being
             recorded as zero. If a figure arrives under a slightly different name the upload still
             works: <code>activeEnergy</code>, <code>exercise</code>, <code>stand</code>,{" "}

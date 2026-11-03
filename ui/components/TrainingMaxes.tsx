@@ -3,13 +3,13 @@
  *
  * They were not editable, and one of them was not even set. The trap bar had a
  * periodised table for all fifty-two weeks and no max behind it, so every trap
- * bar session in the plan fell back to "@ RPE 6" — which reads as a deliberate
+ * bar session in the plan fell back to "@ RPE 6" - which reads as a deliberate
  * RPE prescription rather than as a number the app could not compute.
  *
  * Editable, then, and honest about provenance: a tested max, a max derived
  * from the programme's own arithmetic and a max the athlete typed are three
  * different kinds of fact, and the one the plan is currently using says which
- * it is. Clearing a max is a real option, not an omission — it puts the lift
+ * it is. Clearing a max is a real option, not an omission - it puts the lift
  * back on the programme's written fallback, which is the right answer for a
  * lift nobody has tested.
  */
@@ -46,7 +46,7 @@ export function TrainingMaxes({ maxes, onChange }: TrainingMaxesProps) {
     }
     const value = Number(raw);
     if (!isUsableMax(value)) {
-      setError(`A training max has to be between ${MAX_RANGE[0]} and ${MAX_RANGE[1]} kg. ${raw} kg is not one — nothing was changed.`);
+      setError(`A training max has to be between ${MAX_RANGE[0]} and ${MAX_RANGE[1]} kg. ${raw} kg is not one - nothing was changed.`);
       return;
     }
     setError("");
@@ -57,7 +57,7 @@ export function TrainingMaxes({ maxes, onChange }: TrainingMaxesProps) {
     <Card>
       <CardHead
         title="Training maxes"
-        detail="Every prescribed load in the plan is a percentage of one of these. A lift with no max falls back to whatever the programme wrote by hand, which is usually an RPE cap — so an empty box here is why a session says “@ RPE 6” instead of a weight."
+        detail="Every prescribed load in the plan is a percentage of one of these. A lift with no max falls back to whatever the programme wrote by hand, which is usually an RPE cap - so an empty box here is why a session says “@ RPE 6” instead of a weight."
       />
 
       {error && (
@@ -75,8 +75,8 @@ export function TrainingMaxes({ maxes, onChange }: TrainingMaxesProps) {
                 <strong>{lift.name}</strong>
                 <small>
                   {stored
-                    ? `${stored.value} kg · ${MAX_KIND_LABEL[stored.kind]}${stored.source ? ` — ${stored.source}` : ""}`
-                    : "No max — this lift is running on the written fallback."}
+                    ? `${stored.value} kg · ${MAX_KIND_LABEL[stored.kind]}${stored.source ? ` - ${stored.source}` : ""}`
+                    : "No max - this lift is running on the written fallback."}
                 </small>
                 <small>{lift.drives}</small>
               </div>

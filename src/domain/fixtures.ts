@@ -2,7 +2,7 @@
  * The season's fixtures.
  *
  * These dates existed nowhere in this repository. They were read out of the
- * v61 build that was deployed over it — the last thing in that archive that
+ * v61 build that was deployed over it - the last thing in that archive that
  * this codebase did not already have in some form, which is why it was worth
  * recovering before the archive went.
  *
@@ -12,7 +12,7 @@
  * published Division 1 draw (see below). Both labels
  * travel with the fixture and are shown, because a draw can be rescheduled and
  * a date read out of a bundle is a copy of a copy. Nothing in the programme is
- * driven off these — they are shown against the plan so the athlete can see a
+ * driven off these - they are shown against the plan so the athlete can see a
  * clash, not used to move a session on their own.
  */
 
@@ -48,7 +48,7 @@ const FNCBA_ROUNDS: Array<[round: number, date: IsoDate]> = [
  * two games the weekend after it, against the Redbirds. They are here rather
  * than in the entered list because they came from the athlete directly, and
  * they carry the athlete-provided label for the same reason the Cubs opener
- * does — a date said out loud is not the published draw.
+ * does - a date said out loud is not the published draw.
  *
  * They land in a week the phase table has as an unload, which is not an error
  * on either side: the programme was built assuming the season ended at Round
@@ -66,7 +66,7 @@ const FNCBA_SEMIS: Array<[game: number, date: IsoDate]> = [
  *
  * Read off the league's Division 1 schedule on Ballclubz
  * (ballclubz.com/gbld1/schedule, linked from Baseball Queensland's GBL page)
- * on 7 October 2026. It replaces a list that was *derived* — eighteen rounds
+ * on 7 October 2026. It replaces a list that was *derived* - eighteen rounds
  * of opponents with dates calculated from an assumed weekly rhythm and an
  * assumed six-week Christmas break. Against the published draw that list had
  * the wrong opponent in every round, the wrong home/away in most, a break two
@@ -148,8 +148,8 @@ export const FIXTURES: readonly Fixture[] = Object.freeze([
 /**
  * Fixtures the athlete enters, merged over the built-in list.
  *
- * The recovered rounds stop at Round 19, and the two things beyond it — a
- * finals series, and any draw published after that build was made — are things
+ * The recovered rounds stop at Round 19, and the two things beyond it - a
+ * finals series, and any draw published after that build was made - are things
  * only the athlete can supply. Neither league publishes anything this app can
  * read: the FNCBA draw lives in a TeamApp calendar and the Cubs' 2026/27
  * fixtures are not out.
@@ -157,7 +157,7 @@ export const FIXTURES: readonly Fixture[] = Object.freeze([
  * Some of what the athlete has said is already in the built-in list above,
  * because they said it to whoever was editing this file rather than typing it
  * into the app. This is the path for everything after that, and for correcting
- * any of it — an entry here with the same id replaces the built-in one.
+ * any of it - an entry here with the same id replaces the built-in one.
  *
  * They are merged, not replaced: the recovered rounds keep their "official"
  * label, an entered game says plainly that it came from the athlete, and both
@@ -233,7 +233,7 @@ export function daysUntil(today: IsoDate, fixture: Fixture): number {
  * A game in a week the programme planned as having none.
  *
  * The phase table is fixed at fifty-two weeks and it puts a two-week unload
- * immediately after the last round it knows about — week 9 drops throwing
+ * immediately after the last round it knows about - week 9 drops throwing
  * volume 45–55%, removes pulldowns and caps plyo intent at the recovery band.
  * That is right if the season ended, and badly wrong if it did not.
  *
@@ -250,7 +250,7 @@ export function daysUntil(today: IsoDate, fixture: Fixture): number {
  *
  * What is left is the volume, and it is left on purpose. The reduced week is
  * 45–55% down on throwing, which happens to sit inside the band the tapering
- * meta-analysis reports as optimal — so for a week with a final in it the
+ * meta-analysis reports as optimal - so for a week with a final in it the
  * volume is plausibly right already, and cutting or raising it is a judgement
  * about this athlete's finals series rather than something to derive from a
  * date. The gym is the same: the athlete may well want the unload's lighter
@@ -280,7 +280,7 @@ export function scheduleClash(
   return {
     fixture,
     phase: week.phaseName,
-    message: `${fixture.label} is on this week, and the programme has these weeks as “${week.phaseName}” — planned with no game in them. The week has been re-phased around it: each game day is built as one, the day before the first game is the programme's pre-game primer instead of a recovery day, and the intent cap that unload put on the rest of the week is lifted, because a taper holds intensity where an unload drops it. Throwing volume and the gym are still set for a week off, which may well be right going into a final and is your call. Check the build-up before training it as written.`,
+    message: `${fixture.label} is on this week, and the programme has these weeks as “${week.phaseName}” - planned with no game in them. The week has been re-phased around it: each game day is built as one, the day before the first game is the programme's pre-game primer instead of a recovery day, and the intent cap that unload put on the rest of the week is lifted, because a taper holds intensity where an unload drops it. Throwing volume and the gym are still set for a week off, which may well be right going into a final and is your call. Check the build-up before training it as written.`,
   };
 }
 

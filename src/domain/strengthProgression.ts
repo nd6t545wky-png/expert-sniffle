@@ -4,15 +4,15 @@ import { TRAP_BAR_WEEK_SPECS } from "./programmeContent";
 /**
  * Monday's primary lift, periodised again.
  *
- * When the tested back squat went in, the trap bar deadlift came off Monday —
+ * When the tested back squat went in, the trap bar deadlift came off Monday -
  * two heavy bilateral primaries back to back on a day that also throws 45–60
  * balls is not a session either lift progresses through. That call stands. But
  * the trap bar was carrying something nobody noticed it was carrying: the
  * programme's entire week-to-week periodisation.
  *
  * `programmeContent.ts` holds a fifty-two-week table of `[sets, reps, percent]`
- * — a real block plan, with accumulation, intensification, strength-speed and
- * deload weeks — and it was only ever read to price the trap bar. With the trap
+ * - a real block plan, with accumulation, intensification, strength-speed and
+ * deload weeks - and it was only ever read to price the trap bar. With the trap
  * bar gone from Monday, that table went unread, and the squat that replaced it
  * was a fixed `4 × 5` at a fixed window derived from the 145 kg tested max. So
  * every Monday of the winter block prescribed identical work: week 7,
@@ -38,11 +38,11 @@ import { TRAP_BAR_WEEK_SPECS } from "./programmeContent";
  *
  * **The percentage is relative intensity, not a load claim.** The table's
  * percentages are of a trap bar training max, and they are applied here to the
- * squat's own tested max. What carries across is the *shape* — which weeks are
- * heavy, which are light, and by how much — not an equivalence between the two
+ * squat's own tested max. What carries across is the *shape* - which weeks are
+ * heavy, which are light, and by how much - not an equivalence between the two
  * lifts. The check that matters is where it lands: across the winter block the
  * squat comes out at 79–86% of the tested 145 kg, inside the report's 77–87%
- * window. In-season summer weeks fall below it, and that is correct — those are
+ * window. In-season summer weeks fall below it, and that is correct - those are
  * maintenance weeks and the programme's own table says so.
  */
 
@@ -53,7 +53,7 @@ export type LiftSpec = readonly [sets: number, reps: number, percent: number];
  *
  * Imported, not copied. This used to be a hand-transcribed duplicate, on the
  * reasoning that `programmeContent.ts` is machine-extracted, carries
- * `@ts-nocheck`, and did not export the table — so a copy guarded by a drift
+ * `@ts-nocheck`, and did not export the table - so a copy guarded by a drift
  * test looked safer than editing a generated file. It was not: the generator
  * has an export list, and adding the name there is a one-line change that
  * survives regeneration. Two sources of truth guarded by a test is still two
@@ -68,7 +68,7 @@ export const WEEK_SPECS = TRAP_BAR_WEEK_SPECS as unknown as Readonly<Record<numb
 /** The report's rep floor for the squat. Below this it stops being the lift it asked for. */
 export const SQUAT_MIN_REPS = 4;
 
-/** Never fewer than two work sets — one set of four is a warm-up with a number on it. */
+/** Never fewer than two work sets - one set of four is a warm-up with a number on it. */
 const MIN_SETS = 2;
 
 export interface SquatDose {

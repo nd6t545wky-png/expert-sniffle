@@ -2,7 +2,7 @@
  * Engine or mound.
  *
  * The point of this module is that it must not answer before it can. Two of
- * the tests below are about refusing to pick a side — with one reading, or
+ * the tests below are about refusing to pick a side - with one reading, or
  * with a gap in the ambiguous band, "I do not know yet" is the correct output
  * and anything more confident is a fabrication that would redirect a training
  * block.

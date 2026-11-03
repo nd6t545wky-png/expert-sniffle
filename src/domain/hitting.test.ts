@@ -14,7 +14,7 @@ import { IsoDate } from "./state";
 
 const pa = (res: string, extra: Partial<PlateAppearance> = {}): PlateAppearance => ({ res, rbi: 0, ...extra });
 
-describe("hitting stats — the BQ app's formulas", () => {
+describe("hitting stats - the BQ app's formulas", () => {
   const game = [pa("1B", { hh: 1 }), pa("2B", { rbi: 2, hh: 1 }), pa("KS"), pa("BB"), pa("GO", { hh: 0, adv: 1 }), pa("SF", { rbi: 1 })];
 
   it("counts the line", () => {

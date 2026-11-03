@@ -3,7 +3,7 @@ import { useEffect } from "react";
 /**
  * Applies appearance and interface preferences to <html>.
  *
- * This is not cosmetic wiring — styles.css keys its entire dark palette off
+ * This is not cosmetic wiring - styles.css keys its entire dark palette off
  * `:root[data-theme="dark"]`, and density/motion off their own data
  * attributes. Without these the stylesheet stays in its light defaults no
  * matter what the device prefers, which is what made every surface render as

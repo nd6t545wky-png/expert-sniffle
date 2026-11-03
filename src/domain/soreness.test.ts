@@ -8,7 +8,7 @@
  * protecting.
  *
  * The hardest property here is that the escalation is monotonic: no rule may
- * talk a more serious rule down. The single exception — warming out of it — is
+ * talk a more serious rule down. The single exception - warming out of it - is
  * tested explicitly for what it can and cannot rescue.
  */
 
@@ -46,9 +46,9 @@ const TODAY = "2026-08-19";
  * only correct relative to what the app really calls things. Testing them
  * against invented strings would pass while the real plan went unchanged.
  *
- * `applyBaselineProgramming` is included because it adds tasks of its own —
+ * `applyBaselineProgramming` is included because it adds tasks of its own -
  * "Ankle stiffness pogos", "Wrist and forearm prep", "Depth jump", "Back
- * squat" — and a corpus built from `buildSession` alone misses every one of
+ * squat" - and a corpus built from `buildSession` alone misses every one of
  * them. That gap is not hypothetical: it is how a wrist-and-forearm warm-up
  * survived a report of medial elbow pain.
  */
@@ -432,7 +432,7 @@ describe("the playbook", () => {
 
   it("matches real tasks in the programme, not patterns that hit nothing", () => {
     // A contraindication that matches no task is a rule that silently does
-    // nothing — the failure mode where an athlete reports pain, the plan looks
+    // nothing - the failure mode where an athlete reports pain, the plan looks
     // changed, and the movement that hurt is still in it.
     for (const region of regions) {
       const playbook = REGION_PLAYBOOK[region];

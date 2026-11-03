@@ -14,7 +14,7 @@ import { IsoDate } from "./state";
  *                                Sequencing, direction and transfer move to the
  *                                front, and high-speed video earns its place.
  *
- * Until the number exists, both stories fit the evidence equally well — which
+ * Until the number exists, both stories fit the evidence equally well - which
  * is exactly why the profile says not to overstate mechanics before it is
  * measured. The app has recorded a velocity and a velocity type at check-out
  * since the beginning; nothing had ever read the two together.
@@ -51,7 +51,7 @@ const TRANSFER_FLOOR = 8;
 
 /** Velocity types that count as a flat-ground pulldown. */
 const PULLDOWN = /pull.?down|run.?and.?gun/i;
-/** Types thrown off a mound — a game, a bullpen, a start. */
+/** Types thrown off a mound - a game, a bullpen, a start. */
 const MOUND = /mound|game|bullpen|start/i;
 
 function best(
@@ -106,9 +106,9 @@ export function velocityTransfer(
       mound,
       pulldown,
       gap,
-      headline: `Pulldown is only ${gap} mph above the mound — the engine is the limit.`,
+      headline: `Pulldown is only ${gap} mph above the mound - the engine is the limit.`,
       detail:
-        "The raw throwing ceiling is close to what already reaches the mound, so there is little being lost in transfer and not much waiting to be released by a mechanical change. This is the case for building force, speed of force and reactive ability — which is what the programme is already pointed at. Mechanics stay a secondary question.",
+        "The raw throwing ceiling is close to what already reaches the mound, so there is little being lost in transfer and not much waiting to be released by a mechanical change. This is the case for building force, speed of force and reactive ability - which is what the programme is already pointed at. Mechanics stay a secondary question.",
     };
   }
 
@@ -118,9 +118,9 @@ export function velocityTransfer(
       mound,
       pulldown,
       gap,
-      headline: `Pulldown is ${gap} mph above the mound — velocity is being lost in transfer.`,
+      headline: `Pulldown is ${gap} mph above the mound - velocity is being lost in transfer.`,
       detail:
-        "The arm can already produce meaningfully more than the mound is getting. That moves sequencing, direction and lead-leg braking up the priority list, and it is the point at which high-speed side-on video earns its place. It does not mean stopping the physical work — it means it is no longer the only thing worth doing.",
+        "The arm can already produce meaningfully more than the mound is getting. That moves sequencing, direction and lead-leg braking up the priority list, and it is the point at which high-speed side-on video earns its place. It does not mean stopping the physical work - it means it is no longer the only thing worth doing.",
     };
   }
 
@@ -129,7 +129,7 @@ export function velocityTransfer(
     mound,
     pulldown,
     gap,
-    headline: `Pulldown is ${gap} mph above the mound — between the two cases.`,
+    headline: `Pulldown is ${gap} mph above the mound - between the two cases.`,
     detail:
       "A few miles an hour of difference is normal: a pulldown has a run-up, no pitch to command and no plate to hit. This gap is larger than a pure engine limit and smaller than a clear transfer loss, so it argues for keeping the physical work as the priority while collecting a couple more readings before drawing a conclusion.",
   };

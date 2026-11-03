@@ -38,7 +38,7 @@ describe("isLoggable", () => {
   it("does offer it on a carry written as sets × metres", () => {
     // Monday's farmer carry, since the athlete asked for it out of the Pallof
     // press's task. It is loaded work that progresses by getting heavier, which
-    // means it needs a log like every other lift — `setUnit` is what keeps its
+    // means it needs a log like every other lift - `setUnit` is what keeps its
     // second number labelled metres.
     expect(isLoggable(task("Whole-Body Force", "2 × 20 m (no straps)"))).toBe(true);
   });
@@ -194,8 +194,8 @@ describe("what a reps-and-load table is the wrong record for", () => {
     // These showed a "Log sets" button and, once progression advice arrived,
     // told the athlete to "pick a load" for a barefoot pogo.
     for (const [name, rx] of [
-      ["Depth jump — 15–20 cm box", "3 × 3 · full recovery · contact under 0.25 s"],
-      ["Reactive microdose — pogo and low hurdle hops", "Pogo 3 × 10 · low hurdle hops 3 × 4"],
+      ["Depth jump - 15–20 cm box", "3 × 3 · full recovery · contact under 0.25 s"],
+      ["Reactive microdose - pogo and low hurdle hops", "Pogo 3 × 10 · low hurdle hops 3 × 4"],
       ["Pogo + vertical jump", "Pogo 2 × 6 · vertical jump 2 × 2"],
     ] as [string, string][]) {
       expect(isLoggable(gym(name, rx)), name).toBe(false);

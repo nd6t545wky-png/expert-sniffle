@@ -364,7 +364,7 @@ describe("every prescription is specific enough to act on", () => {
         blocks.push(...day.blocks);
       }
     }
-    // One entry per block id — the same block repeats across tiers.
+    // One entry per block id - the same block repeats across tiers.
     return [...new Map(blocks.map((block) => [block.id, block])).values()];
   };
 

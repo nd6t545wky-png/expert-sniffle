@@ -6,7 +6,7 @@
  * levels, either the prescription splits into movements that each carry a dose,
  * or it renders untouched. Nothing in between, and nothing invented.
  *
- * The failure to avoid is inventing an exercise — turning "2 × 10 · low
+ * The failure to avoid is inventing an exercise - turning "2 × 10 · low
  * amplitude · minimal ground contact" into three of them. That is worse than
  * not splitting at all, which is why the rule refuses whenever it cannot tell.
  */
@@ -47,8 +47,8 @@ describe("prescriptions that are a list of movements", () => {
   });
 
   it("splits a two-movement pairing", () => {
-    // Friday's primer. The Monday pairing this used to check —
-    // `Pallof press 2 × 8/side · farmer carry 2 × 20 m` — is two tasks now, at
+    // Friday's primer. The Monday pairing this used to check -
+    // `Pallof press 2 × 8/side · farmer carry 2 × 20 m` - is two tasks now, at
     // the athlete's request, so the example moved to one the programme still
     // writes this way.
     expect(splitPrescription("Split-squat iso 1 × 15 sec/side · band row 2 × 6 fast")).toEqual([

@@ -5,7 +5,7 @@
  * weights an Oura readiness score at 25% of the final number, and treats high
  * stress minutes, a temperature deviation, Rest Mode, a depressed HRV or an
  * elevated resting heart rate as reasons to reduce or hold. None of that ever
- * fired in the rebuilt UI, because nothing ever fetched the data — so every
+ * fired in the rebuilt UI, because nothing ever fetched the data - so every
  * check-in was scored on subjective answers alone while presenting itself as
  * the full readiness model.
  *
@@ -38,7 +38,7 @@ import { IsoDate } from "./state";
 /** How many prior check-ins a rolling baseline looks back over. */
 export const BASELINE_WINDOW = 14;
 
-/** A metric with no device behind it — the athlete typed it, or it is absent. */
+/** A metric with no device behind it - the athlete typed it, or it is absent. */
 export type MetricProvenance = MetricSource | "manual";
 
 /** One date's fetched health payload, as persisted into `state.healthPrefill`. */
@@ -60,7 +60,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 /**
  * The payload for a date, or an empty record.
  *
- * `state.healthPrefill` is a date-keyed map of `unknown` — it survives a round
+ * `state.healthPrefill` is a date-keyed map of `unknown` - it survives a round
  * trip through localStorage and cloud sync, so it can hold anything.
  */
 export function readPrefill(
@@ -105,7 +105,7 @@ export function sleepQualityFromScore(score: unknown): number | null {
  *
  * Oura wins ties because it is the ring the athlete actually wears to sleep;
  * Apple Health is the fallback aggregator. A metric neither device reported is
- * "manual" — the athlete's own answer, and editable.
+ * "manual" - the athlete's own answer, and editable.
  */
 export function metricSource(record: HealthPrefillRecord, metric: string): MetricProvenance {
   const oura = record.sources?.oura?.data;
@@ -182,7 +182,7 @@ export function mergeHistory(
  *
  * The form marks these read-only. `sleepQuality` is included when a sleep
  * score exists, because the 1-5 value shown is derived from that score rather
- * than chosen — leaving it editable would let a typed answer silently disagree
+ * than chosen - leaving it editable would let a typed answer silently disagree
  * with the number it claims to be derived from.
  */
 export function importedFields(record: HealthPrefillRecord): Set<string> {
@@ -205,7 +205,7 @@ export function importedFields(record: HealthPrefillRecord): Set<string> {
  * Only keys the devices actually reported are returned, so spreading this over
  * the form defaults never blanks a field the athlete can still answer. Oura's
  * own fields (stress minutes, temperature, Rest Mode) are read from the Oura
- * source rather than the merged summary — they have no Apple equivalent to
+ * source rather than the merged summary - they have no Apple equivalent to
  * merge with, and the scorer labels them as Oura's in the reasons it gives.
  */
 export function wearableInputs(record: HealthPrefillRecord): Partial<ReadinessInputs> {
@@ -343,7 +343,7 @@ export function metricSources(record: HealthPrefillRecord): {
  * Everything `computeReadiness` needs beyond the answers themselves.
  *
  * Baselines the scorer will ignore (fewer than five observations) are still
- * returned — the gate lives in one place, in the scorer, rather than being
+ * returned - the gate lives in one place, in the scorer, rather than being
  * duplicated here where the two could drift apart.
  */
 export function readinessContextFor(
@@ -374,7 +374,7 @@ export function readinessContextFor(
  *
  * The most recent one, not a median: the scorer is looking for a rise, and a
  * median smooths away exactly the day-to-day movement it is meant to see. A
- * gap of a week still counts — an arm that was 0 last Tuesday and is 3 today
+ * gap of a week still counts - an arm that was 0 last Tuesday and is 3 today
  * has climbed, however long the app went unopened in between.
  */
 export function previousSoreness(

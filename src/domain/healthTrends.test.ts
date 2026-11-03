@@ -108,7 +108,7 @@ describe("chartGeometry", () => {
     expect(geometry.points.map((point) => point.date)).toEqual(["2026-08-01", "2026-08-03"]);
   });
 
-  it("treats a zero as missing by default — a sleep score of zero is no reading", () => {
+  it("treats a zero as missing by default - a sleep score of zero is no reading", () => {
     expect(chartGeometry(series([0, 0]), readiness)).toBeNull();
   });
 
@@ -162,7 +162,7 @@ describe("chartGeometry", () => {
   });
 });
 
-describe("summariseMetric — the plain-English verdict", () => {
+describe("summariseMetric - the plain-English verdict", () => {
   const steady = [70, 72, 68, 71, 69];
 
   it("reports the latest reading and its date", () => {

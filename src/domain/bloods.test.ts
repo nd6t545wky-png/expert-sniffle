@@ -5,7 +5,7 @@
  * what follows guards them. The first is units: every range here is SI,
  * because the athlete tests in Australia, and a testosterone of 15 is
  * mid-range in nmol/L and profoundly low in ng/dL. The second is the line the
- * page must not cross — it reports numbers against the range printed on the
+ * page must not cross - it reports numbers against the range printed on the
  * athlete's own report, and it never explains one.
  */
 
@@ -135,7 +135,7 @@ describe("the range a result is judged against", () => {
   });
 
   it("honours a one-sided range from the report", () => {
-    // Plenty of reports print only an upper limit — "< 5.0" for CRP.
+    // Plenty of reports print only an upper limit - "< 5.0" for CRP.
     const range = rangeFor(marker("hsCrp"), { value: 1.2, high: 5 });
     expect(range).toEqual({ low: null, high: 5, ownRange: true });
     expect(formatRange({ marker: marker("hsCrp"), ...range })).toBe("< 5.0");

@@ -75,7 +75,7 @@ function writeStoredShare(share: StoredShare | null, storage: Storage = window.l
 /**
  * Encrypt a summary and push it under an existing id and key.
  *
- * Exported because the app calls it on every cloud sync — the physio should see
+ * Exported because the app calls it on every cloud sync - the physio should see
  * yesterday's session without the athlete having to remember to press anything.
  */
 export async function publishShare(
@@ -125,7 +125,7 @@ export function PhysioShare({ api, hasSyncKey, buildSummary, hasBloods = false, 
       await publishShare(api, next, buildSummary({ bloods }));
       writeStoredShare(next);
       setShare(next);
-      setMessage("Link created. Send the whole link — the part after the # is what opens it.");
+      setMessage("Link created. Send the whole link - the part after the # is what opens it.");
       refreshList();
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Could not create the link.");
@@ -154,7 +154,7 @@ export function PhysioShare({ api, hasSyncKey, buildSummary, hasBloods = false, 
    *
    * Republished on the spot rather than left waiting for "Update now": both
    * directions are the kind of change that should not sit in a half-applied
-   * state — turning it on is a deliberate act of disclosure, and turning it
+   * state - turning it on is a deliberate act of disclosure, and turning it
    * off is someone wanting the results out of a link that is already sent.
    */
   const setBloods = async (next: boolean) => {
@@ -210,7 +210,7 @@ export function PhysioShare({ api, hasSyncKey, buildSummary, hasBloods = false, 
       setCopied(true);
       setTimeout(() => setCopied(false), 2500);
     } catch {
-      setMessage("Copying was blocked — select the link above and copy it by hand.");
+      setMessage("Copying was blocked - select the link above and copy it by hand.");
     }
   };
 
@@ -231,13 +231,13 @@ export function PhysioShare({ api, hasSyncKey, buildSummary, hasBloods = false, 
       ) : (
         <>
           <p className="recovery-caveat">
-            Readiness, soreness, throwing, arm screens and workload — encrypted in your browser under a
+            Readiness, soreness, throwing, arm screens and workload - encrypted in your browser under a
             key that only lives in the link. The server hosting it cannot read it, and neither can
             anyone the link is not sent to.
           </p>
 
           {/* Blood work is the one thing here that is not training data the
-              athlete generated, so it is asked for rather than assumed — and
+              athlete generated, so it is asked for rather than assumed - and
               asked for per link, because turning it on changes what a link
               already in someone's hands discloses. */}
           {hasBloods && (
@@ -295,7 +295,7 @@ export function PhysioShare({ api, hasSyncKey, buildSummary, hasBloods = false, 
           )}
 
           {/* Links made on another device, which this one holds no key for. It
-              cannot show or refresh them — but it must still be able to turn
+              cannot show or refresh them - but it must still be able to turn
               them off, which is the part that matters. */}
           {records.filter((record) => record.id !== share?.id).length > 0 && (
             <>

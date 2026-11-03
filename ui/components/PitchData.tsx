@@ -13,7 +13,7 @@ import { Alert, EmptyState } from "./Page";
 import { ConfirmButton } from "./ConfirmButton";
 
 /**
- * Ball flight — the one category the app had nothing for.
+ * Ball flight - the one category the app had nothing for.
  *
  * Two ways in, both landing in the same record: a CSV exported from Rapsodo,
  * TrackMan or Pocket Radar, or typed by hand off a radar gun.
@@ -116,7 +116,7 @@ export function PitchData({ date, pitches, onImport, onAdd, onRemove }: PitchDat
       <div className="card-head">
         <div>
           <h3>Pitch data</h3>
-          <p>Velocity, spin and break — imported from your device, or typed in.</p>
+          <p>Velocity, spin and break - imported from your device, or typed in.</p>
         </div>
       </div>
 
@@ -151,7 +151,7 @@ export function PitchData({ date, pitches, onImport, onAdd, onRemove }: PitchDat
               {report.skipped.length} row{report.skipped.length === 1 ? "" : "s"} skipped:{" "}
               {report.skipped
                 .slice(0, 3)
-                .map((row) => `line ${row.line} — ${row.reason}`)
+                .map((row) => `line ${row.line} - ${row.reason}`)
                 .join("; ")}
               {report.skipped.length > 3 ? ` and ${report.skipped.length - 3} more. ` : ". "}
             </>
@@ -303,7 +303,7 @@ export function PitchData({ date, pitches, onImport, onAdd, onRemove }: PitchDat
 
       <p className="fineprint">
         Exports are read by column name, so a renamed file still works. Rows the importer cannot read
-        are listed rather than dropped — a partial import you did not notice is worse than a failed one.
+        are listed rather than dropped - a partial import you did not notice is worse than a failed one.
       </p>
     </article>
   );

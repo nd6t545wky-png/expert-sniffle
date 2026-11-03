@@ -1,8 +1,8 @@
 /**
  * Importing a pitching line out of a scorekeeping export.
  *
- * None of the four devices and apps an amateur pitcher actually uses —
- * Rapsodo, TrackMan, Pocket Radar, GameChanger — offers an API an individual
+ * None of the four devices and apps an amateur pitcher actually uses -
+ * Rapsodo, TrackMan, Pocket Radar, GameChanger - offers an API an individual
  * can connect to. TrackMan's exists but is sold to organisations with signed
  * terms and org-issued credentials; the other three have none at all. What
  * every one of them does have is a file export, so that is the integration:
@@ -147,7 +147,7 @@ function gameId(): string {
  * Read a scorekeeping CSV into appearances.
  *
  * `fallbackDate` is used for rows carrying no date of their own. `player`
- * filters a team-wide export down to one athlete's rows — without it, a team
+ * filters a team-wide export down to one athlete's rows - without it, a team
  * file would import every pitcher on the roster as though they were all this
  * athlete.
  */
@@ -165,7 +165,7 @@ export function parseGameCsv(
     return {
       source: "generic",
       games: [],
-      skipped: [{ line: 1, reason: "No recognisable column headers — is this a stats export?" }],
+      skipped: [{ line: 1, reason: "No recognisable column headers - is this a stats export?" }],
       missingFields: [],
       players: [],
     };
@@ -198,7 +198,7 @@ export function parseGameCsv(
       missingFields: [],
       players: [],
       refusedReason:
-        "This file has no date column, so it is season totals rather than a list of games. Export the per-game stats instead — a season total imported as one appearance would put every inning you have thrown against a single opponent on a single day.",
+        "This file has no date column, so it is season totals rather than a list of games. Export the per-game stats instead - a season total imported as one appearance would put every inning you have thrown against a single opponent on a single day.",
     };
   }
 
@@ -211,7 +211,7 @@ export function parseGameCsv(
     const line = index + 1;
     if (cells.every((cell) => !cell)) continue;
 
-    // Totals rows are dropped before their numbers are read — the same trap
+    // Totals rows are dropped before their numbers are read - the same trap
     // the pitch importer hit, where a trailing "Average" row imported as data.
     const first = (cells[0] ?? "").trim().toLowerCase();
     if (/^(total|totals|season|team|avg|average|summary|overall)\b/.test(first)) continue;
@@ -256,7 +256,7 @@ export function parseGameCsv(
       hitBatters: read("hitBatters"),
     };
 
-    // The same contradiction check the manual form uses — but run against only
+    // The same contradiction check the manual form uses - but run against only
     // the fields the file actually carried. Storing a missing column as zero
     // is right for the totals; validating against that zero is not, and it
     // rejected honest exports for lacking a batters-faced column.

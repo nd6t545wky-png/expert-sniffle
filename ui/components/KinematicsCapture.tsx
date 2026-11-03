@@ -27,7 +27,7 @@ import { ConfirmButton } from "./ConfirmButton";
  * angles.
  *
  * The mechanics screen rates six qualities one to five. This produces degrees
- * and milliseconds from the athlete's own video, by hand — which is slower
+ * and milliseconds from the athlete's own video, by hand - which is slower
  * than a pose model and has the advantage that every number can be traced back
  * to a tap. A figure that looks wrong is a tap in the wrong place, not a model
  * that cannot be argued with.
@@ -178,7 +178,7 @@ export function KinematicsCapture({
   /**
    * Ask the model to place the points on this frame.
    *
-   * Points already placed by hand are kept — a correction survives a re-run —
+   * Points already placed by hand are kept - a correction survives a re-run -
    * and anything the model was unsure of is left for the athlete rather than
    * guessed.
    */
@@ -206,7 +206,7 @@ export function KinematicsCapture({
    * Read the whole clip: camera view, throwing arm, all four checkpoints, and
    * the landmarks on each of them. Nothing is asked of the athlete.
    *
-   * Anything the clip does not support is left unset rather than filled in — a
+   * Anything the clip does not support is left unset rather than filled in - a
    * checkpoint placed on a guess would put every angle at the wrong instant,
    * and nothing downstream could tell.
    */
@@ -287,14 +287,14 @@ export function KinematicsCapture({
       <Alert>
         <strong>What this is, and is not</strong>
         One camera sees a flat picture of a three-dimensional movement, so these angles are
-        projections — good enough to track against yourself session to session, and rougher than a
+        projections - good enough to track against yourself session to session, and rougher than a
         laboratory figure. Where a range is shown it is the middle half of {OBP_SOURCE.pitches}{" "}
         pitches from {OBP_SOURCE.athletes} college and professional pitchers measured with markers
         in a lab (
         <a href={OBP_SOURCE.url} target="_blank" rel="noreferrer">
           {OBP_SOURCE.cite}
         </a>
-        ). That is a description of them, not a target for you — a quarter of them sit below each
+        ). That is a description of them, not a target for you - a quarter of them sit below each
         band and a quarter above. Measurements whose geometry does not match what that lab recorded
         carry no range at all. Your own history is still the number that means the most here.
       </Alert>
@@ -350,7 +350,7 @@ export function KinematicsCapture({
 
           <div className="kin-stage" style={{ aspectRatio: String(draft.aspect) }}>
             {/* No native controls. They sit *inside* the element, so an overlay
-                that cleared them would be shorter than the frame — and every
+                that cleared them would be shorter than the frame - and every
                 tap would normalise against a height the picture does not have,
                 putting every angle out by a few degrees with nothing on screen
                 to show it. The transport below is outside the stage instead. */}
@@ -375,7 +375,7 @@ export function KinematicsCapture({
               onPause={() => setPlaying(false)}
             />
             {/* The tap surface covers the video exactly, which is why the stage
-                carries the video's own aspect ratio — a letterboxed frame would
+                carries the video's own aspect ratio - a letterboxed frame would
                 put the taps against the black bars. */}
             <div
               className={`kin-overlay${next ? " is-placing" : ""}`}
@@ -528,7 +528,7 @@ export function KinematicsCapture({
           <p className="fineprint">
             <strong>Analyse the whole delivery</strong> reads the clip end to end and works out the
             camera view, which arm throws, where the four checkpoints fall and the body points on
-            each — nothing to set first. It downloads a pose model the first time, about 17 MB, kept
+            each - nothing to set first. It downloads a pose model the first time, about 17 MB, kept
             afterwards so later clips work offline. It does not change the measurement: every point
             stays visible and can be re-tapped, anything it was unsure of is left out rather than
             guessed, and a checkpoint the clip does not clearly show is left for you rather than
@@ -623,7 +623,7 @@ export function KinematicsCapture({
 
           <p className="fineprint">
             Timing is only as fine as the video. Most phones record 30 or 60 frames a second, which
-            is a step of 33 or 17 milliseconds — a figure inside that is the frame rate, not a
+            is a step of 33 or 17 milliseconds - a figure inside that is the frame rate, not a
             change. {progress.done} of {progress.total} checkpoints{" "}
             {progress.done === 1 ? "has" : "have"} every point placed.
           </p>
@@ -667,7 +667,7 @@ export function KinematicsCapture({
 
       <p className="fineprint">
         {sourceName ? `Measuring ${sourceName}. ` : ""}The video itself is never uploaded by this
-        tool — only the points you place and the angles they produce are saved.
+        tool - only the points you place and the angles they produce are saved.
       </p>
     </article>
   );

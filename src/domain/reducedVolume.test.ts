@@ -45,7 +45,7 @@ describe("stating the reduced dose instead of describing it", () => {
     expect(reduceSetsAndReps("45–60 total throws · 60–75 ft · 50–60% effort", "throw", "reduced")).toBe(
       "30–45 total throws"
     );
-    // 50% of 45 is 22.5 — down to 20, not up to 25.
+    // 50% of 45 is 22.5 - down to 20, not up to 25.
     expect(reduceSetsAndReps("45–60 total throws", "throw", "recovery")).toBe("20–30 total throws");
   });
 

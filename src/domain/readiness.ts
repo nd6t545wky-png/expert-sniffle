@@ -3,7 +3,7 @@
  *
  * Ported from the prototype (`legacy/app.js`, `calculateReadiness`) with the
  * weightings, thresholds and flag precedence preserved exactly. Behaviour is
- * intentionally unchanged — this is a migration, not a redesign.
+ * intentionally unchanged - this is a migration, not a redesign.
  *
  * The prototype read baselines from module-level state. Here they are passed
  * in explicitly, so scoring is a pure function and can be tested without a
@@ -15,7 +15,7 @@ export type RiskLevel = "green" | "yellow" | "orange" | "red";
 export type MetricSource = "oura" | "apple";
 // "as_expected" is the prototype's wording for the neutral answer; "same" is
 // the same thing under an older name. Both are accepted so stored records from
-// either vintage keep scoring identically — neither raises a signal.
+// either vintage keep scoring identically - neither raises a signal.
 export type PreviousSessionResponse = "better" | "as_expected" | "same" | "worse" | "much_worse" | "";
 
 /** Workload multiplier applied to prescriptions for each plan level. */
@@ -82,7 +82,7 @@ export interface ReadinessContext {
    * Shoulder and elbow as reported at the most recent earlier check-in.
    *
    * A rise is read as well as a level. Every other symptom rule here is
-   * absolute — 5/10 holds the session, 3/10 reduces it — which cannot see an
+   * absolute - 5/10 holds the session, 3/10 reduces it - which cannot see an
    * arm going 1 → 3 → 4 over three days: each of those readings is under the
    * gate on its own, and the direction is the part that matters.
    */

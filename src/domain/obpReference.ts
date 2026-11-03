@@ -1,7 +1,7 @@
 /**
  * Reference percentiles from the OpenBiomechanics Project.
  *
- * GENERATED FILE — do not edit by hand.
+ * GENERATED FILE - do not edit by hand.
  * Regenerate with: node scripts/derive-obp-reference.mjs
  *
  * OBP is Driveline Baseball's open release of marker-based 3D motion capture
@@ -16,7 +16,7 @@
  *     else, and nothing in the app scores against it.
  *   - It is not a like-for-like comparison. OBP measured 3D anatomical angles
  *     with markers in a lab. This app measures a 2D projection through a phone
- *     camera. Where the two constructions differ, no band is published — that
+ *     camera. Where the two constructions differ, no band is published - that
  *     is why only 4 of the app's measurements carry one.
  */
 
@@ -55,7 +55,7 @@ export const OBP_BANDS: ObpBand[] = [
     "column": "elbow_flexion_fp",
     "checkpoint": "footStrike",
     "match": "close",
-    "note": "Same three-point angle — shoulder, elbow, wrist — seen through a camera rather than measured in three dimensions.",
+    "note": "Same three-point angle - shoulder, elbow, wrist - seen through a camera rather than measured in three dimensions.",
     "n": 411,
     "p10": 82.3,
     "p25": 92,
@@ -81,7 +81,7 @@ export const OBP_BANDS: ObpBand[] = [
     "column": "shoulder_abduction_fp",
     "checkpoint": "footStrike",
     "match": "partial",
-    "note": "The lab measures true anatomical abduction; this app measures the upper arm against the trunk in the camera plane. Related, not identical — read it as a rough neighbourhood, not a target.",
+    "note": "The lab measures true anatomical abduction; this app measures the upper arm against the trunk in the camera plane. Related, not identical - read it as a rough neighbourhood, not a target.",
     "n": 411,
     "p10": 74.6,
     "p25": 80.2,

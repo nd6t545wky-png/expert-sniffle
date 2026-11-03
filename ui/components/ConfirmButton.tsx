@@ -4,12 +4,12 @@ import { useEffect, useRef, useState } from "react";
  * A destructive action that asks once, in place.
  *
  * The app had forty-five delete affordances and not one of them confirmed
- * anything — a mis-tap permanently removed a pitch, a meal, an arm screen or a
+ * anything - a mis-tap permanently removed a pitch, a meal, an arm screen or a
  * kinematics capture, and the only undo anywhere was for skipping a task.
  *
  * Not `window.confirm`: it blocks the page, cannot be styled to match, reads
  * as a browser warning rather than part of the app, and on iOS can be
- * suppressed entirely. Not a modal either — a modal for deleting one row of a
+ * suppressed entirely. Not a modal either - a modal for deleting one row of a
  * table is heavier than the action it guards.
  *
  * Instead the button arms itself. One tap turns "Remove" into "Remove?" beside

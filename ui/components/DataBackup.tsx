@@ -13,7 +13,7 @@ import { Alert, Card, CardHead } from "./Page";
  *
  * `importExport` has been written and tested for months and nothing in the app
  * called it, so there was no way to get data out at all. Everything lives in
- * this browser's storage plus one row behind a 64-character recovery key —
+ * this browser's storage plus one row behind a 64-character recovery key -
  * lose both and the whole training history is gone, with nothing anywhere
  * having said so.
  *
@@ -24,7 +24,7 @@ import { Alert, Card, CardHead } from "./Page";
  *     and not something that has to come back through this app to be useful.
  *   - **Import is all-or-nothing, and it says what it will do first.** The
  *     file is validated and summarised, and nothing is written until the
- *     replacement is confirmed — because import replaces everything, and a
+ *     replacement is confirmed - because import replaces everything, and a
  *     half-applied import is worse than a refused one.
  */
 
@@ -59,7 +59,7 @@ export function DataBackup({ state, onReplace }: DataBackupProps) {
     document.body.appendChild(link);
     link.click();
     link.remove();
-    // Released on the next tick — revoking synchronously can cancel the
+    // Released on the next tick - revoking synchronously can cancel the
     // download in some browsers before it has read the blob.
     setTimeout(() => URL.revokeObjectURL(url), 0);
     setNote(`Saved ${records(summary?.recordCount ?? 0)} to your device.`);
@@ -89,7 +89,7 @@ export function DataBackup({ state, onReplace }: DataBackupProps) {
       <Alert tone="warn">
         <strong>Your recovery key is the only way back in</strong>
         Everything lives in this browser and in one cloud record behind that
-        key. Lose the key and this device and the whole history goes with them —
+        key. Lose the key and this device and the whole history goes with them -
         a backup file is the only thing that survives both.
       </Alert>
 
@@ -117,7 +117,7 @@ export function DataBackup({ state, onReplace }: DataBackupProps) {
       {summary && (
         <p className="fineprint">
           {records(summary.recordCount)}, schema version {summary.schemaVersion}. The file is plain
-          JSON — you can open it, read it, and keep it anywhere.
+          JSON - you can open it, read it, and keep it anywhere.
         </p>
       )}
 
@@ -141,7 +141,7 @@ export function DataBackup({ state, onReplace }: DataBackupProps) {
         <Alert tone="warn" role="alert">
           <strong>Replace everything on this device?</strong>
           {fileName} holds {records(pending.recordCount ?? 0)}. Importing it discards what is on this
-          device now — check-ins, sessions, pitches, meals and all — and puts this file in its
+          device now - check-ins, sessions, pitches, meals and all - and puts this file in its
           place. It cannot be undone.
           {pending.warnings.length > 0 && (
             <span className="backup-issue">

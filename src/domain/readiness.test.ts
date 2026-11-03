@@ -197,7 +197,7 @@ describe("deviation signals", () => {
     const one = computeReadiness(healthy({ hrvMs: 70 }), { hrvBaseline: strongBaseline });
     expect(one.score).toBe(94);
 
-    // Three signals: HRV, Oura stress, temperature — capped at -12.
+    // Three signals: HRV, Oura stress, temperature - capped at -12.
     const many = computeReadiness(
       healthy({ hrvMs: 70, ouraStressHighMinutes: 200, ouraTemperatureDeviation: 1.0 }),
       { hrvBaseline: strongBaseline }

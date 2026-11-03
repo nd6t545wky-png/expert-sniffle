@@ -3,7 +3,7 @@
  *
  * The server mounts better-auth at /api/auth/*, so this drives those routes
  * directly rather than pulling the full client bundle into the rebuild. The
- * WebAuthn ceremony itself is performed by the browser — a passkey's private
+ * WebAuthn ceremony itself is performed by the browser - a passkey's private
  * key never leaves the device and is never sent to the server.
  */
 
@@ -40,7 +40,7 @@ export function passkeysSupported(): boolean {
  * better-auth has no per-provider sign-in route: social sign-in is a POST to
  * `/sign-in/social` naming the provider, which answers with the provider's
  * authorization URL and sets the state cookie the callback is checked against.
- * Navigating straight to `/sign-in/google` — which is what this used to do —
+ * Navigating straight to `/sign-in/google` - which is what this used to do -
  * simply 404s, so the button took the whole page to a blank error and no
  * request ever reached Google.
  *
@@ -54,7 +54,7 @@ export async function signInWithGoogle(): Promise<void> {
     body: JSON.stringify({
       provider: "google",
       // Come back to the page the athlete pressed the button on. The hash is
-      // dropped deliberately — better-auth appends its own query string, and a
+      // dropped deliberately - better-auth appends its own query string, and a
       // fragment left on the end survives the round trip into the callback URL.
       callbackURL: `${window.location.origin}${window.location.pathname}`,
     }),
@@ -89,7 +89,7 @@ function bufferToBase64Url(buffer: ArrayBuffer): string {
 
 /**
  * Register a new passkey for the signed-in user.
- * Requires an existing session — sign in with Google first.
+ * Requires an existing session - sign in with Google first.
  */
 export async function registerPasskey(): Promise<void> {
   if (!passkeysSupported()) throw new Error("This browser does not support passkeys.");

@@ -2,7 +2,7 @@
  * What this week is for, as far as throwing hard is concerned.
  *
  * The plan already tells the athlete what to do today. It did not tell them
- * where today sits in a plan to add velocity — which matters most on the weeks
+ * where today sits in a plan to add velocity - which matters most on the weeks
  * the answer is "nowhere, and deliberately so". A capped Wednesday with no
  * explanation reads as a programme that has gone soft; the same Wednesday with
  * "In season · week 3 of 8" beside it reads as a decision.
@@ -26,7 +26,7 @@ import { Card } from "./Page";
  * `games` is the week's entered fixtures.
  *
  * Without it this card read the block table straight and said "Restore" over a
- * plan that was running a taper — the panel that exists to explain the week's
+ * plan that was running a taper - the panel that exists to explain the week's
  * intent ceiling contradicting the ceiling actually applied to the tasks
  * beside it. It takes the same argument `velocityPolicy` does, for the same
  * reason: the fixture list outranks the calendar's guess.
@@ -69,15 +69,16 @@ export function VelocityBlock({ week, games }: { week: number; games?: number })
         ))}
       </ul>
 
-      <p className="velocity-note">{policy.note}</p>
-
-      {/* The one thing a ceiling cannot say on its own: whether this week is
-          supposed to be the hard one. */}
+      {/* The verdict first; the reasoning behind it on request. */}
       <p className="velocity-verdict">
         {policy.velocityDay
           ? "One high-intent throwing exposure this week, on Wednesday."
           : "No high-intent throwing exposure this week."}
       </p>
+      <details className="why fineprint">
+        <summary>Why</summary>
+        {policy.note}
+      </details>
     </Card>
   );
 }

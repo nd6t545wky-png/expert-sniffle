@@ -20,7 +20,7 @@ const tally = (over: Partial<ThrowTally> = {}): ThrowTally => ({
   sources: [
     { id: "a", name: "Pregame catch", throws: 25, intent: "moderate" },
     { id: "b", name: "Pregame bullpen", throws: 20, intent: "moderate" },
-    { id: "c", name: "Plyo Ball Rocker Throw — 225 g", throws: 13, intent: "low" },
+    { id: "c", name: "Plyo Ball Rocker Throw - 225 g", throws: 13, intent: "low" },
   ],
   unread: [],
   ...over,

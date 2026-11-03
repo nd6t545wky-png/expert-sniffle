@@ -1,14 +1,14 @@
 /**
  * Telling the app something hurts.
  *
- * Designed to be finished standing up, in under a minute, with one thumb —
+ * Designed to be finished standing up, in under a minute, with one thumb -
  * because the moment this gets used is between a bullpen and the car, and a
  * form that takes five minutes gets filled in as "fine". Four taps and a
  * slider: where, how bad, what it feels like, when it shows up.
  *
  * The result is not advice. It is a changed plan, and the card says which of
- * the four things it did — trained as written, trained around it, rested the
- * area, or told the athlete to get it looked at — with the reasoning listed
+ * the four things it did - trained as written, trained around it, rested the
+ * area, or told the athlete to get it looked at - with the reasoning listed
  * underneath so it can be argued with rather than obeyed.
  */
 
@@ -146,7 +146,7 @@ export function SorenessCard({
     <Card>
       <CardHead
         title="Something sore?"
-        detail="Tell the app where and it changes today's plan — what comes out, what goes in, and whether you throw."
+        detail="Tell the app where and it changes today's plan - what comes out, what goes in, and whether you throw."
       />
 
       {referral && (
@@ -366,7 +366,7 @@ export function SorenessCard({
 
           <div className="form-actions">
             <button className="btn btn-dark" type="button" disabled={!region} onClick={save}>
-              {region ? `Save — ${REGION_LABELS[region].toLowerCase()}` : "Pick where it hurts"}
+              {region ? `Save - ${REGION_LABELS[region].toLowerCase()}` : "Pick where it hurts"}
             </button>
             <button className="text-button" type="button" onClick={reset}>
               Cancel
@@ -377,7 +377,7 @@ export function SorenessCard({
 
       <p className="recovery-caveat">
         This changes your training. It does not diagnose anything, and it is not a substitute for your
-        physio — it gets you through today safely and keeps a record they can read.
+        physio - it gets you through today safely and keeps a record they can read.
       </p>
     </Card>
   );

@@ -21,7 +21,7 @@ describe("asPositionPlayer", () => {
       for (let day = 0; day < 7; day++) {
         const session = asPositionPlayer(buildSession(weekPlan(week), day, {} as never));
         for (const task of session.tasks.filter((t) => t.stageTitle === "Compete")) {
-          expect(task.name).toBe("Game — at-bats");
+          expect(task.name).toBe("Game - at-bats");
           expect(task.prescription).toMatch(/Hitting tab/);
         }
       }

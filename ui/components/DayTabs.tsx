@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 import { IsoDate } from "../../src/domain/state";
 
 /**
- * The week's seven days across the top of the session page — v60's
+ * The week's seven days across the top of the session page - v60's
  * `renderDayTabs`.
  *
  * Each tab shows the day's real date and its status, which is the whole point:
@@ -63,7 +63,7 @@ export function DayTabs({
     const tab = container?.querySelector<HTMLElement>(`[data-day="${selectedDay}"]`);
     if (!container || !tab) return;
     const offset = Math.max(0, tab.offsetLeft - (container.clientWidth - tab.offsetWidth) / 2);
-    // `Element.scrollTo` is not everywhere — assigning `scrollLeft` is, and it
+    // `Element.scrollTo` is not everywhere - assigning `scrollLeft` is, and it
     // still animates because the strip sets `scroll-behavior: smooth`. Falling
     // back rather than assuming is the difference between a tab that does not
     // centre and a plan page that does not render.

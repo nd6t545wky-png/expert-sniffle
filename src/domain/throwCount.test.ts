@@ -4,7 +4,7 @@
  * Checked against the programme's real prescriptions rather than invented
  * ones. The whole feature is a reader of strings someone else wrote, and a
  * test using strings this file made up would pass while the deployed app read
- * nothing at all — the same failure the soreness overlay's tests are built to
+ * nothing at all - the same failure the soreness overlay's tests are built to
  * avoid, for the same reason.
  */
 
@@ -53,7 +53,7 @@ describe("what counts as throwing", () => {
   it("takes the three stages that put a baseball in the air", () => {
     expect(isThrowingTask(task("Throw", "Recovery catch", ""))).toBe(true);
     expect(isThrowingTask(task("Team Throwing", "Team practice throwing", ""))).toBe(true);
-    expect(isThrowingTask(task("Plyo Ball Preparation", "Plyo Ball Rocker Throw — 225 g", ""))).toBe(true);
+    expect(isThrowingTask(task("Plyo Ball Preparation", "Plyo Ball Rocker Throw - 225 g", ""))).toBe(true);
   });
 
   it("leaves med-ball work out of an arm-workload figure", () => {
@@ -73,7 +73,7 @@ describe("reading a volume off the prescription", () => {
   });
 
   it("multiplies a plyo ladder out", () => {
-    expect(throwsPrescribed(task("Plyo Ball Preparation", "Plyo Ball Roll-In Throw — 450 g", "2 × 5 · 70% · hybrid B intent"))).toBe(10);
+    expect(throwsPrescribed(task("Plyo Ball Preparation", "Plyo Ball Roll-In Throw - 450 g", "2 × 5 · 70% · hybrid B intent"))).toBe(10);
   });
 
   it("reads the words the programme puts in front of the noun", () => {
@@ -128,7 +128,7 @@ describe("reading the intent", () => {
 
   it("takes the top of an effort range, because the hardest throws set the cost", () => {
     expect(intentPrescribed(task("Throw", "Flat-ground command", "45–55 total throws · 65–75% effort"))).toBe("moderate");
-    expect(intentPrescribed(task("Plyo Ball Preparation", "Windup — 150 g", "2 × 3 · 90% · hybrid A intent"))).toBe("high");
+    expect(intentPrescribed(task("Plyo Ball Preparation", "Windup - 150 g", "2 × 3 · 90% · hybrid A intent"))).toBe("high");
   });
 
   it("falls back to the name when no percentage is written", () => {
@@ -205,7 +205,7 @@ describe("what the tally is allowed to overwrite", () => {
 
   it("treats an entry from before this existed as the athlete's", () => {
     // Everything stored before the field was added was typed on the Workload
-    // tab. An absent value has to mean "theirs" — the alternative is an
+    // tab. An absent value has to mean "theirs" - the alternative is an
     // upgrade that silently rewrites months of hand-entered workload.
     const old = { date: "2026-09-11", throws: 92, intent: "high" as const };
     expect(adoptTally(old, tally, "2026-09-11")).toEqual({ action: "keep" });

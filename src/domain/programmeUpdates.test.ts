@@ -60,7 +60,7 @@ describe("baseline programming overlay", () => {
     expect(result.tasks).toHaveLength(1);
   });
 
-  it("is idempotent — re-applying does not duplicate the additions", () => {
+  it("is idempotent - re-applying does not duplicate the additions", () => {
     const once = applyBaselineProgramming(session([task()]));
     const twice = applyBaselineProgramming(once);
     expect(twice.tasks).toHaveLength(once.tasks.length);
@@ -92,7 +92,7 @@ describe("baseline programming overlay", () => {
     expect(row?.cue).not.toMatch(/maximal intent/);
   });
 
-  it("does not tell the speed squat to move faster — that is already the point", () => {
+  it("does not tell the speed squat to move faster - that is already the point", () => {
     const result = applyBaselineProgramming(session([task()]));
     const speed = result.tasks.find((t) => /Speed squat/.test(t.name));
     expect(speed?.cue).not.toMatch(/354 ms/);
@@ -101,7 +101,7 @@ describe("baseline programming overlay", () => {
   it("attaches the weighted-ball evidence note to plyo tasks only", () => {
     const result = applyBaselineProgramming(
       session([
-        task({ id: "w5-d0-p1", stage: 2, stageTitle: "Plyo Ball Preparation", name: "Plyo Ball Rocker Throw — 225 g", stop: "Stop for pain." }),
+        task({ id: "w5-d0-p1", stage: 2, stageTitle: "Plyo Ball Preparation", name: "Plyo Ball Rocker Throw - 225 g", stop: "Stop for pain." }),
         task({ id: "w5-d0-c", stage: 3, stageTitle: "Throw", name: "Recovery catch", stop: "Stop for pain." }),
       ])
     );
@@ -115,13 +115,13 @@ describe("baseline programming overlay", () => {
 
   it("warns specifically on the light balls, where the risk concentrates", () => {
     const light = applyBaselineProgramming(
-      session([task({ stage: 2, stageTitle: "Plyo Ball Preparation", name: "Plyo Ball Walking Windup — 100 g" })])
+      session([task({ stage: 2, stageTitle: "Plyo Ball Preparation", name: "Plyo Ball Walking Windup - 100 g" })])
     );
     expect(light.tasks[0].stop).toMatch(/highest arm speeds/);
 
     // A 1,000 g ball must not be mistaken for a light one by the matcher.
     const heavyish = applyBaselineProgramming(
-      session([task({ stage: 2, stageTitle: "Plyo Ball Preparation", name: "Plyo Ball Reverse Throw — 1,000 g" })])
+      session([task({ stage: 2, stageTitle: "Plyo Ball Preparation", name: "Plyo Ball Reverse Throw - 1,000 g" })])
     );
     expect(heavyish.tasks[0].stop).not.toMatch(/highest arm speeds/);
   });
@@ -189,7 +189,7 @@ describe("where the additions land", () => {
     const depth = names.findIndex((n) => /Depth jump/.test(n));
     const speed = names.findIndex((n) => /Speed squat/.test(n));
     const deadlift = names.indexOf("Trap bar deadlift");
-    // Fatigued depth jumps train a slow contact — the exact fault being fixed.
+    // Fatigued depth jumps train a slow contact - the exact fault being fixed.
     expect(depth).toBeLessThan(deadlift);
     expect(speed).toBeLessThan(deadlift);
     // But still after the primer, which exists to prepare for them.
@@ -227,19 +227,19 @@ describe("the 2 kg plyo ball is out", () => {
 
   it("is removed wherever it appears", () => {
     const result = applyBaselineProgramming(
-      session([plyo("Plyo Ball Reverse Throw — 2,000 g"), plyo("Plyo Ball Reverse Throw — 1,000 g")])
+      session([plyo("Plyo Ball Reverse Throw - 2,000 g"), plyo("Plyo Ball Reverse Throw - 1,000 g")])
     );
-    expect(result.tasks.map((t) => t.name)).toEqual(["Plyo Ball Reverse Throw — 1,000 g"]);
+    expect(result.tasks.map((t) => t.name)).toEqual(["Plyo Ball Reverse Throw - 1,000 g"]);
   });
 
   it("leaves the 1,000 g throw doing the same job", () => {
-    const result = applyBaselineProgramming(session([plyo("Plyo Ball Reverse Throw — 1,000 g")]));
+    const result = applyBaselineProgramming(session([plyo("Plyo Ball Reverse Throw - 1,000 g")]));
     expect(result.tasks.some((t) => /1,000 g/.test(t.name))).toBe(true);
   });
 
   it("does not remove anything else that happens to mention a number", () => {
     const result = applyBaselineProgramming(
-      session([plyo("Plyo Ball Roll-In Throw — 450 g"), plyo("Plyo Ball Rocker Throw — 225 g")])
+      session([plyo("Plyo Ball Roll-In Throw - 450 g"), plyo("Plyo Ball Rocker Throw - 225 g")])
     );
     expect(result.tasks).toHaveLength(2);
   });
@@ -247,7 +247,7 @@ describe("the 2 kg plyo ball is out", () => {
   it("does not touch a gym movement that mentions 2,000", () => {
     const result = applyBaselineProgramming(
       session([{ id: "w5-d0-x", stage: 4, stageTitle: "Whole-Body Force", stageDescription: "d",
-                 name: "Sled push — 2,000 g plate", prescription: "3 × 20 m", cue: "c" }])
+                 name: "Sled push - 2,000 g plate", prescription: "3 × 20 m", cue: "c" }])
     );
     expect(result.tasks.some((t) => /Sled push/.test(t.name))).toBe(true);
   });
@@ -259,8 +259,8 @@ describe("the report's strength window is actually used", () => {
       session([task({ id: "w5-d0-warm", name: "Low-volume power primer" })])
     );
     const squat = result.tasks.find((t) => t.name === "Back squat");
-    // The dose is now the week's own — these ids are week 5, "Strength-speed
-    // entry" — but the band it lands in is still the report's, which is what
+    // The dose is now the week's own - these ids are week 5, "Strength-speed
+    // entry" - but the band it lands in is still the report's, which is what
     // this test has always been about. 80% of the tested 145 kg is 116, to
     // 115 kg on 2.5 kg plates.
     expect(squat?.prescription).toBe("3 × 4 @ 115 kg · 80% of tested max");
@@ -289,7 +289,7 @@ describe("the report's strength window is actually used", () => {
       ])
     );
     const names = result.tasks.map((t) => t.name);
-    expect(names.indexOf("Depth jump — 15–20 cm box")).toBeLessThan(names.indexOf("Back squat"));
+    expect(names.indexOf("Depth jump - 15–20 cm box")).toBeLessThan(names.indexOf("Back squat"));
     expect(names.findIndex((n) => /Speed squat/.test(n))).toBeLessThan(names.indexOf("Back squat"));
     expect(names.indexOf("Back squat")).toBeLessThan(names.indexOf("Trap bar deadlift"));
   });
@@ -386,7 +386,7 @@ describe("supersets are marked, and only where they belong", () => {
       null,
       0
     ).tasks;
-    // Find by name — the day's own additions sit in this list too.
+    // Find by name - the day's own additions sit in this list too.
     expect(paired.find((t) => t.name === "Bench press")?.rest).toMatch(/No rest/);
     expect(paired.find((t) => t.name === "Chest-supported dumbbell row")?.rest).toMatch(/return to A1/);
   });
@@ -432,12 +432,12 @@ describe("one primary bilateral lift on Monday, not two", () => {
       null,
       2
     ).tasks;
-    // The trap bar jump is the half that stays — the broad jump is the
+    // The trap bar jump is the half that stays - the broad jump is the
     // long-contact horizontal jump the report asked to replace, and it now
     // comes out wherever it appears rather than only inside Monday's primer.
     const jump = wednesday.find((t) => /trap bar jump/i.test(t.name));
     expect(jump?.name).toBe("Trap bar jump");
-    // The load itself is unchanged — 30 kg is what 20% of the tested 145 kg
+    // The load itself is unchanged - 30 kg is what 20% of the tested 145 kg
     // squat rounds to. Writing it as a percentage is what lets it follow a
     // retest instead of standing still for fifty-two weeks.
     expect(jump?.prescription).toBe("3 × 3 @ 30 kg · 20% of tested squat max");
@@ -463,7 +463,7 @@ describe("the hinge is placed for competition, not for the label on the day", ()
     expect(friday.some((t) => /^Romanian deadlift/.test(t.name))).toBe(false);
   });
 
-  it("is loaded for a recovery day — RPE 7, not the top of the range", () => {
+  it("is loaded for a recovery day - RPE 7, not the top of the range", () => {
     const rdl = applyBaselineProgramming(session([task()]), null, 3).tasks.find(
       (t) => /^Romanian deadlift/.test(t.name)
     );
@@ -517,7 +517,7 @@ describe("warm-up microdoses", () => {
   });
 
   it("adds nothing to a day with no warm-up stage", () => {
-    // Sunday is rest — no Prepare stage, so nothing to prime.
+    // Sunday is rest - no Prepare stage, so nothing to prime.
     const sunday = applyBaselineProgramming(
       session([{ id: "w5-d6-r", stage: 1, stageTitle: "Rest", stageDescription: "d",
                  name: "Complete training rest", prescription: "p", cue: "c" }]),
@@ -528,7 +528,7 @@ describe("warm-up microdoses", () => {
     expect(sunday).not.toContain("Wrist and forearm prep");
   });
 
-  it("keeps the pogo dose low — this primes stiffness, it is not a jump session", () => {
+  it("keeps the pogo dose low - this primes stiffness, it is not a jump session", () => {
     const pogo = applyBaselineProgramming(session([prep("Raise tissue temperature", "heat")]), null, 0)
       .tasks.find((t) => t.name === "Ankle stiffness pogos");
     expect(pogo?.prescription).toContain("low amplitude");
@@ -565,7 +565,7 @@ describe("hip and trunk warm-up", () => {
   it("adds hip and trunk work to every day that has a warm-up", () => {
     for (const day of [0, 1, 2, 3, 4, 5]) {
       const names = warmUp(day).map((t) => t.name);
-      expect(names, `day ${day}`).toContain("Hip prep — rotation and glutes");
+      expect(names, `day ${day}`).toContain("Hip prep - rotation and glutes");
       expect(names, `day ${day}`).toContain("Trunk and spine prep");
     }
   });
@@ -576,12 +576,12 @@ describe("hip and trunk warm-up", () => {
       null,
       6
     ).tasks.map((t) => t.name);
-    expect(sunday).not.toContain("Hip prep — rotation and glutes");
+    expect(sunday).not.toContain("Hip prep - rotation and glutes");
     expect(sunday).not.toContain("Trunk and spine prep");
   });
 
   it("leaves the existing flow exactly as it was", () => {
-    // "I like what I have now" — the mobility flow is added to, never edited.
+    // "I like what I have now" - the mobility flow is added to, never edited.
     const names = warmUp().map((t) => t.name);
     expect(names).toContain("Dynamic mobility flow");
     expect(names).toContain("Raise tissue temperature");
@@ -607,7 +607,7 @@ describe("hip and trunk warm-up", () => {
     expect(full).toEqual([
       "Raise tissue temperature",
       "Dynamic mobility flow",
-      "Hip prep — rotation and glutes",
+      "Hip prep - rotation and glutes",
       "Hamstring activation",
       "Trunk and spine prep",
       "Scapular and cuff activation",
@@ -627,7 +627,7 @@ describe("hip and trunk warm-up", () => {
       0
     ).tasks.filter((t) => t.stageTitle === "Prepare").map((t) => t.name);
 
-    for (const regional of ["Hip prep — rotation and glutes", "Trunk and spine prep"]) {
+    for (const regional of ["Hip prep - rotation and glutes", "Trunk and spine prep"]) {
       expect(names.indexOf(regional), regional).toBeLessThan(
         names.indexOf("Scapular and cuff activation")
       );
@@ -655,7 +655,7 @@ describe("hip and trunk warm-up", () => {
     ).tasks.filter((t) => t.stageTitle === "Prepare").map((t) => t.name);
 
     expect(names[0]).toBe("Raise tissue temperature");
-    expect(names).toContain("Hip prep — rotation and glutes");
+    expect(names).toContain("Hip prep - rotation and glutes");
     expect(names).toContain("Trunk and spine prep");
     expect(names[names.length - 1]).toBe("Wrist and forearm prep");
   });
@@ -663,7 +663,7 @@ describe("hip and trunk warm-up", () => {
   it("names every movement and doses every one of them", () => {
     // The standing rule: named movements with sets and reps, never "some
     // mobility work".
-    for (const name of ["Hip prep — rotation and glutes", "Trunk and spine prep"]) {
+    for (const name of ["Hip prep - rotation and glutes", "Trunk and spine prep"]) {
       const task = warmUp().find((t) => t.name === name)!;
       expect(task.prescription, name).toMatch(/\d/);
       // Every movement in the list carries its own number.
@@ -677,7 +677,7 @@ describe("hip and trunk warm-up", () => {
   });
 
   it("covers the four things the flow was missing", () => {
-    const hip = warmUp().find((t) => t.name === "Hip prep — rotation and glutes")!;
+    const hip = warmUp().find((t) => t.name === "Hip prep - rotation and glutes")!;
     // Hip extension range, active internal rotation, lateral hip, glute max.
     expect(hip.prescription).toMatch(/hip flexor/i);
     expect(hip.prescription).toMatch(/internal rotation/i);
@@ -693,7 +693,7 @@ describe("hip and trunk warm-up", () => {
   });
 
   it("cites the hip work honestly, limitations included", () => {
-    const hip = warmUp().find((t) => t.name === "Hip prep — rotation and glutes")!;
+    const hip = warmUp().find((t) => t.name === "Hip prep - rotation and glutes")!;
     expect(hip.evidence).toMatch(/Robb 2010/);
     // A correlation in nineteen subjects is not a training study and the note
     // has to say so rather than implying a velocity guarantee.
@@ -709,14 +709,14 @@ describe("hip and trunk warm-up", () => {
   });
 
   it("does not load the adductors at end range, where a warm-up pulls a groin", () => {
-    const hip = warmUp().find((t) => t.name === "Hip prep — rotation and glutes")!;
+    const hip = warmUp().find((t) => t.name === "Hip prep - rotation and glutes")!;
     expect(hip.prescription).not.toMatch(/cossack/i);
   });
 
   it("is idempotent", () => {
     const once = applyBaselineProgramming(session(flow()), null, 0);
     const twice = applyBaselineProgramming(once, null, 0);
-    for (const name of ["Hip prep — rotation and glutes", "Trunk and spine prep"]) {
+    for (const name of ["Hip prep - rotation and glutes", "Trunk and spine prep"]) {
       expect(twice.tasks.filter((t) => t.name === name), name).toHaveLength(1);
     }
   });
@@ -780,7 +780,7 @@ describe("the real warm-up, every day of the year", () => {
       expect(names[0], label).toBe("Raise tissue temperature");
       const flow = names.indexOf("Dynamic mobility flow");
       expect(flow, label).toBeGreaterThan(0);
-      expect(names.indexOf("Hip prep — rotation and glutes"), label).toBe(flow + 1);
+      expect(names.indexOf("Hip prep - rotation and glutes"), label).toBe(flow + 1);
       expect(names.indexOf("Hamstring activation"), label).toBe(flow + 2);
       expect(names.indexOf("Trunk and spine prep"), label).toBe(flow + 3);
     }
@@ -788,7 +788,7 @@ describe("the real warm-up, every day of the year", () => {
 
   it("always finishes with whatever prepares the stage that follows it", () => {
     for (const { label, names, next } of WARM_UPS) {
-      // Whatever follows the warm-up is throwing or running, never more prep —
+      // Whatever follows the warm-up is throwing or running, never more prep -
       // or, on the summer Monday (no throwing) and Tuesday (practice without
       // throwing), the gym or the team session.
       expect(["Plyo Ball Preparation", "Speed", "High-Intent Prep", "Game Warm-up", "Throw", "Compete", "Team Throwing", "Strength Maintenance", null], label)
@@ -796,7 +796,7 @@ describe("the real warm-up, every day of the year", () => {
       // On the speed day the sprinting comes first, so the drills go last.
       // Every other day it is the arm, because the next thing is a throw.
       expect(names[names.length - 1], label).toBe(
-        next === "Speed" ? "Sprint drills — before the build-ups" : "Wrist and forearm prep"
+        next === "Speed" ? "Sprint drills - before the build-ups" : "Wrist and forearm prep"
       );
     }
   });
@@ -807,14 +807,14 @@ describe("the real warm-up, every day of the year", () => {
     for (const { label, names } of WARM_UPS) {
       const cuff = names.indexOf("Scapular and cuff activation");
       if (cuff === -1) continue;
-      for (const regional of ["Hip prep — rotation and glutes", "Trunk and spine prep"]) {
+      for (const regional of ["Hip prep - rotation and glutes", "Trunk and spine prep"]) {
         expect(names.indexOf(regional), `${label}: ${regional} after the cuff work`).toBeLessThan(cuff);
       }
     }
   });
 
   it("gives every day the same warm-up, plus sprint drills on the speed day", () => {
-    // One shape, so the athlete learns the sequence rather than reading it —
+    // One shape, so the athlete learns the sequence rather than reading it -
     // and exactly one deviation from it, which is additive rather than a
     // reshuffle: the speed day is the common warm-up with a ninth item on the
     // end, not a different order.
@@ -826,7 +826,7 @@ describe("the real warm-up, every day of the year", () => {
 
     const [thursday, common, speed] = [...shapes].sort((a, b) => a.length - b.length);
     expect(speed.startsWith(common)).toBe(true);
-    expect(speed.slice(common.length)).toBe(" → Sprint drills — before the build-ups");
+    expect(speed.slice(common.length)).toBe(" → Sprint drills - before the build-ups");
     // Thursday is the common shape minus exactly one item.
     expect(common.split(" → ").filter((name) => !thursday.split(" → ").includes(name))).toEqual([
       "Ankle stiffness pogos",
@@ -863,7 +863,7 @@ describe("sprint drills", () => {
 
   setProgrammeContext({ pbs: PBS });
 
-  const DRILLS = "Sprint drills — before the build-ups";
+  const DRILLS = "Sprint drills - before the build-ups";
 
   /** Every day of the year, with the tasks it ends up holding. */
   const DAYS = (() => {
@@ -956,7 +956,7 @@ describe("sprint drills", () => {
 
   it("points the hamstring evidence at the Nordic, not at itself", () => {
     // The drills rehearse a pattern. The thing with a real effect size behind
-    // it is the Nordic already in Monday's session, and the note says so —
+    // it is the Nordic already in Monday's session, and the note says so -
     // including that the finding has been challenged.
     const drills = applyBaselineProgramming(
       buildSession(weekPlan(6, PBS), 1),
@@ -983,7 +983,7 @@ describe("sprint drills", () => {
  * Nothing reaches the athlete as a placeholder.
  *
  * Thursday shipped a task called "Microdose block" prescribed "One movement,
- * done well" — scaffolding that existed only to carry a stage title, rendered
+ * done well" - scaffolding that existed only to carry a stage title, rendered
  * with a checkbox and a Skip button, naming no movement, no sets and no reps.
  * The athlete asked what it was, which is the correct response to it and the
  * reason it should not have existed.
@@ -1023,7 +1023,7 @@ describe("every task names something to do", () => {
    * All eight come from the written programme and all eight are honest: the dose
    * is set by the coach on the day, or the instruction is genuinely
    * qualitative. Held as an explicit list rather than a pattern so that any
-   * *new* number-free prescription fails this test and has to be justified —
+   * *new* number-free prescription fails this test and has to be justified -
    * which is exactly what "One movement, done well" would not have survived.
    */
   const DOSE_SET_ELSEWHERE = new Set([
@@ -1039,11 +1039,11 @@ describe("every task names something to do", () => {
   it("carries a dose on every task the overlay produces", () => {
     for (const { label, task } of EVERY_TASK) {
       const dosed = /\d/.test(task.prescription) || DOSE_SET_ELSEWHERE.has(task.prescription);
-      expect(dosed, `${label}: "${task.name}" — "${task.prescription}"`).toBe(true);
+      expect(dosed, `${label}: "${task.name}" - "${task.prescription}"`).toBe(true);
     }
   });
 
-  it("keeps that list honest — every entry still appears in the programme", () => {
+  it("keeps that list honest - every entry still appears in the programme", () => {
     const live = new Set(EVERY_TASK.map(({ task }) => task.prescription));
     for (const prescription of DOSE_SET_ELSEWHERE) {
       expect(live.has(prescription), `stale allowance: "${prescription}"`).toBe(true);
@@ -1066,7 +1066,7 @@ describe("every task names something to do", () => {
     expect(hinge.prescription).toBe("3 × 6 @ RPE 7 · hinge to mid-shin");
     expect(hinge.name).toMatch(/microdose/i);
     // And it explains itself, because the stage header above it says
-    // "Condition" — the conditioning task sorts first in the same stage.
+    // "Condition" - the conditioning task sorts first in the same stage.
     expect(hinge.cue).toMatch(/^Microdose/i);
     expect(hinge.stageTitle).toBe("Whole-Body Force");
   });
@@ -1074,11 +1074,11 @@ describe("every task names something to do", () => {
   it("keeps Thursday's gym stage to the reactive dose and the two microdose lifts", () => {
     const thursday = applyBaselineProgramming(buildSession(weekPlan(6, PBS), 3), null, 3).tasks;
     const gym = thursday.filter((task) => task.stageTitle === "Whole-Body Force");
-    // Reactive first — it is the only thing here that has to be fast.
+    // Reactive first - it is the only thing here that has to be fast.
     expect(gym.map((task) => task.name)).toEqual([
-      "Reactive microdose — pogo and low hurdle hops",
-      "Romanian deadlift — microdose",
-      "Seated calf raise — microdose",
+      "Reactive microdose - pogo and low hurdle hops",
+      "Romanian deadlift - microdose",
+      "Seated calf raise - microdose",
     ]);
   });
 
@@ -1104,7 +1104,7 @@ describe("every task names something to do", () => {
  * The soleus dose.
  *
  * The baseline report names the soleus as this athlete's limiter, and across
- * all fifty-two weeks there was no calf or soleus strength work of any kind —
+ * all fifty-two weeks there was no calf or soleus strength work of any kind -
  * only the daily pogos, which the source itself calls priming rather than a
  * session. The weakest tissue on the report was being rehearsed and never
  * loaded.
@@ -1149,7 +1149,7 @@ describe("soleus microdose", () => {
     expect(task.stop).toMatch(/achilles/i);
   });
 
-  it("is seated, and says why — that is the whole point of it", () => {
+  it("is seated, and says why - that is the whole point of it", () => {
     // Standing trains the gastrocnemius, which the report did not flag.
     const task = calf();
     expect(task.name).toMatch(/seated/i);
@@ -1158,7 +1158,7 @@ describe("soleus microdose", () => {
     expect(task.evidence).toMatch(/gastrocnemius crosses the knee/i);
   });
 
-  it("attributes the dose honestly — the report, not a trial", () => {
+  it("attributes the dose honestly - the report, not a trial", () => {
     const task = calf();
     expect(task.evidence).toMatch(/Z −1\.51/);
     expect(task.evidence).toMatch(/0\.348 s/);
@@ -1189,7 +1189,7 @@ describe("soleus microdose", () => {
     expect(gym).toHaveLength(3);
     expect(gym.every((task) => /microdose/i.test(task.name))).toBe(true);
     // The reactive work is ankle and calf, the hinge is posterior chain, the
-    // calf raise is local — none of the three fatigues the others, which is
+    // calf raise is local - none of the three fatigues the others, which is
     // what lets all three sit on a recovery day.
     expect(gym[0].name).toMatch(/Reactive/);
   });
@@ -1214,25 +1214,25 @@ describe("hip rotation work for the drive leg", () => {
     for (let week = 1; week <= PROGRAMME_WEEK_COUNT; week += 1) {
       for (let day = 0; day < 7; day += 1) {
         const tasks = tasksOn(week, day);
-        const has = tasks.some((task) => /Hip airplane — drive leg/.test(task.name));
+        const has = tasks.some((task) => /Hip airplane - drive leg/.test(task.name));
         if (day === 3) expect(has, `week ${week} Thursday`).toBe(false);
         const realGym = tasks.some(
           (task) => /^Whole-Body (Force|Power|Gym|Rebuild)$/.test(String(task.stageTitle)) && !/hip-(rotation|abduction)-strength/.test(task.id)
         );
         if (day !== 3 && realGym) expect(has, `week ${week} day ${day}`).toBe(true);
-        if (has) expect(tasks.filter((task) => /Hip airplane — drive leg/.test(task.name))).toHaveLength(1);
-        if (has) expect(tasks.filter((task) => /Side-lying hip abduction — drive leg/.test(task.name))).toHaveLength(1);
+        if (has) expect(tasks.filter((task) => /Hip airplane - drive leg/.test(task.name))).toHaveLength(1);
+        if (has) expect(tasks.filter((task) => /Side-lying hip abduction - drive leg/.test(task.name))).toHaveLength(1);
       }
     }
   });
 
   it("sits at the end of the gym stage, after the lifts", () => {
     const tasks = tasksOn(6, 0);
-    const at = tasks.findIndex((task) => /Side-lying hip abduction — drive leg/.test(task.name));
+    const at = tasks.findIndex((task) => /Side-lying hip abduction - drive leg/.test(task.name));
     const gymStage = tasks[at].stageTitle;
     const lastOfStage = tasks.map((task) => task.stageTitle).lastIndexOf(gymStage);
     expect(at).toBe(lastOfStage);
-    expect(tasks[at - 1].name).toBe("Hip airplane — drive leg");
+    expect(tasks[at - 1].name).toBe("Hip airplane - drive leg");
   });
 });
 
@@ -1274,7 +1274,7 @@ describe("the summer throwing week", () => {
   });
 
   it("throws on Tuesday only as an optional recovery catch", () => {
-    expect(throwing(day(14, 1)).map((t) => t.name)).toEqual(["Recovery catch only — optional"]);
+    expect(throwing(day(14, 1)).map((t) => t.name)).toEqual(["Recovery catch only - optional"]);
   });
 
   it("puts the bullpen on Wednesday, ahead of the unchanged gym session", () => {
@@ -1314,7 +1314,7 @@ describe("the summer throwing week", () => {
 describe("every gym exercise logs on its own", () => {
   // A task named "Bench press + chest-supported row" takes one log for two
   // lifts. Pairs are supersets of separate tasks, never one combined task.
-  // Every stage where weights or reps get logged — the gym sessions, the
+  // Every stage where weights or reps get logged - the gym sessions, the
   // game-day primer and the Saturday microdose.
   const GYM = /^(Strength Maintenance|Microdose|Whole-Body (Force|Power|Gym|Rebuild|Primer))$/;
 

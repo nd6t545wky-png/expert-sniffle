@@ -1,5 +1,5 @@
 /**
- * Storage layer — deliberately free of any UI or DOM coupling.
+ * Storage layer - deliberately free of any UI or DOM coupling.
  *
  * Everything here works against a minimal `StorageLike` interface rather than
  * `window.localStorage`, so it can be unit tested and later reused from React
@@ -62,7 +62,7 @@ function emptyState(): AppState {
  * Read state, preferring the current key and falling back to any legacy key.
  *
  * If the stored JSON cannot be parsed, the raw string is copied to a
- * timestamped backup key and reported via `backupKey` — the caller gets
+ * timestamped backup key and reported via `backupKey` - the caller gets
  * `source: "corrupt"` and can decide what to show. Nothing is deleted.
  */
 export function loadAppState(storage: StorageLike, now: Date = new Date()): LoadResult {
@@ -124,7 +124,7 @@ export interface MigrationResult {
 
 /**
  * Adopt legacy data into the current key, if any exists and the current key
- * is empty. The legacy entry is left in place — removing it is a separate,
+ * is empty. The legacy entry is left in place - removing it is a separate,
  * explicit decision, not a side effect of loading.
  *
  * Migration never runs when current data already exists; overwriting live

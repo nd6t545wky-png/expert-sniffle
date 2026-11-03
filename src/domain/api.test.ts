@@ -166,7 +166,7 @@ describe("nutrition", () => {
     await api.lookupRestaurant("Grill'd", "Beef & Bacon");
     const url = capture.calls[0][0];
 
-    // The ampersand is the dangerous one — unencoded it would start a new
+    // The ampersand is the dangerous one - unencoded it would start a new
     // query parameter. (encodeURIComponent intentionally leaves ' alone.)
     expect(url).toContain("item=Beef%20%26%20Bacon");
     expect(url.split("?")[1].split("&")).toHaveLength(2);

@@ -12,7 +12,7 @@ import { Capture } from "../../src/domain/kinematics";
  * Pitching video library and AI movement screening.
  *
  * The screening result is deliberately presented with its own limitations
- * attached — it is a qualitative phone-video screen, not lab biomechanics,
+ * attached - it is a qualitative phone-video screen, not lab biomechanics,
  * and the server's guardrails around that are surfaced rather than hidden.
  */
 
@@ -20,7 +20,7 @@ export interface MechanicsProps {
   api: PitchingOsApi;
   date: IsoDate;
   hasSyncKey: boolean;
-  /** Hand-digitised kinematics — see `src/domain/kinematics`. */
+  /** Hand-digitised kinematics - see `src/domain/kinematics`. */
   captures?: Capture[];
   onSaveCapture?: (capture: Capture) => void;
   onRemoveCapture?: (id: string) => void;
@@ -105,11 +105,11 @@ export function Mechanics({
       <PageHead
         eyebrow="Biomechanics"
         title="Movement screening."
-        intro="A qualitative screen from phone video — not a laboratory assessment."
+        intro="A qualitative screen from phone video - not a laboratory assessment."
       />
 
       {/* The capture card stays on the page with its controls disabled rather
-          than being replaced by a lone sentence — a page reduced to one line
+          than being replaced by a lone sentence - a page reduced to one line
           reads as broken, not as a prerequisite. */}
       {!hasSyncKey && (
         <Alert tone="warn">
@@ -136,12 +136,12 @@ export function Mechanics({
         </div>
         <p className="fineprint">
           One camera cannot see all of it. A single angle rates only what it can see and leaves the
-          rest unrated — shoot both the open side and the rear before changing anything.
+          rest unrated - shoot both the open side and the rear before changing anything.
         </p>
       </Card>
 
       <Card className="biomechanics-command-card">
-        {/* `.capture-essentials` is an icon list — a 28px column then content.
+        {/* `.capture-essentials` is an icon list - a 28px column then content.
             A `.field` label dropped into that column wraps one word per line,
             which is what it was doing. A form belongs in `.form-grid`. */}
         <CardHead title="Capture" detail="Screen a delivery" />
@@ -280,11 +280,11 @@ function AnalysisResult({ analysis }: { analysis: MechanicsAnalysis }) {
       )}
       <p>{analysis.summary}</p>
       <p className="fineprint">
-        Confidence: {analysis.confidence} — {analysis.confidenceReason}
+        Confidence: {analysis.confidence} - {analysis.confidenceReason}
       </p>
 
       {/* Ratings are rendered by MechanicsRoutine, which also shows the ones
-          this capture could not rate — a bare list of the ratings that exist
+          this capture could not rate - a bare list of the ratings that exist
           makes a missing metric look like a passing one. */}
 
       {analysis.limitations?.length > 0 && (

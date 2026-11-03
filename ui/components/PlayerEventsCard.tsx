@@ -81,7 +81,7 @@ export function PlayerEventsCard({ api }: { api: PitchingOsApi }) {
           />
         </div>
         <div className="field full">
-          <label htmlFor="eventSchedule">Games — one a line, date first</label>
+          <label htmlFor="eventSchedule">Games - one a line, date first</label>
           <textarea
             id="eventSchedule"
             rows={5}

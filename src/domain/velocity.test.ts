@@ -3,7 +3,7 @@
  *
  * Two of these tests are the ones that matter, and both are sweeps rather than
  * examples. The first walks all fifty-two weeks and all seven days and asserts
- * that no plyo throw anywhere ever exceeds its week's ceiling — because the
+ * that no plyo throw anywhere ever exceeds its week's ceiling - because the
  * bug being fixed was not "one Wednesday is too hot", it was "the ceiling does
  * not vary with the calendar at all", and only a sweep can show that it now
  * does. The second checks the develop block against the published fixture
@@ -130,7 +130,7 @@ describe("the ceiling, across the whole programme", () => {
           for (const written of efforts(task.prescription)) {
             expect(
               written,
-              `week ${week} day ${day} — ${task.name}: ${task.prescription}`
+              `week ${week} day ${day} - ${task.name}: ${task.prescription}`
             ).toBeLessThanOrEqual(ceiling);
           }
         }
@@ -274,7 +274,7 @@ describe("reading the week off the session", () => {
           stage: 2,
           stageTitle: "Plyo Ball Preparation",
           stageDescription: "",
-          name: "Plyo Ball Walking Windup — 100 g",
+          name: "Plyo Ball Walking Windup - 100 g",
           prescription: "2 × 2 · 85% perceived effort",
           cue: "",
         },
@@ -287,7 +287,7 @@ describe("reading the week off the session", () => {
 
 /**
  * The overlay had always been guarded against adding a *task* twice. Nothing
- * compared the prose, and the prose was where it was actually duplicating —
+ * compared the prose, and the prose was where it was actually duplicating -
  * the bar-speed cue, the plyo evidence note, the superset rest instruction and
  * the reduced-dose note all appended on every pass. This checks every field
  * the overlay writes, on every day of the year, at every readiness level.
@@ -304,7 +304,7 @@ describe("running it twice", () => {
           for (const field of FIELDS) {
             expect(
               twice.tasks.map((task) => task[field]),
-              `week ${week} day ${day} level ${level} — ${field}`
+              `week ${week} day ${day} level ${level} - ${field}`
             ).toEqual(once.tasks.map((task) => task[field]));
           }
         }
@@ -355,7 +355,7 @@ describe("a restore week that turns out to hold a game", () => {
    *
    * What changes is only the intensity suppression. A taper cuts volume and
    * holds intensity (Bosquet 2007; Mujika & Padilla 2003); an unload cuts
-   * both. The volume reduction is untouched here — this file has never set it.
+   * both. The volume reduction is untouched here - this file has never set it.
    */
   it("plans weeks 9 and 10 as an unload when nothing is entered", () => {
     for (const week of [9, 10]) {
@@ -370,7 +370,7 @@ describe("a restore week that turns out to hold a game", () => {
   it("treats a finals weekend as the two-game week it structurally is", () => {
     // Two games resolves to `two_game`, which assigns no separate velocity
     // day: the hard throwing comes out of the games. Intent comes back to
-    // hybrid B — the ceiling the season itself ran at — and no higher.
+    // hybrid B - the ceiling the season itself ran at - and no higher.
     const policy = velocityPolicy(9, { games: 2 });
     expect(policy.block).toBe("two_game");
     expect(policy.plyoCeiling).toBe("hybrid_b");

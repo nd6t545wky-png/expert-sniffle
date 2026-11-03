@@ -3,7 +3,7 @@
  *
  * Read what you lifted last time and decide what to load, or write the section
  * off because the gym closed. The domain tests prove the verdicts and the skip
- * rules; these prove the athlete can reach both without reading a paragraph —
+ * rules; these prove the athlete can reach both without reading a paragraph -
  * and that the recommendation actually lands in the logger, which is the
  * difference between advice being followed and advice being retyped.
  */
@@ -33,7 +33,7 @@ const task = (over: Partial<Record<string, unknown>> = {}) => ({
 const advice = (over: Partial<Advice> = {}): Advice => ({
   verdict: "increase",
   headline: "Go up to 62.5 kg.",
-  reason: "7 days ago you completed 5×60 · 5×60 · 5×60 — every set at 5 reps or better.",
+  reason: "7 days ago you completed 5×60 · 5×60 · 5×60 - every set at 5 reps or better.",
   suggestedKg: 62.5,
   last: { date: "2026-08-17" as never, sets: [{ reps: 5, kg: 60 }, { reps: 5, kg: 60 }, { reps: 5, kg: 60 }] },
   ...over,
@@ -103,7 +103,7 @@ describe("what you lifted last time", () => {
       progression: {
         "w7-d0-bench": advice({
           verdict: "first_time",
-          headline: "First logged session — pick a load and log it.",
+          headline: "First logged session - pick a load and log it.",
           reason: "Nothing logged for this lift yet.",
           suggestedKg: undefined,
           last: undefined,

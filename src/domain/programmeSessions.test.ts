@@ -13,7 +13,7 @@ import { applyBaselineProgramming } from "./programmeUpdates";
 
 /**
  * These pin the extracted programme content against the prototype. If an
- * extraction ever silently changes a prescription, these fail — which is the
+ * extraction ever silently changes a prescription, these fail - which is the
  * whole point, because the prescriptions are the athlete's real training.
  */
 
@@ -136,7 +136,7 @@ describe("session generation", () => {
     const reduced = buildSession(plan, 0, {
       adjustment: { planLevel: "reduced", workloadFactor: 0.75 },
     });
-    // Same session, adapted — not a different session.
+    // Same session, adapted - not a different session.
     expect(reduced.tasks.length).toBe(full.tasks.length);
     expect(JSON.stringify(reduced)).not.toBe(JSON.stringify(full));
   });
@@ -325,7 +325,7 @@ describe("a fixture the athlete entered", () => {
 
   it("changes nothing at all on a day with no fixture", () => {
     // An empty fixture list means nobody has told the app about that week yet,
-    // not that the week is empty — so the absence of a game never takes one
+    // not that the week is empty - so the absence of a game never takes one
     // away.
     for (let week = 1; week <= 52; week += 1) {
       const plan = weekPlan(week);
@@ -362,7 +362,7 @@ describe("a week's fixtures reaching the intensity policy", () => {
    *
    * The count travels on the session rather than through a fourth argument to
    * `applyBaselineProgramming`, for the reason that function's own comment
-   * gives about its eighty call sites — and so it cannot be forgotten.
+   * gives about its eighty call sites - and so it cannot be forgotten.
    */
   it("stamps the count on the session it builds", () => {
     const plan = weekPlan(9);
@@ -388,7 +388,7 @@ describe("a week's fixtures reaching the intensity policy", () => {
   it("lifts the unload's intent cap on the days around a final", () => {
     // Tuesday of week 9. The programme writes this ladder at 70%, and the
     // restore block's recovery ceiling pulls it down to 50–60%; with a finals
-    // weekend entered it goes back to hybrid B — the ceiling the season itself
+    // weekend entered it goes back to hybrid B - the ceiling the season itself
     // ran at, and no higher.
     expect(plyos(9, 1).length).toBeGreaterThan(0);
     expect(plyos(9, 1).every((dose) => /recovery intent/.test(dose))).toBe(true);
@@ -398,7 +398,7 @@ describe("a week's fixtures reaching the intensity policy", () => {
   it("raises nothing the programme itself wrote low", () => {
     // The ceiling is a cap, never a promotion. Tuesday's 1,000 g reverse throw
     // is written at 50–60% because it is the heaviest ball, and it stays there
-    // whatever the week is allowed to reach — the same rule `applyToPlyos`
+    // whatever the week is allowed to reach - the same rule `applyToPlyos`
     // already follows for a develop week.
     const heaviest = (games?: number) => plyos(9, 1, games)[0];
     expect(heaviest()).toMatch(/50–60%/);
@@ -414,7 +414,7 @@ describe("a week's fixtures reaching the intensity policy", () => {
 
   it("leaves the transition Wednesday's throwing alone, pulldowns included", () => {
     // The one thing it would be wrong to un-suppress. A two-game week assigns
-    // no separate velocity day — the hard throwing comes out of the games — so
+    // no separate velocity day - the hard throwing comes out of the games - so
     // the Wednesday that already has no pulldowns is the right Wednesday, and
     // its ladder is written low by the programme rather than capped by the
     // block.
@@ -437,15 +437,15 @@ describe("a week's fixtures reaching the intensity policy", () => {
     expect(hinge(wednesday())).toMatch(/^3 × 5\b/);
     expect(hinge(wednesday(2))).toMatch(/^2 × 3\b/);
 
-    // Everything after the sets and reps — the relative intensity, and the
-    // load it resolves to — is identical. That is the whole distinction
+    // Everything after the sets and reps - the relative intensity, and the
+    // load it resolves to - is identical. That is the whole distinction
     // between a taper and an unload, so it is asserted rather than assumed.
     const after = (dose: string) => dose.replace(/^\d+ × \d+/, "");
     expect(after(hinge(wednesday(2)))).toBe(after(hinge(wednesday())));
   });
 
   it("does not touch the hinge on an unload week with no game in it", () => {
-    // Weeks 10, 35 and 36 are the genuine unload weeks — no fixture falls in
+    // Weeks 10, 35 and 36 are the genuine unload weeks - no fixture falls in
     // them, so no game count reaches them and the programme's own rebuild dose
     // stands. The gate is the fixture rather than the week number: a rebuild
     // Wednesday that *did* acquire a final would taper like week 9, which is
@@ -490,9 +490,9 @@ describe("a week's fixtures reaching the intensity policy", () => {
     // cutting its lowest-volume, highest-velocity work and none of its
     // accumulation work. A taper is the other way round.
     const names = (tasks: ReturnType<typeof wednesday>) => tasks.map((task) => String(task.name));
-    expect(names(wednesday())).not.toContain("Speed squat — optimal power load");
+    expect(names(wednesday())).not.toContain("Speed squat - optimal power load");
     expect(names(wednesday())).not.toContain("Trap bar jump");
-    expect(names(wednesday(2))).toContain("Speed squat — optimal power load");
+    expect(names(wednesday(2))).toContain("Speed squat - optimal power load");
     expect(names(wednesday(2))).toContain("Trap bar jump");
   });
 
@@ -507,8 +507,8 @@ describe("a week's fixtures reaching the intensity policy", () => {
   });
 
   it("prices the restored jump from the same anchor as the programme's own", () => {
-    // Two trap bar jumps now exist — one in the programme's content, one added
-    // here — and a hardcoded load in either would drift from the other.
+    // Two trap bar jumps now exist - one in the programme's content, one added
+    // here - and a hardcoded load in either would drift from the other.
     const added = wednesday(2).find((task) => String(task.name) === "Trap bar jump");
     const inSeason = applyBaselineProgramming(buildSession(weekPlan(3), 2), null, 2).tasks.find(
       (task) => String(task.name) === "Trap bar jump"
@@ -518,7 +518,7 @@ describe("a week's fixtures reaching the intensity policy", () => {
 
   it("adds no volume doing it", () => {
     // A taper cuts volume and holds intensity (Bosquet 2007). This lifts the
-    // intensity cap and must not touch anything else — same tasks, in the same
+    // intensity cap and must not touch anything else - same tasks, in the same
     // order, at the same sets and reps.
     for (const day of [1, 4]) {
       const capped = applyBaselineProgramming(buildSession(weekPlan(9), day), null, day).tasks;
@@ -536,7 +536,7 @@ describe("a week's fixtures reaching the intensity policy", () => {
   });
 
   it("leaves an in-season week alone, whatever its fixtures", () => {
-    // Only a restore week is overridden — every other block either already
+    // Only a restore week is overridden - every other block either already
     // expects competition or is a build the athlete is in the middle of.
     for (const week of [3, 15, 26]) {
       const plan = weekPlan(week);
@@ -552,13 +552,13 @@ describe("a week's fixtures reaching the intensity policy", () => {
 
 describe("the day before a game the athlete entered", () => {
   /**
-   * The programme prepares for a game on the day before it — that is what
+   * The programme prepares for a game on the day before it - that is what
    * Friday's "Primer + Whole-Body Microdose" is, and its own description says
    * so: "before Saturday competition". It knew which day that was only for the
    * games its calendar assumed.
    *
    * On the semi-final weekend the game is Friday, so the day before it is
-   * Thursday — which the phase table had planned as a post-season recovery day
+   * Thursday - which the phase table had planned as a post-season recovery day
    * carrying a Romanian deadlift at RPE 7, a calf raise at RPE 7–8 and three
    * sets of pogos, on a day whose own description reads "no ... lifting".
    */
@@ -626,15 +626,15 @@ describe("the day before a game the athlete entered", () => {
   it("drops the Thursday microdoses that only made sense before a primer", () => {
     // `soleusTask` places them on Thursday "precisely because it is the light
     // one ... the day before a game block". When Thursday *is* the day before
-    // the game, that position is gone — and what would land is a hinge at RPE
+    // the game, that position is gone - and what would land is a hinge at RPE
     // 7 and a calf raise at RPE 7–8, eighteen hours out.
     const plan = weekPlan(noGameWeek);
     const planned = applyBaselineProgramming(buildSession(plan, 3), null, 3).tasks;
     const eve = applyBaselineProgramming(buildSession(plan, 3, { gameTomorrow: true }), null, 3).tasks;
 
     const names = (tasks: typeof eve) => tasks.map((task) => String(task.name));
-    expect(names(planned).some((name) => /Romanian deadlift — microdose/.test(name))).toBe(true);
-    expect(names(planned).some((name) => /Seated calf raise — microdose/.test(name))).toBe(true);
+    expect(names(planned).some((name) => /Romanian deadlift - microdose/.test(name))).toBe(true);
+    expect(names(planned).some((name) => /Seated calf raise - microdose/.test(name))).toBe(true);
 
     expect(names(eve).some((name) => /microdose/i.test(name))).toBe(false);
     expect(names(eve).some((name) => /Reactive microdose/.test(name))).toBe(false);

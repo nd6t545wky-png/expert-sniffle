@@ -278,7 +278,7 @@ describe("labelLayout", () => {
   });
 
   it("does not stack two names on each other", () => {
-    // Two pitches a couple of inches apart is ordinary — a slider and a cutter.
+    // Two pitches a couple of inches apart is ordinary - a slider and a cutter.
     const placed = labelLayout([cluster("Slider", -6, 1), cluster("Cutter", -3, 4)], scale);
     const a = box(placed[0], "Slider");
     const b = box(placed[1], "Cutter");

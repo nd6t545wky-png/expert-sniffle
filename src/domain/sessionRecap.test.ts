@@ -29,7 +29,7 @@ const recapAllIds = [
   "rpe", "armFeel", "gamePitches", "readiness", "session", "skipped",
 ];
 
-describe("buildRecap — what a shareable card may claim", () => {
+describe("buildRecap - what a shareable card may claim", () => {
   it("names the session and the day's approved effort", () => {
     const recap = buildRecap({ ...base, submission: { planLevel: "reduced" } });
     // The weekday prefix is the app's own labelling, not part of the name.
@@ -168,7 +168,7 @@ describe("buildRecap — what a shareable card may claim", () => {
   });
 });
 
-describe("buildRecap — the Strava-style data points", () => {
+describe("buildRecap - the Strava-style data points", () => {
   const lifting = [
     task("l1", "Strength", "Back squat", "3 × 5 @ 130 kg"),
     task("l2", "Strength", "Bench press", "4 × 6 @ 80–90 kg"),

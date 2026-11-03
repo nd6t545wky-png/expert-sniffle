@@ -28,7 +28,7 @@ import {
  * Throwing workload logging.
  *
  * The Wednesday/Saturday high-intent restriction is enforced through the
- * domain check on submit, not by hiding the option — so an attempt gets an
+ * domain check on submit, not by hiding the option - so an attempt gets an
  * explanation rather than silently doing nothing.
  */
 
@@ -54,7 +54,7 @@ export interface WorkloadProps {
   pitches?: Pitch[];
   /** Every earlier day's pitches, for the movement comparison. */
   priorPitches?: Pitch[];
-  /** Competition outings — see `src/domain/gameLog`. */
+  /** Competition outings - see `src/domain/gameLog`. */
   games?: Game[];
   onSaveGame?: (game: Game) => void;
   onRemoveGame?: (id: string) => void;
@@ -76,9 +76,9 @@ export interface WorkloadProps {
   onLog: (entry: ThrowingEntry) => void;
 }
 
-/** Wording, not the raw enum — the original never showed a stored key. */
+/** Wording, not the raw enum - the original never showed a stored key. */
 const INTENTS: { value: ThrowIntent; label: string }[] = [
-  { value: "recovery", label: "Recovery — catch play" },
+  { value: "recovery", label: "Recovery - catch play" },
   { value: "low", label: "Low intent" },
   { value: "moderate", label: "Moderate intent" },
   { value: "high", label: "High intent / game" },
@@ -206,7 +206,7 @@ export function Workload({
           detail={
             ratio === null
               ? "Not enough history"
-              : `${banded?.inBand ? "In" : "Outside"} the ${ACWR_BAND[0]}–${ACWR_BAND[1]} band · 7-day vs average week — a trend, not a risk score`
+              : `${banded?.inBand ? "In" : "Outside"} the ${ACWR_BAND[0]}–${ACWR_BAND[1]} band · 7-day vs average week - a trend, not a risk score`
           }
         />
       </section>
@@ -223,7 +223,7 @@ export function Workload({
       <details className="fineprint">
         <summary>About the acute : chronic ratio</summary>
         <strong>On this ratio:</strong> the acute:chronic workload ratio describes how this week
-        compares with your recent average. It is not an injury-risk model — its statistical
+        compares with your recent average. It is not an injury-risk model - its statistical
         properties make it unreliable as a predictor, and no threshold here is safe or unsafe.
         Rising load with rising soreness is worth a conversation with your coach; the number on its
         own is not a verdict.

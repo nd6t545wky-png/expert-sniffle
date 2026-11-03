@@ -103,7 +103,7 @@ export function Account({
       .then((result) => {
         if (cancelled) return;
         setStatus(result);
-        // A signed-in workspace hands back the sync key; adopt it — through
+        // A signed-in workspace hands back the sync key; adopt it - through
         // onAccount when given, so the app can check whose data is on the device.
         if (result.syncKey && isValidSyncKey(result.syncKey)) {
           if (onAccount && result.user?.id) onAccount({ userId: result.user.id, syncKey: result.syncKey, isNew: false });
@@ -121,7 +121,7 @@ export function Account({
     setBusy(true);
     setError("");
     try {
-      // A new player joins with their invite and a fresh workspace — never
+      // A new player joins with their invite and a fresh workspace - never
       // whatever recovery key this device happens to hold, which could be
       // someone else's. Only the owner's first sign-in adopts the local key,
       // so the data already on this device is not stranded.
@@ -184,7 +184,7 @@ export function Account({
       <CardHead title="Account and autosave" detail={syncStatus || "Encrypted snapshot of your training data"} />
       {status?.signedIn ? (
         // `.account-identity` is the avatar-plus-name row inside the card, not
-        // the card itself — it lays its children out in a flex row.
+        // the card itself - it lays its children out in a flex row.
         <div className="account-identity">
           {status.user?.image ? (
             <img src={status.user.image} alt="" />
@@ -199,7 +199,7 @@ export function Account({
       ) : (
         <div>
           <p className="muted">Not signed in.</p>
-          {/* `.cloud-actions` is the prototype's button row — without it these
+          {/* `.cloud-actions` is the prototype's button row - without it these
               sit as two full-width blocks with a stray text node between. */}
           <div className="cloud-actions">
             {/* Through runAuth like the passkey button: starting sign-in is a
@@ -329,7 +329,7 @@ export function Account({
       <Card className="cloud-card">
       <CardHead title="Recovery key" detail="Held on this device only" />
       <p className="fineprint">
-        Your data is encrypted on this device before it is uploaded. This key is what decrypts it —
+        Your data is encrypted on this device before it is uploaded. This key is what decrypts it -
         the server never sees it. Without it, a cloud backup cannot be recovered.
       </p>
 
@@ -344,7 +344,7 @@ export function Account({
           </button>
         </div>
       ) : (
-        <p className="fineprint">No recovery key on this device — cloud autosave is off.</p>
+        <p className="fineprint">No recovery key on this device - cloud autosave is off.</p>
       )}
 
       <div className="form-grid">

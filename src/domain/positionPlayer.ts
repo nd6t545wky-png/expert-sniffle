@@ -4,8 +4,8 @@ import { Session, SessionTask } from "./programmeSessions";
  * The programme for a position player.
  *
  * The plan was written for a pitcher. A position player keeps everything that
- * is not about the mound — the warm-up, the gym, the speed and conditioning
- * work, recovery — and loses the pitcher's throwing: plyo balls, bullpens and
+ * is not about the mound - the warm-up, the gym, the speed and conditioning
+ * work, recovery - and loses the pitcher's throwing: plyo balls, bullpens and
  * pulldowns, post-throw arm care and the pitcher's catch on club nights. Their
  * throwing is set by the team, not by this plan.
  *
@@ -25,7 +25,7 @@ export function asPositionPlayer(session: Session): Session {
       task.stageTitle === "Compete"
         ? {
             ...task,
-            name: "Game — at-bats",
+            name: "Game - at-bats",
             prescription: "Play the game · log each at-bat on the Hitting tab",
             cue: "Log at-bats as they happen or straight after: result, where it went, and whether it was a quality at-bat.",
           }

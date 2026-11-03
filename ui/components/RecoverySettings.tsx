@@ -2,7 +2,7 @@
  * The two things the recovery protocol assumes about this athlete.
  *
  * Both were constants in the source. That was fine while one person used the
- * app and nothing changed — and wrong the first time either did. A gun that
+ * app and nothing changed - and wrong the first time either did. A gun that
  * breaks, a set of cups lent out or a sleeve bought next month all leave the
  * plan prescribing work the athlete cannot do, or hiding work they now can;
  * and the intent words mean different efforts to different throwers, which
@@ -119,7 +119,7 @@ export function RecoverySettings({
           </div>
         </div>
         <p className="recovery-caveat">
-          The summer weeks were written around club practice already and are left alone — this only
+          The summer weeks were written around club practice already and are left alone - this only
           changes days the programme thought you were training on your own.
         </p>
       </Card>

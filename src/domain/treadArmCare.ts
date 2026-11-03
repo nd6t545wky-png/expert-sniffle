@@ -4,7 +4,7 @@ import { IsoDate } from "./state";
  * The athlete's actual arm-care programme, as his coach wrote it.
  *
  * Everything else in the recovery protocol is derived from the literature and
- * written generically — "7 movements, 2 sets each", "10 min on forearm flexors
+ * written generically - "7 movements, 2 sets each", "10 min on forearm flexors
  * and lats". That was the right shape while there was nothing better. There is
  * now something better: the three sessions below are transcribed from the
  * athlete's own Tread Athletics programme, with the coach's exercise names and
@@ -19,15 +19,15 @@ import { IsoDate } from "./state";
  * ## Where they go
  *
  * On the weekdays the coach wrote them for. The capture dates are the
- * placement, not trivia — 29 January 2025 was a Wednesday, 13 February a
- * Thursday, 17 January a Friday — and each session belongs to a kind of day:
+ * placement, not trivia - 29 January 2025 was a Wednesday, 13 February a
+ * Thursday, 17 January a Friday - and each session belongs to a kind of day:
  *
  *   Wednesday   scapular, serratus and grip    the high-intent throwing day
  *   Friday      posterior chain and serratus   the primer before Saturday
  *
  * The third is placed by rule rather than by weekday, because the coach wrote
  * a rule for it: "designed to be done on a low workload throwing day". It was
- * captured on a Thursday, but Thursday is not the instruction — so it goes on
+ * captured on a Thursday, but Thursday is not the instruction - so it goes on
  * every low-workload throwing day the week has, which in the winter block is
  * Monday and Thursday, both recovery catch at 50–60%.
  *
@@ -40,7 +40,7 @@ import { IsoDate } from "./state";
  *
  * The capture of session B starts mid-scroll, so anything the coach programmed
  * above its first superset is not here. And `Posterior Wall Angels` is written
- * `20` in the programme but was logged 12/10/10 — the coach's number is kept,
+ * `20` in the programme but was logged 12/10/10 - the coach's number is kept,
  * because what the athlete managed on one day is not the prescription.
  */
 
@@ -74,7 +74,7 @@ export interface TreadSession {
  *
  * Two of them, and the dates they were captured on are the placement rather
  * than trivia: 29 January 2025 was a Wednesday and 17 January a Friday. They
- * are not two versions of one session to rotate through — one belongs to the
+ * are not two versions of one session to rotate through - one belongs to the
  * high-intent day and the other to the primer before a game.
  */
 export const SCAP_SESSIONS: readonly TreadSession[] = Object.freeze([
@@ -142,7 +142,7 @@ export const SCAP_SESSIONS: readonly TreadSession[] = Object.freeze([
  *
  * The coach's own instruction: done on a low-workload throwing day, before or
  * after throwing at the athlete's preference. It was captured on a Thursday,
- * and Thursday in this programme is "Recovery + Aerobic Restore" — so the
+ * and Thursday in this programme is "Recovery + Aerobic Restore" - so the
  * instruction and the calendar agree without anything being forced.
  *
  * Nine items, all soft tissue or range, all of it aimed at the throwing side
@@ -185,7 +185,7 @@ export function describeSession(session: TreadSession): string {
   for (const superset of session.supersets) {
     parts.push(`${superset.sets} rounds: ${list(superset.exercises)}`);
   }
-  return parts.join(" — ");
+  return parts.join(" - ");
 }
 
 export function describeMobility(): string {
@@ -200,12 +200,12 @@ export function describeMobility(): string {
  * the other for the primer before a game, and neither belongs anywhere else.
  */
 const SCAP_BY_WEEKDAY: Readonly<Record<number, TreadSession>> = Object.freeze({
-  2: SCAP_SESSIONS[0], // Wednesday — captured 29 Jan 2025
-  4: SCAP_SESSIONS[1], // Friday — captured 17 Jan 2025
+  2: SCAP_SESSIONS[0], // Wednesday - captured 29 Jan 2025
+  4: SCAP_SESSIONS[1], // Friday - captured 17 Jan 2025
 });
 
 /**
- * Effort written as a percentage — "50–60% effort", "about 50%".
+ * Effort written as a percentage - "50–60% effort", "about 50%".
  *
  * The top of a range is what counts. A day written 50–60% is a 60% day for the
  * purpose of deciding whether it is easy.
@@ -225,7 +225,7 @@ const NOT_EASY = /pulldown|game appearance|bullpen|compete|max.?effort|run.?and.
  * Is this a low-workload throwing day, in the coach's sense?
  *
  * His instruction on the mobility programme is "designed to be done on a low
- * workload throwing day" — so that, and not the weekday it happened to be
+ * workload throwing day" - so that, and not the weekday it happened to be
  * screenshotted on, is where it belongs. Read off the session's own throwing
  * prescriptions: there has to *be* throwing, the hardest of it has to sit at
  * or under 60% effort, and nothing on the day can be a pulldown set, a bullpen
@@ -254,7 +254,7 @@ export function isLowWorkloadThrowingDay(
  * The session this day gets, or null where the coach programmed none.
  *
  * The two scapular sessions go by weekday. The mobility programme goes by the
- * coach's own rule instead — any low-workload throwing day that is not already
+ * coach's own rule instead - any low-workload throwing day that is not already
  * carrying a scapular session. That is why Monday gets it as well as Thursday:
  * both are recovery catch at 50–60%, and the programme note does not say
  * "Thursday", it says "a low workload throwing day".

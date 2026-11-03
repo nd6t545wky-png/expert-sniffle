@@ -8,7 +8,7 @@ import { CrowdSample, PoseSample, chooseSubject } from "../../src/domain/poseSeq
  * The model and its WebAssembly runtime are about 17 MB. Bundling them into
  * the app would make every first load pay for a feature most sessions never
  * touch, so both are fetched the first time the athlete asks for them and
- * cached by the service worker afterwards — which also means the second and
+ * cached by the service worker afterwards - which also means the second and
  * later uses work with no signal.
  *
  * Everything here is failure-tolerant on purpose. Automatic placement is an
@@ -46,7 +46,7 @@ export const SAMPLE_FPS = 30;
 /**
  * How fast the clip is played while being read.
  *
- * Each frame costs one pose detection, and playback does not wait for it — so
+ * Each frame costs one pose detection, and playback does not wait for it - so
  * on a slow phone the frames that arrive while a detection is running are
  * simply missed. Playing at half speed halves the media time that passes per
  * detection, which doubles the sample density on exactly the devices that
@@ -65,7 +65,7 @@ type FrameCallbackVideo = HTMLVideoElement & {
  * This plays the clip rather than stepping through it, because stepping does
  * not reliably work. `seeked` fires when the browser has *located* a frame,
  * not when it has decoded and presented one, and there is no event that
- * means "the seek you asked for is now readable" — so reading the video into
+ * means "the seek you asked for is now readable" - so reading the video into
  * the pose model after a seek can hand back whatever was there before. On a
  * real bullpen clip that produced 217 identical poses, hip fixed to three
  * decimal places for seven seconds: flat trajectories, nonsense checkpoints,
@@ -215,7 +215,7 @@ async function runnerFor(): Promise<PoseRunner> {
     loading = null;
     throw new PoseUnavailable(
       cause instanceof Error && /wasm|WebAssembly/i.test(cause.message)
-        ? "This browser would not start the pose model. Tap the points yourself — everything else works the same."
+        ? "This browser would not start the pose model. Tap the points yourself - everything else works the same."
         : "The pose model could not be downloaded. Check your connection, or tap the points yourself."
     );
   }

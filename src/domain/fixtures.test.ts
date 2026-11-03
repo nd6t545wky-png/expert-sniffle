@@ -3,7 +3,7 @@
  *
  * The dates themselves are a record recovered from a deployed build, and a
  * test that asserted a particular round fell on a particular Saturday would be
- * asserting that the draw has not changed — which is not something a test can
+ * asserting that the draw has not changed - which is not something a test can
  * know. What is checked here is that the list is well formed, ordered, and
  * honest about where each entry came from.
  */
@@ -186,7 +186,7 @@ describe("a game in a week planned as rest", () => {
   };
 
   it("fires on the semi-finals in the built-in list, which is the whole point", () => {
-    // The 2026 semi-finals fall in the week the phase table has as an unload —
+    // The 2026 semi-finals fall in the week the phase table has as an unload -
     // the case this function was written for, now reachable without anyone
     // entering anything.
     const clash = scheduleClash(week, allFixtures());

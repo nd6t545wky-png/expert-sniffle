@@ -2,7 +2,7 @@
  * Rewriting the day around what hurts.
  *
  * `soreness.ts` decides *what* should happen. This puts it into the session
- * the athlete actually opens — the same task list, not a second screen with
+ * the athlete actually opens - the same task list, not a second screen with
  * advice on it that has to be reconciled by hand. Something reported as sore
  * changes the plan, or the report was pointless.
  *
@@ -23,7 +23,7 @@
  * the task, the region and the reason, so the athlete can see the plan was
  * changed rather than wondering why Tuesday looks different.
  *
- * **Throwing is gated separately from lifting**, and harder — see the header
+ * **Throwing is gated separately from lifting**, and harder - see the header
  * of `soreness.ts` for why.
  */
 
@@ -48,7 +48,7 @@ const RECOVER_STAGE = { stage: 6, title: "Recover" };
  * Stages that are throwing, and only throwing.
  *
  * Read from the stage rather than guessed from the name, because a stage is a
- * more stable thing to match than a prescription's wording — but *only* for
+ * more stable thing to match than a prescription's wording - but *only* for
  * stages that hold nothing else. `Game Warm-up` and `High-Intent Prep` sound
  * like throwing and contain sprint work: "Sprint build-ups" and "Sprint
  * mechanics" are the whole of them. Gating on those took a pitcher's running
@@ -71,7 +71,7 @@ const TEAM_PRACTICE_STAGE = /^Team Practice$/i;
  * Throwing that is still allowed under a reduced cap.
  *
  * Catch play and easy work stay; anything off a mound, at intent, or with a
- * weighted ball goes. The distinction is effort, not volume — there is no way
+ * weighted ball goes. The distinction is effort, not volume - there is no way
  * to throw a pulldown at 60%.
  */
 const LOW_INTENT_THROWING = /catch|easy|primer|recovery/i;
@@ -105,17 +105,17 @@ function rxTask(
       stage.title === "Arm Care"
         ? "Restore motion and finish with low-fatigue work."
         : "Record the basics that support the next session.",
-    name: `${REGION_LABELS[region]} — ${rx.name}`,
+    name: `${REGION_LABELS[region]} - ${rx.name}`,
     prescription: rx.prescription,
     cue: rx.cue,
     ...(rx.stop ? { stop: rx.stop } : {}),
     // Same contract as the recovery blocks: a dose the athlete cannot trace
     // back to a paper is an assertion, and he can get assertions anywhere.
-    ...(rx.citation ? { evidence: `${rx.citation.key} — ${rx.citation.detail}` } : {}),
+    ...(rx.citation ? { evidence: `${rx.citation.key} - ${rx.citation.detail}` } : {}),
   };
 }
 
-/** "a, b and c" — so the summary line reads as a sentence rather than a log. */
+/** "a, b and c" - so the summary line reads as a sentence rather than a log. */
 function listSentence(parts: string[]): string {
   if (parts.length <= 1) return parts[0] ?? "";
   return `${parts.slice(0, -1).join(", ")} and ${parts[parts.length - 1]}`;
@@ -145,7 +145,7 @@ function insertIntoStage(tasks: SessionTask[], additions: SessionTask[]): Sessio
 /**
  * Apply every active report to the day.
  *
- * Reports that have gone stale — older than their lifetime with no update —
+ * Reports that have gone stale - older than their lifetime with no update -
  * are ignored here rather than acted on. Carrying a nine-day-old report into
  * today's plan without asking is how an athlete ends up training around an
  * elbow that stopped hurting last Wednesday.
@@ -189,7 +189,7 @@ export function applySorenessProtocol(session: Session, active: ActiveReport[]):
         changes.push({
           kind: "removed",
           region,
-          text: `${task.name} is out — it loads the ${REGION_LABELS[region].toLowerCase()}.`,
+          text: `${task.name} is out - it loads the ${REGION_LABELS[region].toLowerCase()}.`,
         });
         return [];
       }
@@ -220,7 +220,7 @@ export function applySorenessProtocol(session: Session, active: ActiveReport[]):
             ...task,
             prescription:
               cap === 0
-                ? `${task.prescription} Take no part in any throwing today — tell your coach before the session, not during it.`
+                ? `${task.prescription} Take no part in any throwing today - tell your coach before the session, not during it.`
                 : `${task.prescription} Catch play only, capped at ${cap}% effort. No mound work.`,
           },
         ];
@@ -233,7 +233,7 @@ export function applySorenessProtocol(session: Session, active: ActiveReport[]):
         changes.push({
           kind: "removed",
           region: armRegion,
-          text: `${task.name} is out — no throwing while the arm is being rested.`,
+          text: `${task.name} is out - no throwing while the arm is being rested.`,
         });
         return [];
       }
@@ -252,7 +252,7 @@ export function applySorenessProtocol(session: Session, active: ActiveReport[]):
       changes.push({
         kind: "removed",
         region: armRegion,
-        text: `${task.name} is out — it cannot be thrown at ${cap}%, which is today's ceiling.`,
+        text: `${task.name} is out - it cannot be thrown at ${cap}%, which is today's ceiling.`,
       });
       return [];
     });
@@ -281,15 +281,15 @@ export function applySorenessProtocol(session: Session, active: ActiveReport[]):
     const stage = stageFor(region);
     const additions = rxList.map((rx) => rxTask(rx, region, stage));
     // Only the ones that were not already there: two regions can prescribe the
-    // same isometric — a sore front and back of the same shoulder both want
-    // external rotation holds — and the athlete should be asked for it once.
+    // same isometric - a sore front and back of the same shoulder both want
+    // external rotation holds - and the athlete should be asked for it once.
     const fresh = additions.filter((task) => !tasks.some((existing) => existing.id === task.id));
     tasks = insertIntoStage(tasks, fresh);
     for (const task of fresh) {
       changes.push({
         kind: "added",
         region,
-        text: `${task.name} — ${task.prescription}`,
+        text: `${task.name} - ${task.prescription}`,
       });
     }
   }
@@ -304,10 +304,10 @@ export function applySorenessProtocol(session: Session, active: ActiveReport[]):
     tier === "monitor"
       ? `${
           live.length === 1 ? "One area" : `${live.length} areas`
-        } reported sore and under the monitoring line. The plan is unchanged — train it as written and log how it responds.`
+        } reported sore and under the monitoring line. The plan is unchanged - train it as written and log how it responds.`
       : changes.length === 0
         ? null
-        : `The plan has been changed around what you reported — ${listSentence(
+        : `The plan has been changed around what you reported - ${listSentence(
             [
               counted("removed") ? `${counted("removed")} out` : null,
               counted("swapped") ? `${counted("swapped")} altered` : null,

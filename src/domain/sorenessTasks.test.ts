@@ -4,7 +4,7 @@
  * Sessions here are built by `buildSession` rather than hand-written, because
  * the whole feature turns on matching the programme's actual task names. A
  * test using invented tasks would pass while the deployed app quietly left the
- * movement that hurt in the plan — which is the exact failure this feature
+ * movement that hurt in the plan - which is the exact failure this feature
  * exists to prevent, and the one that would be least visible.
  */
 
@@ -178,7 +178,7 @@ describe("swapping rather than removing", () => {
     // `Pallof press + farmer carry` down to just the press. The programme ships
     // them as two tasks now, so the ordinary grip-work rule does the same job:
     // the carry is removed for loading the forearm, and the anti-rotation work
-    // — which is the half worth keeping — is simply not matched.
+    // - which is the half worth keeping - is simply not matched.
     const { session, date } = dayWith(/^Farmer carry$/);
     expect(names(session)).toContain("Pallof press");
     const overlay = apply(session, date, [reportOn(date, { region: "elbow_medial", severity: 7 })]);
@@ -325,7 +325,7 @@ describe("putting work in", () => {
     expect(new Set(ids).size).toBe(ids.length);
   });
 
-  it("is idempotent — applying twice changes nothing the second time", () => {
+  it("is idempotent - applying twice changes nothing the second time", () => {
     const { session, date } = dayWith(/Trap bar deadlift/);
     const reports = [reportOn(date, { region: "elbow_medial", severity: 7 })];
     const once = apply(session, date, reports);
@@ -447,11 +447,11 @@ describe("across the whole programme", () => {
  * The hip and trunk warm-up against the soreness overlay.
  *
  * Mobility and control work is what a sore back or hip should be *keeping*,
- * not the first thing taken away — and it must not double up with what the
+ * not the first thing taken away - and it must not double up with what the
  * protocol prescribes for the same region.
  */
 describe("the hip and trunk warm-up survives what it should", () => {
-  const WARM_UPS = ["Hip prep — rotation and glutes", "Trunk and spine prep"];
+  const WARM_UPS = ["Hip prep - rotation and glutes", "Trunk and spine prep"];
 
   function warmedDay(region: BodyRegion, severity: number) {
     const plan = weekPlan(6, PBS);
@@ -496,7 +496,7 @@ describe("the hip and trunk warm-up survives what it should", () => {
 
   it("does not hand a sore groin the same drill twice", () => {
     const day = warmedDay("hip_groin", 8);
-    const hip = day.session.tasks.find((task) => task.name === "Hip prep — rotation and glutes")!;
+    const hip = day.session.tasks.find((task) => task.name === "Hip prep - rotation and glutes")!;
     for (const task of day.session.tasks.filter((t) => t.id.startsWith("soreness-hip_groin"))) {
       for (const movement of ["adductor squeeze", "copenhagen", "lateral band walk", "glute bridge"]) {
         const inWarmUp = new RegExp(movement, "i").test(hip.prescription);
@@ -515,7 +515,7 @@ describe("the hip and trunk warm-up survives what it should", () => {
  * elbow that has nothing to do with running should leave both alone.
  */
 describe("sprint drills follow the sprinting", () => {
-  const DRILLS = "Sprint drills — before the build-ups";
+  const DRILLS = "Sprint drills - before the build-ups";
 
   /** Tuesday, the speed day. */
   function speedDay(region: BodyRegion, severity: number) {
@@ -580,7 +580,7 @@ describe("sprint drills follow the sprinting", () => {
  * A sore ankle should end up with one of them, not both.
  */
 describe("the soleus microdose and a sore ankle", () => {
-  const CALF = "Seated calf raise — microdose";
+  const CALF = "Seated calf raise - microdose";
 
   function thursday(report?: { region: BodyRegion; severity: number }) {
     const plan = weekPlan(6, PBS);

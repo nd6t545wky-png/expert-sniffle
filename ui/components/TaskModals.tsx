@@ -6,7 +6,7 @@ import { SessionTask } from "../../src/domain/programmeSessions";
  * Both reproduce v60's `.modal-backdrop` > `.modal` structure.
  *
  * Escape closes, focus moves into the dialog on open and returns to where it
- * came from on close, and a click on the backdrop — but not inside the panel —
+ * came from on close, and a click on the backdrop - but not inside the panel -
  * dismisses. A `<dialog>` element would give some of that for free, but the
  * stylesheet is written against these class names, and the stylesheet is the
  * contract here.
@@ -34,7 +34,7 @@ function Backdrop({ onClose, children }: { onClose: () => void; children: React.
       className="modal-backdrop"
       onClick={(event) => {
         // Only a click on the backdrop itself, not one that bubbled out of the
-        // panel — otherwise selecting text in the dialog closes it.
+        // panel - otherwise selecting text in the dialog closes it.
         if (event.target === event.currentTarget) onClose();
       }}
     >
@@ -80,7 +80,7 @@ export function TaskDetailsModal({ task, onClose }: { task: SessionTask; onClose
       </header>
       <div className="modal-body">
         {/* When readiness has changed the dose, the original stays one tap
-            away — the reduced numbers replace it on the card, they do not
+            away - the reduced numbers replace it on the card, they do not
             hide it. */}
         {Boolean(task.adapted) && typeof task.adaptationNote === "string" && (
           <div className="detail-block adaptation-detail">
@@ -112,9 +112,9 @@ export const SKIP_REASONS = [
 /**
  * One form, two scopes.
  *
- * Skipping a whole section has to record the same thing a single skip does —
+ * Skipping a whole section has to record the same thing a single skip does -
  * the same reason list, the same note, the same wording about what a skip
- * means — or the history ends up with two grades of skip in it. So the form is
+ * means - or the history ends up with two grades of skip in it. So the form is
  * shared and only the heading and the submit label change with the scope.
  */
 function SkipForm({

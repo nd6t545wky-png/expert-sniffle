@@ -40,7 +40,7 @@ function report(overrides: Partial<SorenessReport> = {}): SorenessReport {
  * Open the report form.
  *
  * With nothing sore the card is a single line, so every test that fills the
- * form opens it first — the same tap the athlete makes.
+ * form opens it first - the same tap the athlete makes.
  */
 function openForm() {
   fireEvent.click(screen.getByRole("button", { name: /something sore\?/i }));
@@ -113,7 +113,7 @@ describe("showing what it decided", () => {
   it("shows the verdict and the reasoning behind it", () => {
     renderCard({ active: activeReports([report({ severity: 7 })], TODAY) });
     expect(screen.getByText(/rest this area today/i)).toBeTruthy();
-    // Not just the verdict — every rule that fired, so it can be argued with.
+    // Not just the verdict - every rule that fired, so it can be argued with.
     expect(screen.getByText(/severity 7\/10/i)).toBeTruthy();
   });
 
@@ -144,8 +144,8 @@ describe("showing what it decided", () => {
     renderCard({
       active: activeReports([report()], TODAY),
       changes: [
-        { kind: "removed", region: "elbow_medial", text: "Chin-up is out — it loads the inside of elbow." },
-        { kind: "added", region: "elbow_medial", text: "Wrist flexion isometric — 5 × 45 s holds." },
+        { kind: "removed", region: "elbow_medial", text: "Chin-up is out - it loads the inside of elbow." },
+        { kind: "added", region: "elbow_medial", text: "Wrist flexion isometric - 5 × 45 s holds." },
       ],
     });
     expect(screen.getByText(/what changed in today/i)).toBeTruthy();
@@ -191,7 +191,7 @@ describe("closing one out", () => {
  *
  * The full card sat above the session heading with the loudest button on the
  * page, so on every day nothing hurt the athlete scrolled past an injury form
- * to reach their training. It collapses — but only when there is genuinely
+ * to reach their training. It collapses - but only when there is genuinely
  * nothing to say, which is the part worth pinning down.
  */
 describe("when nothing is sore", () => {
@@ -228,7 +228,7 @@ describe("when nothing is sore", () => {
   it("does not collapse while a stale report needs re-confirming", () => {
     renderCard({ active: activeReports([report({ date: "2026-08-05" })], TODAY) });
     expect(screen.queryByText(/nothing reported sore/i)).toBeNull();
-    // The prompt, not the button beside it — both say "still sore".
+    // The prompt, not the button beside it - both say "still sore".
     expect(screen.getByText(/is your inside of elbow still sore/i)).toBeTruthy();
   });
 
@@ -236,7 +236,7 @@ describe("when nothing is sore", () => {
     // A resolved report can leave changes on the day; hiding the explanation
     // would leave the plan looking altered for no stated reason.
     renderCard({
-      changes: [{ kind: "removed", region: "knee", text: "Broad jump is out — it loads the knee." }],
+      changes: [{ kind: "removed", region: "knee", text: "Broad jump is out - it loads the knee." }],
     });
     expect(screen.queryByText(/nothing reported sore/i)).toBeNull();
     expect(screen.getByText(/what changed in today/i)).toBeTruthy();

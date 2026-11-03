@@ -5,7 +5,7 @@
  * did". So every number here is read from what was logged, and anything that
  * was not logged is omitted rather than defaulted. A recap that quietly prints
  * "0 throws" for a day the throwing log was never opened is not a summary, it
- * is a false statement about training — and this is the one screen in the app
+ * is a false statement about training - and this is the one screen in the app
  * whose output leaves the app.
  *
  * Skipped work is counted and shown. A card that reports 18 of 18 tasks on a
@@ -29,7 +29,7 @@ export interface RecapStat {
 /**
  * A personal best set today.
  *
- * Only ever set by comparing a logged value against the stored best — the
+ * Only ever set by comparing a logged value against the stored best - the
  * card must never award a PB it cannot point at.
  */
 export interface RecapPb {
@@ -56,7 +56,7 @@ export interface SessionRecap {
   /** The session's own name, e.g. "Bullpen · Command". */
   title: string;
   focus: string;
-  /** "100%", "75%", "50%" or "Health hold" — what the day was actually set to. */
+  /** "100%", "75%", "50%" or "Health hold" - what the day was actually set to. */
   effort: string;
   /** Every stat the day can support, for the picker. */
   available: RecapStat[];
@@ -108,7 +108,7 @@ const PLAN_LABEL: Record<string, string> = {
   hold: "Health hold",
 };
 
-/** A positive, finite number, or null — never a silent zero. */
+/** A positive, finite number, or null - never a silent zero. */
 function count(value: unknown): number | null {
   const parsed = Number(value);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
@@ -131,7 +131,7 @@ const HEADLINE_STAGES = [/throw/i, /plyo/i, /velocity|power|force/i, /strength|g
 export function durationMinutes(duration: unknown): number | null {
   const match = String(duration ?? "").match(/(\d+)(?:\s*[–-]\s*(\d+))?\s*min/i);
   if (!match) return null;
-  // A range is reported at its midpoint — the session was one length, and the
+  // A range is reported at its midpoint - the session was one length, and the
   // midpoint is the least wrong single number for it.
   const low = Number(match[1]);
   const high = match[2] ? Number(match[2]) : low;
@@ -146,7 +146,7 @@ function grouped(value: number): string {
 /**
  * Whether today beat a stored personal best.
  *
- * Compared against the stored value, and reported with what it beat — a badge
+ * Compared against the stored value, and reported with what it beat - a badge
  * that cannot say what it improved on is a badge nobody trusts.
  */
 function personalBest(input: RecapInput): RecapPb | null {
@@ -185,7 +185,7 @@ export function buildRecap(input: RecapInput): SessionRecap {
 
   // Logged sets only. This used to fall back to the prescription, which meant
   // a day where the load was dropped still reported the load that was planned
-  // — a card claiming weight that was never lifted.
+  // - a card claiming weight that was never lifted.
   const tonnage = count(input.tonnageKg);
   if (tonnage !== null) add({ id: "tonnage", label: "Volume lifted", value: `${grouped(tonnage)} kg` });
 
@@ -204,7 +204,7 @@ export function buildRecap(input: RecapInput): SessionRecap {
 
   const rpe = count(input.report?.perceivedExertion);
 
-  // Session load — RPE × minutes, the standard sRPE training-load figure.
+  // Session load - RPE × minutes, the standard sRPE training-load figure.
   // Only when both halves were logged; half of it is not a load.
   if (rpe !== null && minutes !== null) {
     add({ id: "load", label: "Training load", value: grouped(rpe * minutes), detail: "sRPE" });
@@ -225,7 +225,7 @@ export function buildRecap(input: RecapInput): SessionRecap {
   if (readiness !== null) add({ id: "readiness", label: "Readiness", value: `${readiness}`, detail: "of 100" });
 
   // Only once something was actually done. A card headed "0 of 14 done" is
-  // not a recap of a session — it is a recap of a day the plan was opened and
+  // not a recap of a session - it is a recap of a day the plan was opened and
   // closed, and it should fall through to the "nothing logged yet" state.
   if (completedCount > 0) {
     add({ id: "session", label: "Session", value: `${completedCount}`, detail: `of ${tasks.length} done` });
@@ -235,7 +235,7 @@ export function buildRecap(input: RecapInput): SessionRecap {
   // is noise; a "4 skipped" is the most honest number on the card.
   if (skippedCount > 0) add({ id: "skipped", label: "Skipped", value: `${skippedCount}` });
 
-  // The chosen set, filtered to what the day can actually support — a stat
+  // The chosen set, filtered to what the day can actually support - a stat
   // picked last week must not print blank on a day it was never logged.
   const wanted = input.chosen?.length ? input.chosen : [...DEFAULT_STAT_IDS];
   const byId = new Map(available.map((stat) => [stat.id, stat]));

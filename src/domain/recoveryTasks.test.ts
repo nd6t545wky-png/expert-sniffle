@@ -131,7 +131,7 @@ describe("merging into the session", () => {
   it("splits day 2 the same way", () => {
     const day2 = recoveryForDay("2026-08-16" as never, [heavyOuting("2026-08-14")]);
     // The stretch is held while throwing is still to come, so resolve the
-    // day's throwing first — otherwise this asserts the hold, not the split.
+    // day's throwing first - otherwise this asserts the hold, not the split.
     const base = session();
     const thrown = base.tasks
       .filter((task) =>
@@ -329,7 +329,7 @@ describe("the gym track", () => {
     // both. So the gym's versions are dropped, not added beside the throwing
     // day's.
     expect(names.filter((n) => /protein|fuel and fluids/i.test(n))).toHaveLength(1);
-    // One sleeve for the arm and one boots session for the legs — different
+    // One sleeve for the arm and one boots session for the legs - different
     // body parts, so two tasks is right and three would not be.
     expect(names.filter((n) => /compression sleeve/i.test(n))).toHaveLength(1);
     expect(names.filter((n) => /compression boots/i.test(n))).toHaveLength(1);
@@ -399,7 +399,7 @@ describe("holding work that would cost strength before throwing", () => {
  * athlete must be asked for it once. Caught on a Thursday: the programme's
  * "Low-intensity aerobic base" (20–25 min bike, RPE 2–3) and the protocol's
  * "Low-intensity aerobic flush" (15–20 min bike, conversational) are the same
- * ride, and both were on the list — 45 minutes of easy cardio on a day whose
+ * ride, and both were on the list - 45 minutes of easy cardio on a day whose
  * own description is "move, throw easily, restore".
  *
  * Swept rather than spot-checked, because the pairing depends on the weekday,

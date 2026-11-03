@@ -80,7 +80,7 @@ describe("reading a panel back", () => {
     const referral = screen.getByText(/book it in with your doctor/i);
     expect(referral).toBeTruthy();
     // The referral names the marker and nothing else. No cause, no mechanism,
-    // no suggested action — those are the doctor's, and guessing at them here
+    // no suggested action - those are the doctor's, and guessing at them here
     // is the one thing this page must never do.
     expect(referral.textContent).toContain("Ferritin");
     expect(referral.textContent).toMatch(/not a diagnosis/);

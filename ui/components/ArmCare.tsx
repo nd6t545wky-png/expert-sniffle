@@ -35,7 +35,7 @@ export interface ArmCareProps {
 }
 
 const TIMING_LABEL: Record<ArmExam["timing"], string> = {
-  fresh: "Fresh — a normal test day",
+  fresh: "Fresh - a normal test day",
   preOuting: "Before an outing",
   postOuting: "After an outing",
 };
@@ -74,7 +74,7 @@ export function ArmCare({ date, exams, bodyweightKg, onSave, onRemove }: ArmCare
     setError("");
     const bodyweight = Number(weight);
     if (!Number.isFinite(bodyweight) || bodyweight <= 0) {
-      setError("Enter your bodyweight — every figure here is per kilogram.");
+      setError("Enter your bodyweight - every figure here is per kilogram.");
       return;
     }
     const throwing = readings(draft, "t");
@@ -299,7 +299,7 @@ export function ArmCare({ date, exams, bodyweightKg, onSave, onRemove }: ArmCare
               </tbody>
             </table>
           </div>
-          <p className="fineprint">* Partial battery — not compared against complete screens.</p>
+          <p className="fineprint">* Partial battery - not compared against complete screens.</p>
         </details>
       )}
 

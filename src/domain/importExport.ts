@@ -47,7 +47,7 @@ export interface ImportResult {
   ok: boolean;
   state?: AppState;
   recordCount?: number;
-  /** Fatal problems — present exactly when `ok` is false. */
+  /** Fatal problems - present exactly when `ok` is false. */
   errors: ParseIssue[];
   /** Non-fatal observations worth showing the user. */
   warnings: ParseIssue[];

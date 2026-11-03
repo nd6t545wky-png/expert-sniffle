@@ -234,7 +234,7 @@ export const sprayAngle = (pa: PlateAppearance) =>
 export const SS_2B_ANGLE = 15;
 export const TENDENCY_GAMES = 5;
 
-/** The read on a hitter once five games are logged — exactly the BQ app's rules. */
+/** The read on a hitter once five games are logged - exactly the BQ app's rules. */
 export function tendency(games: readonly HittingGame[], bats: string | undefined): string[] | null {
   if (games.length < TENDENCY_GAMES) return null;
   const pas = games.flatMap((game) => game.pas);

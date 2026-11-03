@@ -1,5 +1,5 @@
 /**
- * Recovery Protocol v2 — the no-cold build.
+ * Recovery Protocol v2 - the no-cold build.
  *
  * Implemented from the athlete's own written specification
  * (`recovery-protocol-v2.md`), which rebuilt post-throwing recovery on the
@@ -16,7 +16,7 @@
  *      curve. A protocol that goes quiet after 48 hours is guessing at the
  *      part that matters.
  *   2. **Ruling out cold removes the hardest conflict.** Cold is the one
- *      modality that helps the throwing track and harms the lifting one —
+ *      modality that helps the throwing track and harms the lifting one -
  *      icing after pitching raised 48 h external-rotation torque (Huang 2026),
  *      while cold after resistance training blunts type II hypertrophy and
  *      mTOR signalling (Roberts 2015, Fyfe 2019). With ice out, the same
@@ -24,7 +24,7 @@
  *      gating, no exclusion windows, no way to get it wrong.
  *   3. **Heat and compression go the other way.** Heat may *enhance* strength
  *      adaptation (McGorm 2018); compression's largest documented effect is
- *      specifically strength recovery at 2–8 h and >24 h (Brown 2017) — the
+ *      specifically strength recovery at 2–8 h and >24 h (Brown 2017) - the
  *      exact window and variable that matter for a pitcher's arm.
  *
  * **No cold appears anywhere in this file.** Not ice, not cold-water immersion,
@@ -81,7 +81,7 @@ export const SOURCES = {
   areta: {
     key: "Areta 2013, J Physiol",
     detail:
-      "20 g every 3 h across 12 h beat both 10 g/1.5 h and 40 g/6 h for myofibrillar protein synthesis — 31–48% higher.",
+      "20 g every 3 h across 12 h beat both 10 g/1.5 h and 40 g/6 h for myofibrillar protein synthesis - 31–48% higher.",
   },
   mah: {
     key: "Mah 2011, Sleep",
@@ -102,7 +102,7 @@ export const SOURCES = {
   },
   zhou: {
     key: "Zhou 2024",
-    detail: "Foam rolling's soreness effect is strongest at 24–48 h rather than immediately. Contested — Medeiros 2023 found none versus no intervention.",
+    detail: "Foam rolling's soreness effect is strongest at 24–48 h rather than immediately. Contested - Medeiros 2023 found none versus no intervention.",
   },
   fares: {
     key: "Fares 2021",
@@ -119,7 +119,7 @@ export const SOURCES = {
   },
   ahokas: {
     key: "Ahokas 2025, Sports Med Open",
-    detail: "Systematic review of 14 studies found heat's acute effects genuinely mixed — 4 positive, 4 null, 1 adverse.",
+    detail: "Systematic review of 14 studies found heat's acute effects genuinely mixed - 4 positive, 4 null, 1 adverse.",
   },
   qin: {
     key: "Qin 2025, BMC SSMR",
@@ -164,12 +164,12 @@ export const SOURCES = {
  *
  * Stated rather than assumed, because the honest answer is that the no-cold
  * build does lose one documented effect and the app should not pretend
- * otherwise — nor nag about it.
+ * otherwise - nor nag about it.
  */
 export const COLD_POLICY = {
   id: "throwing-recovery-no-cold-v2",
   allowed: false,
-  rule: "No ice, no cold-water immersion, no contrast, no between-innings cooling — anywhere in the protocol.",
+  rule: "No ice, no cold-water immersion, no contrast, no between-innings cooling - anywhere in the protocol.",
   cost:
     "One effect is given up: 15 min at 15 °C after a 75-pitch simulated start raised external-rotation peak torque at 48 h and cut soreness. That is n = 16, a single within-subject study.",
   insteadCarriedBy:
@@ -232,7 +232,7 @@ const EQUIPMENT_IDS = Object.keys(EQUIPMENT_LABELS) as RecoveryEquipment[];
  * Read the athlete's kit out of stored state.
  *
  * Absent means "not set yet", which takes the default list rather than an
- * empty one — a workspace saved before this existed must not suddenly lose
+ * empty one - a workspace saved before this existed must not suddenly lose
  * every block that needs equipment. An explicitly empty list is honoured: an
  * athlete who owns nothing is a real answer, and the plan then holds only the
  * work they can actually do.
@@ -270,8 +270,8 @@ export const TRIGGER = { intentPercent: 80, totalThrows: 30 } as const;
 /**
  * The throwing log's intent words as percentages.
  *
- * The protocol's thresholds are stated in percent — 80% triggers it, ≤70% is a
- * light day, ≥95% is full intent — while the log records a word. These are the
+ * The protocol's thresholds are stated in percent - 80% triggers it, ≤70% is a
+ * light day, ≥95% is full intent - while the log records a word. These are the
  * midpoints of what each word means, not measurements, which is why a
  * "moderate" session lands below the trigger rather than on it. If they are
  * wrong for a particular athlete this is the one place to change them.
@@ -288,7 +288,7 @@ export const INTENT_PERCENT: Record<string, number> = {
  *
  * Not arbitrary: below 20% is not throwing, above 100% is not a percentage,
  * and a value outside those turns the trigger into something the athlete can
- * accidentally switch off entirely — setting "high" to 10 would mean no
+ * accidentally switch off entirely - setting "high" to 10 would mean no
  * session ever starts a recovery protocol.
  */
 export const INTENT_PERCENT_RANGE: [number, number] = [20, 100];
@@ -297,7 +297,7 @@ export const INTENT_PERCENT_RANGE: [number, number] = [20, 100];
  * Read the athlete's own reading of the intent words.
  *
  * Merged over the defaults rather than replacing them, so setting one word
- * cannot leave the others undefined, and each value is clamped — a number
+ * cannot leave the others undefined, and each value is clamped - a number
  * typed into a form is not a measurement and should not be able to disable
  * the protocol.
  */
@@ -327,7 +327,7 @@ function finite(value: unknown): number | null {
 /**
  * Whether this session starts a recovery protocol at all.
  *
- * An absent field is absent, never zero — a session logged with no intent
+ * An absent field is absent, never zero - a session logged with no intent
  * recorded must not read as 0% and quietly fall below the trigger.
  */
 export function triggersRecovery(load: ThrowingLoad): boolean {
@@ -343,7 +343,7 @@ export function triggersRecovery(load: ThrowingLoad): boolean {
  *
  * Deliberately reads more than the pitch count. In the study behind the
  * five-day curve, pitch count, RPE and arm sRPE all failed to predict the
- * musculoskeletal change — so a competitive start is heavy regardless, and a
+ * musculoskeletal change - so a competitive start is heavy regardless, and a
  * full-intent bullpen is at least moderate however few pitches it was.
  */
 export function classifyThrowingLoadTier(load: ThrowingLoad): ThrowingLoadTier | null {
@@ -359,7 +359,7 @@ export function classifyThrowingLoadTier(load: ThrowingLoad): ThrowingLoadTier |
   // A game is a game: pitches thrown in one carry the tier on their own.
   if (pitches !== null && pitches >= HEAVY_PITCHES) return "heavy";
 
-  // The spec's light row reads "< 30 throws, OR bullpen ≤ 70% intent" — the
+  // The spec's light row reads "< 30 throws, OR bullpen ≤ 70% intent" - the
   // intent clause is not qualified by volume. A long, easy catch-play session
   // is a light day however many balls it took, which is the whole reason the
   // tier is not decided by count alone.
@@ -386,7 +386,7 @@ export interface RecoveryBlock {
   /** Why this is here, in the athlete's language. */
   why: string;
   citation?: Citation;
-  /** Offered, not prescribed — the evidence is split. */
+  /** Offered, not prescribed - the evidence is split. */
   optional?: boolean;
   /** Said out loud because the honest caveat matters. */
   caveat?: string;
@@ -431,14 +431,14 @@ function dayZero(bodyweightKg: number | null): RecoveryBlock[] {
       name: "Compression sleeve, throwing arm",
       prescription: "On within 30 min, worn 2–8 h.",
       requires: "compression_sleeve",
-      why: "The primary replacement for ice and the best-evidenced piece of the no-cold stack. Strength recovery ES 1.14 at 2–8 h post-exercise — the window and the variable that matter for an arm. An ordinary sleeve is enough; pressure below vs above 15 mmHg did not change the result, so no medical-grade garment is needed.",
+      why: "The primary replacement for ice and the best-evidenced piece of the no-cold stack. Strength recovery ES 1.14 at 2–8 h post-exercise - the window and the variable that matter for an arm. An ordinary sleeve is enough; pressure below vs above 15 mmHg did not change the result, so no medical-grade garment is needed.",
       citation: SOURCES.brown,
     },
     {
       id: "percussive",
       name: "Percussive massage, throwing shoulder",
       prescription:
-        "10 min total — forearm flexors 3 min · biceps and triceps 3 min · posterior shoulder and teres 2 min · upper trap and levator 2 min. Sweep, do not press into one spot.",
+        "10 min total - forearm flexors 3 min · biceps and triceps 3 min · posterior shoulder and teres 2 min · upper trap and levator 2 min. Sweep, do not press into one spot.",
       requires: "percussion_gun",
       why: "Improved joint position sense immediately post-treatment, and massage is the most effective technique for soreness and perceived fatigue across 99 studies.",
       citation: SOURCES.huang,
@@ -449,7 +449,7 @@ function dayZero(bodyweightKg: number | null): RecoveryBlock[] {
       id: "boots",
       name: "Compression boots, legs",
       prescription: "20–30 min at about 80 mmHg, legs up, any time this evening.",
-      why: "The legs take real load from an outing, and this is what the boots are actually good at: how the legs feel. Across 17 studies and 319 athletes the benefit to soreness was small-to-moderate and largest around 48 h — the benefit to muscle function was trivial-to-small. Worth doing, not worth expecting strength back from.",
+      why: "The legs take real load from an outing, and this is what the boots are actually good at: how the legs feel. Across 17 studies and 319 athletes the benefit to soreness was small-to-moderate and largest around 48 h - the benefit to muscle function was trivial-to-small. Worth doing, not worth expecting strength back from.",
       citation: SOURCES.ipc,
       requires: "compression_boots",
       caveat:
@@ -471,7 +471,7 @@ function dayZero(bodyweightKg: number | null): RecoveryBlock[] {
     },
     {
       id: "heat",
-      name: "Heat — optional, evening",
+      name: "Heat - optional, evening",
       prescription: "15–20 min hot bath or sauna, at least 2 h after throwing.",
       why: "Rated the most effective single modality for restoring muscle function after exercise-induced damage.",
       citation: SOURCES.rousse,
@@ -511,7 +511,7 @@ function dayOne(): RecoveryBlock[] {
       id: "aerobic-flush",
       name: "Low-intensity aerobic flush",
       prescription:
-        "15–20 min on the bike, or an easy jog. Nasal breathing throughout — if you cannot hold a conversation, it is too hard.",
+        "15–20 min on the bike, or an easy jog. Nasal breathing throughout - if you cannot hold a conversation, it is too hard.",
       why: "Active recovery reduces soreness and strength loss versus passive rest.",
       citation: SOURCES.fares,
     },
@@ -527,14 +527,14 @@ function dayTwo(): RecoveryBlock[] {
       why: "+7° internal rotation and +6° horizontal adduction in overhead athletes with GIRD.",
       citation: SOURCES.iida,
       caveat:
-        "Never inside 2 h before throwing — it acutely reduces external rotator strength. Non-throwing or post-throwing slots only.",
+        "Never inside 2 h before throwing - it acutely reduces external rotator strength. Non-throwing or post-throwing slots only.",
     },
     {
       id: "scraper",
       name: "Scraper, posterior shoulder and lat",
       prescription:
         "2–3 min per area, light to moderate pressure: posterior shoulder · lat · forearm flexors. Straight after the stretch, not instead of it.",
-      why: "Its evidence is range of motion, and only that: 4.94° where there is a deficit, 2.32° where there is not, and strongest when it is an adjunct to other work rather than done alone. Which is why it sits with the stretch — the two are doing the same job, and together they beat either.",
+      why: "Its evidence is range of motion, and only that: 4.94° where there is a deficit, 2.32° where there is not, and strongest when it is an adjunct to other work rather than done alone. Which is why it sits with the stretch - the two are doing the same job, and together they beat either.",
       citation: SOURCES.iastm,
       requires: "scraper",
       caveat:
@@ -544,11 +544,11 @@ function dayTwo(): RecoveryBlock[] {
       id: "soft-tissue",
       name: "Soft tissue",
       prescription:
-        "10 min on forearm flexors and extensors 2 min/side · lats 2 min/side · posterior shoulder 2 min · upper back 2 min. Massage or roller — or cups on the lats and upper back for part of it. Slow passes, no pressing into a painful point.",
-      why: "Massage is the most effective modality for soreness and perceived fatigue. Foam rolling is weaker but real, and strongest at 24–48 h rather than immediately — which is why the roller belongs here and not at T+0. Cups are an alternative tool for the same ten minutes, not an eleventh: the same tissue worked three ways is not three times the effect.",
+        "10 min on forearm flexors and extensors 2 min/side · lats 2 min/side · posterior shoulder 2 min · upper back 2 min. Massage or roller - or cups on the lats and upper back for part of it. Slow passes, no pressing into a painful point.",
+      why: "Massage is the most effective modality for soreness and perceived fatigue. Foam rolling is weaker but real, and strongest at 24–48 h rather than immediately - which is why the roller belongs here and not at T+0. Cups are an alternative tool for the same ten minutes, not an eleventh: the same tissue worked three ways is not three times the effect.",
       citation: SOURCES.dupuy,
       caveat:
-        "On the cups: the evidence is low-to-moderate, and moderate only for soft-tissue flexibility — in athletes specifically, most trials carried a high or unclear risk of bias, none reported safety, and no study has looked at cupping for muscle soreness at all. Marks are expected and are not an injury. Not over broken or already-bruised skin.",
+        "On the cups: the evidence is low-to-moderate, and moderate only for soft-tissue flexibility - in athletes specifically, most trials carried a high or unclear risk of bias, none reported safety, and no study has looked at cupping for muscle soreness at all. Marks are expected and are not an injury. Not over broken or already-bruised skin.",
     },
     {
       id: "compression-overnight",
@@ -566,7 +566,7 @@ function dayThree(): RecoveryBlock[] {
       id: "reload",
       name: "Light catch-play or touch-and-feel bullpen",
       prescription:
-        "First re-load, roughly 72 h post-outing. Catch play out to 120 ft, 25–35 throws — or a 15–20 pitch touch-and-feel bullpen at 60–70% intent. Not both.",
+        "First re-load, roughly 72 h post-outing. Catch play out to 120 ft, 25–35 throws - or a 15–20 pitch touch-and-feel bullpen at 60–70% intent. Not both.",
       why: "Internal rotation range of motion peaks here, which is what makes this the natural bullpen day on a five-day rotation.",
       citation: SOURCES.pexa,
     },
@@ -575,7 +575,7 @@ function dayThree(): RecoveryBlock[] {
       name: "Full arm-care band routine",
       prescription:
         "11-exercise light-band routine, 10 reps each, before and after throwing: forward arm circles · backward arm circles · external rotation at 0°/side · internal rotation at 0°/side · external rotation at 90°/side · internal rotation at 90°/side · horizontal abduction · front raise · band row · deceleration (reverse throw) pattern/side · acceleration (throw) pattern/side.",
-      why: "This is where J-Bands belong — driving blood flow around a throw, not as post-outing fatigue work.",
+      why: "This is where J-Bands belong - driving blood flow around a throw, not as post-outing fatigue work.",
       citation: SOURCES.driveline,
     },
   ];
@@ -587,7 +587,7 @@ function dayFour(): RecoveryBlock[] {
       id: "prime",
       name: "Short priming session",
       prescription:
-        "10–15 throws at 70–80% intent, then stop. No new stimulus — this wakes the arm up, it does not train it.",
+        "10–15 throws at 70–80% intent, then stop. No new stimulus - this wakes the arm up, it does not train it.",
       why: "Peak force in both rotations is highest at day 5, so the arm is still climbing through day 4. Prime it; do not tax it.",
       citation: SOURCES.pexa,
     },
@@ -606,11 +606,11 @@ function dayFour(): RecoveryBlock[] {
  *
  * Day-1 scapular strengthening costs internal-rotation range at day 2 and pays
  * it back by day 4. If the readiness model treats that dip as a warning, it
- * punishes the athlete for doing the right thing — so it is annotated instead.
+ * punishes the athlete for doing the right thing - so it is annotated instead.
  */
 export function postScapularRangeAnnotation(dayOffset: number): string | null {
   return dayOffset === 2
-    ? "Expected — you did scapular work yesterday. Internal-rotation range dips today and comes back better by day 4. Not a red flag."
+    ? "Expected - you did scapular work yesterday. Internal-rotation range dips today and comes back better by day 4. Not a red flag."
     : null;
 }
 
@@ -618,7 +618,7 @@ export function postScapularRangeAnnotation(dayOffset: number): string | null {
  * Whether a posterior-shoulder stretch is blocked right now.
  *
  * The sleeper stretch acutely reduces external rotator strength, so it is
- * blocked inside two hours before throwing. Unknown timing is not "safe" —
+ * blocked inside two hours before throwing. Unknown timing is not "safe" -
  * with no next throw recorded there is nothing to be inside of, so it is
  * allowed and the caller is told why.
  */
@@ -639,11 +639,11 @@ export interface ThrowingRecoveryPlan {
 }
 
 const DAY_TITLES = [
-  { title: "Day 0 — the outing", focus: "T+0 to T+90 min. Settle it down, protect strength, feed it." },
-  { title: "Day 1 — scapular strength", focus: "Active, not rest. The block that buys back range by day 4." },
-  { title: "Day 2 — mobility and soft tissue", focus: "Range work and tissue. Expect the range dip." },
-  { title: "Day 3 — range returns, first re-load", focus: "Internal rotation peaks. The natural bullpen day." },
-  { title: "Day 4 — strength restored, prime", focus: "Still climbing. Prime it, do not tax it." },
+  { title: "Day 0 - the outing", focus: "T+0 to T+90 min. Settle it down, protect strength, feed it." },
+  { title: "Day 1 - scapular strength", focus: "Active, not rest. The block that buys back range by day 4." },
+  { title: "Day 2 - mobility and soft tissue", focus: "Range work and tissue. Expect the range dip." },
+  { title: "Day 3 - range returns, first re-load", focus: "Internal rotation peaks. The natural bullpen day." },
+  { title: "Day 4 - strength restored, prime", focus: "Still climbing. Prime it, do not tax it." },
 ];
 
 /**
@@ -702,7 +702,7 @@ export interface GymRecoveryPlan {
  * Post-lift recovery, which the app did not have at all.
  *
  * With cold out, this track shares its whole modality set with the throwing
- * track — the two differ in dose and timing, not in what is allowed.
+ * track - the two differ in dose and timing, not in what is allowed.
  */
 export function buildGymRecoveryPlan(options: {
   sessionType: GymSessionType;
@@ -720,7 +720,7 @@ export function buildGymRecoveryPlan(options: {
     {
       id: "protein-spread",
       name: "Protein, spread across the day",
-      prescription: `${perFeed} within 60 min, then every ~3 h — four feeds, not one large shake.`,
+      prescription: `${perFeed} within 60 min, then every ~3 h - four feeds, not one large shake.`,
       why: "20 g every 3 h across 12 h beat both 10 g every 1.5 h and 40 g every 6 h for myofibrillar protein synthesis, by 31–48%. 30 g and 60 g performed alike; 15 g did nothing.",
       citation: SOURCES.areta,
     },
@@ -735,7 +735,7 @@ export function buildGymRecoveryPlan(options: {
       id: "compression-limbs",
       name: "Compression on the trained limbs",
       prescription: "2–8 h.",
-      why: "Compression's effect was largest after resistance exercise specifically — ES 0.49 overall and ES 1.33 beyond 24 h.",
+      why: "Compression's effect was largest after resistance exercise specifically - ES 0.49 overall and ES 1.33 beyond 24 h.",
       citation: SOURCES.brown,
     },
     {
@@ -754,9 +754,9 @@ export function buildGymRecoveryPlan(options: {
     },
     {
       id: "heat-gym",
-      name: "Heat — permitted, and may help",
+      name: "Heat - permitted, and may help",
       prescription:
-        "15–20 min hot bath, shower or sauna. No timing restriction relative to lifts — before, after or between is all fine.",
+        "15–20 min hot bath, shower or sauna. No timing restriction relative to lifts - before, after or between is all fine.",
       why: "Unlike cold, heat upregulates heat-shock proteins and growth-related gene expression, and may enhance the muscle-mass benefit of strength training. This is the whole reason the no-cold build has no gating.",
       citation: SOURCES.mcgorm,
       optional: true,
@@ -768,7 +768,7 @@ export function buildGymRecoveryPlan(options: {
       id: "aerobic-flush-gym",
       name: "Low-intensity aerobic flush or mobility flow",
       prescription:
-        "20–30 min easy bike, walk or mobility flow. Conversational the whole way — this is circulation, not conditioning.",
+        "20–30 min easy bike, walk or mobility flow. Conversational the whole way - this is circulation, not conditioning.",
       why: "Active recovery beats passive rest for soreness and strength loss.",
       citation: SOURCES.fares,
     },
@@ -798,14 +798,14 @@ export function buildGymRecoveryPlan(options: {
       {
         dayOffset: 0,
         date: options.sessionDate,
-        title: `Day 0 — after the ${GYM_SESSION_LABELS[options.sessionType].toLowerCase()} session`,
+        title: `Day 0 - after the ${GYM_SESSION_LABELS[options.sessionType].toLowerCase()} session`,
         focus: "T+0 to T+60. Feed it, compress it, bring it down.",
         blocks: available(dayZeroBlocks),
       },
       {
         dayOffset: 1,
         date: addDays(options.sessionDate, 1),
-        title: "Day 1 — flush",
+        title: "Day 1 - flush",
         focus: "Move it, work the tissue.",
         blocks: available(dayAfter),
       },
@@ -824,7 +824,7 @@ export interface ConflictRule {
  * With cold removed, the gating table collapses to scheduling only.
  *
  * This is the payoff of the no-cold constraint: there is no modality conflict
- * left to resolve, so nothing here is about what is allowed — only about
+ * left to resolve, so nothing here is about what is allowed - only about
  * order, and about not counting the same thing twice.
  */
 export const CONFLICT_RULES: ConflictRule[] = [
@@ -835,7 +835,7 @@ export const CONFLICT_RULES: ConflictRule[] = [
   },
   {
     situation: "Both sessions logged",
-    rule: "The protein target is per day, not per session — do not double-count the four feeds.",
+    rule: "The protein target is per day, not per session - do not double-count the four feeds.",
   },
   { situation: "Compression after both", rule: "One garment period covers both; do not prescribe two." },
 ];
@@ -871,8 +871,8 @@ export function acwrReading(acuteLoad: number | null, chronicLoad: number | null
     note: inBand
       ? `In the ${low}–${high} band, where injury incidence was lowest across 22 cohorts.`
       : ratio < low
-        ? `Below the ${low}–${high} band — the load has dropped off faster than the base.`
-        : `Above the ${low}–${high} band — the recent load has climbed faster than the base supports.`,
+        ? `Below the ${low}–${high} band - the load has dropped off faster than the base.`
+        : `Above the ${low}–${high} band - the recent load has climbed faster than the base supports.`,
   };
 }
 
@@ -917,7 +917,7 @@ export function checkPitchSmartRest(options: {
   const outings = [...new Set([...(options.recentOutings ?? []), lastOuting, nextOuting])].sort();
   for (let i = 2; i < outings.length; i += 1) {
     if (outings[i] === addDays(outings[i - 1], 1) && outings[i - 1] === addDays(outings[i - 2], 1)) {
-      return { ok: false, problem: `That would be three consecutive days pitching — ${outings[i - 2]} to ${outings[i]}.` };
+      return { ok: false, problem: `That would be three consecutive days pitching - ${outings[i - 2]} to ${outings[i]}.` };
     }
   }
 
@@ -940,7 +940,7 @@ export const BFR_BLOCK = {
   why: "Over 8 weeks the BFR group gained shoulder-region lean mass and internal-rotation strength at 90°, while the group doing the same work without BFR lost shoulder flexion and internal-rotation strength at 0°.",
   citation: SOURCES.lambert,
   guardrail:
-    "This needs a calibrated cuff for the 50% occlusion figure. Without one, it is not the studied prescription — use a band and the evidence above no longer applies to what you are doing.",
+    "This needs a calibrated cuff for the 50% occlusion figure. Without one, it is not the studied prescription - use a band and the evidence above no longer applies to what you are doing.",
   experimentalNote:
     "Passive BFR as a recovery modality (no exercise) is experimental: one trial returned strength and range faster than sham, but the systematic review found only 11 studies, inconsistent protocols and mixed results. Not part of the default plan.",
 } as const;
@@ -950,7 +950,7 @@ export const BFR_BLOCK = {
 /**
  * Which stage of the day's session each block belongs in.
  *
- * The protocol is not a separate programme running alongside the training —
+ * The protocol is not a separate programme running alongside the training -
  * it is part of the day. Compression and feeding are recovery work; the
  * scapular block and the stretches are arm care; and two of the blocks are
  * not tasks at all.
@@ -965,7 +965,7 @@ export type BlockPlacement = "arm_care" | "recover" | "guidance";
 
 const PLACEMENT: Record<string, BlockPlacement> = {
   // --- Day 0. Anything done to the throwing arm is arm care; the systemic
-  // work — breathing, feeding, sleeping — is recovery.
+  // work - breathing, feeding, sleeping - is recovery.
   walkdown: "recover",
   "mobility-cooldown": "arm_care", // shoulder CARs, pull-aparts, "no money"
   compression: "arm_care", // the sleeve goes on the throwing arm
@@ -1109,7 +1109,7 @@ const GYM_STAGE_TYPE: Record<string, GymSessionType> = {
   Microdose: "conditioning",
 };
 
-/** A task as this module needs to see it — stage title and id, nothing more. */
+/** A task as this module needs to see it - stage title and id, nothing more. */
 export interface PlannedTask {
   id: string;
   stageTitle: string;
@@ -1150,8 +1150,8 @@ const EQUIVALENT_ACROSS_TRACKS: Record<string, readonly string[]> = {
   //
   // Two ids, because the throwing track prescribes boots on day 0 and again on
   // day 1 under a different id. Matching only the day-0 one meant a day that
-  // was day 1 of a throwing protocol *and* day 0 of a gym protocol — a lift the
-  // morning after a bullpen, which is a normal week — listed "Compression
+  // was day 1 of a throwing protocol *and* day 0 of a gym protocol - a lift the
+  // morning after a bullpen, which is a normal week - listed "Compression
   // boots, legs" twice.
   "boots-gym": ["boots", "boots-day1"],
   downregulate: ["walkdown"],

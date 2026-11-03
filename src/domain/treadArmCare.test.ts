@@ -75,7 +75,7 @@ describe("the transcription", () => {
     const all = [...MOBILITY_PROGRAM, ...SCAP_SESSIONS.flatMap((s) => [...s.opener, ...s.supersets.flatMap((ss) => ss.exercises)])];
     for (const exercise of all) {
       expect(exercise.name.length, exercise.name).toBeGreaterThan(3);
-      // "max reps" is one of the coach's own doses, and is a real instruction —
+      // "max reps" is one of the coach's own doses, and is a real instruction -
       // it is a number or an explicit effort target, never a bare adjective.
       expect(exercise.dose, exercise.name).toMatch(/\d|max reps/);
     }
@@ -168,7 +168,7 @@ describe("which day gets which session", () => {
   });
 
   it("places the mobility programme by the coach's rule, not by its weekday", () => {
-    // His note reads "a low workload throwing day", so any such day gets it —
+    // His note reads "a low workload throwing day", so any such day gets it -
     // which is why Monday does as well as the Thursday it was captured on.
     for (const day of [0, 1, 3, 5, 6]) {
       expect(armCareForDay(day, easy)!.id, `day ${day}`).toBe("tread-mobility");
@@ -203,26 +203,26 @@ describe("on the plan", () => {
 
   it("puts the scapular session on Wednesday", () => {
     const [task] = armCare(7, 2);
-    expect(String(task.name)).toBe("Arm care — Scapular, serratus and grip");
+    expect(String(task.name)).toBe("Arm care - Scapular, serratus and grip");
     expect(String(task.prescription)).toContain("Split Stance Flexion Ball Drops 50–75 reps");
     expect(String(task.prescription)).toContain("2 rounds:");
   });
 
   it("puts the mobility programme on Thursday", () => {
     const [task] = armCare(7, 3);
-    expect(String(task.name)).toBe("Arm care — Recovery and mobility");
+    expect(String(task.name)).toBe("Arm care - Recovery and mobility");
     expect(String(task.prescription)).toContain("Levator Scap Elongation 3 seconds each direction");
   });
 
   it("puts the posterior session on Friday", () => {
     const [task] = armCare(7, 4);
-    expect(String(task.name)).toBe("Arm care — Posterior chain and serratus");
+    expect(String(task.name)).toBe("Arm care - Posterior chain and serratus");
     expect(String(task.prescription)).toContain("Posterior Wall Angels 20");
   });
 
-  it("puts the mobility programme on Monday too — the week's other easy day", () => {
+  it("puts the mobility programme on Monday too - the week's other easy day", () => {
     const [task] = armCare(7, 0);
-    expect(String(task.name)).toBe("Arm care — Recovery and mobility");
+    expect(String(task.name)).toBe("Arm care - Recovery and mobility");
     expect(String(task.cue)).toMatch(/before or after throwing/);
   });
 
@@ -247,11 +247,11 @@ describe("on the plan", () => {
   });
 
   it("does the same in the summer block, where the week has a different shape", () => {
-    expect(String(armCare(20, 2)[0].name)).toBe("Arm care — Scapular, serratus and grip");
+    expect(String(armCare(20, 2)[0].name)).toBe("Arm care - Scapular, serratus and grip");
     // Summer Friday is a game rather than the primer it is in winter, so the
     // Friday pin correctly does not fire there.
     expect(String(armCare(20, 4)[0].name)).toBe("Post-throw arm-care circuit");
-    expect(String(armCare(20, 5)[0].name)).toBe("Arm care — Recovery and mobility");
+    expect(String(armCare(20, 5)[0].name)).toBe("Arm care - Recovery and mobility");
   });
 
   it("never names the same movement twice on one day", () => {
