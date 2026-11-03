@@ -12,7 +12,7 @@ import {
 } from "../../src/domain/athleteProfile";
 import { Card, CardHead } from "./Page";
 import { DAY_SHORT, readSchedule } from "../../src/domain/weeklySchedule";
-import { KNOWN_TEAM_COLOURS, readTeamColours } from "../../src/domain/teamColours";
+import { knownTeam as listedClub, readTeamColours } from "../../src/domain/teamColours";
 
 const OTHER = "__other__";
 
@@ -90,7 +90,7 @@ export function ProfileForm({
   useEffect(() => {
     if (team === firstTeam.current) return;
     firstTeam.current = team;
-    const known = KNOWN_TEAM_COLOURS[team];
+    const known = listedClub(team);
     if (known) {
       setPrimary(known.primary);
       setSecondary(known.secondary);
@@ -279,6 +279,21 @@ export function ProfileForm({
         </>
       )}
 
+      {listedClub(team) ? (
+        <div className="field full">
+          <div className="team-found">
+            {listedClub(team)!.logo && <img src={listedClub(team)!.logo} alt="" />}
+            <div>
+              <strong>{listedClub(team)!.name}</strong>
+              <small>The app is drawn in your club&apos;s colours.</small>
+            </div>
+            <span className="colour-preview" aria-hidden="true">
+              <span style={{ background: shownPrimary }} />
+              <span style={{ background: shownSecondary }} />
+            </span>
+          </div>
+        </div>
+      ) : team ? (
       <div className="field full">
         <label id="teamColours">Team colours</label>
         <div className="team-colours" role="group" aria-labelledby="teamColours">
@@ -297,6 +312,7 @@ export function ProfileForm({
         </div>
         <small>The app is drawn in these: buttons and headings in the main colour, the progress bar and ticks in the second.</small>
       </div>
+      ) : null}
 
       <fieldset className="field full player-type-choice">
         <legend>What do you play?</legend>
