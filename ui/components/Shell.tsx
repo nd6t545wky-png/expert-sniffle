@@ -320,6 +320,8 @@ export interface ShellProps {
   onNavigate: (page: PageId) => void;
   /** The team's badge, shown at the left of the top bar. */
   teamLogo?: { src: string; alt: string } | null;
+  /** The team's name: a club without a logo gets its initials in its colours. */
+  teamName?: string;
   /** Today's session progress, shown as a bar along the top bar's foot. */
   progress?: { resolved: number; total: number; percent: number } | null;
   /** Which tabs to show. Defaults to the pitcher's. */
@@ -345,6 +347,7 @@ export function Shell({
   onNavigate,
   role = "pitcher",
   teamLogo = null,
+  teamName,
   progress = null,
   children,
 }: ShellProps) {
@@ -418,6 +421,10 @@ export function Shell({
           <div className="top-context">
             {teamLogo ? (
               <img className="topbar-logo" src={teamLogo.src} alt={teamLogo.alt} />
+            ) : teamName ? (
+              <span className="topbar-logo topbar-monogram" role="img" aria-label={`${teamName} badge`}>
+                {teamInitials(teamName)}
+              </span>
             ) : (
               <span className="context-mark" />
             )}
@@ -533,4 +540,10 @@ export function Shell({
       )}
     </div>
   );
+}
+
+/** A club's initials for its badge: "Redlands Rays" is RR, "Norths" is N. */
+export function teamInitials(name: string): string {
+  const words = name.split(/[^A-Za-z0-9]+/).filter((word) => word && !/^(the|of|and)$/i.test(word));
+  return words.slice(0, 2).map((word) => word[0].toUpperCase()).join("") || "?";
 }

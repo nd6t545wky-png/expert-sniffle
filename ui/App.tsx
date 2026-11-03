@@ -1876,6 +1876,7 @@ export function App() {
       })()}
       role={role}
       teamLogo={team.logo ? { src: team.logo, alt: team.alt } : null}
+      teamName={team.name}
       progress={shown === "session" && plan.status !== "locked" ? sessionProgress(tasks, completed[date] ?? [], skippedTasks[date] ?? {}) : null}
       onCycleAppearance={() =>
         update((draft) => {
