@@ -535,8 +535,8 @@ export function App() {
   // The draw for this athlete's own teams - see `builtInFixturesFor`.
   const builtInFixtures = useMemo(() => {
     const profile = state?.profile as { teamDraw?: { team?: string; games?: unknown } } | undefined;
-    const team = readAthleteProfile(state?.profile).team ?? "Coomera Cubs";
-    const draw = profile?.teamDraw?.team === team && Array.isArray(profile.teamDraw.games) ? profile.teamDraw.games : [];
+    const team = readAthleteProfile(state?.profile).team;
+    const draw = team && profile?.teamDraw?.team === team && Array.isArray(profile.teamDraw.games) ? profile.teamDraw.games : [];
     return builtInFixturesFor(team, winterClubOf(state?.profile), draw as never);
   }, [state?.profile]);
   const fixtures = useMemo(() => allFixtures(athleteFixtures, builtInFixtures), [athleteFixtures, builtInFixtures]);
@@ -1826,7 +1826,11 @@ export function App() {
   // for a Cubs profile written before the question existed.
   const athlete = readAthleteProfile(state.profile);
   const winterClub = winterClubOf(state.profile);
-  const branded = teamBranding(winter && winterClub ? winterClub : athlete.team ?? "Coomera Cubs");
+  // No team yet (before sign-up): the neutral palette and the app's own mark,
+  // never a club's.
+  const branded = athlete.team || (winter && winterClub)
+    ? teamBranding(winter && winterClub ? winterClub : (athlete.team as string))
+    : { name: "", logo: "/icons/icon.svg", alt: "Pitching OS", theme: "" };
   // The app is always in the athlete's team colours: the hand-tuned Cubs and
   // Norths themes where they apply, otherwise one worked out from the colours
   // given at sign-up.

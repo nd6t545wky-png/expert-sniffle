@@ -106,7 +106,8 @@ export function gblTeam(team: string | undefined) {
 export function winterClubOf(value: unknown): string | undefined {
   const raw = (value && typeof value === "object" ? value : {}) as Record<string, unknown>;
   if (typeof raw.winterTeam === "string" && raw.winterTeam.trim()) return raw.winterTeam.trim();
-  const team = readAthleteProfile(value).team ?? "Coomera Cubs";
+  // Only a profile that actually names the Cubs: a brand-new one has no team.
+  const team = readAthleteProfile(value).team;
   return team === "Coomera Cubs" && !isType(raw.playerType) ? "Norths" : undefined;
 }
 
