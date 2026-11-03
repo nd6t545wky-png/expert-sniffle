@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { contrast, inkOn, mix, readTeamColours, teamThemeVars } from "./teamColours";
+import { existsSync } from "node:fs";
+import { join } from "node:path";
+import { KNOWN_TEAMS, contrast, inkOn, knownTeam, mix, readTeamColours, teamThemeVars } from "./teamColours";
 
 describe("team colours", () => {
   it("reads the colours stored on the profile, else the team's known ones", () => {
@@ -7,8 +9,25 @@ describe("team colours", () => {
       primary: "#003da5",
       secondary: "#c8102e",
     });
-    expect(readTeamColours({}, "Coomera Cubs")).toEqual({ primary: "#3a2268", secondary: "#24909f" });
+    expect(readTeamColours({}, "Coomera Cubs")).toEqual({ primary: "#63328a", secondary: "#8ccfd3" });
     expect(readTeamColours({ teamColours: { primary: "red" } }, "Logan Rays")).toBeNull();
+  });
+
+  it("draws a listed club in its own colours and badge, whatever was stored or typed", () => {
+    expect(readTeamColours({ teamColours: { primary: "#123456", secondary: "#654321" } }, "Brisbane Bandits")).toEqual({
+      primary: "#0b4ccb",
+      secondary: "#ffdd00",
+    });
+    expect(knownTeam("carina redsox")?.name).toBe("Carina Red Sox");
+    expect(knownTeam("Western Districts Bulldogs")?.logo).toBe("/assets/teams/wests-bulldogs.png");
+    expect(knownTeam("Logan Rays")).toBeNull();
+  });
+
+  it("has a badge file for every listed club with one", () => {
+    for (const name of Object.keys(KNOWN_TEAMS)) {
+      const logo = knownTeam(name)!.logo;
+      if (logo) expect(existsSync(join(__dirname, "../../public", logo)), name).toBe(true);
+    }
   });
 
   it("mixes colours", () => {

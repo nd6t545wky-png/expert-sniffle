@@ -71,7 +71,7 @@ import { BallclubzCard } from "./components/BallclubzCard";
 import { ProfileCard, ProfileSetup } from "./components/ProfileSetup";
 import { Hitting } from "./components/Hitting";
 import { asPositionPlayer } from "../src/domain/positionPlayer";
-import { readTeamColours, teamThemeVars } from "../src/domain/teamColours";
+import { knownTeam, readTeamColours, teamThemeVars } from "../src/domain/teamColours";
 import { readSchedule } from "../src/domain/weeklySchedule";
 import { readPlayerEvents, withEventOutings, withPlayerEvents } from "../src/domain/playerEvents";
 import { HittingGame, readHittingGames } from "../src/domain/hitting";
@@ -219,7 +219,8 @@ function teamBranding(name: string): { name: string; logo: string; alt: string; 
   if (name === "Norths") {
     return { name, logo: "/assets/norths-baseball-logo.jpg", alt: "Norths Baseball Club logo", theme: "theme-norths" };
   }
-  return { name, logo: "", alt: "", theme: "" };
+  const known = knownTeam(name);
+  return known?.logo ? { name: known.name, logo: known.logo, alt: `${known.name} logo`, theme: "" } : { name, logo: "", alt: "", theme: "" };
 }
 
 /** Dylan's GBL D1 2026-27 player page; changeable in Settings. */

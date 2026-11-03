@@ -15,28 +15,63 @@ export interface TeamColours {
 }
 
 /**
- * Every GBL Division 1 and ABL team's colours, read off each club's own logo
- * (or, where the logo is one colour, the colours the club lists). The sign-up
- * question starts from these; the athlete can change them.
+ * Every GBL club and ABL team's colours and badge, from the 2026-27 club
+ * logo and colour guides (official club sites; hex values approximate).
+ * A listed team is always drawn in these; any other team's come from
+ * sign-up or the web lookup.
  */
-export const KNOWN_TEAM_COLOURS: Readonly<Record<string, TeamColours>> = {
-  // GBL Division 1
-  "Beenleigh Hawks": { primary: "#003c24", secondary: "#f2c500" },
-  "Carina Red Sox": { primary: "#e00000", secondary: "#007854" },
-  "Coomera Cubs": { primary: "#3a2268", secondary: "#24909f" },
-  "Narangba Demons": { primary: "#000054", secondary: "#008448" },
-  "Pine Hills Lightning": { primary: "#111111", secondary: "#f5c400" },
-  "Redcliffe Padres": { primary: "#f0300c", secondary: "#111111" },
-  "Redlands Rays": { primary: "#3c86c6", secondary: "#111111" },
-  "Surfers Paradise": { primary: "#1d4f9c", secondary: "#111111" },
-  "Wests Bulldogs": { primary: "#182454", secondary: "#cc1830" },
-  "Windsor Royals": { primary: "#002490", secondary: "#d0202e" },
+export const KNOWN_TEAMS: Readonly<Record<string, TeamColours & { logo: string }>> = {
+  // Greater Brisbane League
+  "All Stars": { primary: "#000000", secondary: "#ffffff", logo: "all-stars" },
+  "Beenleigh Hawks": { primary: "#1d5038", secondary: "#aed4b2", logo: "beenleigh-hawks" },
+  "Carina Red Sox": { primary: "#f4141b", secondary: "#008c72", logo: "carina-red-sox" },
+  "Coomera Cubs": { primary: "#63328a", secondary: "#8ccfd3", logo: "" },
+  "Ipswich Musketeers": { primary: "#17469a", secondary: "#ed1c24", logo: "ipswich-musketeers" },
+  "Mount Gravatt Eagles": { primary: "#174366", secondary: "#e9c400", logo: "mount-gravatt-eagles" },
+  "Mudgeeraba Red Sox": { primary: "#e32723", secondary: "#000000", logo: "mudgeeraba-red-sox" },
+  "Narangba Demons": { primary: "#0b0b74", secondary: "#008c4a", logo: "narangba-demons" },
+  "Pine Hills Lightning": { primary: "#111111", secondary: "#ffb71b", logo: "pine-hills-lightning" },
+  "Pine Rivers Rapids": { primary: "#00843d", secondary: "#fdbb30", logo: "pine-rivers-rapids" },
+  "Redcliffe Padres": { primary: "#ef4135", secondary: "#000000", logo: "redcliffe-padres" },
+  "Redlands Rays": { primary: "#2a83c6", secondary: "#e61e3b", logo: "redlands-rays" },
+  "Runcorn Indians": { primary: "#e13b2b", secondary: "#000000", logo: "runcorn-indians" },
+  "Southern Stars": { primary: "#47a8a6", secondary: "#000000", logo: "southern-stars" },
+  "Surfers Paradise": { primary: "#005aa9", secondary: "#ffffff", logo: "surfers-paradise" },
+  "Toowoomba Rangers": { primary: "#13375b", secondary: "#c92c32", logo: "toowoomba-rangers" },
+  "Wests Bulldogs": { primary: "#1f2f68", secondary: "#e31b35", logo: "wests-bulldogs" },
+  "Windsor Royals": { primary: "#1a2c6a", secondary: "#e32736", logo: "windsor-royals" },
   // ABL
-  "Adelaide Giants": { primary: "#002454", secondary: "#d81830" },
-  "Brisbane Bandits": { primary: "#18489c", secondary: "#ffd400" },
-  "Perth Heat": { primary: "#c03c30", secondary: "#111111" },
-  "Sydney Blue Sox": { primary: "#54a8e4", secondary: "#1c1414" },
+  "Adelaide Giants": { primary: "#002d5d", secondary: "#e31b3d", logo: "adelaide-giants" },
+  "Brisbane Bandits": { primary: "#0b4ccb", secondary: "#ffdd00", logo: "brisbane-bandits" },
+  "Perth Heat": { primary: "#d71920", secondary: "#000000", logo: "perth-heat" },
+  "Sydney Blue Sox": { primary: "#102644", secondary: "#59acdf", logo: "sydney-blue-sox" },
 };
+
+/** Other names the same clubs go by. */
+const ALIASES: Record<string, string> = {
+  carinaredsox: "Carina Red Sox",
+  westerndistrictsbulldogs: "Wests Bulldogs",
+  wests: "Wests Bulldogs",
+  mtgravatteagles: "Mount Gravatt Eagles",
+  surfersparadisebaseballclub: "Surfers Paradise",
+};
+
+const key = (name: string) => name.toLowerCase().replace(/[^a-z0-9]/g, "");
+const BY_KEY = new Map(Object.keys(KNOWN_TEAMS).map((name) => [key(name), name]));
+
+/** A listed club, however its name was typed; null for anyone else. */
+export function knownTeam(name: string | undefined): (TeamColours & { name: string; logo: string }) | null {
+  if (!name) return null;
+  const found = BY_KEY.get(key(name)) ?? ALIASES[key(name)];
+  if (!found) return null;
+  const team = KNOWN_TEAMS[found];
+  return { name: found, primary: team.primary, secondary: team.secondary, logo: team.logo ? `/assets/teams/${team.logo}.png` : "" };
+}
+
+/** Colours only, for the sign-up question's starting point. */
+export const KNOWN_TEAM_COLOURS: Readonly<Record<string, TeamColours>> = Object.fromEntries(
+  Object.entries(KNOWN_TEAMS).map(([name, team]) => [name, { primary: team.primary, secondary: team.secondary }])
+);
 
 const HEX = /^#[0-9a-f]{6}$/i;
 
@@ -46,6 +81,9 @@ export function isHexColour(value: unknown): value is string {
 
 /** The colours stored on the profile, or the team's known ones, or null. */
 export function readTeamColours(profile: unknown, team?: string): TeamColours | null {
+  // A listed club is always drawn in its own colours.
+  const known = knownTeam(team);
+  if (known) return { primary: known.primary, secondary: known.secondary };
   const raw = (profile && typeof profile === "object" ? (profile as Record<string, unknown>).teamColours : null) as
     | Record<string, unknown>
     | null
@@ -53,7 +91,7 @@ export function readTeamColours(profile: unknown, team?: string): TeamColours | 
   if (raw && isHexColour(raw.primary) && isHexColour(raw.secondary)) {
     return { primary: raw.primary.toLowerCase(), secondary: raw.secondary.toLowerCase() };
   }
-  return team ? (KNOWN_TEAM_COLOURS[team] ?? null) : null;
+  return null;
 }
 
 type Rgb = [number, number, number];
