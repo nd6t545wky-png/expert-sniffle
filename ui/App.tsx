@@ -41,9 +41,10 @@ import {
   sessionHasGame,
   setProgrammeContext,
   weekPlan,
+  withSeasonFromDraw,
 } from "../src/domain/programmeSessions";
 import { applyBaselineProgramming } from "../src/domain/programmeUpdates";
-import { seedBaselinePbs } from "../src/domain/baseline";
+import { fuelBasis, hasOwnReports, readAthleteBaseline, seedBaselinePbs } from "../src/domain/baseline";
 import { readTrainingMaxes, setTrainingMax } from "../src/domain/trainingMaxes";
 import { TrainingMaxes } from "./components/TrainingMaxes";
 import { useAppState } from "./state/useAppState";
@@ -60,7 +61,8 @@ import { AnnualPlan } from "./components/AnnualPlan";
 import { Account, INVITE_STORAGE } from "./components/Account";
 import { CoachRequestCard } from "./components/CoachCard";
 import { COACHING_STORAGE, CoachAccess, CoachingSession, isCoachSignIn, parseCoachingSession } from "../src/domain/coach";
-import { BaselineTesting } from "./components/BaselineTesting";
+import { AthleteBaselineForm, BaselineTesting } from "./components/BaselineTesting";
+import { retestMetricsFor } from "../src/domain/retest";
 import { ArmCare } from "./components/ArmCare";
 import { Card, CardHead, PageHead, Segments } from "./components/Page";
 import { ThrowCountCard } from "./components/ThrowCountCard";
@@ -353,13 +355,31 @@ export function App() {
 
   // The week the selection points at, and the date derived from it. Every
   // other date in the app flows from here.
+  // An athlete on any team but the Cubs, with an imported draw, gets their
+  // season - pre-season, in season, transition, off-season - from that draw.
+  const seasonDraw = useMemo(() => {
+    const profile = state?.profile as { teamDraw?: { team?: string; games?: { date?: unknown }[] }; league?: unknown } | undefined;
+    const team = readAthleteProfile(state?.profile).team;
+    const games = profile?.teamDraw?.team === team && Array.isArray(profile?.teamDraw?.games) ? profile.teamDraw.games : [];
+    // The owner's year was written around his own calendar and stays as it is.
+    // Any other Cubs player gets the Cubs draw as their season.
+    if (team === "Coomera Cubs" && hasOwnReports(state?.profile)) return null;
+    const dates =
+      team === "Coomera Cubs"
+        ? builtInFixturesFor(team, undefined).map((fixture) => fixture.date)
+        : games.map((game) => game?.date).filter((date): date is IsoDate => typeof date === "string");
+    if (!team || !dates.length) return null;
+    const league = leagueTeam(team)?.league.short ?? (typeof profile?.league === "string" && profile.league ? profile.league : "Your league");
+    return { dates, league, winterBall: Boolean(readSchedule(state?.profile)?.winterGames.length) };
+  }, [state?.profile]);
+
   const selectedWeekPlan = useMemo(() => {
     try {
-      return weekPlan(selectedWeek, state?.pbs);
+      return withSeasonFromDraw(weekPlan(selectedWeek, state?.pbs), seasonDraw);
     } catch {
       return null;
     }
-  }, [selectedWeek, state?.pbs]);
+  }, [selectedWeek, state?.pbs, seasonDraw]);
 
   const date: IsoDate = selectedWeekPlan
     ? dateForWeekDay(selectedWeekPlan, selectedDay)
@@ -385,6 +405,25 @@ export function App() {
     const seeded = seedBaselinePbs(state);
     if (seeded !== state) update(() => seeded as typeof state);
   }, [state, update]);
+
+  // The testing reports were measured on the account owner, so only the
+  // owner's own workspace is marked as theirs - never a workspace the owner
+  // is coaching, and never an invited athlete's.
+  const ownerChecked = useRef("");
+  useEffect(() => {
+    if (!state || coaching || !isValidSyncKey(syncKey) || hasOwnReports(state.profile)) return;
+    if (ownerChecked.current === syncKey) return;
+    ownerChecked.current = syncKey;
+    api
+      .accountStatus()
+      .then((status) => {
+        if (!status.isOwner || status.syncKey !== syncKey) return;
+        update((draft) => ({ ...draft, profile: { ...(draft.profile ?? {}), ownReports: true } }));
+      })
+      .catch(() => {
+        ownerChecked.current = "";
+      });
+  }, [state, coaching, syncKey, api, update]);
 
   // Backfill the last 28 days of ring data once a day.
   //
@@ -431,6 +470,7 @@ export function App() {
     setProgrammeContext({
       pbs: state?.pbs as never,
       post: post as never,
+      reports: hasOwnReports(state?.profile),
     });
   }, [state]);
 
@@ -471,12 +511,16 @@ export function App() {
    * follow without a deploy. The default is what is true now - Coomera Cubs on
    * Tuesdays, from the week it started.
    */
-  const teamTraining = useMemo(
-    () => readTeamTraining((state?.profile as { teamTraining?: unknown } | undefined)?.teamTraining),
-    [state]
-  );
   /** The athlete's own week from the sign-up questions; null until answered. */
   const schedule = useMemo(() => readSchedule(state?.profile), [state]);
+  const teamTraining = useMemo(() => {
+    const stored = (state?.profile as { teamTraining?: unknown } | undefined)?.teamTraining;
+    // Without a saved setting, an athlete's club nights are the ones they gave
+    // at sign-up - never the owner's club's.
+    const team = readAthleteProfile(state?.profile).team;
+    if (!stored && schedule && team) return { days: schedule.training, from: "2026-07-13" as IsoDate, club: team };
+    return readTeamTraining(stored);
+  }, [state, schedule]);
   /**
    * The season, as far as anyone can actually confirm it.
    *
@@ -1011,7 +1055,7 @@ export function App() {
       duration: session?.duration,
       planLevel: plan.status === "unlocked" ? plan.planLevel : plan.status === "held" ? "hold" : null,
       hasSession: Boolean(session),
-    });
+    }, fuelBasis(state?.profile));
   }, [state, session, plan]);
 
   /** Ball flight for the open day, and the fastest pitch on it. */
@@ -1904,6 +1948,24 @@ export function App() {
       {!coaching && coachRequest?.access === "pending" && shown === "session" && coachRequestCard}
       {needsProfile && <ProfileSetup profile={state.profile} onSave={saveProfile} onLookup={lookupTeam} />}
 
+      {shown === "session" && !needsProfile && !hasOwnReports(state.profile) && !readAthleteBaseline(state.profile) && (
+        <Card className="baseline-prompt">
+          <CardHead title="Add your baseline testing" detail="Your loads and food targets are worked out from your own numbers: body mass, lifts and jumps." />
+          <div className="form-actions">
+            <button
+              type="button"
+              className="btn btn-dark"
+              onClick={() => {
+                setProgressTab("testing");
+                setPage("tracking");
+              }}
+            >
+              Enter my numbers
+            </button>
+          </div>
+        </Card>
+      )}
+
       {/* Today: the week strip, then check-in → workout → check-out, all on
           one screen. Dashboard and the separate check-in page fold into it. */}
       {shown === "session" && (
@@ -2247,6 +2309,7 @@ export function App() {
                 }
               />
               <RetestSheet
+                metrics={retestMetricsFor(hasOwnReports(state.profile), readAthleteBaseline(state.profile)?.metrics)}
                 entries={retests}
                 today={today.openDate}
                 week={selectedWeek}
@@ -2257,7 +2320,31 @@ export function App() {
                   }))
                 }
               />
-              <BaselineTesting />
+              {hasOwnReports(state.profile) ? (
+                <BaselineTesting />
+              ) : (
+                <AthleteBaselineForm
+                  baseline={readAthleteBaseline(state.profile)}
+                  backSquatKg={readTrainingMaxes(state.pbs).backSquat?.value ?? null}
+                  trapBarKg={readTrainingMaxes(state.pbs).trapBarDeadlift?.value ?? null}
+                  today={today.openDate}
+                  onSave={({ baseline, backSquatKg, trapBarKg }) =>
+                    update((draft) => {
+                      const recordedAt = baseline.measuredOn ?? today.openDate;
+                      const pbs = (draft.pbs ?? {}) as { trainingMaxes?: { lifts?: Record<string, unknown> } };
+                      const lifts = { ...(pbs.trainingMaxes?.lifts ?? {}) };
+                      for (const [key, value] of [["backSquat", backSquatKg], ["trapBarDeadlift", trapBarKg]] as const) {
+                        if (value) lifts[key] = { value, kind: "tested", source: "Your baseline testing", recordedAt };
+                      }
+                      return {
+                        ...draft,
+                        profile: { ...(draft.profile ?? {}), baseline },
+                        pbs: { ...pbs, trainingMaxes: { ...(pbs.trainingMaxes ?? {}), lifts } } as never,
+                      };
+                    })
+                  }
+                />
+              )}
               <TransferCard transfer={transfer} />
             </>
           )}
@@ -2295,6 +2382,7 @@ export function App() {
         <>
           <AnnualPlan
             initialView="month"
+            phaseOf={seasonDraw ? (week) => withSeasonFromDraw(weekPlan(week), seasonDraw).phase : undefined}
             selectedWeek={selectedWeek}
             onSelectWeek={setSelectedWeek}
             today={today.openDate}
@@ -2302,6 +2390,8 @@ export function App() {
           {/* Adding a game belongs on the page the season is read from.
               Entering one here rebuilds that day as a game day straight away. */}
           <FixtureSettings
+            builtIn={builtInFixtures}
+            defaultTeam={readAthleteProfile(state.profile).team}
             currentWeek={today.selectedWeek}
             selectedWeek={selectedWeek}
             fixtures={athleteFixtures}

@@ -37,9 +37,16 @@ export interface ProgrammeContext {
   /** Post-session reports, keyed by ISO date. Friday's game pitch count
    *  determines whether Saturday is recovery or a primer. */
   post?: Record<string, { gamePitches?: number } | undefined>;
+  /** The owner's account: the testing reports were measured on this athlete. */
+  reports?: boolean;
 }
 
 let ctx: ProgrammeContext = {};
+
+/** The context the programme is building for, read by the overlay. */
+export function programmeContext(): ProgrammeContext {
+  return ctx;
+}
 
 /** Supply training maxes so strength prescriptions resolve to real loads. */
 export function setProgrammeContext(next: ProgrammeContext): void {

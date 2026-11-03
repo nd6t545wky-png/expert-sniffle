@@ -18,7 +18,7 @@ import { applyBaselineProgramming } from "./programmeUpdates";
  */
 
 beforeEach(() => {
-  setProgrammeContext({});
+  setProgrammeContext({ reports: true });
 });
 
 describe("phase table", () => {
@@ -161,7 +161,7 @@ describe("training maxes", () => {
   });
 
   it("resolves a real load once a training max is supplied", () => {
-    setProgrammeContext({
+    setProgrammeContext({ reports: true,
       pbs: { trainingMaxes: { lifts: { benchPress: { value: 100, kind: "tested" } } } },
     });
     const session = buildSession(weekPlan(1), 0);

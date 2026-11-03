@@ -46,7 +46,7 @@ const PBS = {
 const WEEKS = Array.from({ length: PROGRAMME_WEEK_COUNT }, (_, i) => i + 1);
 const DAYS = [0, 1, 2, 3, 4, 5, 6];
 
-setProgrammeContext({ pbs: PBS });
+setProgrammeContext({ reports: true, pbs: PBS });
 
 describe("every programme week", () => {
   it("builds", () => {

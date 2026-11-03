@@ -39,6 +39,8 @@ export const GBL_LEAGUE = "gbld1";
 
 export interface AthleteProfile {
   name: string;
+  /** The league they play in now: a LEAGUES id, or the name they typed. */
+  league?: string;
   /** Team training nights and game days; see weeklySchedule.ts. */
   schedule: WeeklySchedule;
   /** Winter-ball club, or "" for none. */

@@ -131,7 +131,7 @@ describe("seeding the known maxes", () => {
   type Seeded = { pbs: { trainingMaxes: { lifts: Record<string, { value: number; kind: string }> } } };
 
   it("puts the measured back squat where the programme reads training maxes", () => {
-    const seeded = seedBaselinePbs({}) as Seeded;
+    const seeded = seedBaselinePbs({ profile: { ownReports: true } } as Record<string, unknown>) as unknown as Seeded;
     expect(seeded.pbs.trainingMaxes.lifts.backSquat.value).toBe(145);
     expect(seeded.pbs.trainingMaxes.lifts.backSquat.kind).toBe("tested");
   });
@@ -139,7 +139,7 @@ describe("seeding the known maxes", () => {
   it("puts the trap bar max there too, and says it is derived", () => {
     // Solved out of the programme's own two tables rather than tested, so it
     // is shown as an estimate wherever it is used.
-    const seeded = seedBaselinePbs({}) as Seeded;
+    const seeded = seedBaselinePbs({ profile: { ownReports: true } } as Record<string, unknown>) as unknown as Seeded;
     expect(seeded.pbs.trainingMaxes.lifts.trapBarDeadlift.value).toBe(150);
     expect(seeded.pbs.trainingMaxes.lifts.trapBarDeadlift.kind).toBe("derived");
   });
@@ -155,14 +155,14 @@ describe("seeding the known maxes", () => {
     // The case the old all-or-nothing guard got wrong: every athlete already
     // using the app had a back squat, so an early return on that key meant a
     // second max could never reach any of them.
-    const existing = { pbs: { trainingMaxes: { lifts: { backSquat: { value: 160, kind: "tested" } } } } };
+    const existing = { profile: { ownReports: true }, pbs: { trainingMaxes: { lifts: { backSquat: { value: 160, kind: "tested" } } } } };
     const seeded = seedBaselinePbs(existing) as Seeded;
     expect(seeded.pbs.trainingMaxes.lifts.backSquat).toEqual({ value: 160, kind: "tested" });
     expect(seeded.pbs.trainingMaxes.lifts.trapBarDeadlift.value).toBe(150);
   });
 
   it("leaves other lifts and the rest of the state alone", () => {
-    const state = { pbs: { trainingMaxes: { lifts: { benchPress: { value: 90 } } } }, pre: { a: 1 } };
+    const state = { profile: { ownReports: true }, pbs: { trainingMaxes: { lifts: { benchPress: { value: 90 } } } }, pre: { a: 1 } };
     const seeded = seedBaselinePbs(state) as typeof state & Seeded;
     expect(seeded.pbs.trainingMaxes.lifts.benchPress).toEqual({ value: 90 });
     expect(seeded.pre).toEqual({ a: 1 });
@@ -734,6 +734,7 @@ describe("the real warm-up, every day of the year", () => {
   const PBS = {
     trainingMaxes: {
       lifts: {
+        backSquat: { value: 145, kind: "tested" },
         squat: { value: 140, kind: "kg" },
         bench: { value: 100, kind: "kg" },
         deadlift: { value: 180, kind: "kg" },
@@ -742,7 +743,7 @@ describe("the real warm-up, every day of the year", () => {
     },
   };
 
-  setProgrammeContext({ pbs: PBS });
+  setProgrammeContext({ reports: true, pbs: PBS });
 
   const WARM_UPS: { label: string; names: string[]; next: string | null }[] = (() => {
     const out: { label: string; names: string[]; next: string | null }[] = [];
@@ -853,6 +854,7 @@ describe("sprint drills", () => {
   const PBS = {
     trainingMaxes: {
       lifts: {
+        backSquat: { value: 145, kind: "tested" },
         squat: { value: 140, kind: "kg" },
         bench: { value: 100, kind: "kg" },
         deadlift: { value: 180, kind: "kg" },
@@ -861,7 +863,7 @@ describe("sprint drills", () => {
     },
   };
 
-  setProgrammeContext({ pbs: PBS });
+  setProgrammeContext({ reports: true, pbs: PBS });
 
   const DRILLS = "Sprint drills - before the build-ups";
 
@@ -992,6 +994,7 @@ describe("every task names something to do", () => {
   const PBS = {
     trainingMaxes: {
       lifts: {
+        backSquat: { value: 145, kind: "tested" },
         squat: { value: 140, kind: "kg" },
         bench: { value: 100, kind: "kg" },
         deadlift: { value: 180, kind: "kg" },
@@ -1000,7 +1003,7 @@ describe("every task names something to do", () => {
     },
   };
 
-  setProgrammeContext({ pbs: PBS });
+  setProgrammeContext({ reports: true, pbs: PBS });
 
   const EVERY_TASK = (() => {
     const out: { label: string; task: SessionTask }[] = [];
@@ -1113,6 +1116,7 @@ describe("soleus microdose", () => {
   const PBS = {
     trainingMaxes: {
       lifts: {
+        backSquat: { value: 145, kind: "tested" },
         squat: { value: 140, kind: "kg" },
         bench: { value: 100, kind: "kg" },
         deadlift: { value: 180, kind: "kg" },
@@ -1121,7 +1125,7 @@ describe("soleus microdose", () => {
     },
   };
 
-  setProgrammeContext({ pbs: PBS });
+  setProgrammeContext({ reports: true, pbs: PBS });
 
   const thursday = () => applyBaselineProgramming(buildSession(weekPlan(6, PBS), 3), null, 3).tasks;
   const calf = () => thursday().find((task) => /Seated calf raise/.test(task.name))!;

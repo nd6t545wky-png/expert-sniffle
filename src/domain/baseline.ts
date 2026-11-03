@@ -232,6 +232,81 @@ export const BASELINE_RECOMMENDATIONS = [
 ];
 
 /**
+ * The athlete's own baseline: what they measured, entered at sign-up or after
+ * a test day. Stored on the profile as `baseline`.
+ *
+ * The reports above belong to one athlete, the account owner, and reach only
+ * the account marked `ownReports`. Everyone else starts with nothing and is
+ * asked for their own numbers; nothing of the owner's is ever a default.
+ */
+export interface AthleteBaseline {
+  measuredOn?: string;
+  bodyMassKg?: number;
+  heightCm?: number;
+  bodyFatPercent?: number;
+  /** Retest-battery readings, keyed by retest metric id (sj, cmj, djRsi...). */
+  metrics: Record<string, number>;
+}
+
+/** Whether this profile is the owner's, the one the reports were measured on. */
+export function hasOwnReports(profile: unknown): boolean {
+  return Boolean(profile && typeof profile === "object" && (profile as { ownReports?: unknown }).ownReports === true);
+}
+
+const positive = (value: unknown) => (typeof value === "number" && Number.isFinite(value) && value > 0 ? value : undefined);
+
+/** The athlete's baseline, or null when they have not entered one. */
+export function readAthleteBaseline(profile: unknown): AthleteBaseline | null {
+  if (hasOwnReports(profile)) {
+    return {
+      measuredOn: "2026-04-27",
+      bodyMassKg: BASELINE_ANCHORS.bodyMassKg,
+      heightCm: BASELINE_ANCHORS.heightCm,
+      bodyFatPercent: BASELINE_ANCHORS.bodyFatPercent,
+      metrics: { sj: 19.8, cmj: 32.6, cmjContraction: 730, djRsi: 0.96, djContact: 0.348, barVel80: 0.51 },
+    };
+  }
+  const raw = (profile as { baseline?: unknown } | null | undefined)?.baseline;
+  if (!raw || typeof raw !== "object") return null;
+  const record = raw as Record<string, unknown>;
+  const metrics: Record<string, number> = {};
+  for (const [id, value] of Object.entries((record.metrics ?? {}) as Record<string, unknown>)) {
+    const number = positive(value);
+    if (number !== undefined) metrics[id] = number;
+  }
+  return {
+    measuredOn: typeof record.measuredOn === "string" ? record.measuredOn : undefined,
+    bodyMassKg: positive(record.bodyMassKg),
+    heightCm: positive(record.heightCm),
+    bodyFatPercent: positive(record.bodyFatPercent),
+    metrics,
+  };
+}
+
+/** Fuelling inputs from the athlete's own numbers: measured BMR only for the owner. */
+export function fuelBasis(profile: unknown): { bodyweightKg?: number; leanMassKg?: number; basalKcal?: number } {
+  if (hasOwnReports(profile)) {
+    return {
+      bodyweightKg: BASELINE_ANCHORS.bodyMassKg,
+      leanMassKg: BASELINE_ANCHORS.leanMassKg,
+      basalKcal: BASELINE_ANCHORS.basalMetabolicRateKcal,
+    };
+  }
+  const own = readAthleteBaseline(profile);
+  const weight = own?.bodyMassKg;
+  const fat = own?.bodyFatPercent;
+  return {
+    bodyweightKg: weight,
+    leanMassKg: weight && fat && fat < 60 ? Math.round(weight * (1 - fat / 100) * 10) / 10 : undefined,
+  };
+}
+
+const REPORT_SOURCES = new Set([
+  "VALD ForceDecks load-velocity profile",
+  "Solved from the programme's own week table: the only max at which its percentages reproduce its written loads",
+]);
+
+/**
  * Seed the known training maxes into the athlete's personal bests.
  *
  * The programme computes lift loads from `pbs.trainingMaxes.lifts`, so a max
@@ -256,6 +331,18 @@ export function seedBaselinePbs<T extends Record<string, unknown>>(state: T): T 
   const pbs = (state.pbs ?? {}) as Record<string, unknown>;
   const trainingMaxes = (pbs.trainingMaxes ?? {}) as Record<string, unknown>;
   const lifts = (trainingMaxes.lifts ?? {}) as Record<string, unknown>;
+
+  // Anyone else's account: take back the owner's maxes if an earlier build
+  // seeded them here, and seed nothing. Their own maxes come from their own
+  // baseline.
+  if (!hasOwnReports(state.profile)) {
+    const leaked = Object.entries(lifts).filter(([, entry]) =>
+      REPORT_SOURCES.has(String((entry as { source?: unknown } | null)?.source ?? ""))
+    );
+    if (!leaked.length) return state;
+    const kept = Object.fromEntries(Object.entries(lifts).filter(([lift]) => !leaked.some(([gone]) => gone === lift)));
+    return { ...state, pbs: { ...pbs, trainingMaxes: { ...trainingMaxes, lifts: kept } } };
+  }
 
   const seeds: Record<string, unknown> = {
     backSquat: {

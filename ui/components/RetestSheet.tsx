@@ -17,6 +17,7 @@ import { useState } from "react";
 import {
   RETEST_METRICS,
   RetestEntry,
+  RetestMetric,
   formatMetric,
   isRetestWeek,
   nextRetestWeek,
@@ -31,12 +32,14 @@ export interface RetestSheetProps {
   /** The programme week being viewed, so the card can say when the next one is. */
   week: number | null;
   onChange: (next: RetestEntry[]) => void;
+  /** The battery as this athlete reads it; the owner's by default. */
+  metrics?: readonly RetestMetric[];
 }
 
-export function RetestSheet({ entries, today, week, onChange }: RetestSheetProps) {
+export function RetestSheet({ entries, today, week, onChange, metrics = RETEST_METRICS }: RetestSheetProps) {
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState<Record<string, string>>({});
-  const rows = readings(entries);
+  const rows = readings(entries, metrics);
   const due = isRetestWeek(week);
 
   function save() {
@@ -70,7 +73,7 @@ export function RetestSheet({ entries, today, week, onChange }: RetestSheetProps
           <thead>
             <tr>
               <th>Metric</th>
-              <th>April</th>
+              <th>Baseline</th>
               <th>Latest</th>
               <th>Change</th>
               <th>Target</th>
@@ -133,7 +136,7 @@ export function RetestSheet({ entries, today, week, onChange }: RetestSheetProps
             skipped one, and a blank is honest in a way a guess is not.
           </p>
           <div className="intent-grid">
-            {RETEST_METRICS.map((metric) => (
+            {metrics.map((metric) => (
               <div className="field" key={metric.id}>
                 <label htmlFor={`retest-${metric.id}`}>
                   {metric.label}

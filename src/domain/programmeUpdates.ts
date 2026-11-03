@@ -1,5 +1,6 @@
 import { Session, SessionTask } from "./programmeSessions";
 import { BASELINE_ANCHORS } from "./baseline";
+import { programmeContext } from "./programmeContent";
 import {
   ReducedLevel,
   REDUCTION_RULES,
@@ -33,6 +34,15 @@ import { armCareForDay, describeSession, movementCount } from "./treadArmCare";
 
 const [BOX_MIN, BOX_MAX] = BASELINE_ANCHORS.depthJumpBoxCm;
 const [PCT_MIN, PCT_MAX] = BASELINE_ANCHORS.strengthPercentRange;
+
+/** The owner's account, the one the testing reports were measured on. */
+const reports = () => Boolean(programmeContext().reports);
+
+/** The athlete's own back squat max, or null until they enter one. */
+function squatMax(): number | null {
+  const value = Number(programmeContext().pbs?.trainingMaxes?.lifts?.backSquat?.value);
+  return value > 0 ? value : null;
+}
 
 /**
  * The stages this file treats as "the lift".
@@ -159,7 +169,8 @@ function round(value: number, to = 2.5) {
 }
 
 /** Load window the report prescribes for the strength block. */
-export function strengthWindowKg(oneRepMaxKg: number = BASELINE_ANCHORS.backSquat1RmKg) {
+export function strengthWindowKg(oneRepMaxKg: number | null = squatMax()) {
+  if (!oneRepMaxKg) return null;
   return { low: round((oneRepMaxKg * PCT_MIN) / 100), high: round((oneRepMaxKg * PCT_MAX) / 100) };
 }
 
@@ -207,15 +218,21 @@ function depthJumpTask(
  * force development directly.
  */
 function velocitySquatTask(prefix: string, stageTitle: string, stageDescription: string): SessionTask {
+  const max = squatMax();
+  const kg = reports() ? BASELINE_ANCHORS.optimalPowerLoadKg : max ? round(max * 0.65) : null;
   return {
     id: `${prefix}-velocity-squat`,
     stage: 4,
     stageTitle,
     stageDescription,
     name: "Speed squat - optimal power load",
-    prescription: `4 × 3 @ ${BASELINE_ANCHORS.optimalPowerLoadKg} kg · every rep maximal intent`,
+    prescription: kg ? `4 × 3 @ ${kg} kg · every rep maximal intent` : "4 × 3 @ about 65% of your squat max · every rep maximal intent",
     cue: "The load is fixed; the only variable is how fast the bar moves. Stop the set when bar speed drops.",
-    setup: `${BASELINE_ANCHORS.optimalPowerLoadKg} kg is the measured optimal load for peak power (L0/2 from the load-velocity profile). Use a rack with safeties.`,
+    setup: reports()
+      ? `${kg} kg is the measured optimal load for peak power (L0/2 from the load-velocity profile). Use a rack with safeties.`
+      : kg
+        ? `${kg} kg is 65% of your ${max} kg squat max. Use a rack with safeties.`
+        : "Enter your back squat max on the Baseline page and this becomes a load. Use a rack with safeties.",
     execution:
       "Controlled descent, then accelerate as hard as possible through the whole concentric. Reset between reps rather than bouncing them together.",
     rest: "2–3 minutes. Power work needs full recovery to stay power work.",
@@ -240,18 +257,20 @@ function velocitySquatTask(prefix: string, stageTitle: string, stageDescription:
  * and it moves when the max moves. See `withJumpPowerLoad`.
  */
 function trapBarJumpTask(prefix: string, stageTitle: string, stageDescription: string): SessionTask {
-  const max = BASELINE_ANCHORS.backSquat1RmKg;
+  const max = squatMax();
   const percent = BASELINE_ANCHORS.jumpPowerPercentOf1Rm;
-  const kg = Math.round((max * percent) / 100 / 2.5) * 2.5;
+  const kg = max ? Math.round((max * percent) / 100 / 2.5) * 2.5 : null;
   return {
     id: `${prefix}-trap-bar-jump`,
     stage: 4,
     stageTitle,
     stageDescription,
     name: "Trap bar jump",
-    prescription: `3 × 3 @ ${kg} kg · ${percent}% of tested squat max`,
+    prescription: kg ? `3 × 3 @ ${kg} kg · ${percent}% of tested squat max` : `3 × 3 @ a light load (${percent}% of your squat max)`,
     cue: "Chase height and a quiet landing, not load. The load is a position on your power curve, not a target - it goes up when the squat max does.",
-    setup: `Hex bar loaded to ${kg} kg, which is ${percent}% of the tested ${max} kg squat. Clear floor, room to land.`,
+    setup: kg
+      ? `Hex bar loaded to ${kg} kg, which is ${percent}% of the tested ${max} kg squat. Clear floor, room to land.`
+      : "Enter your back squat max on the Baseline page and this becomes a load. Clear floor, room to land.",
     execution:
       "Dip and jump in one movement, driving through the whole foot. Reset between reps rather than bouncing them together; land softly and stand up before the next one.",
     rest: "2–3 minutes. This is power work and it needs full recovery to stay power work.",
@@ -283,13 +302,32 @@ function backSquatTask(
   week: number | null = null,
   focus: string | null = null
 ): SessionTask {
-  const window = strengthWindowKg();
+  const max = squatMax();
   // The week's own dose, from the programme's fifty-two-week block table. Null
   // only where the session carries no readable week - then the original fixed
   // window stands, because a guessed week would be worse than a static one.
-  const dose = squatDose(week);
+  const dose = squatDose(week, max ?? 0);
   const easy = isEasyWeek(focus);
 
+  if (!max) {
+    const shape = dose ? `${dose.sets} × ${dose.reps}` : "4 × 5";
+    return {
+      id: `${prefix}-back-squat`,
+      stage: 4,
+      stageTitle,
+      stageDescription,
+      name: "Back squat",
+      prescription: `${shape} @ RPE 7–8${dose ? ` · ${dose.percent}% once your max is in` : ""}`,
+      cue: "Drive the bar with intent on every rep. Depth consistent, brace before the descent.",
+      setup: "From a rack with safeties. Enter your back squat max on the Baseline page and this becomes a load.",
+      execution:
+        "Controlled down, fast up. Stop the set if bar speed drops sharply or depth changes, rather than grinding a rep out.",
+      rest: "3 minutes between work sets.",
+      stop: "End the set for loss of spinal position or knee pain, or if bar speed collapses.",
+    };
+  }
+
+  const window = strengthWindowKg(max) as { low: number; high: number };
   if (!dose) {
     return {
       id: `${prefix}-back-squat`,
@@ -299,7 +337,7 @@ function backSquatTask(
       name: "Back squat",
       prescription: `4 × 5 @ ${window.low}–${window.high} kg · ${PCT_MIN}–${PCT_MAX}% of tested max`,
       cue: "Drive the bar with intent on every rep. Depth consistent, brace before the descent.",
-      setup: `From a rack with safeties. ${window.low}–${window.high} kg is ${PCT_MIN}–${PCT_MAX}% of the tested ${BASELINE_ANCHORS.backSquat1RmKg} kg max - start at the bottom of the window and progress across the block.`,
+      setup: `From a rack with safeties. ${window.low}–${window.high} kg is ${PCT_MIN}–${PCT_MAX}% of the tested ${max} kg max - start at the bottom of the window and progress across the block.`,
       execution:
         "Controlled down, fast up. Stop the set if bar speed drops sharply or depth changes, rather than grinding a rep out.",
       rest: "3 minutes between work sets.",
@@ -323,7 +361,7 @@ function backSquatTask(
     cue: easy
       ? `${character} - the load is deliberately light. Every rep still moves fast; end the set the moment one does not. A deload is for quality, not for grinding the volume back.`
       : `${character}. Drive the bar with intent on every rep. Depth consistent, brace before the descent.`,
-    setup: `From a rack with safeties. ${dose.kg} kg is ${dose.percent}% of the tested ${BASELINE_ANCHORS.backSquat1RmKg} kg max. The sets, reps and percentage all change week to week - check them rather than repeating last week's session.`,
+    setup: `From a rack with safeties. ${dose.kg} kg is ${dose.percent}% of the tested ${max} kg max. The sets, reps and percentage all change week to week - check them rather than repeating last week's session.`,
     execution:
       "Controlled down, fast up. Stop the set if bar speed drops sharply or depth changes, rather than grinding a rep out.",
     rest: dose.percent >= 85 ? "3–4 minutes between work sets." : "3 minutes between work sets.",
@@ -373,7 +411,9 @@ function rdlTask(prefix: string, stageTitle: string, stageDescription: string): 
     // Deliberately not "first of two": a soreness report can remove either
     // lift, and a cue that counts them is wrong the moment one goes.
     cue: "Microdose - three working sets, then stop. Push the hips back and keep the bar close; feel the hamstrings load rather than the lower back.",
-    setup: `Barbell from a rack at hip height. For reference, the report's strength window on the tested squat max is ${window.low}–${window.high} kg; the RDL is loaded by feel against that, not by the same percentage.`,
+    setup: window
+      ? `Barbell from a rack at hip height. For reference, the strength window on your squat max is ${window.low}–${window.high} kg; the RDL is loaded by feel against that, not by the same percentage.`
+      : "Barbell from a rack at hip height. Loaded by feel at RPE 7.",
     execution:
       "Soft knees, long spine, bar tracking the legs. Drive the floor away to stand. Deliberate tempo down, purposeful up.",
     rest: "2 minutes.",
@@ -550,7 +590,7 @@ function reactiveDoseTask(prefix: string, stageTitle: string, stageDescription: 
     stageDescription,
     name: "Reactive microdose - pogo and low hurdle hops",
     prescription: "Pogo 3 × 10 · low hurdle hops 3 × 4 · full recovery between sets",
-    cue: "Reactive work, aimed squarely at your slowest number. Short, stiff, fast off the floor. If a contact feels heavy, that set is finished.",
+    cue: "Reactive work. Short, stiff, fast off the floor. If a contact feels heavy, that set is finished.",
     setup:
       "Firm, non-slip surface. Hurdles at ankle to mid-shin - 15–25 cm - and no higher. If you have no hurdles, a line of shoes or a rolled towel does the job; the height is not what makes this work.",
     execution:
@@ -558,8 +598,10 @@ function reactiveDoseTask(prefix: string, stageTitle: string, stageDescription: 
     rest: "90 seconds between sets. This is a quality exposure and it stops being one the moment it is rushed.",
     stop:
       "Stop for Achilles, calf, knee or heel pain, and stop the set when contacts lengthen. Fatigued reactive work trains the opposite of what it is for.",
-    evidence:
-      "From the athlete's own testing rather than a trial: drop-jump RSI 0.96 (poor), ground contact 0.348 s against a sub-0.25 s target, and 354 ms to peak force on the squat jump - the slowest figures on the report. The programme trained that quality once a week; this is the second exposure. Dose and hurdle height follow the constraint profile's own early-option prescription (pogo 3 × 10, low hurdle hops 3 × 4), and the box and hurdle heights are kept deliberately low because contact time, not height, is the target.",
+    evidence: (reports()
+      ? "From the athlete's own testing rather than a trial: drop-jump RSI 0.96 (poor), ground contact 0.348 s against a sub-0.25 s target, and 354 ms to peak force on the squat jump - the slowest figures on the report. "
+      : "") +
+      "The programme trained reactive strength once a week; this is the second exposure. Dose and hurdle height follow the constraint profile's own early-option prescription (pogo 3 × 10, low hurdle hops 3 × 4), and the box and hurdle heights are kept deliberately low because contact time, not height, is the target.",
   };
 }
 
@@ -610,6 +652,8 @@ function withMeasuredPulldown(task: SessionTask): SessionTask {
  * squat jump after sprinting is a different test.
  */
 function retestTask(prefix: string, stageTitle: string, stageDescription: string, week: number): SessionTask {
+  const max = squatMax();
+  const loads = reports() ? "94 and 116 kg" : max ? `${round(max * 0.65)} and ${round(max * 0.8)} kg` : "65% and 80% of your squat max";
   return {
     id: `${prefix}-retest`,
     stage: 4,
@@ -617,8 +661,8 @@ function retestTask(prefix: string, stageTitle: string, stageDescription: string
     stageDescription,
     name: "Retest battery - jumps, sprint, bar speed",
     prescription:
-      "SJ 3 · CMJ 3 · drop jump 3 · 10 m sprint 2 · bar velocity at 94 kg and 116 kg · med-ball scoop 3",
-    cue: "Testing first, then train as normal - this replaces the depth jumps rather than joining them. Full recovery between every effort; a tired rep measures your fatigue, not your ability. The two bar-speed sets at 94 and 116 kg are also your ramp into the squat below, so nothing is done twice. Enter the numbers on the Athlete page.",
+      `SJ 3 · CMJ 3 · drop jump 3 · 10 m sprint 2 · bar velocity at ${loads} · med-ball scoop 3`,
+    cue: `Testing first, then train as normal - this replaces the depth jumps rather than joining them. Full recovery between every effort; a tired rep measures your fatigue, not your ability. The two bar-speed sets at ${loads} are also your ramp into the squat below, so nothing is done twice. Enter the numbers on the Athlete page.`,
     setup:
       "Force plate or jump mat, a 15–20 cm box, 10 m marked out, a velocity tracker on the bar and a 3 kg med ball. Same equipment, same surface, same order every time - a retest that changes its own conditions measures the conditions.",
     execution:
@@ -626,7 +670,7 @@ function retestTask(prefix: string, stageTitle: string, stageDescription: string
     rest: "Two to three minutes between every measured effort. There is no such thing as rushing this usefully.",
     stop:
       "Stop for pain. A missing number this cycle is better than an injury, and better than a number taken hurt.",
-    evidence: `Week ${week} of the block, on the every-third-week cadence the constraint profile asks for (it says two to four weeks where practical). The metrics are the profile's own monitoring list, and the targets it sets are directional: drop-jump ground contact 0.348 s → under 0.30 s then under 0.25 s, drop-jump RSI 0.96 → above 1.2 then toward 1.5, squat jump 19.8 → 23+ cm, countermovement jump 32.6 → 35+ cm, CMJ contraction time 730 → under 650 ms, squat V0 1.324 → above 1.40 m/s, relative Pmax 6.82 → 7.5–8.0 W/kg.`,
+    evidence: `Week ${week} of the block, on the every-third-week cadence the constraint profile asks for (it says two to four weeks where practical).${reports() ? ` The metrics are the profile's own monitoring list, and the targets it sets are directional: drop-jump ground contact 0.348 s → under 0.30 s then under 0.25 s, drop-jump RSI 0.96 → above 1.2 then toward 1.5, squat jump 19.8 → 23+ cm, countermovement jump 32.6 → 35+ cm, CMJ contraction time 730 → under 650 ms, squat V0 1.324 → above 1.40 m/s, relative Pmax 6.82 → 7.5–8.0 W/kg.` : " Your baseline numbers are the starting line each retest is read against."}`,
   };
 }
 
@@ -683,8 +727,15 @@ function withJumpPowerLoad(task: SessionTask): SessionTask {
   // second pass reads its own `@ 30 kg` and annotates it again.
   if (/% of tested squat max/i.test(prescription)) return task;
 
-  const max = BASELINE_ANCHORS.backSquat1RmKg;
+  const max = squatMax();
   const percent = BASELINE_ANCHORS.jumpPowerPercentOf1Rm;
+  if (!max) {
+    return {
+      ...task,
+      prescription: prescription.replace(JUMP_LOAD, `@ a light load (${percent}% of your squat max)`),
+      setup: appendOnce(String(task.setup ?? ""), "Enter your back squat max on the Baseline page and this becomes a load."),
+    };
+  }
   const kg = Math.round((max * percent) / 100 / 2.5) * 2.5;
   if (!(kg > 0)) return task;
 
@@ -697,9 +748,9 @@ function withJumpPowerLoad(task: SessionTask): SessionTask {
     ),
     setup: appendOnce(
       String(task.setup ?? ""),
-      `${kg} kg is ${percent}% of the tested ${max} kg squat - the programme's own 30 kg, written so it follows a retest instead of standing still.`
+      `${kg} kg is ${percent}% of the tested ${max} kg squat${reports() ? " - the programme's own 30 kg, written so it follows a retest instead of standing still" : ", so it follows a retest"}.`
     ),
-    evidence: `The programme wrote this as a flat "${prescription}", unchanged in all fifty-two weeks, while every other loaded lift in it is a percentage of a tested number. ${percent}% is back-derived from that 30 kg against the tested ${max} kg max rather than taken from a trial. It is a load for power, not a load to progress: peak power in a loaded jump occurs low and falls away either side, so adding weight past it makes this the slower, more force-dominant lift the trap bar deadlift beside it already is. Reported optimal loads for the jump squat sit between bodyweight and roughly 30% of squat 1RM and disagree within that band, which is why Cormie, McGuigan & Newton (Sports Med 2011;41(1):17–38, 41(2):125–146) conclude it has to be individualised rather than looked up; Swinton et al. (J Strength Cond Res 2012;26(4):906–13) is why the implement is a hexagonal bar, which produced greater peak power, force and velocity than a straight barbell across the loads they tested. The measured 94 kg optimal power load is not used here: that is L0/2 from a back-squat profile, where the load is all external, and in a jump the athlete's own body mass is most of the system.`,
+    evidence: `${reports() ? `The programme wrote this as a flat "${prescription}", unchanged in all fifty-two weeks, while every other loaded lift in it is a percentage of a tested number. ` : "Every loaded lift here is a percentage of your tested max, this one included. "}${reports() ? `${percent}% is back-derived from that 30 kg against the tested ${max} kg max rather than taken from a trial.` : `${percent}% of your ${max} kg squat max sits inside the range below.`} It is a load for power, not a load to progress: peak power in a loaded jump occurs low and falls away either side, so adding weight past it makes this the slower, more force-dominant lift the trap bar deadlift beside it already is. Reported optimal loads for the jump squat sit between bodyweight and roughly 30% of squat 1RM and disagree within that band, which is why Cormie, McGuigan & Newton (Sports Med 2011;41(1):17–38, 41(2):125–146) conclude it has to be individualised rather than looked up; Swinton et al. (J Strength Cond Res 2012;26(4):906–13) is why the implement is a hexagonal bar, which produced greater peak power, force and velocity than a straight barbell across the loads they tested.${reports() ? " The measured 94 kg optimal power load is not used here: that is L0/2 from a back-squat profile, where the load is all external, and in a jump the athlete's own body mass is most of the system." : ""}`,
   };
 }
 
@@ -732,7 +783,9 @@ function withBarSpeedIntent(task: SessionTask): SessionTask {
     ...task,
     cue: appendOnce(
       task.cue,
-      "Move the bar with maximal intent on every concentric, even at heavy loads - testing flagged a slow 354 ms time to peak force."
+      reports()
+        ? "Move the bar with maximal intent on every concentric, even at heavy loads - testing flagged a slow 354 ms time to peak force."
+        : "Move the bar with maximal intent on every concentric, even at heavy loads."
     ),
     execution: appendOnce(
       task.execution,
@@ -1313,6 +1366,24 @@ function withTreadArmCare(day: number | null, sessionTasks: readonly SessionTask
   };
 }
 
+/**
+ * The programme's literal starting loads were written for the owner. On
+ * anyone else's account they become effort-based until the athlete's own
+ * maxes say otherwise.
+ */
+const OWNER_LOADS: [RegExp, string][] = [
+  [/\s*·\s*suggested start [\d.–-]+ kg/g, ""],
+  [/[\d.]+–[\d.]+ kg dumbbells/g, "dumbbells"],
+  [/@ \d+(?:\.\d+)? kg · RPE/g, "@ RPE"],
+  [/Start trap bar load at 30 kg total[^.]*\./g, "Start light and keep every rep fast."],
+];
+function withoutOwnerLoads(task: SessionTask): SessionTask {
+  if (reports()) return task;
+  const strip = (text: unknown) =>
+    typeof text === "string" ? OWNER_LOADS.reduce((out, [pattern, to]) => out.replace(pattern, to), text) : text;
+  return { ...task, prescription: strip(task.prescription) as string, setup: strip(task.setup) as string | undefined, cue: strip(task.cue) as string };
+}
+
 export function applyBaselineProgramming(
   session: Session,
   level: ReducedLevel | null = null,
@@ -1348,7 +1419,8 @@ export function applyBaselineProgramming(
     .map(withPlyoEvidence)
     .map(withSupersets(day))
     .map(withTreadArmCare(day, session.tasks))
-    .map(withExplicitReducedDose(level));
+    .map(withExplicitReducedDose(level))
+    .map(withoutOwnerLoads);
 
   // Warm-up additions run every day that has a warm-up. Sunday has no
   // Prepare stage and correctly receives nothing.
@@ -1567,7 +1639,7 @@ export function applyBaselineProgramming(
   // synthesised microdose, which exists to stay cheap.
   const late = [
     ...(onThursday
-      ? [rdlTask(prefix, stageTitle, stageDescription), soleusTask(prefix, stageTitle, stageDescription)]
+      ? [rdlTask(prefix, stageTitle, stageDescription), ...(reports() ? [soleusTask(prefix, stageTitle, stageDescription)] : [])]
       : []),
     // Keyed on Thursday as well as on `synthesised`: a second pass over a
     // Thursday finds the stage the first pass built and would otherwise add it.

@@ -63,7 +63,7 @@ const PROGRAMME_TASK_NAMES: string[] = (() => {
       },
     },
   };
-  setProgrammeContext({ pbs });
+  setProgrammeContext({ reports: true, pbs });
   const names = new Set<string>();
   for (let week = 1; week <= PROGRAMME_WEEK_COUNT; week += 1) {
     const plan = weekPlan(week, pbs);
