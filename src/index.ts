@@ -2855,6 +2855,112 @@ async function handleInvites(request: Request, env: Env, url: URL): Promise<Resp
   return json({ error: "Method not allowed" }, 405);
 }
 
+// -- Games sent to one player ---------------------------------------------------
+//
+// A player's data is encrypted on their device, so the owner cannot write
+// into it. Games for one player — a tournament, a rep squad — are held here
+// against that player's account; their app adds them to their own games.
+
+async function ensurePlayerEventsTable(env: Env): Promise<void> {
+  await env.SYNC_DB.batch([
+    env.SYNC_DB.prepare(
+      `CREATE TABLE IF NOT EXISTS player_events (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        title TEXT NOT NULL,
+        games TEXT NOT NULL,
+        created_by TEXT NOT NULL,
+        created_at TEXT NOT NULL
+      ) STRICT`
+    ),
+    env.SYNC_DB.prepare("CREATE INDEX IF NOT EXISTS player_events_user ON player_events (user_id, created_at)"),
+  ]);
+}
+
+function cleanEventGames(value: unknown): { date: string; label: string }[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .slice(0, 60)
+    .flatMap((game) => {
+      const g = (game && typeof game === "object" ? game : {}) as Record<string, unknown>;
+      return typeof g.date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(g.date)
+        ? [{ date: g.date, label: cleanText(g.label, 80) || "Game" }]
+        : [];
+    });
+}
+
+async function handlePlayerEvents(request: Request, env: Env, url: URL): Promise<Response> {
+  await ensurePlayerEventsTable(env);
+  const parts = url.pathname.split("/").filter(Boolean); // api, players, :id, events, :eventId
+
+  // A player's own events.
+  if (url.pathname === "/api/me/events" && request.method === "GET") {
+    const session = await accountSession(request, env, url);
+    if (!session?.user?.id) return json({ error: "Sign in is required" }, 401);
+    const { results } = await env.SYNC_DB.prepare(
+      "SELECT id, title, games, created_at FROM player_events WHERE user_id = ?1 ORDER BY created_at"
+    )
+      .bind(session.user.id)
+      .all<{ id: string; title: string; games: string; created_at: string }>();
+    return json({
+      events: results.map((row) => ({ id: row.id, title: row.title, games: JSON.parse(row.games), createdAt: row.created_at })),
+    });
+  }
+
+  const denied = await requireOwner(request, env, url);
+  if (denied) return denied;
+  const session = await accountSession(request, env, url);
+
+  if (url.pathname === "/api/players" && request.method === "GET") {
+    const { results } = await env.SYNC_DB.prepare(
+      `SELECT u.id, u.name, u.email FROM account_workspaces w JOIN "user" u ON u.id = w.user_id ORDER BY u.name`
+    ).all<{ id: string; name: string; email: string }>();
+    const { results: events } = await env.SYNC_DB.prepare(
+      "SELECT id, user_id, title, games, created_at FROM player_events ORDER BY created_at"
+    ).all<{ id: string; user_id: string; title: string; games: string; created_at: string }>();
+    return json({
+      players: results.map((player) => ({
+        id: player.id,
+        name: player.name,
+        email: player.email,
+        events: events
+          .filter((event) => event.user_id === player.id)
+          .map((event) => ({ id: event.id, title: event.title, games: JSON.parse(event.games), createdAt: event.created_at })),
+      })),
+    });
+  }
+
+  const userId = parts[2] ?? "";
+  if (parts[3] !== "events" || !userId) return json({ error: "Not found" }, 404);
+  const blocked = requireSameOrigin(request, url, env);
+  if (blocked) return blocked;
+
+  if (request.method === "POST" && parts.length === 4) {
+    const player = await env.SYNC_DB.prepare("SELECT user_id FROM account_workspaces WHERE user_id = ?1")
+      .bind(userId)
+      .first<{ user_id: string }>();
+    if (!player) return json({ error: "No player with that account" }, 404);
+    const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
+    const title = cleanText(body.title, 80);
+    const games = cleanEventGames(body.games);
+    if (!title || !games.length) return json({ error: "Give the event a name and at least one game" }, 400);
+    const id = randomHex(8);
+    const now = new Date().toISOString();
+    await env.SYNC_DB.prepare(
+      "INSERT INTO player_events (id, user_id, title, games, created_by, created_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6)"
+    )
+      .bind(id, userId, title, JSON.stringify(games), session!.user.id, now)
+      .run();
+    return json({ id, title, games, createdAt: now }, 201);
+  }
+
+  if (request.method === "DELETE" && parts.length === 5) {
+    await env.SYNC_DB.prepare("DELETE FROM player_events WHERE id = ?1 AND user_id = ?2").bind(parts[4], userId).run();
+    return json({ deleted: true });
+  }
+  return json({ error: "Method not allowed" }, 405);
+}
+
 // -- Coach access ------------------------------------------------------------
 //
 // The owner coaches: with an athlete's say-so they can open that athlete's
@@ -3230,6 +3336,10 @@ async function routeApi(request: Request, env: Env, url: URL): Promise<Response 
   // fetched — the URL is rebuilt from validated parts, never passed through.
   // A GBL team's draw and, when a name is given, that player's own page on
   // the team roster — what a new account's team and name hook up to.
+  if (url.pathname === "/api/me/events" || url.pathname === "/api/players" || url.pathname.startsWith("/api/players/")) {
+    const limited = await enforceAccountRateLimit(request, env, url, env.INTEGRATION_RATE_LIMITER, "invites");
+    return limited ?? handlePlayerEvents(request, env, url);
+  }
   if (url.pathname === "/api/team/lookup" && request.method === "GET") {
     if (!(await nutritionKeyHash(request, env, url))) return json({ error: "Sign in to look up your team" }, 401);
     const limited = await enforceAccountRateLimit(request, env, url, env.INTEGRATION_RATE_LIMITER, "team-lookup");

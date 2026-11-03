@@ -14,6 +14,7 @@ import {
 import { Alert, Card, CardHead, Field, PageHead, TaskRow } from "./Page";
 import { DataBackup } from "./DataBackup";
 import { InvitesCard } from "./InvitesCard";
+import { PlayerEventsCard } from "./PlayerEventsCard";
 import { CoachCard } from "./CoachCard";
 import { AppState } from "../../src/domain/state";
 
@@ -372,6 +373,7 @@ export function Account({
       {!coaching && status?.isOwner && status.workspaceReady && onOpenAthlete && (
         <CoachCard api={api} onOpen={onOpenAthlete} />
       )}
+      {!coaching && status?.isOwner && status.workspaceReady && <PlayerEventsCard api={api} />}
 
       {!coaching && status?.isOwner && status.workspaceReady && <InvitesCard api={api} />}
 

@@ -9,6 +9,7 @@
 import { IsoDate } from "./state";
 import { SyncGetResponse, SyncPutResponse } from "./sync";
 import type { TeamLookup } from "./teamLookup";
+import type { EventGame, PlayerEvent } from "./playerEvents";
 import type { BallclubzOuting, BattingLine, TeamFixture } from "./ballclubz";
 import type { CoachAccess, CoachedAthlete } from "./coach";
 
@@ -391,6 +392,33 @@ export class PitchingOsApi {
   }
 
   /** A GBL team's draw, and the named player's Ballclubz page when found on the roster. */
+  /** Owner: every player with an account, and the games sent to each. */
+  listPlayers() {
+    return this.request<{ players: { id: string; name: string; email: string; events: PlayerEvent[] }[] }>("/api/players");
+  }
+
+  /** Owner: send games to one player. */
+  sendPlayerEvent(userId: string, title: string, games: EventGame[]) {
+    return this.request<PlayerEvent>(`/api/players/${encodeURIComponent(userId)}/events`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title, games }),
+    });
+  }
+
+  /** Owner: take back games sent to a player. */
+  deletePlayerEvent(userId: string, eventId: string) {
+    return this.request<{ deleted: boolean }>(
+      `/api/players/${encodeURIComponent(userId)}/events/${encodeURIComponent(eventId)}`,
+      { method: "DELETE" }
+    );
+  }
+
+  /** The games the owner has sent to this player. */
+  myEvents() {
+    return this.request<{ events: unknown[] }>("/api/me/events");
+  }
+
   /** A team outside the followed leagues, found on the web: logo, colours and draw. */
   teamLookup(team: string, where = "") {
     return this.request<TeamLookup & { fetchedAt: string }>(
