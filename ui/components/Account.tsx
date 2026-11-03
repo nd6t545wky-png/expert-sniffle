@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { ReactNode, useEffect, useState } from "react";
 import { PitchingOsApi } from "../../src/domain/api";
 import { isValidSyncKey, normalizeSyncKey } from "../../src/domain/sync";
 import {
@@ -15,6 +15,7 @@ import { Alert, Card, CardHead, Field, PageHead, TaskRow } from "./Page";
 import { DataBackup } from "./DataBackup";
 import { InvitesCard } from "./InvitesCard";
 import { PlayerEventsCard } from "./PlayerEventsCard";
+import { CoachCard } from "./CoachCard";
 import { AppState } from "../../src/domain/state";
 
 /**
@@ -41,6 +42,15 @@ export interface AccountProps {
   /** Everything stored, for the backup file. */
   state?: AppState | null;
   onReplaceState?: (state: AppState) => void;
+  /**
+   * The athlete being coached on this device, if any. While coaching, the key
+   * and backup on this page are the athlete's, so they are hidden.
+   */
+  coaching?: string | null;
+  /** The owner opened an athlete's app from the coach list. */
+  onOpenAthlete?: (athlete: { id: string; name: string }, syncKey: string) => void | Promise<void>;
+  /** A coach's request or access, for the athlete to answer. */
+  coachSlot?: ReactNode;
 }
 
 interface Status {
@@ -73,6 +83,9 @@ export function Account({
   syncStatus,
   state,
   onReplaceState,
+  coaching = null,
+  onOpenAthlete,
+  coachSlot,
 }: AccountProps) {
   const [status, setStatus] = useState<Status | null>(null);
   const [error, setError] = useState("");
@@ -304,6 +317,15 @@ export function Account({
         </Card>
       )}
 
+      {coaching && (
+        <Alert tone="info">
+          You are coaching {coaching}. Changes save to their account. Their recovery key and backup stay hidden.
+        </Alert>
+      )}
+
+      {!coaching && coachSlot}
+
+      {!coaching && (
       <Card className="cloud-card">
       <CardHead title="Recovery key" detail="Held on this device only" />
       <p className="fineprint">
@@ -346,11 +368,16 @@ export function Account({
       </div>
       {syncStatus && <p className="fineprint">{syncStatus}</p>}
       </Card>
+      )}
 
-      {status?.isOwner && status.workspaceReady && <InvitesCard api={api} />}
-      {status?.isOwner && status.workspaceReady && <PlayerEventsCard api={api} />}
+      {!coaching && status?.isOwner && status.workspaceReady && onOpenAthlete && (
+        <CoachCard api={api} onOpen={onOpenAthlete} />
+      )}
+      {!coaching && status?.isOwner && status.workspaceReady && <PlayerEventsCard api={api} />}
 
-      {onReplaceState && <DataBackup state={state ?? null} onReplace={onReplaceState} />}
+      {!coaching && status?.isOwner && status.workspaceReady && <InvitesCard api={api} />}
+
+      {!coaching && onReplaceState && <DataBackup state={state ?? null} onReplace={onReplaceState} />}
 
       {error && (
         <Alert tone="danger" role="alert">
