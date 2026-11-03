@@ -60,6 +60,10 @@ export function ProfileForm({
   const [name, setName] = useState(current.name ?? "");
   const [teamChoice, setTeamChoice] = useState(current.team ? (knownTeam ? current.team : OTHER) : "");
   const [otherTeam, setOtherTeam] = useState(knownTeam ? "" : current.team ?? "");
+  // The league comes first: it decides which draw the season is built from.
+  const [leagueChoice, setLeagueChoice] = useState(
+    leagueTeam(current.team)?.league.id ?? (current.team ? OTHER : "")
+  );
   const [playerType, setPlayerType] = useState<PlayerType | "">(current.playerType ?? "");
   const [throws, setThrows] = useState<Hand>(current.throws ?? "Right");
   const [bats, setBats] = useState<BatSide>(current.bats ?? "Right");
@@ -150,6 +154,7 @@ export function ProfileForm({
           schedule: { training, games: shownGames, winterGames: winter === "yes" ? winterGames : [] },
           winterTeam: winter === "yes" ? winterTeam.trim() : "",
           teamColours: { primary: shownPrimary, secondary: shownSecondary },
+          league: leagueChoice === OTHER ? where.trim() || "Other" : leagueChoice,
           ...(teamChoice === OTHER
             ? {
                 teamLogo: logo,
@@ -176,24 +181,44 @@ export function ProfileForm({
       </div>
 
       <div className="field full">
-        <label htmlFor="profileTeam">Who do you play for?</label>
-        <select id="profileTeam" value={teamChoice} onChange={(event) => setTeamChoice(event.target.value)}>
+        <label htmlFor="profileLeague">Which league are you playing in now?</label>
+        <select
+          id="profileLeague"
+          value={leagueChoice}
+          onChange={(event) => {
+            setLeagueChoice(event.target.value);
+            setTeamChoice(event.target.value === OTHER ? OTHER : "");
+          }}
+        >
           <option value="" disabled>
-            Choose your team
+            Choose your league
           </option>
           {LEAGUES.map((option) => (
-            <optgroup key={option.id} label={option.name}>
-              {option.teams.map((club) => (
-                <option key={club.name} value={club.name}>
-                  {club.name}
-                </option>
-              ))}
-            </optgroup>
+            <option key={option.id} value={option.id}>
+              {option.name}
+            </option>
           ))}
-          <option value={OTHER}>Another team…</option>
+          <option value={OTHER}>Another league…</option>
         </select>
-        <small>A GBL or ABL team brings in its draw automatically, and your week follows it.</small>
+        <small>Your season is built from this league&apos;s draw: pre-season before it starts, in-season while it runs.</small>
       </div>
+
+      {leagueChoice && leagueChoice !== OTHER && (
+        <div className="field full">
+          <label htmlFor="profileTeam">Who do you play for?</label>
+          <select id="profileTeam" value={teamChoice} onChange={(event) => setTeamChoice(event.target.value)}>
+            <option value="" disabled>
+              Choose your team
+            </option>
+            {LEAGUES.find((option) => option.id === leagueChoice)?.teams.map((club) => (
+              <option key={club.name} value={club.name}>
+                {club.name}
+              </option>
+            ))}
+            <option value={OTHER}>Another team…</option>
+          </select>
+        </div>
+      )}
 
       {teamChoice === OTHER && (
         <>
@@ -209,7 +234,7 @@ export function ProfileForm({
           </div>
           {onLookup && (
             <div className="field full team-lookup">
-              <label htmlFor="profileTeamWhere">Where is it? (optional)</label>
+              <label htmlFor="profileTeamWhere">{leagueChoice === OTHER ? "League name and where it is" : "Where is it? (optional)"}</label>
               <input
                 id="profileTeamWhere"
                 type="text"

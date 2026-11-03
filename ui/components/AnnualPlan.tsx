@@ -55,6 +55,29 @@ const CYCLE_COLOUR: Record<string, string> = {
 
 const cycleColour = (id: string): string => CYCLE_COLOUR[id] ?? "var(--muted)";
 
+type Phase = NonNullable<ReturnType<typeof phaseForWeek>>;
+
+/** The athlete's phases over the year, as runs of weeks with the same name. */
+function athletePhases(phaseOf: (week: number) => { id: string; name: string } | null) {
+  const byWeek: Record<number, Phase> = {};
+  const spans: { phase: Phase; weeks: number }[] = [];
+  for (let week = 1; week <= PROGRAMME_WEEK_COUNT; week += 1) {
+    const found = phaseOf(week);
+    if (!found) continue;
+    const last = spans[spans.length - 1];
+    if (last && last.phase.name === found.name && last.phase.endWeek === week - 1) {
+      last.phase.endWeek = week;
+      last.weeks += 1;
+    } else {
+      // Off-season is drawn in slate, whatever block of the owner's year it sits in.
+      const id = found.name === "Off-season" ? "off_season" : found.id;
+      spans.push({ phase: { id: `${id}`, name: found.name, startWeek: week, endWeek: week, color: "", summary: "" }, weeks: 1 });
+    }
+    byWeek[week] = spans[spans.length - 1].phase;
+  }
+  return { byWeek, spans };
+}
+
 export interface AnnualPlanProps {
   selectedWeek: number;
   onSelectWeek: (week: number) => void;
@@ -62,6 +85,8 @@ export interface AnnualPlanProps {
   today?: IsoDate;
   /** Which view opens first. The app opens on the month: twelve stacked grids is a long scroll on a phone. */
   initialView?: View;
+  /** The athlete's own phase for a week, where their season follows their draw. */
+  phaseOf?: (week: number) => { id: string; name: string } | null;
 }
 
 /*
@@ -74,13 +99,14 @@ export interface AnnualPlanProps {
 
 type View = "year" | "month";
 
-export function AnnualPlan({ selectedWeek, onSelectWeek, today, initialView = "year" }: AnnualPlanProps) {
+export function AnnualPlan({ selectedWeek, onSelectWeek, today, initialView = "year", phaseOf }: AnnualPlanProps) {
   const [view, setView] = useState<View>(initialView);
   const [monthKey, setMonthKey] = useState(() => monthContaining(weekStart(selectedWeek)).key);
 
-  const months = programmeMonths();
-  const spans = phaseSpans();
-  const phase = phaseForWeek(selectedWeek);
+  const own = phaseOf ? athletePhases(phaseOf) : null;
+  const months = own ? programmeMonths().map((m) => ({ ...m, weeks: m.weeks.map((row) => row.map((cell) => ({ ...cell, phase: cell.week ? own.byWeek[cell.week] ?? null : null }))) })) : programmeMonths();
+  const spans = own ? own.spans : phaseSpans();
+  const phase = own ? own.byWeek[selectedWeek] ?? null : phaseForWeek(selectedWeek);
   const month = months.find((m) => m.key === monthKey) ?? months[0];
   const monthIndex = months.findIndex((m) => m.key === month.key);
 

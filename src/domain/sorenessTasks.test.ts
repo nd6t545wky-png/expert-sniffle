@@ -32,7 +32,7 @@ const PBS = {
   },
 };
 
-setProgrammeContext({ pbs: PBS });
+setProgrammeContext({ reports: true, pbs: PBS });
 
 /** Every (week, day) the programme can produce, built once. */
 const ALL_DAYS: { week: number; day: number; date: string; session: Session }[] = (() => {

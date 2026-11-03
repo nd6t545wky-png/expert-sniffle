@@ -154,6 +154,23 @@ export const RETEST_METRICS: readonly RetestMetric[] = Object.freeze([
 
 const BY_ID = new Map(RETEST_METRICS.map((metric) => [metric.id, metric]));
 
+/**
+ * The battery as one athlete reads it. The owner keeps the report's April
+ * numbers and its targets; anyone else's baseline is their own entry, and the
+ * report's targets (set against the owner's numbers) do not apply.
+ */
+export function retestMetricsFor(reports: boolean, own: Record<string, number> = {}): readonly RetestMetric[] {
+  if (reports) return RETEST_METRICS;
+  return RETEST_METRICS.map((metric) => ({
+    ...metric,
+    label: metric.label.replace(/ \(\d+ kg\)$/, " of squat max"),
+    how: metric.how.replace(/ Compare against .*$/, ""),
+    baseline: own[metric.id] ?? null,
+    target: null,
+    stretch: null,
+  }));
+}
+
 // --- When ---------------------------------------------------------------------
 
 /** Weeks between retests. Three is the practical end of the profile's 2–4. */
@@ -240,8 +257,8 @@ function better(direction: Direction, value: number, than: number): boolean {
 }
 
 /** Every metric, with whatever has been measured since. */
-export function readings(entries: readonly RetestEntry[]): MetricReading[] {
-  return RETEST_METRICS.map((metric) => {
+export function readings(entries: readonly RetestEntry[], metrics: readonly RetestMetric[] = RETEST_METRICS): MetricReading[] {
+  return metrics.map((metric) => {
     const found = entries.find((entry) => entry.values[metric.id] !== undefined);
     const latest = found ? found.values[metric.id] : null;
     const start = metric.baseline;
@@ -271,13 +288,13 @@ export function readings(entries: readonly RetestEntry[]): MetricReading[] {
 }
 
 /** One line for the plan: what has been measured and what has not. */
-export function retestSummary(entries: readonly RetestEntry[]): {
+export function retestSummary(entries: readonly RetestEntry[], metrics: readonly RetestMetric[] = RETEST_METRICS): {
   measured: number;
   total: number;
   improved: number;
   lastOn: IsoDate | null;
 } {
-  const all = readings(entries);
+  const all = readings(entries, metrics);
   return {
     measured: all.filter((reading) => reading.latest !== null).length,
     total: all.length,

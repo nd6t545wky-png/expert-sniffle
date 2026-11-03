@@ -413,3 +413,69 @@ export function buildSession(
     (options.adjustment ? applyReadinessToSession(session, options.adjustment) : session) as Session
   );
 }
+
+/** Weeks of pre-season before a team's first game, and of transition after its last. */
+export const PRESEASON_WEEKS = 6;
+export const TRANSITION_WEEKS = 3;
+
+/**
+ * The week's phase, read off the athlete's own league draw.
+ *
+ * The phase table was written around the owner's calendar: FNCBA winter, then
+ * the Cubs' GBL summer. An athlete on another team gets their season from
+ * their draw instead - pre-season in the weeks before their first game,
+ * in season while their league plays, a transition after its last game, and
+ * off-season otherwise. A winter-ball player keeps the winter weeks, which
+ * are their winter season.
+ */
+export function withSeasonFromDraw(
+  plan: WeekPlan,
+  draw: { dates: readonly IsoDate[]; league: string; winterBall: boolean } | null
+): WeekPlan {
+  if (!draw || !draw.dates.length) return plan;
+  const sorted = [...draw.dates].sort();
+  const first = sorted[0];
+  const last = sorted[sorted.length - 1];
+  const start = dateForWeekDay(plan, 0);
+  const end = dateForWeekDay(plan, 6);
+  const winterPhase = plan.phase.id === "winter" || plan.phase.id === "winter_next";
+  if (winterPhase && draw.winterBall) return plan;
+
+  const daysBetween = (from: IsoDate, to: IsoDate) => Math.round((Date.parse(to) - Date.parse(from)) / 86_400_000);
+  const shortDate = (iso: IsoDate) =>
+    new Date(`${iso}T00:00:00Z`).toLocaleDateString("en-AU", { day: "numeric", month: "short", timeZone: "UTC" });
+  // The week's own lines name the owner's leagues and rounds; this athlete's
+  // week names their games instead.
+  const OWNER_LEAGUES = /Cubs|Coomera|GBL|FNCBA|Norths|Round \d+|Redbirds/;
+  const thisWeek = sorted.filter((date) => date >= start && date <= end);
+  const competition = thisWeek.length
+    ? `${draw.league} · ${thisWeek.length} game${thisWeek.length === 1 ? "" : "s"}: ${thisWeek.map(shortDate).join(", ")}`
+    : "No game on your draw this week";
+  const phase = (id: string, name: string, summary: string): WeekPlan => {
+    const own = (text: unknown, fallback: string) => (OWNER_LEAGUES.test(String(text ?? "")) ? fallback : String(text ?? ""));
+    return {
+      ...plan,
+      phase: { ...plan.phase, id, name, summary },
+      competition,
+      focus: own(plan.focus, name),
+      throwing: own(plan.throwing, "Throwing follows your games this week"),
+      recovery: own(plan.recovery, "Recover around your games"),
+    };
+  };
+
+  if (end >= first && start <= last) {
+    const gameThisWeek = sorted.some((date) => date >= start && date <= end);
+    if (plan.phase.id === "summer_break" && !gameThisWeek) {
+      return phase("summer_break", "Christmas break", `${draw.league} stops over Christmas. Recover first, then rebuild before games resume.`);
+    }
+    const id = plan.phase.id === "summer_break" || isSummerCompetitionPhase(plan.phase.id) ? plan.phase.id : "summer_first";
+    return phase(id, `${draw.league} · In season`, `Your league's season, ${shortDate(first)} to ${shortDate(last)}. Each week is built around your games.`);
+  }
+  if (start < first && daysBetween(start, first) <= PRESEASON_WEEKS * 7) {
+    return phase("preseason", `${draw.league} · Pre-season`, `Building to your first game on ${shortDate(first)}.`);
+  }
+  if (start > last && daysBetween(last, start) <= TRANSITION_WEEKS * 7) {
+    return phase("transition_summer", "Post-season transition", `Your season finished ${shortDate(last)}. Unload, restore range, keep basic strength.`);
+  }
+  return phase(winterPhase ? plan.phase.id : "winter_next", "Off-season", "No games on your draw. Build strength, speed and the arm for next season.");
+}

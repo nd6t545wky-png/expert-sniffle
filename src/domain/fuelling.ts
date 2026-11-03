@@ -31,7 +31,6 @@
  */
 
 import { PlanLevel } from "./readiness";
-import { BASELINE_ANCHORS } from "./baseline";
 
 export type SessionDemand = "rest" | "light" | "moderate" | "hard";
 
@@ -220,18 +219,22 @@ export function fuelTargets(input: {
  * reading from a check-in beats the scan's. Lean mass and basal rate only
  * change with a new scan.
  */
-export function fuelTargetsFromBaseline(input: {
-  bodyweightKg?: number | null;
-  stress?: unknown;
-  duration?: unknown;
-  planLevel?: PlanLevel | null;
-  hasSession?: boolean;
-}): FuelTargets | null {
+export function fuelTargetsFromBaseline(
+  input: {
+    bodyweightKg?: number | null;
+    stress?: unknown;
+    duration?: unknown;
+    planLevel?: PlanLevel | null;
+    hasSession?: boolean;
+  },
+  /** The athlete's own scan and weight (`fuelBasis`); nobody else's. */
+  basis: { bodyweightKg?: number; leanMassKg?: number; basalKcal?: number } = {}
+): FuelTargets | null {
   return fuelTargets({
     ...input,
-    bodyweightKg: input.bodyweightKg ?? BASELINE_ANCHORS.bodyMassKg,
-    leanMassKg: BASELINE_ANCHORS.leanMassKg,
-    basalKcal: BASELINE_ANCHORS.basalMetabolicRateKcal,
+    bodyweightKg: input.bodyweightKg ?? basis.bodyweightKg,
+    leanMassKg: basis.leanMassKg,
+    basalKcal: basis.basalKcal,
   });
 }
 

@@ -60,10 +60,10 @@ describe("the trap bar max, solved from the programme's own tables", () => {
 });
 
 describe("what the seeded max does to the plan", () => {
-  const seeded = seedBaselinePbs({} as Record<string, unknown>) as { pbs: unknown };
+  const seeded = seedBaselinePbs({ profile: { ownReports: true } } as Record<string, unknown>) as { pbs: unknown };
 
   it("gives every trap bar session in the year a real load", () => {
-    setProgrammeContext({ pbs: seeded.pbs as never });
+    setProgrammeContext({ reports: true, pbs: seeded.pbs as never });
     const prescriptions = new Set<string>();
     for (let week = 1; week <= 52; week += 1) {
       const plan = weekPlan(week, seeded.pbs);
@@ -82,7 +82,7 @@ describe("what the seeded max does to the plan", () => {
   });
 
   it("leaves the back squat saying it was tested", () => {
-    setProgrammeContext({ pbs: seeded.pbs as never });
+    setProgrammeContext({ reports: true, pbs: seeded.pbs as never });
     const tasks = applyBaselineProgramming(buildSession(weekPlan(3, seeded.pbs), 0), null, 0).tasks;
     const squat = tasks.find((task) => /^Back squat$/.test(String(task.name)));
     expect(squat?.setup).toMatch(/tested 145 kg max/);
@@ -125,18 +125,18 @@ describe("editing a max", () => {
   });
 
   it("outranks a derived figure", () => {
-    const seeded = seedBaselinePbs({} as Record<string, unknown>) as { pbs: unknown };
+    const seeded = seedBaselinePbs({ profile: { ownReports: true } } as Record<string, unknown>) as { pbs: unknown };
     expect(readTrainingMaxes(seeded.pbs).trapBarDeadlift.kind).toBe("derived");
     const edited = setTrainingMax(seeded.pbs, "trapBarDeadlift", 165);
     expect(readTrainingMaxes(edited).trapBarDeadlift).toMatchObject({ value: 165, kind: "entered" });
   });
 
   it("clearing one puts that lift back on the written fallback", () => {
-    const seeded = seedBaselinePbs({} as Record<string, unknown>) as { pbs: unknown };
+    const seeded = seedBaselinePbs({ profile: { ownReports: true } } as Record<string, unknown>) as { pbs: unknown };
     const cleared = setTrainingMax(seeded.pbs, "trapBarDeadlift", null);
     expect(readTrainingMaxes(cleared).trapBarDeadlift).toBeUndefined();
 
-    setProgrammeContext({ pbs: cleared as never });
+    setProgrammeContext({ reports: true, pbs: cleared as never });
     const tasks = applyBaselineProgramming(buildSession(weekPlan(9, cleared), 2), null, 2).tasks;
     const trap = tasks.find((task) => /^Trap bar deadlift$/.test(String(task.name)));
     expect(trap?.prescription).toMatch(/RPE/);
@@ -146,7 +146,7 @@ describe("editing a max", () => {
   it("refuses a value outside the range rather than clamping it", () => {
     // A clamp would accept 4000 as 400 and put a number nobody meant behind
     // every load in the year.
-    const seeded = seedBaselinePbs({} as Record<string, unknown>) as { pbs: unknown };
+    const seeded = seedBaselinePbs({ profile: { ownReports: true } } as Record<string, unknown>) as { pbs: unknown };
     for (const bad of [0, 5, 4000, Number.NaN]) {
       expect(readTrainingMaxes(setTrainingMax(seeded.pbs, "backSquat", bad)).backSquat.value).toBe(145);
     }

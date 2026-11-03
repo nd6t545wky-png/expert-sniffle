@@ -39,6 +39,8 @@ export const GBL_LEAGUE = "gbld1";
 
 export interface AthleteProfile {
   name: string;
+  /** The league they play in now: a LEAGUES id, or the name they typed. */
+  league?: string;
   /** Team training nights and game days; see weeklySchedule.ts. */
   schedule: WeeklySchedule;
   /** Winter-ball club, or "" for none. */
@@ -104,7 +106,8 @@ export function gblTeam(team: string | undefined) {
 export function winterClubOf(value: unknown): string | undefined {
   const raw = (value && typeof value === "object" ? value : {}) as Record<string, unknown>;
   if (typeof raw.winterTeam === "string" && raw.winterTeam.trim()) return raw.winterTeam.trim();
-  const team = readAthleteProfile(value).team ?? "Coomera Cubs";
+  // Only a profile that actually names the Cubs: a brand-new one has no team.
+  const team = readAthleteProfile(value).team;
   return team === "Coomera Cubs" && !isType(raw.playerType) ? "Norths" : undefined;
 }
 

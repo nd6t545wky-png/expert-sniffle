@@ -14,10 +14,20 @@
  * report named absent from all fifty-two.
  */
 
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
+import { setProgrammeContext } from "./programmeContent";
 import { buildSession, weekPlan } from "./programmeSessions";
 import { applyBaselineProgramming } from "./programmeUpdates";
 import { velocityPolicy } from "./velocity";
+
+// These pin the owner's programme, built on the owner's tested maxes.
+beforeEach(() =>
+  setProgrammeContext({
+    reports: true,
+    pbs: { trainingMaxes: { lifts: { backSquat: { value: 145, kind: "tested" }, trapBarDeadlift: { value: 150, kind: "derived" } } } },
+  })
+);
+
 
 const WEEKS = Array.from({ length: 52 }, (_, index) => index + 1);
 const DAYS = [0, 1, 2, 3, 4, 5, 6];

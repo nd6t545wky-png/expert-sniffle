@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { fuelTargets, fuelTargetsFromBaseline, sessionDemand } from "./fuelling";
+import { fuelBasis } from "./baseline";
 
 describe("sessionDemand", () => {
   it("reads the session's own stress label", () => {
@@ -150,13 +151,13 @@ describe("fuelTargets - built on the athlete's own measurements", () => {
   });
 
   it("uses the scan by default, but a fresher bodyweight when there is one", () => {
-    const fromScan = fuelTargetsFromBaseline({ stress: "Moderate" })!;
+    const fromScan = fuelTargetsFromBaseline({ stress: "Moderate" }, fuelBasis({ ownReports: true }))!;
     expect(fromScan.proteinFromLeanMass).toBe(true);
     expect(fromScan.energyFromMeasuredBmr).toBe(true);
 
     // Bodyweight is the figure expected to move; lean mass and basal rate
     // only change with a new scan.
-    const weighedToday = fuelTargetsFromBaseline({ bodyweightKg: 86, stress: "Moderate" })!;
+    const weighedToday = fuelTargetsFromBaseline({ bodyweightKg: 86, stress: "Moderate" }, fuelBasis({ ownReports: true }))!;
     expect(weighedToday.carbs).toBeLessThan(fromScan.carbs);
     expect(weighedToday.protein).toBe(fromScan.protein);
   });

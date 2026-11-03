@@ -38,7 +38,8 @@ describe("athlete profile", () => {
   });
 
   it("keeps Norths as the original athlete's winter club, and only theirs", () => {
-    expect(winterClubOf({ name: "Dylan Sippel" })).toBe("Norths");
+    expect(winterClubOf({ name: "Dylan Sippel", team: "Coomera Cubs" })).toBe("Norths");
+    expect(winterClubOf({})).toBeUndefined();
     expect(winterClubOf({ team: "Coomera Cubs", playerType: "position" })).toBeUndefined();
     expect(winterClubOf({ team: "Coomera Cubs", playerType: "pitcher", winterTeam: "Norths" })).toBe("Norths");
     expect(winterClubOf({ team: "Redlands Rays" })).toBeUndefined();

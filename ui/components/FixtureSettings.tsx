@@ -23,6 +23,10 @@ import { Card, CardHead } from "./Page";
 export interface FixtureSettingsProps {
   /** Only the athlete's own entries - the built-in rounds are not editable. */
   fixtures: Fixture[];
+  /** This athlete's own team draw, which the entered games are merged over. */
+  builtIn: Fixture[];
+  /** The team a new game is entered for. */
+  defaultTeam?: string;
   /** Today, so the list can separate what is still to come. */
   today: IsoDate;
   onChange: (next: Fixture[]) => void;
@@ -55,6 +59,8 @@ function opponentOf(label: string): string {
 
 export function FixtureSettings({
   fixtures,
+  builtIn,
+  defaultTeam = "My team",
   today,
   onChange,
   onSelectWeek,
@@ -63,10 +69,10 @@ export function FixtureSettings({
 }: FixtureSettingsProps) {
   const [date, setDate] = useState("");
   const [label, setLabel] = useState("");
-  const [team, setTeam] = useState("Norths");
+  const [team, setTeam] = useState(defaultTeam);
   const [showAll, setShowAll] = useState(false);
 
-  const everything = allFixtures(fixtures);
+  const everything = allFixtures(fixtures, builtIn);
   const ahead = everything.filter((fixture) => fixture.date >= today);
   // One week: this one, or the week picked on the calendar. The rest of the
   // season is a tap away.

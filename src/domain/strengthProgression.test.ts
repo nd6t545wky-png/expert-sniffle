@@ -9,7 +9,8 @@
  * same session", which is the property that was silently false.
  */
 
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
+import { setProgrammeContext } from "./programmeContent";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
@@ -21,6 +22,15 @@ import {
 } from "./strengthProgression";
 import { buildSession, weekPlan } from "./programmeSessions";
 import { applyBaselineProgramming } from "./programmeUpdates";
+
+// These pin the owner's programme, built on the owner's tested maxes.
+beforeEach(() =>
+  setProgrammeContext({
+    reports: true,
+    pbs: { trainingMaxes: { lifts: { backSquat: { value: 145, kind: "tested" }, trapBarDeadlift: { value: 150, kind: "derived" } } } },
+  })
+);
+
 
 const WEEKS = Array.from({ length: 52 }, (_, index) => index + 1);
 const WINTER = [1, 2, 3, 4, 5, 6, 7, 8];
