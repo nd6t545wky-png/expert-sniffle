@@ -2855,6 +2855,157 @@ async function handleInvites(request: Request, env: Env, url: URL): Promise<Resp
   return json({ error: "Method not allowed" }, 405);
 }
 
+// -- Coach access ------------------------------------------------------------
+//
+// The owner coaches: with an athlete's say-so they can open that athlete's
+// workspace and edit it as if it were their own. The owner asks; the athlete
+// allows or declines from their own account. Only an allowed row hands out the
+// athlete's sync key, and either side can end it at any time.
+//
+// This adds no new trust in the server: it already unwraps every workspace key
+// for its signed-in owner. It only adds a second, consented reader.
+
+/** Created on first use, like invites: the deploy pipeline runs no migrations (0009 records it). */
+async function ensureCoachTable(env: Env): Promise<void> {
+  await env.SYNC_DB.prepare(
+    `CREATE TABLE IF NOT EXISTS coach_access (
+      athlete_user_id TEXT PRIMARY KEY NOT NULL,
+      coach_user_id TEXT NOT NULL,
+      status TEXT NOT NULL CHECK (status IN ('pending', 'active')),
+      requested_at TEXT NOT NULL,
+      granted_at TEXT
+    ) STRICT`
+  ).run();
+}
+
+const USER_ID_PATTERN = /^[A-Za-z0-9_-]{6,80}$/;
+
+async function handleCoach(request: Request, env: Env, url: URL): Promise<Response> {
+  const denied = await requireOwner(request, env, url);
+  if (denied) return denied;
+  await ensureCoachTable(env);
+  const session = await accountSession(request, env, url);
+  const coachId = session!.user.id;
+
+  // GET /api/coach/athletes: every player with a workspace, and where access stands.
+  if (url.pathname === "/api/coach/athletes" && request.method === "GET") {
+    const { results } = await env.SYNC_DB.prepare(
+      `SELECT u.id, u.name, w.updated_at, c.status
+       FROM account_workspaces w
+       JOIN "user" u ON u.id = w.user_id
+       LEFT JOIN coach_access c ON c.athlete_user_id = w.user_id AND c.coach_user_id = ?1
+       WHERE w.user_id <> ?1
+       ORDER BY u.name COLLATE NOCASE`
+    )
+      .bind(coachId)
+      .all<{ id: string; name: string; updated_at: string; status: string | null }>();
+    return json({
+      athletes: results.map((row) => ({ id: row.id, name: row.name, access: row.status || "none" })),
+    });
+  }
+
+  const match = /^\/api\/coach\/athletes\/([^/]+)(\/open)?$/.exec(url.pathname);
+  const athleteId = match ? decodeURIComponent(match[1]) : "";
+  if (!match || !USER_ID_PATTERN.test(athleteId) || athleteId === coachId) return json({ error: "Unknown athlete" }, 404);
+
+  const blocked = requireSameOrigin(request, url, env);
+  if (blocked) return blocked;
+
+  const athlete = await env.SYNC_DB.prepare(
+    `SELECT u.name, w.wrapped_sync_key FROM account_workspaces w JOIN "user" u ON u.id = w.user_id WHERE w.user_id = ?1`
+  )
+    .bind(athleteId)
+    .first<{ name: string; wrapped_sync_key: string }>();
+  if (!athlete) return json({ error: "Unknown athlete" }, 404);
+
+  // POST /api/coach/athletes/:id/open: the athlete's key, only once they have allowed it.
+  if (match[2] && request.method === "POST") {
+    const access = await env.SYNC_DB.prepare(
+      "SELECT status FROM coach_access WHERE athlete_user_id = ?1 AND coach_user_id = ?2"
+    )
+      .bind(athleteId, coachId)
+      .first<{ status: string }>();
+    if (access?.status !== "active") {
+      return json({ error: `${athlete.name} has not allowed coach access yet`, code: "coach_not_allowed" }, 403);
+    }
+    return json({ athlete: { id: athleteId, name: athlete.name }, syncKey: await unwrapWorkspaceKey(athlete.wrapped_sync_key, env) });
+  }
+  if (match[2]) return json({ error: "Method not allowed" }, 405);
+
+  // POST /api/coach/athletes/:id: ask. An allowed request stays allowed.
+  if (request.method === "POST") {
+    await env.SYNC_DB.prepare(
+      `INSERT INTO coach_access (athlete_user_id, coach_user_id, status, requested_at)
+       VALUES (?1, ?2, 'pending', ?3)
+       ON CONFLICT(athlete_user_id) DO UPDATE SET
+         coach_user_id = excluded.coach_user_id,
+         status = CASE WHEN coach_access.coach_user_id = excluded.coach_user_id THEN coach_access.status ELSE 'pending' END,
+         requested_at = excluded.requested_at`
+    )
+      .bind(athleteId, coachId, new Date().toISOString())
+      .run();
+    const row = await env.SYNC_DB.prepare("SELECT status FROM coach_access WHERE athlete_user_id = ?1")
+      .bind(athleteId)
+      .first<{ status: string }>();
+    return json({ access: row?.status || "pending" });
+  }
+
+  // DELETE /api/coach/athletes/:id: the coach steps away, or withdraws a request.
+  if (request.method === "DELETE") {
+    await env.SYNC_DB.prepare("DELETE FROM coach_access WHERE athlete_user_id = ?1 AND coach_user_id = ?2")
+      .bind(athleteId, coachId)
+      .run();
+    return json({ access: "none" });
+  }
+  return json({ error: "Method not allowed" }, 405);
+}
+
+/** The athlete's side: see a coach's request, allow it, decline it, or end it. */
+async function handleAccountCoach(request: Request, env: Env, url: URL): Promise<Response> {
+  const session = await accountSession(request, env, url);
+  if (!session?.user?.id) return json({ error: "Sign in is required" }, 401);
+  await ensureCoachTable(env);
+  const athleteId = session.user.id;
+
+  const current = () =>
+    env.SYNC_DB.prepare(
+      `SELECT c.status, u.name AS coach_name FROM coach_access c
+       JOIN "user" u ON u.id = c.coach_user_id
+       WHERE c.athlete_user_id = ?1`
+    )
+      .bind(athleteId)
+      .first<{ status: string; coach_name: string }>();
+
+  if (request.method === "GET") {
+    const row = await current();
+    return json({ coach: row ? { name: row.coach_name, access: row.status } : null });
+  }
+
+  const blocked = requireSameOrigin(request, url, env);
+  if (blocked) return blocked;
+
+  if (request.method === "POST") {
+    const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
+    if (body.allow !== true) {
+      await env.SYNC_DB.prepare("DELETE FROM coach_access WHERE athlete_user_id = ?1").bind(athleteId).run();
+      return json({ coach: null });
+    }
+    await env.SYNC_DB.prepare(
+      "UPDATE coach_access SET status = 'active', granted_at = ?1 WHERE athlete_user_id = ?2"
+    )
+      .bind(new Date().toISOString(), athleteId)
+      .run();
+    const row = await current();
+    return row ? json({ coach: { name: row.coach_name, access: row.status } }) : json({ error: "No coach has asked" }, 404);
+  }
+
+  if (request.method === "DELETE") {
+    await env.SYNC_DB.prepare("DELETE FROM coach_access WHERE athlete_user_id = ?1").bind(athleteId).run();
+    return json({ coach: null });
+  }
+  return json({ error: "Method not allowed" }, 405);
+}
+
 async function deleteAccount(request: Request, env: Env, url: URL): Promise<Response> {
   const blocked = requireSameOrigin(request, url, env);
   if (blocked) return blocked;
@@ -2874,6 +3025,11 @@ async function deleteAccount(request: Request, env: Env, url: URL): Promise<Resp
     env.SYNC_DB.prepare("DELETE FROM account_workspaces WHERE user_id = ?1").bind(session.user.id),
     env.SYNC_DB.prepare('DELETE FROM "user" WHERE id = ?1').bind(session.user.id),
   ]);
+  // Neither side of a coaching link outlives its account.
+  await ensureCoachTable(env);
+  await env.SYNC_DB.prepare("DELETE FROM coach_access WHERE athlete_user_id = ?1 OR coach_user_id = ?1")
+    .bind(session.user.id)
+    .run();
   return json({ deleted: true });
 }
 
@@ -3124,6 +3280,14 @@ async function routeApi(request: Request, env: Env, url: URL): Promise<Response 
   if (url.pathname === "/api/invites" || url.pathname.startsWith("/api/invites/")) {
     const limited = await enforceAccountRateLimit(request, env, url, env.INTEGRATION_RATE_LIMITER, "invites");
     return limited ?? handleInvites(request, env, url);
+  }
+  if (url.pathname === "/api/account/coach") {
+    const limited = await enforceAccountRateLimit(request, env, url, env.INTEGRATION_RATE_LIMITER, "coach");
+    return limited ?? handleAccountCoach(request, env, url);
+  }
+  if (url.pathname === "/api/coach/athletes" || url.pathname.startsWith("/api/coach/athletes/")) {
+    const limited = await enforceAccountRateLimit(request, env, url, env.INTEGRATION_RATE_LIMITER, "coach");
+    return limited ?? handleCoach(request, env, url);
   }
   if (url.pathname === "/api/account" && request.method === "DELETE") {
     return deleteAccount(request, env, url);

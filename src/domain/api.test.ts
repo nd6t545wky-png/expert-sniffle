@@ -252,3 +252,26 @@ describe("account", () => {
     expect(JSON.parse(String(capture.calls[0][1].body))).toEqual({});
   });
 });
+
+describe("coaching", () => {
+  it("asks for, opens and ends coach access on the athlete's path", async () => {
+    const capture = { calls: [] as [string, RequestInit][] };
+    const api = new PitchingOsApi({ fetcher: stub({ access: "pending" }, 200, capture) });
+    await api.requestCoachAccess("athlete/1");
+    await api.openAthlete("athlete1");
+    await api.removeCoachAccess("athlete1");
+    expect(capture.calls.map(([url, init]) => `${init.method} ${url}`)).toEqual([
+      "POST /api/coach/athletes/athlete%2F1",
+      "POST /api/coach/athletes/athlete1/open",
+      "DELETE /api/coach/athletes/athlete1",
+    ]);
+  });
+
+  it("sends the athlete's answer", async () => {
+    const capture = { calls: [] as [string, RequestInit][] };
+    const api = new PitchingOsApi({ fetcher: stub({ coach: null }, 200, capture) });
+    await api.answerCoach(true);
+    await api.answerCoach(false);
+    expect(capture.calls.map(([, init]) => init.body)).toEqual(['{"allow":true}', '{"allow":false}']);
+  });
+});

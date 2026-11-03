@@ -10,6 +10,7 @@ import { IsoDate } from "./state";
 import { SyncGetResponse, SyncPutResponse } from "./sync";
 import type { TeamLookup } from "./teamLookup";
 import type { BallclubzOuting, BattingLine, TeamFixture } from "./ballclubz";
+import type { CoachAccess, CoachedAthlete } from "./coach";
 
 export type Fetcher = typeof fetch;
 
@@ -135,6 +136,54 @@ export class PitchingOsApi {
 
   revokeInvite(code: string) {
     return this.request<{ revoked: boolean }>(`/api/invites/${encodeURIComponent(code)}`, { method: "DELETE" });
+  }
+
+  // --- coaching (owner) --------------------------------------------------------
+
+  listAthletes() {
+    return this.request<{ athletes: CoachedAthlete[] }>("/api/coach/athletes");
+  }
+
+  /** Ask an athlete for coach access. They allow it from their own account. */
+  requestCoachAccess(athleteId: string) {
+    return this.request<{ access: CoachAccess }>(`/api/coach/athletes/${encodeURIComponent(athleteId)}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: "{}",
+    });
+  }
+
+  removeCoachAccess(athleteId: string) {
+    return this.request<{ access: CoachAccess }>(`/api/coach/athletes/${encodeURIComponent(athleteId)}`, {
+      method: "DELETE",
+    });
+  }
+
+  /** The athlete's sync key, once they have allowed coach access. */
+  openAthlete(athleteId: string) {
+    return this.request<{ athlete: { id: string; name: string }; syncKey: string }>(
+      `/api/coach/athletes/${encodeURIComponent(athleteId)}/open`,
+      { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" }
+    );
+  }
+
+  // --- coaching (athlete) -------------------------------------------------------
+
+  coachStatus() {
+    return this.request<{ coach: { name: string; access: CoachAccess } | null }>("/api/account/coach");
+  }
+
+  /** Allow the coach's request, or decline it. */
+  answerCoach(allow: boolean) {
+    return this.request<{ coach: { name: string; access: CoachAccess } | null }>("/api/account/coach", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ allow }),
+    });
+  }
+
+  endCoachAccess() {
+    return this.request<{ coach: null }>("/api/account/coach", { method: "DELETE" });
   }
 
   createWorkspace(legacySyncKey?: string, invite?: string) {

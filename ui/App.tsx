@@ -57,6 +57,8 @@ import { Tracking } from "./components/Tracking";
 import { ProgressSpec } from "./components/ProgressTrends";
 import { AnnualPlan } from "./components/AnnualPlan";
 import { Account, INVITE_STORAGE } from "./components/Account";
+import { CoachRequestCard } from "./components/CoachCard";
+import { COACHING_STORAGE, CoachAccess, CoachingSession, isCoachSignIn, parseCoachingSession } from "../src/domain/coach";
 import { BaselineTesting } from "./components/BaselineTesting";
 import { ArmCare } from "./components/ArmCare";
 import { Card, CardHead, PageHead, Segments } from "./components/Page";
@@ -312,6 +314,25 @@ export function App() {
   );
   const [syncKey, setSyncKeyState] = useState("");
   const [syncStatus, setSyncStatus] = useState("");
+  // Whose app this is while the owner coaches another player on this device.
+  const [coaching, setCoachingState] = useState<CoachingSession | null>(() => {
+    try {
+      return parseCoachingSession(window.localStorage.getItem(COACHING_STORAGE));
+    } catch {
+      return null;
+    }
+  });
+  const setCoaching = useCallback((session: CoachingSession | null) => {
+    setCoachingState(session);
+    try {
+      if (session) window.localStorage.setItem(COACHING_STORAGE, JSON.stringify(session));
+      else window.localStorage.removeItem(COACHING_STORAGE);
+    } catch {
+      // Private mode: coaching lasts until the page reloads.
+    }
+  }, []);
+  // A coach's request or access, as the signed-in athlete sees it.
+  const [coachRequest, setCoachRequest] = useState<{ name: string; access: CoachAccess } | null>(null);
 
   useEffect(() => {
     const stored = window.localStorage.getItem(SYNC_KEY_STORAGE) || "";
@@ -1275,6 +1296,9 @@ export function App() {
   // empty for the same reason, even on a device no account has claimed yet.
   const handleAccount = useCallback(
     (account: { userId: string; syncKey: string; isNew: boolean }) => {
+      // While coaching, the coach's own sign-in reporting in must not swap the
+      // athlete's data on this device back to the coach's.
+      if (isCoachSignIn(coaching, account.userId)) return;
       let owner: string | null = null;
       try {
         owner = window.localStorage.getItem(ACCOUNT_OWNER_STORAGE);
@@ -1292,7 +1316,7 @@ export function App() {
       }
       if (isValidSyncKey(account.syncKey)) setSyncKey(account.syncKey);
     },
-    [reset, setSyncKey]
+    [coaching, reset, setSyncKey]
   );
 
   // Signing out saves what is pending, then clears this device, so the next
@@ -1304,13 +1328,93 @@ export function App() {
     reset();
     lastSynced.current = "";
     setSyncKeyState("");
+    setCoaching(null);
+    setCoachRequest(null);
     try {
       window.localStorage.removeItem(SYNC_KEY_STORAGE);
       window.localStorage.removeItem(ACCOUNT_OWNER_STORAGE);
     } catch {
       // Already gone.
     }
-  }, [api, reset, state, syncKey]);
+  }, [api, reset, setCoaching, state, syncKey]);
+
+  // --- Coaching --------------------------------------------------------------
+  //
+  // The owner opens an athlete's app on this device. It is the shared-phone
+  // switch above, run on purpose: save what is pending, clear the device, then
+  // take the athlete's key so the next sync pulls their data in. Going back is
+  // the same in reverse, ending on the coach's own key from their sign-in.
+  const switchWorkspace = useCallback(
+    async (nextKey: string, ownerId: string) => {
+      if (state && isValidSyncKey(syncKey)) {
+        const saved = await syncNow({ api, syncKey }, state);
+        if (saved.status === "failed") throw new Error(`Could not save first: ${saved.message}`);
+      }
+      reset();
+      lastSynced.current = "";
+      try {
+        window.localStorage.setItem(ACCOUNT_OWNER_STORAGE, ownerId);
+      } catch {
+        // Nothing to remember it in.
+      }
+      setSyncKey(nextKey);
+    },
+    [api, reset, setSyncKey, state, syncKey]
+  );
+
+  const openAthlete = useCallback(
+    async (athlete: { id: string; name: string }, athleteKey: string) => {
+      if (!isValidSyncKey(athleteKey)) throw new Error("That player's workspace key is invalid");
+      const status = await api.accountStatus();
+      if (!status.user?.id) throw new Error("Sign in again to coach");
+      await switchWorkspace(athleteKey, athlete.id);
+      setCoaching({ coachId: status.user.id, athleteId: athlete.id, athleteName: athlete.name });
+      setPage("session");
+    },
+    [api, setCoaching, switchWorkspace]
+  );
+
+  const [coachError, setCoachError] = useState("");
+  const backToMyApp = useCallback(async () => {
+    setCoachError("");
+    try {
+      const status = await api.accountStatus();
+      if (!status.user?.id || !isValidSyncKey(status.syncKey ?? "")) throw new Error("Sign in again to get back to your app");
+      await switchWorkspace(status.syncKey as string, status.user.id);
+      setCoaching(null);
+    } catch (cause) {
+      setCoachError(cause instanceof Error ? cause.message : String(cause));
+    }
+  }, [api, setCoaching, switchWorkspace]);
+
+  // The athlete's side: has a coach asked? Checked once a key is on the device.
+  useEffect(() => {
+    if (coaching || !isValidSyncKey(syncKey)) {
+      setCoachRequest(null);
+      return;
+    }
+    let cancelled = false;
+    api
+      .coachStatus()
+      .then((result) => !cancelled && setCoachRequest(result.coach))
+      .catch(() => !cancelled && setCoachRequest(null));
+    return () => {
+      cancelled = true;
+    };
+  }, [api, coaching, syncKey]);
+
+  const answerCoach = useCallback(
+    async (allow: boolean) => setCoachRequest((await api.answerCoach(allow)).coach),
+    [api]
+  );
+  const endCoachAccess = useCallback(async () => {
+    await api.endCoachAccess();
+    setCoachRequest(null);
+  }, [api]);
+
+  const coachRequestCard = coachRequest ? (
+    <CoachRequestCard coach={coachRequest} onAnswer={answerCoach} onEnd={endCoachAccess} />
+  ) : null;
 
   // --- Autosave ------------------------------------------------------------
   //
@@ -1523,7 +1627,8 @@ export function App() {
   const sharedAt = useRef(0);
 
   useEffect(() => {
-    if (!state || !isValidSyncKey(syncKey)) return;
+    // The stored link is the coach's own; never refresh it with an athlete's data.
+    if (!state || !isValidSyncKey(syncKey) || coaching) return;
     const share = readStoredShare();
     if (!share) return;
     const fingerprint = JSON.stringify(state);
@@ -1544,7 +1649,7 @@ export function App() {
     }, wait);
 
     return () => window.clearTimeout(timer);
-  }, [api, state, syncKey, buildPhysioSummaryNow]);
+  }, [api, state, syncKey, buildPhysioSummaryNow, coaching]);
 
   if (load?.source === "corrupt") {
     return (
@@ -1748,6 +1853,18 @@ export function App() {
       onNavigate={setPage}
       onOpenPlan={() => setPage(plan.status === "locked" ? "readiness" : "session")}
     >
+      {coaching && (
+        <div className="alert info coach-banner" role="status">
+          <span>
+            Coaching <strong>{coaching.athleteName}</strong>. Everything you change saves to their account.
+          </span>
+          <button type="button" className="btn btn-outline" onClick={backToMyApp}>
+            Back to my app
+          </button>
+          {coachError && <small>{coachError}</small>}
+        </div>
+      )}
+      {!coaching && coachRequest?.access === "pending" && shown === "session" && coachRequestCard}
       {needsProfile && <ProfileSetup profile={state.profile} onSave={saveProfile} onLookup={lookupTeam} />}
 
       {/* Today: the week strip, then check-in → workout → check-out, all on
@@ -2235,7 +2352,16 @@ export function App() {
         />
       )}
 
-      {shown === "integrations" && <Integrations api={api} hasSyncKey={isValidSyncKey(syncKey)} />}
+      {/* Device connections and physio links belong to whoever owns this phone,
+          so they stay out of reach while coaching someone else. */}
+      {shown === "integrations" &&
+        (coaching ? (
+          <Card>
+            <CardHead title="Integrations" detail={`${coaching.athleteName} connects their own ring and watch from their phone.`} />
+          </Card>
+        ) : (
+          <Integrations api={api} hasSyncKey={isValidSyncKey(syncKey)} />
+        ))}
 
       {/* Settings: how the programme fits your week and your kit, and who
           you share it with. Testing data moved to Progress; account and
@@ -2267,12 +2393,14 @@ export function App() {
               }))
             }
           />
-          <PhysioShare
-            api={api}
-            hasSyncKey={isValidSyncKey(syncKey)}
-            buildSummary={buildPhysioSummaryNow}
-            hasBloods={bloodPanels.length > 0}
-          />
+          {!coaching && (
+            <PhysioShare
+              api={api}
+              hasSyncKey={isValidSyncKey(syncKey)}
+              buildSummary={buildPhysioSummaryNow}
+              hasBloods={bloodPanels.length > 0}
+            />
+          )}
           <BallclubzCard
             url={ballclubzUrl}
             status={ballclubzStatus}
@@ -2313,6 +2441,9 @@ export function App() {
             syncStatus={syncStatus}
             state={state}
             onReplaceState={(next) => update(() => next, { record: false })}
+            coaching={coaching?.athleteName ?? null}
+            onOpenAthlete={openAthlete}
+            coachSlot={coachRequestCard}
           />
           <TrainingHistoryCard
             history={state?.trainingHistory}

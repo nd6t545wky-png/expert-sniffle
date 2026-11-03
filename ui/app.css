@@ -3437,3 +3437,8 @@ h1, h2, h3, h4 { font-weight: 600; }
 .team-found div { display: grid; gap: 2px; }
 .team-found small { color: var(--muted); }
 .team-found a { color: var(--accent); font-weight: 600; }
+
+/* Coaching another player: always visible, one tap back. */
+.coach-banner { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 14px; }
+.coach-banner strong { display: inline; margin: 0; }
+.coach-banner small { flex-basis: 100%; color: var(--crit); }
