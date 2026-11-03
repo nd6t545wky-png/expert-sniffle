@@ -20,6 +20,7 @@ import {
 import { GBL_LEAGUE, gblTeam } from "./domain/athleteProfile";
 import { leagueTeam, mlbStatsScheduleUrl, parseMlbStatsSchedule } from "./domain/leagues";
 import { parseTeamLookup, teamLookupPrompt } from "./domain/teamLookup";
+import { readOuting } from "./domain/playerEvents";
 import type { IsoDate } from "./domain/state";
 import type { Env } from "./env";
 
@@ -2884,7 +2885,7 @@ function cleanEventGames(value: unknown): { date: string; label: string }[] {
     .flatMap((game) => {
       const g = (game && typeof game === "object" ? game : {}) as Record<string, unknown>;
       return typeof g.date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(g.date)
-        ? [{ date: g.date, label: cleanText(g.label, 80) || "Game" }]
+        ? [{ date: g.date, label: cleanText(g.label, 80) || "Game", ...(readOuting(g.outing) ? { outing: readOuting(g.outing) } : {}) }]
         : [];
     });
 }

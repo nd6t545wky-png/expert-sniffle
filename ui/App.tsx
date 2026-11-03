@@ -70,7 +70,7 @@ import { Hitting } from "./components/Hitting";
 import { asPositionPlayer } from "../src/domain/positionPlayer";
 import { readTeamColours, teamThemeVars } from "../src/domain/teamColours";
 import { readSchedule } from "../src/domain/weeklySchedule";
-import { readPlayerEvents, withPlayerEvents } from "../src/domain/playerEvents";
+import { readPlayerEvents, withEventOutings, withPlayerEvents } from "../src/domain/playerEvents";
 import { HittingGame, readHittingGames } from "../src/domain/hitting";
 import { BattingLine } from "../src/domain/ballclubz";
 import { leagueTeam } from "../src/domain/leagues";
@@ -1588,8 +1588,16 @@ export function App() {
         update((draft) => {
           const profile = (draft.profile ?? {}) as Record<string, unknown>;
           const merged = withPlayerEvents(profile.fixtures, events);
-          if (!merged.added && !merged.removed) return draft;
-          return { ...draft, profile: { ...profile, fixtures: merged.fixtures } };
+          // The pitching lines from those games, once played, go in the game log.
+          const lines = withEventOutings(readGames(draft.games), events);
+          const fixturesChanged = merged.added || merged.removed;
+          const gamesChanged = lines.added || lines.updated || lines.removed;
+          if (!fixturesChanged && !gamesChanged) return draft;
+          return {
+            ...draft,
+            ...(fixturesChanged ? { profile: { ...profile, fixtures: merged.fixtures } } : {}),
+            ...(gamesChanged ? { games: lines.games } : {}),
+          };
         });
       })
       .catch(() => {
