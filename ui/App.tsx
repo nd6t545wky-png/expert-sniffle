@@ -6,6 +6,7 @@ import {
   SessionReport,
   SkippedTask,
   ThrowIntent,
+  sessionProgress,
   totalThrowLoad,
 } from "../src/domain/session";
 import { MetricSource, ReadinessInputs, computeReadiness } from "../src/domain/readiness";
@@ -1874,6 +1875,8 @@ export function App() {
         return p?.weight ? `${hand} · ${p.weight} kg` : hand;
       })()}
       role={role}
+      teamLogo={team.logo ? { src: team.logo, alt: team.alt } : null}
+      progress={shown === "session" && plan.status !== "locked" ? sessionProgress(tasks, completed[date] ?? [], skippedTasks[date] ?? {}) : null}
       onCycleAppearance={() =>
         update((draft) => {
           const current = (draft.profile ?? {}) as { appearance?: string };
@@ -2404,6 +2407,8 @@ export function App() {
           <PageHead eyebrow="Settings" title="Your programme." intro="Profile, club nights, recovery kit, league games, sharing." />
           <ProfileCard profile={state.profile} onSave={saveProfile} onLookup={lookupTeam} />
           <RecoverySettings
+            // Training nights are asked in "Your profile" above.
+            showTeamTraining={!schedule}
             equipment={recoveryEquipment}
             intentPercent={intentPercent}
             teamTraining={teamTraining}

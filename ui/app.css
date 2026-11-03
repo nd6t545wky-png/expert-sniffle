@@ -3202,7 +3202,7 @@ h1, h2, h3, h4 { font-weight: 600; }
   height: 12px;
   background: var(--team-secondary-soft);
 }
-.app-shell .today-progress > span:last-child { color: var(--team-secondary); font-weight: 800; }
+
 
 /* A stage's count turns teal once the stage is done. */
 .app-shell .task-stage.stage-complete .stage-progress strong { color: var(--team-secondary); }
@@ -3442,3 +3442,46 @@ h1, h2, h3, h4 { font-weight: 600; }
 .coach-banner { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 14px; }
 .coach-banner strong { display: inline; margin: 0; }
 .coach-banner small { flex-basis: 100%; color: var(--crit); }
+
+/* The top bar carries the team's badge and, on Today, the session's progress
+   along its foot — the bar the athlete watches fill as the day is ticked off. */
+
+.topbar-logo {
+  width: 38px;
+  height: 38px;
+  flex: 0 0 auto;
+  border-radius: var(--radius-pill);
+  object-fit: cover;
+  background: var(--surface-secondary);
+  transition: width .3s ease, height .3s ease;
+}
+.app-shell.nav-condensed .topbar-logo { width: 30px; height: 30px; }
+.topbar-count { color: var(--team-secondary); font-weight: 700; }
+.app-shell .topbar .topbar-progress {
+  position: absolute;
+  right: 18px;
+  bottom: 0;
+  left: 18px;
+  height: 4px;
+  margin: 0;
+  border-radius: var(--radius-pill);
+}
+
+/* Phone clean-up.
+   - The top bar names the page, so the big page heading below it repeated
+     itself; on a phone it goes and the content starts higher.
+   - Task actions (Details, Skip) sit in the right-hand column instead of on a
+     row of their own under every task, which roughly halved each row. */
+@media (max-width: 600px) {
+  .app-shell .content > .page-head { display: none; }
+  .app-shell .task { gap: 10px; padding-block: 12px; }
+  .app-shell .task-actions {
+    grid-column: 3;
+    display: grid;
+    justify-items: end;
+    align-content: start;
+    gap: 6px;
+    min-width: 0;
+  }
+  .app-shell .task-actions .task-details { font-size: 11px; }
+}

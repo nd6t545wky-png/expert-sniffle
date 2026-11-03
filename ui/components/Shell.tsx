@@ -318,6 +318,10 @@ export interface ShellProps {
   athleteDetail?: string;
   page: PageId;
   onNavigate: (page: PageId) => void;
+  /** The team's badge, shown at the left of the top bar. */
+  teamLogo?: { src: string; alt: string } | null;
+  /** Today's session progress, shown as a bar along the top bar's foot. */
+  progress?: { resolved: number; total: number; percent: number } | null;
   /** Which tabs to show. Defaults to the pitcher's. */
   role?: NavRole;
   /** No longer shown: Today is the plan. Kept so older callers still type-check. */
@@ -340,6 +344,8 @@ export function Shell({
   page,
   onNavigate,
   role = "pitcher",
+  teamLogo = null,
+  progress = null,
   children,
 }: ShellProps) {
   const nav = navFor(role);
@@ -410,10 +416,22 @@ export function Shell({
       <main className="main">
         <header className="topbar">
           <div className="top-context">
-            <span className="context-mark" />
+            {teamLogo ? (
+              <img className="topbar-logo" src={teamLogo.src} alt={teamLogo.alt} />
+            ) : (
+              <span className="context-mark" />
+            )}
             <div>
               <strong className="desktop-context">{desktopContext}</strong>
-              <strong className="mobile-context">{mobileContext}</strong>
+              <strong className="mobile-context">
+                {mobileContext}
+                {progress && progress.total > 0 && (
+                  <span className="topbar-count">
+                    {" "}
+                    · {progress.resolved}/{progress.total}
+                  </span>
+                )}
+              </strong>
               <small>{contextRange}</small>
             </div>
           </div>
@@ -440,6 +458,18 @@ export function Shell({
               <span>A</span>
             </button>
           </div>
+          {progress && progress.total > 0 && (
+            <div
+              className="session-progress topbar-progress"
+              role="progressbar"
+              aria-label="Today's session"
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={progress.percent}
+            >
+              <span style={{ width: `${progress.percent}%` }} />
+            </div>
+          )}
         </header>
 
         <div className="content">{children}</div>

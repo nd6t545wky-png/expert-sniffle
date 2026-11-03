@@ -41,6 +41,11 @@ export interface RecoverySettingsProps {
   onEquipment: (next: RecoveryEquipment[]) => void;
   onIntentPercent: (next: Record<string, number>) => void;
   onTeamTraining: (next: TeamTraining) => void;
+  /**
+   * The club-nights card. Off once the profile asks for training nights
+   * itself, so the same question is not asked twice on one page.
+   */
+  showTeamTraining?: boolean;
 }
 
 export function RecoverySettings({
@@ -50,6 +55,7 @@ export function RecoverySettings({
   onEquipment,
   onIntentPercent,
   onTeamTraining,
+  showTeamTraining = true,
 }: RecoverySettingsProps) {
   const owned = new Set(equipment);
   const [floor, ceiling] = INTENT_PERCENT_RANGE;
@@ -60,6 +66,7 @@ export function RecoverySettings({
     <>
       {/* Club training is the one thing on this page that changes the session
           itself rather than how it is interpreted, so it goes first. */}
+      {showTeamTraining && (
       <Card>
         <CardHead
           title="Club training nights"
@@ -116,6 +123,7 @@ export function RecoverySettings({
           changes days the programme thought you were training on your own.
         </p>
       </Card>
+      )}
 
       <Card>
         <CardHead

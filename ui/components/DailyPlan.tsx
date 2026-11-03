@@ -335,11 +335,7 @@ export function DailyPlan({
       {!sidePanel && (
         <section className="today-head">
           <div className="dashboard-heading">
-            {team?.logo && (
-              <div className="team-logo-wrap">
-                <img src={team.logo} alt={team.alt} />
-              </div>
-            )}
+            {/* The team badge sits in the top bar now. */}
             <div>
               <p className="eyebrow">
                 {formatIsoDate(date)}
@@ -404,18 +400,12 @@ export function DailyPlan({
 
       <div className={sidePanel ? "session-layout" : ""}>
         <div>
-          {!sidePanel && (
-            <div className="today-progress" aria-label="Session progress">
-              {submission && (
-                <span className={`status ${risk}`}>
-                  {submission.manualOverride ? "Full session" : `${submission.planLevel} · ${submission.score}`}
-                </span>
-              )}
-              <div className="session-progress">
-                <span style={{ width: `${progress.percent}%` }} />
-              </div>
-              <span>
-                {progress.resolved}/{progress.total} done
+          {/* The progress bar sits along the top bar now; the readiness
+              result stays here with the session it set. */}
+          {!sidePanel && submission && (
+            <div className="today-progress" aria-label="Readiness">
+              <span className={`status ${risk}`}>
+                {submission.manualOverride ? "Full session" : `${submission.planLevel} · ${submission.score}`}
               </span>
             </div>
           )}
