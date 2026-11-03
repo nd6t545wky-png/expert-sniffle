@@ -119,7 +119,6 @@ import { SorenessCard } from "./components/SorenessCard";
 import { PhysioShare, publishShare, readStoredShare } from "./components/PhysioShare";
 
 import { Integrations } from "./components/Integrations";
-import { TrainingHistoryCard } from "./components/TrainingHistoryCard";
 import { pullRemoteHistory, pushPendingHistory } from "../src/domain/historySync";
 import { mergeTrainingHistories, pendingHistoryEvents } from "../src/domain/trainingHistory";
 import { Mechanics } from "./components/Mechanics";
@@ -2479,11 +2478,8 @@ export function App() {
             onOpenAthlete={openAthlete}
             coachSlot={coachRequestCard}
           />
-          <TrainingHistoryCard
-            history={state?.trainingHistory}
-            hasSyncKey={isValidSyncKey(syncKey)}
-            status={historyStatus}
-          />
+          {/* The training history is still recorded and synced, but not shown:
+              it is a raw step log, not something anyone needs to read. */}
         </>
       )}
     </Shell>
