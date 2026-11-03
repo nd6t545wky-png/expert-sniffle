@@ -3451,7 +3451,9 @@ h1, h2, h3, h4 { font-weight: 600; }
   border-radius: var(--radius-pill);
   object-fit: contain;
   padding: 2px;
-  background: #ffffff;
+  /* Club artwork is drawn for a white ground, in dark mode too. */
+  --logo-plate: #ffffff;
+  background: var(--logo-plate);
   box-shadow: inset 0 0 0 1px var(--border, rgba(0, 0, 0, 0.08));
   transition: width .3s ease, height .3s ease;
 }
