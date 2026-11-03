@@ -2405,7 +2405,14 @@ export function App() {
       {shown === "profile" && (
         <>
           <PageHead eyebrow="Settings" title="Your programme." intro="Profile, club nights, recovery kit, league games, sharing." />
+          {/* Grouped and folded so the page is three headings, not eight
+              screens of cards. Profile opens first: it is what changes most. */}
+          <details className="settings-group" open>
+            <summary>Profile and week</summary>
           <ProfileCard profile={state.profile} onSave={saveProfile} onLookup={lookupTeam} />
+          </details>
+          <details className="settings-group">
+            <summary>Recovery and intent</summary>
           <RecoverySettings
             // Training nights are asked in "Your profile" above.
             showTeamTraining={!schedule}
@@ -2431,6 +2438,9 @@ export function App() {
               }))
             }
           />
+          </details>
+          <details className="settings-group">
+            <summary>League stats and sharing</summary>
           {!coaching && (
             <PhysioShare
               api={api}
@@ -2449,6 +2459,9 @@ export function App() {
             }
             onCheckNow={() => void checkBallclubz()}
           />
+          </details>
+          <details className="settings-group">
+            <summary>BFR cuff block</summary>
           {/* The BFR cuff block: reference rather than a daily task - twice a
               week, and it depends on equipment the athlete may not have. */}
           <Card>
@@ -2464,6 +2477,7 @@ export function App() {
               <p>{BFR_BLOCK.experimentalNote}</p>
             </details>
           </Card>
+          </details>
         </>
       )}
 

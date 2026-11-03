@@ -1480,6 +1480,16 @@ describe("active calories on the fuelling card", () => {
     expect(screen.getByText(/Not added to the target/)).toBeTruthy();
   });
 
+  it("goes away once its figures are the saved targets, and returns when they differ", () => {
+    const saved = { calories: 3400, protein: 180, carbs: 450, fat: 95, fluid: 4.5 };
+    const { unmount } = render(<Nutrition {...props} fuel={fuel} targets={saved} />);
+    expect(screen.queryByText(/Today.s fuelling/)).toBeNull();
+    expect(screen.getByText("of 3400 target")).toBeTruthy();
+    unmount();
+    render(<Nutrition {...props} fuel={fuel} targets={{ ...saved, carbs: 300 }} />);
+    expect(screen.getByText(/Today.s fuelling/)).toBeTruthy();
+  });
+
   it("leaves the calorie target exactly where it was", () => {
     render(<Nutrition {...props} fuel={fuel} activeCalories={812} />);
     // The target is the fuelling figure alone - 3400, not 4212.

@@ -818,7 +818,7 @@ function summerSlot(week, day, slot, firstGameDay = 4) {
       focus: "Restore the arm, then hold strength",
       duration: "60–80 min",
       stress: "Low–moderate",
-      description: "No throwing: Monday is the arm's day off after Sunday's game, on the athlete's own week - off Monday, nothing at Tuesday practice unless the arm needs a recovery catch, bullpen Wednesday, light catch Thursday, game Friday, primer Saturday, game Sunday. Monday still carries the week's second gym exposure. There is no hinge and no pressing here - those are Wednesday's - so this block is unilateral legs, upper-body pulling and posterior-chain work at submaximal effort, four days out from Friday.",
+      description: "Day off for the arm after Sunday's game: no throwing. Light gym: single-leg work, pulling and posterior chain. No hinge or pressing (those are Wednesday).",
       tasks: [
         ...basePrep(p, "post-game recovery"),
         task(`${p}-split`, 4, "Strength Maintenance", "Unilateral legs and upper-body pulling; no hinge and no pressing before Wednesday.", "Rear-foot-elevated split squat", "3 × 6/leg @ RPE 6–7 · straps allowed", "Keep soreness cost low; this maintains single-leg strength through the season.", {
@@ -853,8 +853,8 @@ function summerSlot(week, day, slot, firstGameDay = 4) {
       duration: "Team session dependent",
       stress: isThursday ? "Low–moderate" : "Moderate",
       description: isThursday
-        ? "Thursday volume is capped so it does not become a third high-stress day before Friday and Sunday games. The microdose that finishes it - reactive pogos, a hinge and a calf dose - is added by the overlay rather than written here, because it is dropped automatically whenever Thursday becomes a game eve."
-        : "Tuesday is the higher-volume team practice window, and the day the week leaves without a gym exposure - Monday and Wednesday lift, Thursday microdoses. No throwing at practice: the arm's work this week is Wednesday's bullpen, so Tuesday is recovery catch only, and only if the arm asks for it after Sunday.",
+        ? "Day before Friday's game: keep practice and extra throwing light."
+        : "Team practice, no gym. No throwing beyond an optional recovery catch: this week's throwing is Wednesday's bullpen.",
       tasks: [
         ...basePrep(p, "team practice"),
         ...(isThursday
@@ -883,7 +883,7 @@ function summerSlot(week, day, slot, firstGameDay = 4) {
       focus: "Main summer gym exposure",
       duration: "70–85 min",
       stress: "Moderate",
-      description: "Bullpen day, then the heavier of the week's two gym days. The bullpen is the week's one throwing session between starts - two days clear of Friday - and it goes first, while the arm is fresh. The gym follows: the only session with a hinge and a press, power first, then the primary lift, unilateral work, push/pull and trunk at the three sets the week plan prescribes.",
+      description: "Bullpen first while the arm is fresh, then the week's main gym session (power, main lift, single-leg, push/pull, trunk).",
       tasks: [
         ...basePrep(p, "bullpen"),
         plyoTask(p, 1, "Plyo Ball Reverse Throw - 1,000 g", "1 × 5", 60, "Organise the body before the mound."),
@@ -930,7 +930,7 @@ function summerSlot(week, day, slot, firstGameDay = 4) {
       focus: "Compete and log actual workload",
       duration: "Game dependent",
       stress: "Very high",
-      description: slot === 4 ? "Friday is the first weekly game window. Your actual appearance determines Saturday." : "Sunday is the second game window; Monday becomes recovery-first.",
+      description: slot === 4 ? "Game day. How much you pitch decides tomorrow." : "Game day. Tomorrow is the arm's day off.",
       tasks: [
         ...basePrep(p, "game performance"),
         task(`${p}-builds`, 2, "Game Warm-up", "Build speed without fatigue.", "Sprint build-ups", "2 × 10 m · 2 × 20 m progressive", "Last rep about 90%; full recovery.", {
@@ -958,7 +958,7 @@ function summerSlot(week, day, slot, firstGameDay = 4) {
       focus: `Recover from ${fridayPitches} Friday pitches`,
       duration: "25–45 min",
       stress: "Low",
-      description: "Because Friday game pitches were logged, Saturday automatically switches from primer to recovery.",
+      description: "You pitched Friday, so today is recovery.",
       tasks: [
         ...basePrep(p, "recovery"),
         plyoTask(p, 1, "Plyo Ball Reverse Throw - 1,000 g", "1 × 4", 45, "Optional only if symptom-free."),
@@ -979,7 +979,7 @@ function summerSlot(week, day, slot, firstGameDay = 4) {
     focus: "Low-fatigue readiness",
     duration: "35–50 min",
     stress: "Low",
-    description: "No Friday game pitches were logged, so Saturday shows a short primer for Sunday. If you threw but forgot to log it, enter Friday workload first.",
+    description: "No Friday pitches logged, so today is a short primer for Sunday. If you did pitch, log it first.",
     tasks: [
       ...basePrep(p, "pregame primer"),
       plyoTask(p, 1, "Plyo Ball Reverse Throw - 1,000 g", "1 × 4", 50, "Easy rhythm."),

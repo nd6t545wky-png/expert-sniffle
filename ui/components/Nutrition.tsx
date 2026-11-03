@@ -228,6 +228,15 @@ export function Nutrition({
     fluid: targets.fluid || fuel?.fluid || 0,
   };
 
+  const adopted = Boolean(
+    fuel &&
+      targets.calories === fuel.calories &&
+      targets.protein === fuel.protein &&
+      targets.carbs === fuel.carbs &&
+      targets.fat === fuel.fat &&
+      targets.fluid === fuel.fluid
+  );
+
   return (
     <>
       <PageHead
@@ -237,7 +246,10 @@ export function Nutrition({
         className="nutrition-page-head"
       />
 
-      {fuel && (
+      {/* Once today's figures are the saved targets, the suggestion has done
+          its job: the tiles below carry them, so the card goes. It comes back
+          when the day's fuelling changes (a game day, a rest day). */}
+      {fuel && !adopted && (
         <FuelCard
           fuel={fuel}
           activeCalories={activeCalories}

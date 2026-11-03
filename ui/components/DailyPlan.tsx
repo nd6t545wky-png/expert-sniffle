@@ -295,6 +295,25 @@ export function DailyPlan({
         />
       ) : (
         <>
+          {/* The day first: what it is and what it asks. The week strip
+              below is for moving between days. */}
+          {(
+        <section className="today-head">
+          <div className="dashboard-heading">
+            {/* The team badge sits in the top bar now. */}
+            <div>
+              <p className="eyebrow">
+                {formatIsoDate(date)}
+                {day && isHighIntentDay(day) ? " · High-intent day" : ""}
+              </p>
+              <h2>{(sessionTitle || "Today's session").replace(/^[A-Za-z]+ · /, "")}</h2>
+              {team && <span className="team-wordmark">{team.name}</span>}
+            </div>
+          </div>
+          {sessionDescription && <ClampedText className="today-blurb" text={sessionDescription} />}
+        </section>
+          )}
+          {recoveryNote && <p className="plan-recovery-note">{recoveryNote}</p>}
           {onPreviousWeek && onNextWeek && (
             <div className="today-week-nav">
               <button className="btn btn-outline" type="button" aria-label="Previous week" onClick={onPreviousWeek}>
@@ -319,7 +338,6 @@ export function DailyPlan({
         </Alert>
       )}
 
-      {recoveryNote && <p className="plan-recovery-note">{recoveryNote}</p>}
 
       {dayTabs && onSelectDay && selectedDay !== undefined && (
         <DayTabs
@@ -348,22 +366,6 @@ export function DailyPlan({
         </Alert>
       )}
 
-      {!sidePanel && (
-        <section className="today-head">
-          <div className="dashboard-heading">
-            {/* The team badge sits in the top bar now. */}
-            <div>
-              <p className="eyebrow">
-                {formatIsoDate(date)}
-                {day && isHighIntentDay(day) ? " · High-intent day" : ""}
-              </p>
-              <h2>{(sessionTitle || "Today's session").replace(/^[A-Za-z]+ · /, "")}</h2>
-              {team && <span className="team-wordmark">{team.name}</span>}
-            </div>
-          </div>
-          {sessionDescription && <ClampedText className="today-blurb" text={sessionDescription} />}
-        </section>
-      )}
     </>
   );
 

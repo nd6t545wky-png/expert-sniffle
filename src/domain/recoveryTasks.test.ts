@@ -178,7 +178,7 @@ describe("merging into the session", () => {
   it("says which day of which outing this is", () => {
     expect(merged.note).toContain("Day 0");
     expect(merged.note).toContain("heavy");
-    expect(merged.note).toContain("2026-08-14");
+    expect(merged.note).toContain("14 Aug");
   });
 
   it("changes nothing when there is no recovery to apply", () => {

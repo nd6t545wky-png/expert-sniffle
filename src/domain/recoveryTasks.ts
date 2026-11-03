@@ -187,6 +187,13 @@ const THROWING_STAGES = new Set([
  */
 const PRE_THROW_HELD = new Set(["sleeper-stretch"]);
 
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+/** "2026-11-01" as "1 Nov". */
+function shortDate(iso: string): string {
+  const [, month, day] = iso.split("-").map(Number);
+  return month && day ? `${day} ${MONTHS[month - 1]}` : iso;
+}
+
 export function applyRecoveryProtocol(
   session: Session,
   recovery: RecoveryForDay | null,
@@ -289,7 +296,7 @@ export function applyRecoveryProtocol(
   const parts: string[] = [];
 
   if (recovery) {
-    parts.push(`Day ${recovery.dayOffset} after a ${recovery.tier} outing on ${recovery.outingDate}.`);
+    parts.push(`Day ${recovery.dayOffset} after your ${shortDate(recovery.outingDate)} outing (${recovery.tier}).`);
     const guidance = recovery.guidance.map((block) => `${block.name}: ${block.prescription}`).join(" ");
     if (guidance) parts.push(guidance);
     if (recovery.day.annotation) parts.push(recovery.day.annotation);
@@ -311,8 +318,9 @@ export function applyRecoveryProtocol(
     if (order) parts.push(order.rule);
   }
 
-  // Said once, where the recovery work appears, rather than as its own panel.
-  parts.push(COLD_POLICY.rule);
+  // Said once, where the recovery work appears: short, because it is a rule
+  // the athlete already knows, not news. The full wording is COLD_POLICY.rule.
+  parts.push("No ice or cold water.");
 
   return { session: { ...session, tasks }, note: parts.join(" "), added };
 }

@@ -102,11 +102,7 @@ export function WaterTracker({ date, logged, goal, presets = [0.5, 0.75], onChan
         </div>
 
         <div className="water-panel">
-          <div>
-            <p className="eyebrow">Hydration</p>
-            <h3>Fill your bottle.</h3>
-            <p>Log what you actually drink. The moving water follows today's saved total.</p>
-          </div>
+          <h3>Water</h3>
           <div className="water-readout" role="status" aria-live="polite">
             <strong>{logged} L</strong>
             <span>{goal ? `of ${goal} L · ${rawPercent}%` : "No target set"}</span>

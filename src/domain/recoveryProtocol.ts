@@ -610,7 +610,7 @@ function dayFour(): RecoveryBlock[] {
  */
 export function postScapularRangeAnnotation(dayOffset: number): string | null {
   return dayOffset === 2
-    ? "Expected - you did scapular work yesterday. Internal-rotation range dips today and comes back better by day 4. Not a red flag."
+    ? "Internal-rotation range dips today after yesterday's scapular work and is back by day 4. Expected, not a red flag."
     : null;
 }
 
