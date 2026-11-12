@@ -57,6 +57,11 @@ export class PitchingOsApi {
   private readonly baseUrl: string;
   private syncKey?: string;
 
+  /** The same client, signed for another workspace (a coached athlete's). */
+  withKey(syncKey: string): PitchingOsApi {
+    return new PitchingOsApi({ fetcher: this.fetcher, baseUrl: this.baseUrl, syncKey });
+  }
+
   constructor(options: ApiOptions = {}) {
     this.fetcher = options.fetcher ?? ((...args) => fetch(...args));
     this.baseUrl = options.baseUrl ?? "";

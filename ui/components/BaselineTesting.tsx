@@ -142,7 +142,10 @@ export function AthleteBaselineForm({
   trapBarKg,
   today,
   onSave,
+  notes = [],
 }: {
+  /** What the saved numbers change in the programme. */
+  notes?: string[];
   baseline: AthleteBaseline | null;
   backSquatKg: number | null;
   trapBarKg: number | null;
@@ -229,6 +232,16 @@ export function AthleteBaselineForm({
         </button>
         {saved && <span className="fineprint">Saved. The programme now uses these.</span>}
       </div>
+      {notes.length > 0 && (
+        <div className="baseline-notes">
+          <strong>What your numbers change</strong>
+          <ul>
+            {notes.map((note) => (
+              <li key={note}>{note}</li>
+            ))}
+          </ul>
+        </div>
+      )}
     </Card>
   );
 }

@@ -159,6 +159,20 @@ const BY_ID = new Map(RETEST_METRICS.map((metric) => [metric.id, metric]));
  * numbers and its targets; anyone else's baseline is their own entry, and the
  * report's targets (set against the owner's numbers) do not apply.
  */
+/** General standards where there is one; otherwise 10% better than their own start. */
+const STANDARDS: Record<string, { target: number; stretch: number | null }> = {
+  djRsi: { target: 1.2, stretch: 1.5 },
+  djContact: { target: 0.3, stretch: 0.25 },
+  cmjContraction: { target: 650, stretch: null },
+};
+function ownTarget(metric: RetestMetric, start: number | undefined): { target: number | null; stretch: number | null } {
+  const standard = STANDARDS[metric.id];
+  if (standard) return standard;
+  if (start === undefined) return { target: null, stretch: null };
+  const target = start * (metric.direction === "up" ? 1.1 : 0.9);
+  return { target: Number(target.toFixed(metric.places)), stretch: null };
+}
+
 export function retestMetricsFor(reports: boolean, own: Record<string, number> = {}): readonly RetestMetric[] {
   if (reports) return RETEST_METRICS;
   return RETEST_METRICS.map((metric) => ({
@@ -166,8 +180,7 @@ export function retestMetricsFor(reports: boolean, own: Record<string, number> =
     label: metric.label.replace(/ \(\d+ kg\)$/, " of squat max"),
     how: metric.how.replace(/ Compare against .*$/, ""),
     baseline: own[metric.id] ?? null,
-    target: null,
-    stretch: null,
+    ...ownTarget(metric, own[metric.id]),
   }));
 }
 

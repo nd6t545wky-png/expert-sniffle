@@ -12,7 +12,7 @@ import {
 } from "../../src/domain/athleteProfile";
 import { Card, CardHead } from "./Page";
 import { DAY_SHORT, readSchedule } from "../../src/domain/weeklySchedule";
-import { knownTeam as listedClub, readTeamColours } from "../../src/domain/teamColours";
+import { KNOWN_TEAMS, knownTeam as listedClub, readTeamColours } from "../../src/domain/teamColours";
 
 const OTHER = "__other__";
 
@@ -60,6 +60,9 @@ export function ProfileForm({
   const [name, setName] = useState(current.name ?? "");
   const [teamChoice, setTeamChoice] = useState(current.team ? (knownTeam ? current.team : OTHER) : "");
   const [otherTeam, setOtherTeam] = useState(knownTeam ? "" : current.team ?? "");
+  const storedSeason = (profile as { season?: { start?: string; end?: string } } | null | undefined)?.season;
+  const [seasonStart, setSeasonStart] = useState(storedSeason?.start ?? "");
+  const [seasonEnd, setSeasonEnd] = useState(storedSeason?.end ?? "");
   // The league comes first: it decides which draw the season is built from.
   const [leagueChoice, setLeagueChoice] = useState(
     leagueTeam(current.team)?.league.id ?? (current.team ? OTHER : "")
@@ -154,6 +157,7 @@ export function ProfileForm({
           schedule: { training, games: shownGames, winterGames: winter === "yes" ? winterGames : [] },
           winterTeam: winter === "yes" ? winterTeam.trim() : "",
           teamColours: { primary: shownPrimary, secondary: shownSecondary },
+          season: seasonStart && seasonEnd && seasonEnd >= seasonStart ? { start: seasonStart, end: seasonEnd } : null,
           league: leagueChoice === OTHER ? where.trim() || "Other" : leagueChoice,
           ...(teamChoice === OTHER
             ? {
@@ -229,8 +233,14 @@ export function ProfileForm({
               type="text"
               maxLength={60}
               value={otherTeam}
+              list="knownClubs"
               onChange={(event) => setOtherTeam(event.target.value)}
             />
+            <datalist id="knownClubs">
+              {Object.keys(KNOWN_TEAMS).map((club) => (
+                <option key={club} value={club} />
+              ))}
+            </datalist>
           </div>
           {onLookup && (
             <div className="field full team-lookup">
@@ -370,6 +380,24 @@ export function ProfileForm({
         />
         <small>Your week is built around these: the day off after a game, the bullpen between, a light catch the day before.</small>
       </div>
+
+      {teamChoice === OTHER && !lookup?.fixtures.length && (
+        <div className="field full">
+          <label htmlFor="profileSeasonStart">When is your season? (optional)</label>
+          <div className="season-dates">
+            <input
+              id="profileSeasonStart"
+              type="date"
+              aria-label="First game"
+              value={seasonStart}
+              onChange={(event) => setSeasonStart(event.target.value)}
+            />
+            <span>to</span>
+            <input type="date" aria-label="Last game" value={seasonEnd} min={seasonStart} onChange={(event) => setSeasonEnd(event.target.value)} />
+          </div>
+          <small>First and last game. Pre-season, in-season and off-season are timed from these.</small>
+        </div>
+      )}
 
       <div className="field full">
         <label htmlFor="profileWinter">Do you play winter ball?</label>

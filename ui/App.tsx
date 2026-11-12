@@ -44,7 +44,7 @@ import {
   withSeasonFromDraw,
 } from "../src/domain/programmeSessions";
 import { applyBaselineProgramming } from "../src/domain/programmeUpdates";
-import { fuelBasis, hasOwnReports, readAthleteBaseline, seedBaselinePbs } from "../src/domain/baseline";
+import { fuelBasis, hasOwnReports, readAthleteBaseline, seedBaselinePbs, trainingNeeds } from "../src/domain/baseline";
 import { readTrainingMaxes, setTrainingMax } from "../src/domain/trainingMaxes";
 import { TrainingMaxes } from "./components/TrainingMaxes";
 import { useAppState } from "./state/useAppState";
@@ -369,6 +369,15 @@ export function App() {
       team === "Coomera Cubs"
         ? builtInFixturesFor(team, undefined).map((fixture) => fixture.date)
         : games.map((game) => game?.date).filter((date): date is IsoDate => typeof date === "string");
+    // No draw, but they gave their season's dates: their usual game days
+    // between the first and last game stand in for one.
+    const season = (state?.profile as { season?: { start?: unknown; end?: unknown } } | undefined)?.season;
+    const usual = readSchedule(state?.profile)?.games ?? [];
+    if (!dates.length && typeof season?.start === "string" && typeof season?.end === "string" && usual.length) {
+      for (let day = season.start as IsoDate; day <= season.end && dates.length < 400; day = addDays(day, 1)) {
+        if (usual.includes((new Date(`${day}T00:00:00Z`).getUTCDay() + 6) % 7)) dates.push(day);
+      }
+    }
     if (!team || !dates.length) return null;
     const league = leagueTeam(team)?.league.short ?? (typeof profile?.league === "string" && profile.league ? profile.league : "Your league");
     return { dates, league, winterBall: Boolean(readSchedule(state?.profile)?.winterGames.length) };
@@ -472,6 +481,9 @@ export function App() {
       pbs: state?.pbs as never,
       post: post as never,
       reports: hasOwnReports(state?.profile),
+      needs: hasOwnReports(state?.profile)
+        ? undefined
+        : trainingNeeds(readAthleteBaseline(state?.profile), readTrainingMaxes(state?.pbs).backSquat?.value ?? null),
     });
   }, [state]);
 
@@ -2329,6 +2341,7 @@ export function App() {
                 <BaselineTesting />
               ) : (
                 <AthleteBaselineForm
+                  notes={trainingNeeds(readAthleteBaseline(state.profile), readTrainingMaxes(state.pbs).backSquat?.value ?? null).notes}
                   baseline={readAthleteBaseline(state.profile)}
                   backSquatKg={readTrainingMaxes(state.pbs).backSquat?.value ?? null}
                   trapBarKg={readTrainingMaxes(state.pbs).trapBarDeadlift?.value ?? null}

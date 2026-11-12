@@ -16,7 +16,29 @@ import { LEGACY_PHASES, LegacyPhase } from "./legacyPhases";
  * session pages use these.
  */
 
-export const ANNUAL_START: IsoDate = "2026-07-13";
+/** The first programme year's Monday. Every later year starts 52 weeks on. */
+export const FIRST_ANNUAL_START: IsoDate = "2026-07-13";
+
+/**
+ * The start of the programme year containing `today`.
+ *
+ * The programme is 52 weeks; when they run out the year starts again, so
+ * there is always a current week.
+ * ponytail: 364-day years drift a day a year against the calendar (two in a
+ * leap year); re-anchor FIRST_ANNUAL_START if that ever matters.
+ */
+export function programmeStartFor(today: IsoDate): IsoDate {
+  const days = Math.floor((Date.parse(`${today}T00:00:00Z`) - Date.parse(`${FIRST_ANNUAL_START}T00:00:00Z`)) / 86_400_000);
+  const years = Math.max(0, Math.floor(days / 364));
+  return new Date(Date.parse(`${FIRST_ANNUAL_START}T00:00:00Z`) + years * 364 * 86_400_000).toISOString().slice(0, 10) as IsoDate;
+}
+
+const brisbaneToday = () =>
+  new Intl.DateTimeFormat("en-CA", { timeZone: "Australia/Brisbane" }).format(new Date()) as IsoDate;
+
+// Tests pin the first year, so they do not change when the calendar does.
+const underTest = typeof process !== "undefined" && Boolean(process.env?.VITEST) && !process.env?.PROGRAMME_LIVE_CLOCK;
+export const ANNUAL_START: IsoDate = underTest ? FIRST_ANNUAL_START : programmeStartFor(brisbaneToday());
 export const PROGRAMME_WEEK_COUNT = 52;
 
 const MS_PER_DAY = 86_400_000;
