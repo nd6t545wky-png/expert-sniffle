@@ -3540,5 +3540,11 @@ details.why[open] > summary { margin-bottom: 6px; }
 .baseline-notes { margin-top: 12px; }
 .baseline-notes ul { margin: 6px 0 0; padding-left: 18px; color: var(--muted); }
 .baseline-notes li + li { margin-top: 4px; }
-.season-dates { display: flex; align-items: center; gap: 8px; }
-.season-dates input { flex: 1 1 0; min-width: 0; }
+.season-dates { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; min-width: 0; }
+.season-dates input { flex: 1 1 120px; min-width: 0; }
+.profile-form .field { min-width: 0; }
+
+/* Sign-up steps: each step's fields sit straight in the form grid. */
+.form-step { display: contents; }
+.form-step[hidden] { display: none; }
+.form-step-title { grid-column: 1 / -1; margin: 0; color: var(--muted); font-size: 12px; font-weight: 700; }

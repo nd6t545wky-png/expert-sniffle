@@ -67,3 +67,28 @@ describe("parseMlbStatsSchedule", () => {
     expect(parseMlbStatsSchedule({ dates: "nope" }, bandits)).toEqual([]);
   });
 });
+
+import box from "./fixtures/ablBoxscore.json";
+import { mlbStatsFinals, parseMlbStatsOuting } from "./leagues";
+
+describe("pitching lines from a league box score", () => {
+  const game = { date: "2025-11-13" as never, opponent: "Sydney Blue Sox", home: true };
+  it("reads the player's own line, by name", () => {
+    expect(parseMlbStatsOuting(box, game, "seung-hyun lee")).toEqual({
+      date: "2025-11-13", opponent: "Sydney Blue Sox", side: "home",
+      outs: 6, hits: 3, runs: 2, earnedRuns: 2, strikeouts: 2, walks: 1, hitBatters: 0, pitches: 30, strikes: 19, battersFaced: 10,
+    });
+  });
+  it("is null for someone who did not pitch, or the other side", () => {
+    expect(parseMlbStatsOuting(box, game, "Nobody Here")).toBeNull();
+    expect(parseMlbStatsOuting(box, { ...game, home: false }, "Seung-Hyun Lee")).toBeNull();
+  });
+  it("lists only the team's finished games", () => {
+    const body = { dates: [{ games: [
+      { gamePk: 1, officialDate: "2026-11-19", status: { abstractGameState: "Final" }, teams: { away: { team: { id: 4065, name: "Brisbane Bandits" } }, home: { team: { id: 4064, name: "Adelaide Giants" } } } },
+      { gamePk: 2, officialDate: "2026-11-20", status: { abstractGameState: "Preview" }, teams: { away: { team: { id: 4065 } }, home: { team: { id: 4064 } } } },
+      { gamePk: 3, officialDate: "2026-11-19", status: { abstractGameState: "Final" }, teams: { away: { team: { id: 4068 } }, home: { team: { id: 4069 } } } },
+    ] }] };
+    expect(mlbStatsFinals(body, { name: "Brisbane Bandits", id: "4065" })).toEqual([{ gamePk: 1, date: "2026-11-19", opponent: "Adelaide Giants", home: false }]);
+  });
+});

@@ -48,7 +48,10 @@ export function ProfileForm({
   submitLabel,
   onSave,
   onLookup,
+  steps = false,
 }: {
+  /** First run: one short step at a time, not one long page. */
+  steps?: boolean;
   profile: unknown;
   submitLabel: string;
   onSave: (answers: AthleteProfile) => void;
@@ -142,11 +145,18 @@ export function ProfileForm({
       (winter === "no" || (winterTeam.trim() && winterGames.length))
   );
 
+  const [step, setStep] = useState(1);
+  const stepReady = step === 1 ? Boolean(name.trim() && playerType) : Boolean(team);
+
   return (
     <form
       className="form-grid profile-form"
       onSubmit={(event) => {
         event.preventDefault();
+        if (steps && step < 3) {
+          if (stepReady) setStep(step + 1);
+          return;
+        }
         if (!ready) return;
         onSave({
           name: name.trim(),
@@ -170,6 +180,8 @@ export function ProfileForm({
         });
       }}
     >
+      <div className="form-step" hidden={steps && step !== 1}>
+        {steps && <p className="form-step-title">Step 1 of 3 · You</p>}
       <div className="field full">
         <label htmlFor="profileName">Your name</label>
         <input
@@ -184,6 +196,47 @@ export function ProfileForm({
         <small>Used to find your stats on Ballclubz, so spell it the way your club does.</small>
       </div>
 
+      <fieldset className="field full player-type-choice">
+        <legend>What do you play?</legend>
+        {PLAYER_TYPES.map((option) => (
+          <label key={option.value} className={`choice-card ${playerType === option.value ? "selected" : ""}`.trim()}>
+            <input
+              type="radio"
+              name="playerType"
+              value={option.value}
+              checked={playerType === option.value}
+              onChange={() => setPlayerType(option.value)}
+            />
+            <span>
+              <strong>{option.label}</strong>
+              <small>{option.help}</small>
+            </span>
+          </label>
+        ))}
+      </fieldset>
+
+      <div className="field">
+        <label htmlFor="profileThrows">Throws</label>
+        <select id="profileThrows" value={throws} onChange={(event) => setThrows(event.target.value as Hand)}>
+          <option value="Right">Right</option>
+          <option value="Left">Left</option>
+        </select>
+      </div>
+
+      {hits(playerType || undefined) && (
+        <div className="field">
+          <label htmlFor="profileBats">Bats</label>
+          <select id="profileBats" value={bats} onChange={(event) => setBats(event.target.value as BatSide)}>
+            <option value="Right">Right</option>
+            <option value="Left">Left</option>
+            <option value="Switch">Switch</option>
+          </select>
+        </div>
+      )}
+
+      </div>
+      <div className="form-step" hidden={steps && step !== 2}>
+        {steps && <p className="form-step-title">Step 2 of 3 · Your team</p>}
       <div className="field full">
         <label htmlFor="profileLeague">Which league are you playing in now?</label>
         <select
@@ -324,44 +377,9 @@ export function ProfileForm({
       </div>
       ) : null}
 
-      <fieldset className="field full player-type-choice">
-        <legend>What do you play?</legend>
-        {PLAYER_TYPES.map((option) => (
-          <label key={option.value} className={`choice-card ${playerType === option.value ? "selected" : ""}`.trim()}>
-            <input
-              type="radio"
-              name="playerType"
-              value={option.value}
-              checked={playerType === option.value}
-              onChange={() => setPlayerType(option.value)}
-            />
-            <span>
-              <strong>{option.label}</strong>
-              <small>{option.help}</small>
-            </span>
-          </label>
-        ))}
-      </fieldset>
-
-      <div className="field">
-        <label htmlFor="profileThrows">Throws</label>
-        <select id="profileThrows" value={throws} onChange={(event) => setThrows(event.target.value as Hand)}>
-          <option value="Right">Right</option>
-          <option value="Left">Left</option>
-        </select>
       </div>
-
-      {hits(playerType || undefined) && (
-        <div className="field">
-          <label htmlFor="profileBats">Bats</label>
-          <select id="profileBats" value={bats} onChange={(event) => setBats(event.target.value as BatSide)}>
-            <option value="Right">Right</option>
-            <option value="Left">Left</option>
-            <option value="Switch">Switch</option>
-          </select>
-        </div>
-      )}
-
+      <div className="form-step" hidden={steps && step !== 3}>
+        {steps && <p className="form-step-title">Step 3 of 3 · Your week</p>}
       <div className="field full">
         <label id="trainingDays">Which nights does your team train?</label>
         <DayPicker id="trainingDays" value={training} onChange={setTraining} />
@@ -429,10 +447,22 @@ export function ProfileForm({
         </>
       )}
 
+      </div>
       <div className="form-actions">
-        <button className="btn btn-dark" type="submit" disabled={!ready}>
-          {submitLabel}
-        </button>
+        {steps && step > 1 && (
+          <button className="btn btn-outline" type="button" onClick={() => setStep(step - 1)}>
+            Back
+          </button>
+        )}
+        {steps && step < 3 ? (
+          <button className="btn btn-dark" type="submit" disabled={!stepReady}>
+            Next
+          </button>
+        ) : (
+          <button className="btn btn-dark" type="submit" disabled={!ready}>
+            {submitLabel}
+          </button>
+        )}
       </div>
     </form>
   );
@@ -451,7 +481,7 @@ export function ProfileSetup({
   return (
     <Card className="profile-setup" aria-label="Set up your profile">
       <CardHead title="Welcome - a few questions first" detail="This sets up your team, your colours and what the app tracks for you." />
-      <ProfileForm profile={profile} submitLabel="Start" onSave={onSave} onLookup={onLookup} />
+      <ProfileForm steps profile={profile} submitLabel="Start" onSave={onSave} onLookup={onLookup} />
     </Card>
   );
 }

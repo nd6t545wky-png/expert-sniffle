@@ -18,7 +18,7 @@ import {
   teamFixtures,
 } from "./domain/ballclubz";
 import { GBL_LEAGUE, gblTeam } from "./domain/athleteProfile";
-import { leagueTeam, mlbStatsScheduleUrl, parseMlbStatsSchedule } from "./domain/leagues";
+import { leagueTeam, mlbStatsFinals, mlbStatsScheduleUrl, parseMlbStatsOuting, parseMlbStatsSchedule } from "./domain/leagues";
 import { parseTeamLookup, teamLookupPrompt } from "./domain/teamLookup";
 import { readOuting } from "./domain/playerEvents";
 import type { IsoDate } from "./domain/state";
@@ -3270,6 +3270,47 @@ async function leagueTeamDraw(url: URL): Promise<Response> {
   }
 }
 
+/**
+ * A player's pitching lines from their league's box scores, for a league whose
+ * source is the MLB Stats API (the ABL). Found by name on their own team.
+ */
+async function leaguePitching(url: URL): Promise<Response> {
+  const found = leagueTeam(url.searchParams.get("team") ?? "");
+  const name = (url.searchParams.get("name") ?? "").trim().slice(0, 80);
+  if (!found || found.league.source.kind !== "mlb-stats" || !name) {
+    return json({ error: "That team's league has no box scores the app can read" }, 400);
+  }
+  const { league, team } = found;
+  const now = new Date();
+  const start = new Date(now.getTime() - 150 * 864e5).toISOString().slice(0, 10) as IsoDate;
+  const end = now.toISOString().slice(0, 10) as IsoDate;
+  try {
+    const schedule = await fetch(mlbStatsScheduleUrl(league.source as never, team.id, start, end), {
+      headers: { Accept: "application/json" },
+      cf: { cacheTtl: 900, cacheEverything: true },
+    } as RequestInit);
+    if (!schedule.ok) return json({ error: `${league.short} box scores could not be reached` }, 502);
+    // ponytail: newest 40 games per check, inside the Worker's subrequest
+    // limit; page back further if a season ever needs it.
+    const games = mlbStatsFinals(await schedule.json(), team).slice(0, 40);
+    const outings = (
+      await Promise.all(
+        games.map(async (game) => {
+          const box = await fetch(`https://statsapi.mlb.com/api/v1/game/${game.gamePk}/boxscore`, {
+            headers: { Accept: "application/json" },
+            // A final box score does not change.
+            cf: { cacheTtl: 86400, cacheEverything: true },
+          } as RequestInit);
+          return box.ok ? parseMlbStatsOuting(await box.json(), game, name) : null;
+        })
+      )
+    ).filter((outing) => outing !== null);
+    return json({ page: league.short, outings, batting: [], fetchedAt: now.toISOString() });
+  } catch {
+    return json({ error: `${league.short} box scores could not be reached` }, 502);
+  }
+}
+
 async function ballclubzTeam(url: URL): Promise<Response> {
   const team = gblTeam(url.searchParams.get("team") ?? "");
   if (!team) return json({ error: "Not a GBL Division 1 team" }, 400);
@@ -3350,6 +3391,11 @@ async function routeApi(request: Request, env: Env, url: URL): Promise<Response 
     if (!(await nutritionKeyHash(request, env, url))) return json({ error: "Sign in to bring in your team's draw" }, 401);
     const limited = await enforceAccountRateLimit(request, env, url, env.INTEGRATION_RATE_LIMITER, "ballclubz");
     return limited ?? leagueTeamDraw(url);
+  }
+  if (url.pathname === "/api/league/pitching" && request.method === "GET") {
+    if (!(await nutritionKeyHash(request, env, url))) return json({ error: "Turn on cloud autosave to read league stats" }, 401);
+    const limited = await enforceAccountRateLimit(request, env, url, env.INTEGRATION_RATE_LIMITER, "ballclubz");
+    return limited ?? leaguePitching(url);
   }
   if (url.pathname === "/api/ballclubz/pitching" && request.method === "GET") {
     if (!(await nutritionKeyHash(request, env, url))) return json({ error: "Turn on cloud autosave to read Ballclubz" }, 401);

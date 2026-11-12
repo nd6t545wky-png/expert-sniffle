@@ -445,6 +445,13 @@ export class PitchingOsApi {
     );
   }
 
+  /** The athlete's pitching lines from their league's box scores (leagues without Ballclubz pages). */
+  leaguePitching(team: string, name: string) {
+    return this.request<{ page: string; outings: BallclubzOuting[]; batting?: BattingLine[]; fetchedAt: string }>(
+      `/api/league/pitching?team=${encodeURIComponent(team)}&name=${encodeURIComponent(name)}`
+    );
+  }
+
   searchFood(query: string) {
     return this.request<{ query: string; results: FoodProduct[]; source: string }>(
       `/api/nutrition/search?query=${encodeURIComponent(query)}`
