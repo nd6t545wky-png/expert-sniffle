@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { PitchingOsApi } from "../../src/domain/api";
-import { CoachedAthlete, coachAction, readCoachAccess } from "../../src/domain/coach";
+import { CoachedAthlete, athleteSummary, coachAction, readCoachAccess, summaryLine } from "../../src/domain/coach";
+import { decryptCloudSnapshot } from "../../src/domain/sync";
 import { Alert, Card, CardHead } from "./Page";
 
 /**
@@ -18,11 +19,29 @@ export function CoachCard({
   const [athletes, setAthletes] = useState<CoachedAthlete[]>([]);
   const [busy, setBusy] = useState("");
   const [error, setError] = useState("");
+  // Each coached athlete at a glance, read from their own synced data.
+  const [overview, setOverview] = useState<Record<string, string>>({});
 
   useEffect(() => {
+    const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Australia/Brisbane" }).format(new Date());
     api
       .listAthletes()
-      .then((result) => setAthletes(result.athletes.map((a) => ({ ...a, access: readCoachAccess(a.access) }))))
+      .then((result) => {
+        const list = result.athletes.map((a) => ({ ...a, access: readCoachAccess(a.access) }));
+        setAthletes(list);
+        for (const athlete of list.filter((a) => a.access === "active")) {
+          api
+            .openAthlete(athlete.id)
+            .then(async (opened) => {
+              const synced = await api.withKey(opened.syncKey).getSync();
+              if (!synced.payload) return;
+              const state = await decryptCloudSnapshot(synced.payload, opened.syncKey);
+              setOverview((current) => ({ ...current, [athlete.id]: summaryLine(athleteSummary(state, today), today) }));
+            })
+            // The overview is extra: without it the list still works.
+            .catch(() => undefined);
+        }
+      })
       .catch((cause) => setError(cause instanceof Error ? cause.message : String(cause)));
   }, [api]);
 
@@ -59,6 +78,7 @@ export function CoachCard({
                   <small>
                     {step === "open" ? "Allowed you to coach" : step === "waiting" ? "Asked · waiting for them to allow" : "Not coaching"}
                   </small>
+                  {overview[athlete.id] && <small className="coach-overview">{overview[athlete.id]}</small>}
                 </div>
                 <div className="invite-actions">
                   {step === "ask" && (

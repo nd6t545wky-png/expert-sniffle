@@ -1,5 +1,5 @@
 import { GBL_LEAGUE, GBL_TEAMS } from "./athleteProfile";
-import type { TeamFixture } from "./ballclubz";
+import type { BallclubzOuting, TeamFixture } from "./ballclubz";
 import type { IsoDate } from "./state";
 
 /**
@@ -142,4 +142,61 @@ function gameTime(value: string | undefined, timeZone = "Australia/Brisbane"): s
   } catch {
     return "";
   }
+}
+
+/** A team's finished games in a Stats API schedule response, newest first. */
+export function mlbStatsFinals(body: unknown, team: LeagueTeam): { gamePk: number; date: IsoDate; opponent: string; home: boolean }[] {
+  const dates = (body as { dates?: { games?: (StatsGame & { gamePk?: number })[] }[] } | null)?.dates;
+  if (!Array.isArray(dates)) return [];
+  const out: { gamePk: number; date: IsoDate; opponent: string; home: boolean }[] = [];
+  for (const day of dates) {
+    for (const game of day.games ?? []) {
+      if (game.status?.abstractGameState !== "Final" || !game.gamePk || !game.officialDate || !ISO.test(game.officialDate)) continue;
+      const home = String(game.teams?.home?.team?.id ?? "") === team.id;
+      if (!home && String(game.teams?.away?.team?.id ?? "") !== team.id) continue;
+      out.push({
+        gamePk: game.gamePk,
+        date: game.officialDate as IsoDate,
+        opponent: (home ? game.teams?.away?.team?.name : game.teams?.home?.team?.name) ?? "TBC",
+        home,
+      });
+    }
+  }
+  return out.sort((a, b) => b.date.localeCompare(a.date));
+}
+
+const sameName = (a: string, b: string) => {
+  const key = (name: string) => name.toLowerCase().replace(/[^a-z]/g, "");
+  return key(a) !== "" && key(a) === key(b);
+};
+
+/** One player's pitching line out of a Stats API box score, or null if they did not pitch. */
+export function parseMlbStatsOuting(
+  box: unknown,
+  game: { date: IsoDate; opponent: string; home: boolean },
+  playerName: string
+): BallclubzOuting | null {
+  const side = (box as { teams?: Record<string, { players?: Record<string, unknown> }> } | null)?.teams?.[game.home ? "home" : "away"];
+  for (const entry of Object.values(side?.players ?? {})) {
+    const player = entry as { person?: { fullName?: string }; stats?: { pitching?: Record<string, unknown> } };
+    const line = player.stats?.pitching;
+    if (!line || line.inningsPitched === undefined || !sameName(player.person?.fullName ?? "", playerName)) continue;
+    const number = (key: string) => (Number.isFinite(Number(line[key])) ? Number(line[key]) : 0);
+    return {
+      date: game.date,
+      opponent: game.opponent,
+      side: game.home ? "home" : "away",
+      outs: number("outs"),
+      hits: number("hits"),
+      runs: number("runs"),
+      earnedRuns: number("earnedRuns"),
+      strikeouts: number("strikeOuts"),
+      walks: number("baseOnBalls"),
+      hitBatters: number("hitByPitch"),
+      pitches: number("numberOfPitches"),
+      strikes: number("strikes"),
+      battersFaced: number("battersFaced"),
+    };
+  }
+  return null;
 }

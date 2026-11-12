@@ -301,6 +301,59 @@ export function fuelBasis(profile: unknown): { bodyweightKg?: number; leanMassKg
   };
 }
 
+/**
+ * What an athlete's own numbers say about where their training should lean.
+ *
+ * The standards are the general ones the retest battery already uses: a
+ * drop-jump RSI of 1.2 and a ground contact of 0.30 s for reactive strength,
+ * and a back squat of 1.5 x body mass for strength. `null` means not measured,
+ * and the programme stays as written.
+ * ponytail: three fixed thresholds, coach-adjustable here; per-athlete
+ * targets if the coach wants them set by hand.
+ */
+export const NEED_STANDARDS = { djRsi: 1.2, djContact: 0.3, squatPerBodyMass: 1.5 } as const;
+
+export interface TrainingNeeds {
+  /** Reactive strength is below standard: keep the full second exposure. */
+  reactive: boolean | null;
+  /** Strength is below standard relative to body mass: load before speed. */
+  strength: boolean | null;
+  /** Plain lines for the athlete, citing their own numbers. */
+  notes: string[];
+}
+
+export function trainingNeeds(baseline: AthleteBaseline | null, squatMaxKg: number | null): TrainingNeeds {
+  const rsi = baseline?.metrics.djRsi;
+  const contact = baseline?.metrics.djContact;
+  const mass = baseline?.bodyMassKg;
+  const notes: string[] = [];
+
+  let reactive: boolean | null = null;
+  if (rsi !== undefined || contact !== undefined) {
+    reactive = (rsi !== undefined && rsi < NEED_STANDARDS.djRsi) || (contact !== undefined && contact > NEED_STANDARDS.djContact);
+    const numbers = [rsi !== undefined ? `drop-jump RSI ${rsi}` : "", contact !== undefined ? `ground contact ${contact} s` : ""]
+      .filter(Boolean)
+      .join(", ");
+    notes.push(
+      reactive
+        ? `Reactive strength is a priority (${numbers}; standard is RSI ${NEED_STANDARDS.djRsi}+ and contact under ${NEED_STANDARDS.djContact} s). Thursday keeps the full reactive dose.`
+        : `Reactive strength meets the standard (${numbers}). Thursday's reactive work drops to a maintenance dose.`
+    );
+  }
+
+  let strength: boolean | null = null;
+  if (squatMaxKg && mass) {
+    const ratio = Math.round((squatMaxKg / mass) * 100) / 100;
+    strength = ratio < NEED_STANDARDS.squatPerBodyMass;
+    notes.push(
+      strength
+        ? `Strength is a priority (squat ${ratio} x body mass; standard is ${NEED_STANDARDS.squatPerBodyMass} x). Wednesday's speed squat is a lighter dose so Monday's heavy squat gets the recovery.`
+        : `Strength meets the standard (squat ${ratio} x body mass). Wednesday keeps the full speed-squat dose: bar speed is where the gain is.`
+    );
+  }
+  return { reactive, strength, notes };
+}
+
 const REPORT_SOURCES = new Set([
   "VALD ForceDecks load-velocity profile",
   "Solved from the programme's own week table: the only max at which its percentages reproduce its written loads",

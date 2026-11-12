@@ -44,7 +44,7 @@ import {
   withSeasonFromDraw,
 } from "../src/domain/programmeSessions";
 import { applyBaselineProgramming } from "../src/domain/programmeUpdates";
-import { fuelBasis, hasOwnReports, readAthleteBaseline, seedBaselinePbs } from "../src/domain/baseline";
+import { fuelBasis, hasOwnReports, readAthleteBaseline, seedBaselinePbs, trainingNeeds } from "../src/domain/baseline";
 import { readTrainingMaxes, setTrainingMax } from "../src/domain/trainingMaxes";
 import { TrainingMaxes } from "./components/TrainingMaxes";
 import { useAppState } from "./state/useAppState";
@@ -369,6 +369,15 @@ export function App() {
       team === "Coomera Cubs"
         ? builtInFixturesFor(team, undefined).map((fixture) => fixture.date)
         : games.map((game) => game?.date).filter((date): date is IsoDate => typeof date === "string");
+    // No draw, but they gave their season's dates: their usual game days
+    // between the first and last game stand in for one.
+    const season = (state?.profile as { season?: { start?: unknown; end?: unknown } } | undefined)?.season;
+    const usual = readSchedule(state?.profile)?.games ?? [];
+    if (!dates.length && typeof season?.start === "string" && typeof season?.end === "string" && usual.length) {
+      for (let day = season.start as IsoDate; day <= season.end && dates.length < 400; day = addDays(day, 1)) {
+        if (usual.includes((new Date(`${day}T00:00:00Z`).getUTCDay() + 6) % 7)) dates.push(day);
+      }
+    }
     if (!team || !dates.length) return null;
     const league = leagueTeam(team)?.league.short ?? (typeof profile?.league === "string" && profile.league ? profile.league : "Your league");
     return { dates, league, winterBall: Boolean(readSchedule(state?.profile)?.winterGames.length) };
@@ -472,6 +481,9 @@ export function App() {
       pbs: state?.pbs as never,
       post: post as never,
       reports: hasOwnReports(state?.profile),
+      needs: hasOwnReports(state?.profile)
+        ? undefined
+        : trainingNeeds(readAthleteBaseline(state?.profile), readTrainingMaxes(state?.pbs).backSquat?.value ?? null),
     });
   }, [state]);
 
@@ -1543,11 +1555,24 @@ export function App() {
   const [ballclubzBusy, setBallclubzBusy] = useState(false);
   const ballclubzChecked = useRef("");
 
+  // A league with box scores but no Ballclubz pages (the ABL): the same
+  // check, by team and name.
+  const boxScoreLeague = (() => {
+    const athlete = readAthleteProfile(state?.profile);
+    const found = leagueTeam(athlete.team);
+    return !ballclubzUrl && found?.league.source.kind === "mlb-stats" && athlete.name && athlete.playerType !== "position"
+      ? { team: found.team.name, name: athlete.name, short: found.league.short }
+      : null;
+  })();
+  const statsSource = ballclubzUrl || (boxScoreLeague ? `${boxScoreLeague.team}|${boxScoreLeague.name}` : "");
+  const statsLabel = boxScoreLeague?.short ?? "Ballclubz";
   const checkBallclubz = useCallback(async () => {
-    if (!ballclubzUrl) return;
+    if (!statsSource) return;
     setBallclubzBusy(true);
     try {
-      const result = await api.ballclubzPitching(ballclubzUrl);
+      const result = boxScoreLeague
+        ? await api.leaguePitching(boxScoreLeague.team, boxScoreLeague.name)
+        : await api.ballclubzPitching(ballclubzUrl);
       const counted = mergeBallclubzOutings(games, result.outings);
       // The official batting line is the league's, not the athlete's: stored
       // whole each time, replacing the last copy.
@@ -1566,17 +1591,18 @@ export function App() {
       }
       const at = new Date().toLocaleTimeString("en-AU", { hour: "numeric", minute: "2-digit" });
       setBallclubzStatus(
-        `Checked ${at}: ${result.outings.length} ${result.outings.length === 1 ? "outing" : "outings"} on Ballclubz` +
+        `Checked ${at}: ${result.outings.length} ${result.outings.length === 1 ? "outing" : "outings"} on ${statsLabel}` +
           (counted.added || counted.updated
             ? ` - ${counted.added} new${counted.updated ? `, ${counted.updated} corrected` : ""}.`
             : ", all already in your game log.")
       );
     } catch (error) {
-      setBallclubzStatus(`Couldn't check Ballclubz: ${error instanceof Error ? error.message : String(error)}`);
+      setBallclubzStatus(`Couldn't check ${statsLabel}: ${error instanceof Error ? error.message : String(error)}`);
     } finally {
       setBallclubzBusy(false);
     }
-  }, [api, ballclubzUrl, games, update]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [api, statsSource, games, update]);
 
   // The team's draw from its league (GBL, ABL - see leagues.ts), and where the
   // league has player pages, this player's page on its roster: refreshed once a
@@ -1652,9 +1678,9 @@ export function App() {
   }, [api, state, syncKey, coaching, update]);
 
   useEffect(() => {
-    if (!state || !isValidSyncKey(syncKey) || !ballclubzUrl) return;
-    if (ballclubzChecked.current === ballclubzUrl) return;
-    ballclubzChecked.current = ballclubzUrl;
+    if (!state || !isValidSyncKey(syncKey) || !statsSource) return;
+    if (ballclubzChecked.current === statsSource) return;
+    ballclubzChecked.current = statsSource;
     void checkBallclubz();
   }, [state, syncKey, ballclubzUrl, checkBallclubz]);
 
@@ -2329,6 +2355,7 @@ export function App() {
                 <BaselineTesting />
               ) : (
                 <AthleteBaselineForm
+                  notes={trainingNeeds(readAthleteBaseline(state.profile), readTrainingMaxes(state.pbs).backSquat?.value ?? null).notes}
                   baseline={readAthleteBaseline(state.profile)}
                   backSquatKg={readTrainingMaxes(state.pbs).backSquat?.value ?? null}
                   trapBarKg={readTrainingMaxes(state.pbs).trapBarDeadlift?.value ?? null}

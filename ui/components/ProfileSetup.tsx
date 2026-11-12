@@ -12,7 +12,7 @@ import {
 } from "../../src/domain/athleteProfile";
 import { Card, CardHead } from "./Page";
 import { DAY_SHORT, readSchedule } from "../../src/domain/weeklySchedule";
-import { knownTeam as listedClub, readTeamColours } from "../../src/domain/teamColours";
+import { KNOWN_TEAMS, knownTeam as listedClub, readTeamColours } from "../../src/domain/teamColours";
 
 const OTHER = "__other__";
 
@@ -48,7 +48,10 @@ export function ProfileForm({
   submitLabel,
   onSave,
   onLookup,
+  steps = false,
 }: {
+  /** First run: one short step at a time, not one long page. */
+  steps?: boolean;
   profile: unknown;
   submitLabel: string;
   onSave: (answers: AthleteProfile) => void;
@@ -60,6 +63,9 @@ export function ProfileForm({
   const [name, setName] = useState(current.name ?? "");
   const [teamChoice, setTeamChoice] = useState(current.team ? (knownTeam ? current.team : OTHER) : "");
   const [otherTeam, setOtherTeam] = useState(knownTeam ? "" : current.team ?? "");
+  const storedSeason = (profile as { season?: { start?: string; end?: string } } | null | undefined)?.season;
+  const [seasonStart, setSeasonStart] = useState(storedSeason?.start ?? "");
+  const [seasonEnd, setSeasonEnd] = useState(storedSeason?.end ?? "");
   // The league comes first: it decides which draw the season is built from.
   const [leagueChoice, setLeagueChoice] = useState(
     leagueTeam(current.team)?.league.id ?? (current.team ? OTHER : "")
@@ -139,11 +145,18 @@ export function ProfileForm({
       (winter === "no" || (winterTeam.trim() && winterGames.length))
   );
 
+  const [step, setStep] = useState(1);
+  const stepReady = step === 1 ? Boolean(name.trim() && playerType) : Boolean(team);
+
   return (
     <form
       className="form-grid profile-form"
       onSubmit={(event) => {
         event.preventDefault();
+        if (steps && step < 3) {
+          if (stepReady) setStep(step + 1);
+          return;
+        }
         if (!ready) return;
         onSave({
           name: name.trim(),
@@ -154,6 +167,7 @@ export function ProfileForm({
           schedule: { training, games: shownGames, winterGames: winter === "yes" ? winterGames : [] },
           winterTeam: winter === "yes" ? winterTeam.trim() : "",
           teamColours: { primary: shownPrimary, secondary: shownSecondary },
+          season: seasonStart && seasonEnd && seasonEnd >= seasonStart ? { start: seasonStart, end: seasonEnd } : null,
           league: leagueChoice === OTHER ? where.trim() || "Other" : leagueChoice,
           ...(teamChoice === OTHER
             ? {
@@ -166,6 +180,8 @@ export function ProfileForm({
         });
       }}
     >
+      <div className="form-step" hidden={steps && step !== 1}>
+        {steps && <p className="form-step-title">Step 1 of 3 · You</p>}
       <div className="field full">
         <label htmlFor="profileName">Your name</label>
         <input
@@ -180,6 +196,47 @@ export function ProfileForm({
         <small>Used to find your stats on Ballclubz, so spell it the way your club does.</small>
       </div>
 
+      <fieldset className="field full player-type-choice">
+        <legend>What do you play?</legend>
+        {PLAYER_TYPES.map((option) => (
+          <label key={option.value} className={`choice-card ${playerType === option.value ? "selected" : ""}`.trim()}>
+            <input
+              type="radio"
+              name="playerType"
+              value={option.value}
+              checked={playerType === option.value}
+              onChange={() => setPlayerType(option.value)}
+            />
+            <span>
+              <strong>{option.label}</strong>
+              <small>{option.help}</small>
+            </span>
+          </label>
+        ))}
+      </fieldset>
+
+      <div className="field">
+        <label htmlFor="profileThrows">Throws</label>
+        <select id="profileThrows" value={throws} onChange={(event) => setThrows(event.target.value as Hand)}>
+          <option value="Right">Right</option>
+          <option value="Left">Left</option>
+        </select>
+      </div>
+
+      {hits(playerType || undefined) && (
+        <div className="field">
+          <label htmlFor="profileBats">Bats</label>
+          <select id="profileBats" value={bats} onChange={(event) => setBats(event.target.value as BatSide)}>
+            <option value="Right">Right</option>
+            <option value="Left">Left</option>
+            <option value="Switch">Switch</option>
+          </select>
+        </div>
+      )}
+
+      </div>
+      <div className="form-step" hidden={steps && step !== 2}>
+        {steps && <p className="form-step-title">Step 2 of 3 · Your team</p>}
       <div className="field full">
         <label htmlFor="profileLeague">Which league are you playing in now?</label>
         <select
@@ -229,8 +286,14 @@ export function ProfileForm({
               type="text"
               maxLength={60}
               value={otherTeam}
+              list="knownClubs"
               onChange={(event) => setOtherTeam(event.target.value)}
             />
+            <datalist id="knownClubs">
+              {Object.keys(KNOWN_TEAMS).map((club) => (
+                <option key={club} value={club} />
+              ))}
+            </datalist>
           </div>
           {onLookup && (
             <div className="field full team-lookup">
@@ -314,44 +377,9 @@ export function ProfileForm({
       </div>
       ) : null}
 
-      <fieldset className="field full player-type-choice">
-        <legend>What do you play?</legend>
-        {PLAYER_TYPES.map((option) => (
-          <label key={option.value} className={`choice-card ${playerType === option.value ? "selected" : ""}`.trim()}>
-            <input
-              type="radio"
-              name="playerType"
-              value={option.value}
-              checked={playerType === option.value}
-              onChange={() => setPlayerType(option.value)}
-            />
-            <span>
-              <strong>{option.label}</strong>
-              <small>{option.help}</small>
-            </span>
-          </label>
-        ))}
-      </fieldset>
-
-      <div className="field">
-        <label htmlFor="profileThrows">Throws</label>
-        <select id="profileThrows" value={throws} onChange={(event) => setThrows(event.target.value as Hand)}>
-          <option value="Right">Right</option>
-          <option value="Left">Left</option>
-        </select>
       </div>
-
-      {hits(playerType || undefined) && (
-        <div className="field">
-          <label htmlFor="profileBats">Bats</label>
-          <select id="profileBats" value={bats} onChange={(event) => setBats(event.target.value as BatSide)}>
-            <option value="Right">Right</option>
-            <option value="Left">Left</option>
-            <option value="Switch">Switch</option>
-          </select>
-        </div>
-      )}
-
+      <div className="form-step" hidden={steps && step !== 3}>
+        {steps && <p className="form-step-title">Step 3 of 3 · Your week</p>}
       <div className="field full">
         <label id="trainingDays">Which nights does your team train?</label>
         <DayPicker id="trainingDays" value={training} onChange={setTraining} />
@@ -370,6 +398,24 @@ export function ProfileForm({
         />
         <small>Your week is built around these: the day off after a game, the bullpen between, a light catch the day before.</small>
       </div>
+
+      {teamChoice === OTHER && !lookup?.fixtures.length && (
+        <div className="field full">
+          <label htmlFor="profileSeasonStart">When is your season? (optional)</label>
+          <div className="season-dates">
+            <input
+              id="profileSeasonStart"
+              type="date"
+              aria-label="First game"
+              value={seasonStart}
+              onChange={(event) => setSeasonStart(event.target.value)}
+            />
+            <span>to</span>
+            <input type="date" aria-label="Last game" value={seasonEnd} min={seasonStart} onChange={(event) => setSeasonEnd(event.target.value)} />
+          </div>
+          <small>First and last game. Pre-season, in-season and off-season are timed from these.</small>
+        </div>
+      )}
 
       <div className="field full">
         <label htmlFor="profileWinter">Do you play winter ball?</label>
@@ -401,10 +447,22 @@ export function ProfileForm({
         </>
       )}
 
+      </div>
       <div className="form-actions">
-        <button className="btn btn-dark" type="submit" disabled={!ready}>
-          {submitLabel}
-        </button>
+        {steps && step > 1 && (
+          <button className="btn btn-outline" type="button" onClick={() => setStep(step - 1)}>
+            Back
+          </button>
+        )}
+        {steps && step < 3 ? (
+          <button className="btn btn-dark" type="submit" disabled={!stepReady}>
+            Next
+          </button>
+        ) : (
+          <button className="btn btn-dark" type="submit" disabled={!ready}>
+            {submitLabel}
+          </button>
+        )}
       </div>
     </form>
   );
@@ -423,7 +481,7 @@ export function ProfileSetup({
   return (
     <Card className="profile-setup" aria-label="Set up your profile">
       <CardHead title="Welcome - a few questions first" detail="This sets up your team, your colours and what the app tracks for you." />
-      <ProfileForm profile={profile} submitLabel="Start" onSave={onSave} onLookup={onLookup} />
+      <ProfileForm steps profile={profile} submitLabel="Start" onSave={onSave} onLookup={onLookup} />
     </Card>
   );
 }

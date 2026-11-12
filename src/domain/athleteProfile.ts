@@ -41,6 +41,8 @@ export interface AthleteProfile {
   name: string;
   /** The league they play in now: a LEAGUES id, or the name they typed. */
   league?: string;
+  /** Their season's first and last game dates, where no draw could be found. */
+  season?: { start: string; end: string } | null;
   /** Team training nights and game days; see weeklySchedule.ts. */
   schedule: WeeklySchedule;
   /** Winter-ball club, or "" for none. */

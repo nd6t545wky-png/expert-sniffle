@@ -56,3 +56,62 @@ export function isCoachSignIn(session: CoachingSession | null, userId: string): 
 export function coachAction(access: CoachAccess): "ask" | "waiting" | "open" {
   return access === "active" ? "open" : access === "pending" ? "waiting" : "ask";
 }
+
+/** One athlete at a glance, read off their synced data. */
+export interface AthleteSummary {
+  team: string;
+  /** Today's check-in, if they have done it. */
+  readiness: { score: number; level: string } | null;
+  lastCheckIn: string | null;
+  /** Check-ins in the last seven days. */
+  checkInsThisWeek: number;
+  tasksDoneToday: number;
+  lastGame: { date: string; opponent: string; pitches: number } | null;
+  hasBaseline: boolean;
+}
+
+export function athleteSummary(state: Record<string, unknown>, today: string): AthleteSummary {
+  const record = (value: unknown) => (value && typeof value === "object" ? (value as Record<string, unknown>) : {});
+  const profile = record(state.profile);
+  const pre = record(state.pre);
+  const days = Object.keys(pre).filter((day) => day <= today).sort();
+  const weekAgo = new Date(Date.parse(`${today}T00:00:00Z`) - 6 * 86_400_000).toISOString().slice(0, 10);
+  const todays = record(pre[today]);
+  const done = record(state.completedTasks)[today];
+  const games = (Array.isArray(state.games) ? state.games : [])
+    .map(record)
+    .filter((game) => typeof game.date === "string")
+    .sort((a, b) => String(b.date).localeCompare(String(a.date)));
+  return {
+    team: typeof profile.team === "string" ? profile.team : "",
+    readiness:
+      typeof todays.score === "number" ? { score: Math.round(todays.score), level: String(todays.planLevel ?? "") } : null,
+    lastCheckIn: days[days.length - 1] ?? null,
+    checkInsThisWeek: days.filter((day) => day >= weekAgo).length,
+    tasksDoneToday: Array.isArray(done) ? done.length : 0,
+    lastGame: games[0]
+      ? { date: String(games[0].date), opponent: String(games[0].opponent ?? ""), pitches: Number(games[0].pitches) || 0 }
+      : null,
+    hasBaseline: Boolean(profile.baseline),
+  };
+}
+
+/** "Checked in today · 82 full · 5 tasks done · last game 8 Nov, 64 pitches". */
+export function summaryLine(summary: AthleteSummary, today: string): string {
+  const short = (iso: string) =>
+    new Date(`${iso}T00:00:00Z`).toLocaleDateString("en-AU", { day: "numeric", month: "short", timeZone: "UTC" });
+  const parts = [
+    summary.readiness
+      ? `Checked in today · readiness ${summary.readiness.score}${summary.readiness.level ? ` (${summary.readiness.level})` : ""}`
+      : summary.lastCheckIn
+        ? `No check-in today · last ${short(summary.lastCheckIn)}`
+        : "Never checked in",
+    `${summary.checkInsThisWeek}/7 check-ins this week`,
+    summary.readiness ? `${summary.tasksDoneToday} task${summary.tasksDoneToday === 1 ? "" : "s"} done today` : "",
+    summary.lastGame
+      ? `last game ${short(summary.lastGame.date)}${summary.lastGame.pitches ? `, ${summary.lastGame.pitches} pitches` : ""}`
+      : "",
+    summary.hasBaseline ? "" : "no baseline testing yet",
+  ];
+  return parts.filter(Boolean).join(" · ");
+}

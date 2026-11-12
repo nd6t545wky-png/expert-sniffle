@@ -220,14 +220,19 @@ function depthJumpTask(
 function velocitySquatTask(prefix: string, stageTitle: string, stageDescription: string): SessionTask {
   const max = squatMax();
   const kg = reports() ? BASELINE_ANCHORS.optimalPowerLoadKg : max ? round(max * 0.65) : null;
+  const needs = programmeContext().needs;
+  // Strength-limited on their own numbers: a lighter speed dose, so the week's
+  // heavy squat gets the recovery.
+  const sets = needs?.strength === true ? 3 : 4;
+  const own = needs?.notes.find((note) => note.startsWith("Strength")) ?? "";
   return {
     id: `${prefix}-velocity-squat`,
     stage: 4,
     stageTitle,
     stageDescription,
     name: "Speed squat - optimal power load",
-    prescription: kg ? `4 × 3 @ ${kg} kg · every rep maximal intent` : "4 × 3 @ about 65% of your squat max · every rep maximal intent",
-    cue: "The load is fixed; the only variable is how fast the bar moves. Stop the set when bar speed drops.",
+    prescription: kg ? `${sets} × 3 @ ${kg} kg · every rep maximal intent` : `${sets} × 3 @ about 65% of your squat max · every rep maximal intent`,
+    cue: `The load is fixed; the only variable is how fast the bar moves. Stop the set when bar speed drops.${own ? ` From your testing: ${own}` : ""}`,
     setup: reports()
       ? `${kg} kg is the measured optimal load for peak power (L0/2 from the load-velocity profile). Use a rack with safeties.`
       : kg
@@ -583,14 +588,20 @@ function withTaperedHinge(tapering: boolean) {
  * a jump-height contest - which is the exact error the report warns against.
  */
 function reactiveDoseTask(prefix: string, stageTitle: string, stageDescription: string): SessionTask {
+  const needs = programmeContext().needs;
+  // Meets the standard on their own testing: one maintenance set less of each.
+  const maintain = needs?.reactive === false;
+  const own = needs?.notes.find((note) => note.startsWith("Reactive")) ?? "";
   return {
     id: `${prefix}-reactive-dose`,
     stage: 4,
     stageTitle,
     stageDescription,
     name: "Reactive microdose - pogo and low hurdle hops",
-    prescription: "Pogo 3 × 10 · low hurdle hops 3 × 4 · full recovery between sets",
-    cue: "Reactive work. Short, stiff, fast off the floor. If a contact feels heavy, that set is finished.",
+    prescription: maintain
+      ? "Pogo 2 × 10 · low hurdle hops 2 × 4 · full recovery between sets"
+      : "Pogo 3 × 10 · low hurdle hops 3 × 4 · full recovery between sets",
+    cue: `Reactive work. Short, stiff, fast off the floor. If a contact feels heavy, that set is finished.${own ? ` From your testing: ${own}` : ""}`,
     setup:
       "Firm, non-slip surface. Hurdles at ankle to mid-shin - 15–25 cm - and no higher. If you have no hurdles, a line of shoes or a rolled towel does the job; the height is not what makes this work.",
     execution:

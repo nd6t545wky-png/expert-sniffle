@@ -31,6 +31,7 @@
  */
 
 import { GBL_ROUNDS_2026_27 } from "./fixtures";
+import { ANNUAL_START } from "./calendar";
 
 export interface ProgrammeContext {
   pbs?: { trainingMaxes?: { lifts?: Record<string, { value: number; kind?: string }> } };
@@ -39,6 +40,8 @@ export interface ProgrammeContext {
   post?: Record<string, { gamePitches?: number } | undefined>;
   /** The owner's account: the testing reports were measured on this athlete. */
   reports?: boolean;
+  /** What this athlete's own numbers say; see `trainingNeeds`. */
+  needs?: { reactive: boolean | null; strength: boolean | null; notes: string[] };
 }
 
 let ctx: ProgrammeContext = {};
@@ -53,7 +56,7 @@ export function setProgrammeContext(next: ProgrammeContext): void {
   ctx = next ?? {};
 }
 
-const ANNUAL_START = "2026-07-13";
+// Rolls forward 52 weeks at a time; see `programmeStartFor`.
 
 
 const DAY_NAMES = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];

@@ -57,6 +57,11 @@ export class PitchingOsApi {
   private readonly baseUrl: string;
   private syncKey?: string;
 
+  /** The same client, signed for another workspace (a coached athlete's). */
+  withKey(syncKey: string): PitchingOsApi {
+    return new PitchingOsApi({ fetcher: this.fetcher, baseUrl: this.baseUrl, syncKey });
+  }
+
   constructor(options: ApiOptions = {}) {
     this.fetcher = options.fetcher ?? ((...args) => fetch(...args));
     this.baseUrl = options.baseUrl ?? "";
@@ -437,6 +442,13 @@ export class PitchingOsApi {
   ballclubzPitching(page: string) {
     return this.request<{ page: string; outings: BallclubzOuting[]; batting?: BattingLine[]; fetchedAt: string }>(
       `/api/ballclubz/pitching?page=${encodeURIComponent(page)}`
+    );
+  }
+
+  /** The athlete's pitching lines from their league's box scores (leagues without Ballclubz pages). */
+  leaguePitching(team: string, name: string) {
+    return this.request<{ page: string; outings: BallclubzOuting[]; batting?: BattingLine[]; fetchedAt: string }>(
+      `/api/league/pitching?team=${encodeURIComponent(team)}&name=${encodeURIComponent(name)}`
     );
   }
 

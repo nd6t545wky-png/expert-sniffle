@@ -1,0 +1,55 @@
+{
+  "teams": {
+    "away": {
+      "team": {
+        "id": 4069,
+        "name": "Sydney Blue Sox"
+      },
+      "players": {}
+    },
+    "home": {
+      "team": {
+        "id": 4065,
+        "name": "Brisbane Bandits"
+      },
+      "players": {
+        "ID816308": {
+          "person": {
+            "fullName": "Seung-Hyun Lee"
+          },
+          "stats": {
+            "pitching": {
+              "inningsPitched": "2.0",
+              "outs": 6,
+              "hits": 3,
+              "runs": 2,
+              "earnedRuns": 2,
+              "strikeOuts": 2,
+              "baseOnBalls": 1,
+              "hitByPitch": 0,
+              "numberOfPitches": 30,
+              "strikes": 19,
+              "battersFaced": 10
+            }
+          }
+        },
+        "ID564434": {
+          "person": {
+            "fullName": "Robbie Perkins"
+          },
+          "stats": {
+            "pitching": {}
+          }
+        },
+        "ID692387": {
+          "person": {
+            "fullName": "Jake Burns"
+          },
+          "stats": {
+            "pitching": {}
+          }
+        }
+      }
+    }
+  }
+}
