@@ -8,7 +8,7 @@ import type { IsoDate } from "./state";
  * on what the day already holds:
  *
  *  - `full`:  a free morning or afternoon. A room strength circuit, band arm
- *             care and a catch - the trip's real training days.
+ *             care and towel drills - the trip's real training days.
  *  - `light`: a full day out. Fifteen minutes before breakfast.
  *  - `move`:  a travel day, or a day that is already hard on the legs (a
  *             trek, 600 steps up a mountain, a day of temples). Mobility only;
@@ -57,7 +57,7 @@ export function tripDaysFromEvents(events: unknown): TripDay[] {
 const PREPARE = "Loosen up after the bus, the plane or the bed.";
 const STRENGTH = "Bodyweight and one band. Slow lowering makes light loads count.";
 const ARM = "Keep the cuff and scapula working while the arm is off the mound.";
-const THROW = "Keep the arm moving. Easy, short, and only if you packed a ball.";
+const THROW = "No ball on this trip: keep the throwing pattern with a towel.";
 
 function mobility(p: string, minutes: number): SessionTask {
   return {
@@ -144,19 +144,19 @@ function strength(p: string): SessionTask[] {
   ];
 }
 
-function catchPlay(p: string): SessionTask {
+function towelDrill(p: string): SessionTask {
   return {
-    id: `${p}-catch`,
+    id: `${p}-towel`,
     stage: 4,
     stageTitle: "Throw",
     stageDescription: THROW,
-    name: "Easy catch",
-    prescription: "30-40 throws · build to 60-90 ft · 50-60% effort",
-    cue: "Loose arc, clean direction. This is to keep the arm moving, not to train it.",
-    setup: "A glove each, a ball and a partner, on a beach, a park or a quiet street. No ball or no room: 2 × 15 towel drills at the same easy effort.",
-    execution: "Start close, add distance while it feels free, come back in. Count the throws.",
-    rest: "Natural rhythm.",
-    stop: "Stop if the arm does not loosen, or anything is sharp.",
+    name: "Towel drill",
+    prescription: "3 × 12 · full delivery · 60-70% effort",
+    cue: "Your normal delivery with a towel in place of the ball. Smooth, on time, finish out front. This keeps the pattern while there is nothing to throw.",
+    setup: "A hand towel from the room, held by one end or knotted. Enough space to stride: a hallway, a balcony, a beach.",
+    execution: "Set, lift, stride and throw the towel through to a full finish. Reset between reps; do not rush them together.",
+    rest: "60 seconds between sets.",
+    stop: "Stop if anything is sharp in the shoulder or elbow.",
   };
 }
 
@@ -186,11 +186,11 @@ export function travelSession(week: WeekPlan, day: number, trip: TripDay, recove
     };
   }
   return {
-    title: "Trip Day · Room Strength + Catch",
-    focus: "The trip's training day: strength, arm care and a catch",
+    title: "Trip Day · Room Strength + Towel Drill",
+    focus: "The trip's training day: strength, arm care and towel drills",
     duration: "35-40 min",
     stress: "Moderate",
-    description: `${where} Free time today, so this is a real session. No equipment needed beyond one band; if the hotel has a gym, each lift says what to do there.`,
-    tasks: [mobility(p, 6), ...strength(p), armCare(p, 3), catchPlay(p)],
+    description: `${where} Free time today, so this is a real session. No gym and no baseball gear needed: a band if you packed one, a hotel towel for the throwing drill. If the hotel has a gym, each lift says what to do there.`,
+    tasks: [mobility(p, 6), ...strength(p), armCare(p, 3), towelDrill(p)],
   };
 }

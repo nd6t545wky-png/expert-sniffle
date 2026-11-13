@@ -37,7 +37,8 @@ describe("training on a trip", () => {
     expect(move.tasks.map((task) => task.name)).toEqual(["Travel mobility flow"]);
     expect(light.tasks.map((task) => task.name)).toEqual(["Travel mobility flow", "Band arm care"]);
     expect(full.tasks.map((task) => task.stageTitle)).toContain("Room Strength");
-    expect(full.tasks.at(-1)?.name).toBe("Easy catch");
+    expect(full.tasks.at(-1)?.name).toBe("Towel drill");
+    expect(JSON.stringify(full)).not.toMatch(/glove|a ball\b|catch/i);
     expect(JSON.stringify(full)).not.toMatch(/barbell|trap bar|bullpen/i);
     expect(new Set(full.tasks.map((task) => task.id)).size).toBe(full.tasks.length);
   });
