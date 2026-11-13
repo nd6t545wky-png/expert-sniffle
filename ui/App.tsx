@@ -546,14 +546,22 @@ export function App() {
     () => readAthleteFixtures((state?.profile as { fixtures?: unknown } | undefined)?.fixtures),
     [state]
   );
-  // The draw for this athlete's own teams - see `builtInFixturesFor`.
+  // Days away on a trip: no games, and a travel session in place of the plan.
+  const tripDays = useMemo(() => readTripDays((state?.profile as { tripDays?: unknown } | undefined)?.tripDays), [state?.profile]);
+  // The draw for this athlete's own teams - see `builtInFixturesFor`. Games
+  // on a trip day are ones they will miss, so they come off the calendar.
   const builtInFixtures = useMemo(() => {
     const profile = state?.profile as { teamDraw?: { team?: string; games?: unknown } } | undefined;
     const team = readAthleteProfile(state?.profile).team;
     const draw = team && profile?.teamDraw?.team === team && Array.isArray(profile.teamDraw.games) ? profile.teamDraw.games : [];
-    return builtInFixturesFor(team, winterClubOf(state?.profile), draw as never);
-  }, [state?.profile]);
-  const fixtures = useMemo(() => allFixtures(athleteFixtures, builtInFixtures), [athleteFixtures, builtInFixtures]);
+    return builtInFixturesFor(team, winterClubOf(state?.profile), draw as never).filter(
+      (fixture) => !tripDays.some((trip) => trip.date === fixture.date)
+    );
+  }, [state?.profile, tripDays]);
+  const fixtures = useMemo(
+    () => allFixtures(athleteFixtures, builtInFixtures).filter((fixture) => !tripDays.some((trip) => trip.date === fixture.date)),
+    [athleteFixtures, builtInFixtures, tripDays]
+  );
 
   /**
    * Whether a game is on, on a given date.
@@ -563,11 +571,9 @@ export function App() {
    * week and day, and keeping it that way is what makes the sessions testable
    * without a store behind them.
    */
-  // Days away on a trip: no games, and a travel session in place of the plan.
-  const tripDays = useMemo(() => readTripDays((state?.profile as { tripDays?: unknown } | undefined)?.tripDays), [state?.profile]);
   const gameOn = useCallback(
-    (on: IsoDate) => fixtureOn(on, fixtures) !== null && !tripDays.some((trip) => trip.date === on),
-    [fixtures, tripDays]
+    (on: IsoDate) => fixtureOn(on, fixtures) !== null,
+    [fixtures]
   );
 
   /**
@@ -2432,7 +2438,11 @@ export function App() {
           {/* Adding a game belongs on the page the season is read from.
               Entering one here rebuilds that day as a game day straight away. */}
           <FixtureSettings
-            builtIn={builtInFixtures}
+            builtIn={[
+              ...builtInFixtures,
+              // Trip days show on the calendar in place of the games missed.
+              ...tripDays.map((trip) => ({ id: `trip-${trip.date}`, date: trip.date, team: trip.title, label: trip.label || trip.title, source: "official" as const })),
+            ]}
             defaultTeam={readAthleteProfile(state.profile).team}
             currentWeek={today.selectedWeek}
             selectedWeek={selectedWeek}
