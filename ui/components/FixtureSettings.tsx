@@ -131,7 +131,9 @@ export function FixtureSettings({
                   <strong>{fixture.label}</strong>
                   <small>
                     {format(fixture.date)} · {fixture.team} ·{" "}
-                    {mine
+                    {fixture.id.startsWith("trip-")
+                      ? "away on a trip"
+                      : mine
                       ? "you entered this"
                       : fixture.source === "athlete-provided"
                         ? "supplied earlier, built in"
@@ -153,7 +155,7 @@ export function FixtureSettings({
                     Remove
                   </button>
                 ) : (
-                  <span className="fixture-source">{fixture.source === "official" ? "Draw" : "Built in"}</span>
+                  <span className="fixture-source">{fixture.id.startsWith("trip-") ? "Trip" : fixture.source === "official" ? "Draw" : "Built in"}</span>
                 )}
               </li>
             );
