@@ -16,6 +16,8 @@ export interface EventGame {
   label: string;
   /** The player's pitching line from the game's box score, once it is played. */
   outing?: EventOuting;
+  /** Set on a trip day, which is not a game: how much training the day has room for. */
+  trip?: string;
 }
 
 /** A pitching line, as the box score gives it. Absent fields stay absent, not zero. */
@@ -132,6 +134,7 @@ export function readPlayerEvents(value: unknown): PlayerEvent[] {
             {
               date: g.date as IsoDate,
               label: typeof g.label === "string" ? g.label.slice(0, 80) : "Game",
+              ...(typeof g.trip === "string" ? { trip: g.trip } : {}),
               ...(readOuting(g.outing) ? { outing: readOuting(g.outing)! } : {}),
             },
           ]
@@ -165,6 +168,8 @@ export function withPlayerEvents(
   let updated = 0;
   for (const event of events) {
     event.games.forEach((game, index) => {
+      // A trip day is not a game; see travel.ts.
+      if (game.trip) return;
       const id = `event-${event.id}-${index}`;
       const fixture = { id, date: game.date, team: event.title, label: `${event.title}: ${game.label}` };
       const at = current.findIndex((entry) => idOf(entry) === id);
