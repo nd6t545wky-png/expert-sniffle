@@ -271,7 +271,7 @@ export function DailyPlan({
       {sidePanel ? (
         <PageHead
           eyebrow={`${weekLabel ?? `${day ?? ""} · Session`}${
-            day && isHighIntentDay(day) ? " · High-intent day" : ""
+            day && isHighIntentDay(day) && !/^(Trip|Travel) Day/.test(sessionTitle ?? "") ? " · High-intent day" : ""
           }`}
           title={sessionTitle || "Today's session"}
           intro={sessionDescription || formatIsoDate(date)}
@@ -288,7 +288,7 @@ export function DailyPlan({
             <div>
               <p className="eyebrow">
                 {formatIsoDate(date)}
-                {day && isHighIntentDay(day) ? " · High-intent day" : ""}
+                {day && isHighIntentDay(day) && !/^(Trip|Travel) Day/.test(sessionTitle ?? "") ? " · High-intent day" : ""}
               </p>
               <h2>{(sessionTitle || "Today's session").replace(/^[A-Za-z]+ · /, "")}</h2>
               {team && <span className="team-wordmark">{team.name}</span>}

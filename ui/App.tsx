@@ -74,6 +74,7 @@ import { asPositionPlayer } from "../src/domain/positionPlayer";
 import { knownTeam, readTeamColours, teamThemeVars } from "../src/domain/teamColours";
 import { readSchedule } from "../src/domain/weeklySchedule";
 import { readPlayerEvents, withEventOutings, withPlayerEvents } from "../src/domain/playerEvents";
+import { readTripDays, travelSession, tripDaysFromEvents } from "../src/domain/travel";
 import { HittingGame, readHittingGames } from "../src/domain/hitting";
 import { BattingLine } from "../src/domain/ballclubz";
 import { leagueTeam } from "../src/domain/leagues";
@@ -562,9 +563,11 @@ export function App() {
    * week and day, and keeping it that way is what makes the sessions testable
    * without a store behind them.
    */
+  // Days away on a trip: no games, and a travel session in place of the plan.
+  const tripDays = useMemo(() => readTripDays((state?.profile as { tripDays?: unknown } | undefined)?.tripDays), [state?.profile]);
   const gameOn = useCallback(
-    (on: IsoDate) => fixtureOn(on, fixtures) !== null,
-    [fixtures]
+    (on: IsoDate) => fixtureOn(on, fixtures) !== null && !tripDays.some((trip) => trip.date === on),
+    [fixtures, tripDays]
   );
 
   /**
@@ -804,7 +807,8 @@ export function App() {
         submission?.planLevel === "reduced" || submission?.planLevel === "recovery"
           ? submission.planLevel
           : null;
-      const programmed = applyBaselineProgramming(
+      const tripDay = tripDays.find((trip) => trip.date === date);
+      const programmed = tripDay ? travelSession(selectedWeekPlan, selectedDay, tripDay, submission?.risk === "red") : applyBaselineProgramming(
         buildSession(selectedWeekPlan, selectedDay, {
           risk: submission?.risk,
           adjustment: submission
@@ -849,7 +853,8 @@ export function App() {
       // Club training goes in before recovery and soreness, so both of those
       // see the day as it will actually be trained. A Tuesday that now carries
       // Cubs practice is not the Tuesday the programme costed.
-      const team = applyTeamTraining(programmed, {
+      // No club training on a trip.
+      const team = tripDay ? { session: programmed, note: null } : applyTeamTraining(programmed, {
         day: selectedDay,
         date,
         settings: teamTraining,
@@ -900,6 +905,7 @@ export function App() {
     tasksOn,
     resolvedOn,
     gameOn,
+    tripDays,
     gamesInWeekOf,
     playerRole,
     scheduleForWeek,
@@ -1656,9 +1662,13 @@ export function App() {
       .myEvents()
       .then((result) => {
         const events = readPlayerEvents(result.events);
+        const trips = tripDaysFromEvents(result.events);
         update((draft) => {
           const profile = (draft.profile ?? {}) as Record<string, unknown>;
           const merged = withPlayerEvents(profile.fixtures, events);
+          if (JSON.stringify(readTripDays(profile.tripDays)) !== JSON.stringify(trips)) {
+            draft = { ...draft, profile: { ...profile, tripDays: trips } };
+          }
           // The pitching lines from those games, once played, go in the game log.
           const lines = withEventOutings(readGames(draft.games), events);
           const fixturesChanged = merged.added || merged.removed || merged.updated;
@@ -1666,7 +1676,7 @@ export function App() {
           if (!fixturesChanged && !gamesChanged) return draft;
           return {
             ...draft,
-            ...(fixturesChanged ? { profile: { ...profile, fixtures: merged.fixtures } } : {}),
+            ...(fixturesChanged ? { profile: { ...((draft.profile ?? {}) as object), fixtures: merged.fixtures } } : {}),
             ...(gamesChanged ? { games: lines.games } : {}),
           };
         });
