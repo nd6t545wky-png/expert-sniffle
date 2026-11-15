@@ -53,7 +53,10 @@
   },
 
   "vars": {
-    "APP_ORIGIN": "https://dylan-pitching-os.tourmaline-goldfish.workers.dev"
+    "APP_ORIGIN": "https://dylan-pitching-os.tourmaline-goldfish.workers.dev",
+    // The owner's account (invites, player list). An identifier, not a
+    // credential; pinned so the role cannot pass to another account.
+    "OWNER_USER_ID": "a3eSxvIVnhxVZaj6PYgbh5FPKZjHNKjd"
   },
 
   "d1_databases": [

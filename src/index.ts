@@ -2792,6 +2792,9 @@ async function ensureInvitesTable(env: Env): Promise<void> {
 
 /** The owner: whoever made the first workspace. Null before anyone has. */
 async function ownerUserId(env: Env): Promise<string | null> {
+  // Pinned where set. Without the pin the owner is the oldest account, so
+  // deleting the owner's account would hand the role to the next oldest.
+  if (env.OWNER_USER_ID) return env.OWNER_USER_ID;
   const row = await env.SYNC_DB.prepare("SELECT user_id FROM account_workspaces ORDER BY created_at ASC LIMIT 1").first<{
     user_id: string;
   }>();

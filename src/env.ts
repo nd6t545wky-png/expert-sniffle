@@ -17,6 +17,8 @@ export interface Env {
 
   // Config
   APP_ORIGIN: string;
+  /** The owner's user id. An identifier, not a secret. Unset: the oldest account. */
+  OWNER_USER_ID?: string;
 
   // Secrets - set with `wrangler secret put <NAME>`, never commit values
   BETTER_AUTH_SECRET: string;
